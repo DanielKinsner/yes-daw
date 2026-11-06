@@ -1,0 +1,208 @@
+{
+  "status": "COMPLETE_FINITE_SOURCE_PROPOSAL_PENDING_INDEPENDENT_NUMERIC_REVIEW_UNBOUND_UNRUN_RESOURCE_NATIVE_HOLD",
+  "root": {
+    "same_root_physical_fixed_constant_B_d": [
+      51747,
+      9,
+      8
+    ],
+    "no_state_constant_B_d": [
+      6896,
+      9,
+      0
+    ],
+    "postcapture_fixed": 6446,
+    "failed_initial_tail": 4138,
+    "failed_next_tail": 2675,
+    "fixed_physical_prefix_constant_B_d": [
+      12377,
+      9,
+      0
+    ],
+    "perSearchRow_constant_d": [
+      970,
+      2
+    ],
+    "perMapRow_constant_d": [
+      608,
+      1
+    ],
+    "variableCaptureFixed_constant_d": [
+      3048,
+      1
+    ],
+    "needed": "variableCaptureFixed + (clipCount+assetCount)*perSearchRow + R*perMapRow + mapCleanup + parentCleanup",
+    "branch_expansions": {
+      "snapshot": 2408,
+      "map_loop_fixed": 411,
+      "map_allocate": 645,
+      "map_test": 733,
+      "product": 835,
+      "extent": 943,
+      "layout": 1076,
+      "source": 1176,
+      "metadata_options_parents": 2042,
+      "search_fixed_each": 372,
+      "asset_fixed": 2414,
+      "clip_fixed": 2786
+    },
+    "root_dependency": "literal helpers -> Site prices -> body schedules/drop/check/roles -> rootEnvelope. Capture/query/semantic amount reserves occur only after fixed root funds exist and each full cap scan succeeds. No Site invokes its own price derivation and no Data runtime factory is proposed.",
+    "root_role_equation": "physicalFixedPrefix + StateCleanup + CaptureCheck + ControlRole + WorkerRole + RetainedRole + ReaderRole + ResultRole + LegacyFixed + LegacyCheck + LegacyCleanup",
+    "capture_invocations": "Exactly one capture attempt per genuine new Origin. Count guards are not actual visits. Found/missing/invalid prefixes and two lookup loops preserve old closed scheduling; LegacyCaptureOptions123 is inserted once before parents/capture on successful lookup.",
+    "check": "Current 443-cell Bounds is immutable future literal input, not a new action allowance. Original failure-root logical reservation is held before all incoming parameter/member writes."
+  },
+  "query": [
+    {
+      "count": "1",
+      "unit_field": "pendingWindowQueryFixed",
+      "derived_price": [
+        161638,
+        0,
+        1
+      ]
+    },
+    {
+      "count": "P",
+      "unit_field": "pendingWindowQueryPerPrefix",
+      "derived_price": [
+        10924,
+        0,
+        0
+      ]
+    },
+    {
+      "count": "2*b",
+      "unit_field": "pendingWindowQueryPerSearch",
+      "derived_price": [
+        308,
+        0,
+        0
+      ]
+    },
+    {
+      "count": "E",
+      "unit_field": "OldQueryCatalogue.appendCeiling",
+      "derived_price": [
+        94,
+        0,
+        0
+      ]
+    },
+    {
+      "count": "1",
+      "unit_field": "OldQueryCatalogue.queryCeilingFixed",
+      "derived_price": [
+        970,
+        0,
+        0
+      ]
+    },
+    {
+      "count": "b",
+      "unit_field": "OldQueryCatalogue.queryCeilingPerBit",
+      "derived_price": [
+        72,
+        0,
+        0
+      ]
+    },
+    {
+      "count": "1",
+      "unit_field": "pendingNativeMatchFixed",
+      "derived_price": [
+        129332,
+        0,
+        0
+      ]
+    },
+    {
+      "count": "M",
+      "unit_field": "pendingNativeMatchPerRegion",
+      "derived_price": [
+        963,
+        0,
+        1
+      ]
+    },
+    {
+      "count": "D",
+      "unit_field": "pendingNativeMatchPerRegion",
+      "derived_price": [
+        963,
+        0,
+        1
+      ]
+    },
+    {
+      "count": "L",
+      "unit_field": "pendingNativeMatchPerPage",
+      "derived_price": [
+        1061,
+        0,
+        2
+      ]
+    },
+    {
+      "count": "A",
+      "unit_field": "pendingNativeMatchPerPage",
+      "derived_price": [
+        1061,
+        0,
+        2
+      ]
+    },
+    {
+      "count": "L",
+      "unit_field": "pendingNativeMatchPerByte",
+      "derived_price": [
+        327,
+        0,
+        1
+      ]
+    }
+  ],
+  "fixed_budgets": {
+    "LegacyFixed": [
+      24449,
+      0,
+      5
+    ],
+    "LegacyCheck": [
+      2724,
+      0,
+      0
+    ],
+    "LegacyCleanup": [
+      1997,
+      0,
+      0
+    ],
+    "ControlRole": [
+      4757,
+      0,
+      0
+    ],
+    "WorkerOrReaderRole": [
+      874,
+      0,
+      0
+    ],
+    "RetainedRole": [
+      1213,
+      0,
+      0
+    ],
+    "ResultRole": [
+      758,
+      0,
+      0
+    ]
+  },
+  "Q_examples": {
+    "0": 11804006,
+    "1": 11804882,
+    "2": 11816588,
+    "64": 12503144,
+    "1024": 23083176
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "schema": "R4_GETTER_RETURN_CASE_INDEPENDENT_SOURCE_AUDIT_V1",
+  "vector_order": [
+    "R",
+    "W",
+    "C",
+    "X",
+    "LE",
+    "H",
+    "Z",
+    "O",
+    "A",
+    "F"
+  ],
+  "owned_two_cell_cases": [
+    {
+      "site": "LegacyRequestBytes",
+      "ordinal": 168,
+      "caller": "legacy-adapter.h:322",
+      "getter": "MusicalAudioClock::limits",
+      "definition": "src/engine/MusicalAudioWindow.h:163",
+      "return_type": "MusicalAudioLimits",
+      "kind": "data-member lvalue copy",
+      "scalar_cells": 2
+    },
+    {
+      "site": "LegacyPlanPreflight",
+      "ordinal": 175,
+      "caller": "legacy-adapter.h:390",
+      "getter": "MusicalAudioChannelRequest::policy",
+      "definition": "src/engine/MusicalAudioChannelPlan.h:101",
+      "return_type": "MusicalAudioChannelPolicy",
+      "kind": "data-member lvalue copy",
+      "scalar_cells": 2
+    },
+    {
+      "site": "LegacyPlanOwner",
+      "ordinal": 176,
+      "caller": "legacy-adapter.h:396",
+      "getter": "MusicalAudioChannelRequest::mappedWindow",
+      "definition": "src/engine/MusicalAudioChannelPlan.h:100",
+      "return_type": "ViewWindow",
+      "kind": "data-member lvalue copy",
+      "scalar_cells": 2
+    },
+    {
+      "site": "LegacyPlanBytes",
+      "ordinal": 179,
+      "caller": "legacy-adapter.h:407",
+      "getter": "MusicalAudioClock::limits",
+      "definition": "src/engine/MusicalAudioWindow.h:163",
+      "return_type": "MusicalAudioLimits",
+      "kind": "data-member lvalue copy",
+      "scalar_cells": 2
+    },
+    {
+      "site": "LegacyPlanBytes",
+      "ordinal": 179,
+      "caller": "legacy-adapter.h:408",
+      "getter": "MusicalAudioChannelRequest::limits",
+      "definition": "src/engine/MusicalAudioChannelPlan.h:104",
+      "return_type": "MusicalAudioLimits",
+      "kind": "data-member lvalue copy",
+      "scalar_cells": 2
+    },
+    {
+      "site": "QueryPredictionEndpoints",
+      "ordinal": 343,
+      "caller": "window-query.h:950",
+      "getter": "MusicalAudioClock::limits",
+      "definition": "src/engine/MusicalAudioWindow.h:163",
+      "return_type": "MusicalAudioLimits",
+      "kind": "data-member lvalue copy",
+      "scalar_cells": 2
+    }
+  ],
+  "span_cases": [
+    {
+      "site": "LegacyClockCumulative",
+      "ordinal": 162,
+      "caller": "legacy-adapter.h:273",
+      "definition": "src/engine/MusicalAudioWindow.h:162",
+      "result": "std::span<const TempoChange> by-value from rows_ vector",
+      "caller_W_ownership": "W5 = stored local1 + two counter writes2 + two observation stores2; no span result cells."
+    },
+    {
+      "site": "QueryPredictionEndpoints",
+      "ordinal": 343,
+      "caller": "window-query.h:949",
+      "definition": "src/engine/MusicalAudioWindow.h:162",
+      "result": "std::span<const TempoChange> by-value from rows_ vector",
+      "caller_W_ownership": "W31 = at,prefix,threshold,eligible,rate5 + two13-cell Endpoint value-inits26; no span result cells. Its separate GetterTwo is limits() at950."
+    }
+  ],
+  "owned_value_getter_necessary_vector": [
+    2,
+    2,
+    0,
+    0,
+    0,
+    2,
+    2,
+    0,
+    0,
+    0
+  ],
+  "span_getter_necessary_vector": [
+    2,
+    2,
+    0,
+    0,
+    0,
+    2,
+    2,
+    0,
+    0,
+    0
+  ],
+  "same_vector_different_source_cases": true,
+  "why": "Own engine getter H/Z plus actual selected copy or converting span constructor H/Z. Copy result scalar R2/W2 once; span logical base/extent R2 and result W2 once. Mandatory prvalue elision removes no copy from an existing member lvalue and creates no second result copy. No vector referent copy or SDK forwarding/internal-address expansion.",
+  "span_selected_source": "MSVC14.44.35207/include/span:341-350; _Mybase receives ranges::data and ranges::size. Dynamic extent skips the static-extent verification arm.",
+  "rate_case": "No sampleRate() call in these new two locations: QueryPredictionEndpoints rate at951 is s.metadata().projectRate.hz. Other GetterScalar uses are scalar values; actual reference getters remain reference cases.",
+  "scalar_destinations_not_added_twice": true,
+  "existing_Math1_EXT3_caller_selectors_retained": true,
+  "old190_changed": false,
+  "subject_changed": false
+}

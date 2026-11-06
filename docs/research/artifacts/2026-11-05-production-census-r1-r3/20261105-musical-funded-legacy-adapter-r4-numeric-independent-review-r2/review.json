@@ -1,0 +1,1098 @@
+{
+  "schema": "YESDAW_PRODUCTION_R4_CENSUS_R2_WHOLE_NUMERIC_INDEPENDENT_REVIEW_V1",
+  "date": "2026-11-05",
+  "reviewer": "/root/clock_r9_numeric_review",
+  "verdict": "REVISE_WHOLE_R2_23_BODY_CALLER_PACKETS",
+  "subject_seals": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-census-r2/census.md",
+      "bytes": 51428,
+      "sha256": "E2D319E6CF91F511C368DECB69810E9EAF185E158CD8C84A9C833D6A9BCB82FF"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-census-r2/census.json",
+      "bytes": 671612,
+      "sha256": "8E513B29752936B4CF5E5B2FBA46C936A91396C03F77B9F3ACA03D3BA2FD55C1"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-census-r2/source-pins.json",
+      "bytes": 6913,
+      "sha256": "7020AFCBEE46E5A66D5369D760D4CC0A7C4021BA14D7AED788C84A4DC6E58065"
+    }
+  ],
+  "contract": "PRODUCTION404E214B/709B8A43_NOT_RESEARCH",
+  "scope": "Fresh whole source/data census critic; all420/51/38/12/190 coverage considered. Prior R1 price identity is not a certificate. No positive certificate is issued for unblocked literal source prices.",
+  "prior_R1_fixes": "All six getter-related Site revisions match the prior independent necessary corrections; GetterTwo and distinct ReturnSpanValue cases now retain their actual selected copy/construction and caller destination ownership.",
+  "blocking_findings": {
+    "affected_sites": 23,
+    "operand_ledgers": "evidence/source-ledgers.json",
+    "unsupported_caller_reads": [
+      "LegacyClockCommitInvoke",
+      "LegacyRequestCommitInvoke",
+      "LegacyPlanCommitInvoke"
+    ],
+    "unsupported_write_or_duplicate_selector": [
+      "LegacyQueryReserve",
+      "LegacyWorkerCaller"
+    ],
+    "missing_adapter_designator_arithmetic_operations": [
+      "LegacyAttemptPrepare",
+      "LegacyAttemptLimit",
+      "LegacyClockReturned",
+      "LegacyClockException",
+      "LegacyRequestPreflight",
+      "LegacyRequestBytes",
+      "LegacyRequestReturned",
+      "LegacyRequestException",
+      "LegacyPlanExtent",
+      "LegacyPlanProduct",
+      "LegacyPlanBytes",
+      "LegacyPlanReturned",
+      "LegacyPlanFullScan",
+      "LegacyPlanException"
+    ],
+    "missing_query_caller_or_guard_work": [
+      "QueryEntry",
+      "QueryEndpointMap",
+      "QueryEndpointPartial",
+      "QueryPredictionEndpoints"
+    ]
+  },
+  "necessary_site_corrections_if_other_components_retained": [
+    {
+      "ordinal": 146,
+      "site": "LegacyQueryReserve",
+      "delta_vector": [
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        101,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        100,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        28,
+        12,
+        5,
+        35,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 153,
+      "site": "LegacyAttemptPrepare",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        118,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        119,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        33,
+        18,
+        7,
+        41,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 154,
+      "site": "LegacyAttemptLimit",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        141,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        142,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        48,
+        22,
+        9,
+        39,
+        0,
+        12,
+        12,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 159,
+      "site": "LegacyClockCommitInvoke",
+      "delta_vector": [
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        174,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        173,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        48,
+        26,
+        3,
+        66,
+        0,
+        15,
+        15,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 160,
+      "site": "LegacyClockReturned",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        106,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        107,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        29,
+        15,
+        5,
+        40,
+        0,
+        9,
+        9,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 163,
+      "site": "LegacyClockException",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        100,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        101,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        27,
+        14,
+        3,
+        39,
+        0,
+        9,
+        9,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 167,
+      "site": "LegacyRequestPreflight",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        122,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        123,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        28,
+        15,
+        5,
+        47,
+        0,
+        14,
+        14,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 168,
+      "site": "LegacyRequestBytes",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        146,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        147,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        44,
+        20,
+        7,
+        40,
+        0,
+        18,
+        18,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 170,
+      "site": "LegacyRequestCommitInvoke",
+      "delta_vector": [
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        195,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        194,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        56,
+        33,
+        3,
+        70,
+        0,
+        16,
+        16,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 171,
+      "site": "LegacyRequestReturned",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        119,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        120,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        31,
+        18,
+        4,
+        47,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 174,
+      "site": "LegacyRequestException",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        99,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        100,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        27,
+        14,
+        3,
+        38,
+        0,
+        9,
+        9,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 177,
+      "site": "LegacyPlanExtent",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        112,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        114,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        33,
+        12,
+        6,
+        39,
+        0,
+        12,
+        12,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 178,
+      "site": "LegacyPlanProduct",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        131,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        133,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        38,
+        12,
+        6,
+        45,
+        0,
+        16,
+        16,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 179,
+      "site": "LegacyPlanBytes",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        172,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        173,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        52,
+        24,
+        8,
+        43,
+        0,
+        23,
+        23,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 182,
+      "site": "LegacyPlanCommitInvoke",
+      "delta_vector": [
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        163,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        162,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        45,
+        22,
+        3,
+        66,
+        0,
+        13,
+        13,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 183,
+      "site": "LegacyPlanReturned",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        126,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        127,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        33,
+        18,
+        6,
+        50,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 186,
+      "site": "LegacyPlanFullScan",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        118,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        119,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        30,
+        17,
+        3,
+        51,
+        0,
+        9,
+        9,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 187,
+      "site": "LegacyPlanException",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        99,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        100,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        27,
+        14,
+        3,
+        38,
+        0,
+        9,
+        9,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 189,
+      "site": "LegacyWorkerCaller",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        105,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        104,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        27,
+        12,
+        4,
+        39,
+        0,
+        11,
+        11,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 275,
+      "site": "QueryEntry",
+      "delta_vector": [
+        3,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        147,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        151,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        32,
+        31,
+        5,
+        51,
+        0,
+        16,
+        16,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 308,
+      "site": "QueryEndpointMap",
+      "delta_vector": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        107,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        108,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        34,
+        13,
+        5,
+        38,
+        0,
+        9,
+        9,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 309,
+      "site": "QueryEndpointPartial",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        113,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        114,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        33,
+        14,
+        7,
+        40,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 343,
+      "site": "QueryPredictionEndpoints",
+      "delta_vector": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        176,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        178,
+        0,
+        1
+      ],
+      "necessary_vector_if_other_components_retained": [
+        40,
+        49,
+        6,
+        45,
+        0,
+        19,
+        19,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "necessary_schedule_corrections_if_other_components_retained": [
+    {
+      "schedule": "EndpointFixed",
+      "delta": 2,
+      "sealed_price": [
+        63271,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        63273,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "PredictFixed",
+      "delta": 6,
+      "sealed_price": [
+        146073,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        146079,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "ResolveFixed",
+      "delta": 10,
+      "sealed_price": [
+        154189,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        154199,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "QueryNewFixed",
+      "delta": 10,
+      "sealed_price": [
+        161638,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        161648,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "LegacyFixed",
+      "delta": 15,
+      "sealed_price": [
+        24449,
+        0,
+        5
+      ],
+      "necessary_price_if_other_components_retained": [
+        24464,
+        0,
+        5
+      ]
+    }
+  ],
+  "necessary_conditional_examples_if_other_components_retained": {
+    "root": [
+      51762,
+      9,
+      8
+    ],
+    "Q_for_R": {
+      "0": 11804016,
+      "1": 11804892,
+      "2": 11816598,
+      "64": 12503154,
+      "1024": 23083186
+    },
+    "source_upper_excluding_N_term": 11905976,
+    "C1_N1": 11906000,
+    "C1_max_N": 10688728,
+    "C2_max_N": 6413237,
+    "scope": "Necessary conditional data arithmetic only; no price acceptance or fit/binding credit."
+  },
+  "source_audit_families": [
+    "Complete original formation/root/capture/search/cleanup/roles, current aggregate sizes and changed initialization/copy paths",
+    "All adapter preflight/budget/prepare/commit/cumulative/return/catch/cancellation branches",
+    "All stage and output raw-owner constructors/destructors; result Cell/Take/publish/drop; actual prebody DMIs",
+    "Every query vector/sum/record/callee preparation/commit, search/prefix/classifier/endpoint/prediction/reconciliation path and caller case",
+    "Six native leaves, all native scope/identity/check/restoration paths, all57 matcher/access source Sites and finite positive-progress bounds"
+  ],
+  "phase_and_lifetime_review": "Root/legacyFixed/legacyCheck/query/callee/attempt/cleanup ownership remains disjoint in design; source invoice errors cannot be repaired by moving reserve or using874 slack. All five role schedules coexist over the full allowed lifetime and preserve sequential Result then Retained/Reader. Repeated restoration precheck/refusal paths remain included.",
+  "old_callee": "Exact190 rows,78 compositions,13 templates and unchanged semantic three-builder fees remain separate; none is modified to repair newly authored source.",
+  "mechanical_checks": {
+    "count": 2840,
+    "categories": {
+      "seal": 3,
+      "pin": 31,
+      "inventory": 1,
+      "source_inventory": 1,
+      "prior_findings": 3,
+      "helper_arithmetic": 51,
+      "helper_coefficient": 612,
+      "event_factorization": 420,
+      "event_scalar_sums": 420,
+      "event_nonnegative": 420,
+      "schedule_arithmetic": 38,
+      "schedule_scope": 38,
+      "MD_JSON": 3,
+      "MD_event": 420,
+      "MD_helper": 51,
+      "MD_schedule": 38,
+      "old_catalogue": 3,
+      "old_row_sum": 190,
+      "old_composition": 78,
+      "root_arithmetic": 1,
+      "copy_cells": 4,
+      "explicit_max_alternative": 6,
+      "quote": 1,
+      "conditional_example": 5,
+      "necessary_delta": 2
+    },
+    "all_pass": true,
+    "meaning": "Stored arithmetic and identities reproduce, while source statement counts require revision."
+  },
+  "supported_max_cases_not_findings": {
+    "QueryVectorEntry": "Direct two-path-reference/default1 caller case costs98; packet named-times case costs97 and explicitly has one caller R. Scalar max98 is source-supported. Do not add a duplicate times R to Packet.",
+    "NativeComparedByte": "Continue104 dominates mismatch101; fixed match-refusal+reject tail remains held.",
+    "PrefixIteration": "Failed returned-bool branch92 plus reject116 dominates successful continuation95.",
+    "roles": "Drain120 dominates Current113 and AcquireReader118 dominates AbortReader116; all five whole-lifetime roles remain held."
+  },
+  "required_next_hypothesis": "Use the explicit per-statement operand ownership ledgers, rebuild the complete census rather than apply an aggregate correction, and obtain a fresh whole numeric review before any immutable source-price/Data binding.",
+  "source_and_subject_preservation": true,
+  "remaining_unqualified": [
+    "All420 accepted literal source prices and complete corrected same-Origin inequalities",
+    "B/d exact selected-type identity and source/profile association; R5 size table is current selected evidence only",
+    "Full native physical/stack/storage/control-block/lifetime/overlap and opaque CPU/allocator/resource cap proof",
+    "Native module/dependency/dispatch/control/store/handler/observer/library/FP/interval and all-input forward facts",
+    "Immutable Catalogue/NativeBinding definitions, independent whole actual combined API proof and separate query/renderer/Ready/GO admission"
+  ],
+  "operations": {
+    "ordinary_source_file_JSON_hash_integer_only": true,
+    "own_arithmetic_checker": true,
+    "author_helpers_imported_or_executed": false,
+    "target_PS_parser_AST_import": false,
+    "target_helpers_compiler_linker_program_tests_stages": false,
+    "native_API_GUI_audio_Git_CI": false,
+    "subject_edits": false
+  },
+  "evidence": [
+    "evidence/check_packet.py",
+    "evidence/packet-checks.json",
+    "evidence/source-ledgers.json"
+  ]
+}

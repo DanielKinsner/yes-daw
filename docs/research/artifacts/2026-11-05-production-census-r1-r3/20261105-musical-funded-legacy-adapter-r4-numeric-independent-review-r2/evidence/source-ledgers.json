@@ -1,0 +1,723 @@
+{
+  "schema": "R4_CENSUS_R2_INDEPENDENT_SOURCE_OPERAND_LEDGERS_V1",
+  "vector_order": [
+    "R",
+    "W",
+    "C",
+    "X",
+    "LE",
+    "H",
+    "Z",
+    "O",
+    "A",
+    "F"
+  ],
+  "subject_manifest_sha256": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077",
+  "scope": "Statement-level independent witnesses for23 incorrect Site body packets; signed changes do not alter any subject and are not a whole replacement acceptance.",
+  "ledgers": [
+    {
+      "site": "LegacyQueryReserve",
+      "ordinal": 146,
+      "component": "W",
+      "sealed_body_component": 1,
+      "necessary_body_component": 0,
+      "parts": [
+        {
+          "source_operation": "U64 amount; default-initializes no scalar value",
+          "count": 0
+        },
+        {
+          "source_operation": "actual amount=0 first write belongs to QueryQuote",
+          "count": 0
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:143-157",
+      "basis": "No body assignment or other scalar destination exists here; reference binding is not a scalar write."
+    },
+    {
+      "site": "LegacyClockCommitInvoke",
+      "ordinal": 159,
+      "component": "R",
+      "sealed_body_component": 6,
+      "necessary_body_component": 5,
+      "parts": [
+        {
+          "source_operation": "map value input cells",
+          "count": 2
+        },
+        {
+          "source_operation": "rate value input cell",
+          "count": 1
+        },
+        {
+          "source_operation": "prepared.limits input cells",
+          "count": 2
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:247-249",
+      "basis": "commitPrepared takes PreparedAttempt by const reference. There is no prepared-fee scalar caller transfer; all body reads remain in CommitPrepared."
+    },
+    {
+      "site": "LegacyRequestCommitInvoke",
+      "ordinal": 170,
+      "component": "R",
+      "sealed_body_component": 14,
+      "necessary_body_component": 13,
+      "parts": [
+        {
+          "source_operation": "mapped value cells",
+          "count": 2
+        },
+        {
+          "source_operation": "tier scalar",
+          "count": 1
+        },
+        {
+          "source_operation": "identity value cells",
+          "count": 6
+        },
+        {
+          "source_operation": "policy value cells",
+          "count": 2
+        },
+        {
+          "source_operation": "prepared.limits value cells",
+          "count": 2
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:350-354",
+      "basis": "commitPrepared takes PreparedAttempt by const reference. There is no prepared-fee scalar caller transfer; all body reads remain in CommitPrepared."
+    },
+    {
+      "site": "LegacyPlanCommitInvoke",
+      "ordinal": 182,
+      "component": "R",
+      "sealed_body_component": 3,
+      "necessary_body_component": 2,
+      "parts": [
+        {
+          "source_operation": "prepared.limits input cells",
+          "count": 2
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:433-435",
+      "basis": "commitPrepared takes PreparedAttempt by const reference. There is no prepared-fee scalar caller transfer; all body reads remain in CommitPrepared."
+    },
+    {
+      "site": "LegacyWorkerCaller",
+      "ordinal": 189,
+      "component": "X",
+      "sealed_body_component": 5,
+      "necessary_body_component": 4,
+      "parts": [
+        {
+          "source_operation": "context.state_ selection and explicit dereference",
+          "count": 2
+        },
+        {
+          "source_operation": "owner.resultLive_ selection",
+          "count": 1
+        },
+        {
+          "source_operation": "owner.result() member call selector",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:539-548",
+      "basis": "ReceiveWorker concrete caller case already owns owner.receiveWorker. Class-qualified static Adapter::run adds no selector; no referent read is invented."
+    },
+    {
+      "site": "LegacyAttemptPrepare",
+      "ordinal": 153,
+      "component": "X",
+      "sealed_body_component": 8,
+      "necessary_body_component": 9,
+      "parts": [
+        {
+          "source_operation": "named stage-to-size_t nonidentity cast",
+          "count": 1
+        },
+        {
+          "source_operation": "s.raw_.legacy.invocations[index] designators",
+          "count": 4
+        },
+        {
+          "source_operation": "s.legacyAttempt_[index].remaining designators",
+          "count": 3
+        },
+        {
+          "source_operation": "eager bitwise OR",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:165-173",
+      "basis": "Builtin indexing and every written nested member selection each retain X; the named enum cast is not a constant-only expression."
+    },
+    {
+      "site": "LegacyAttemptLimit",
+      "ordinal": 154,
+      "component": "X",
+      "sealed_body_component": 6,
+      "necessary_body_component": 7,
+      "parts": [
+        {
+          "source_operation": "workCap-existingTotal",
+          "count": 1
+        },
+        {
+          "source_operation": "s.legacyEnteredContribution_ selection",
+          "count": 1
+        },
+        {
+          "source_operation": "workCap-headroom",
+          "count": 1
+        },
+        {
+          "source_operation": "existingLegacy+headroom",
+          "count": 1
+        },
+        {
+          "source_operation": "c.requested.maxWorkUnits selections",
+          "count": 2
+        },
+        {
+          "source_operation": "final eager OR",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:174-186",
+      "basis": "Minimum helper operations remain in the three Minimum helpers; these seven operations are outside them."
+    },
+    {
+      "site": "LegacyClockReturned",
+      "ordinal": 160,
+      "component": "X",
+      "sealed_body_component": 7,
+      "necessary_body_component": 8,
+      "parts": [
+        {
+          "source_operation": "s.raw_.legacy.returned[0]+=1",
+          "count": 5
+        },
+        {
+          "source_operation": "result.clockStatusKnown destination",
+          "count": 1
+        },
+        {
+          "source_operation": "result.clockStatus destination",
+          "count": 1
+        },
+        {
+          "source_operation": "native.check() selector",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:250-254",
+      "basis": "The constant builtin subscript and the object member-call selector are reached operations."
+    },
+    {
+      "site": "LegacyClockException",
+      "ordinal": 163,
+      "component": "X",
+      "sealed_body_component": 6,
+      "necessary_body_component": 7,
+      "parts": [
+        {
+          "source_operation": "s.raw_.legacy.exceptions[0]+=1",
+          "count": 5
+        },
+        {
+          "source_operation": "result.outcome destination",
+          "count": 1
+        },
+        {
+          "source_operation": "discarded native.check() selector",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:280-284",
+      "basis": "Discarding the boolean does not remove the actual member selector; no extra condition is charged for this discarded result."
+    },
+    {
+      "site": "LegacyRequestPreflight",
+      "ordinal": 167,
+      "component": "X",
+      "sealed_body_component": 8,
+      "necessary_body_component": 9,
+      "parts": [
+        {
+          "source_operation": "result.stage destination",
+          "count": 1
+        },
+        {
+          "source_operation": "s.legacyOptions() selector",
+          "count": 1
+        },
+        {
+          "source_operation": "artifacts.window_.value() selectors",
+          "count": 2
+        },
+        {
+          "source_operation": "two options.policy field chains",
+          "count": 4
+        },
+        {
+          "source_operation": "eager OR",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:312-317",
+      "basis": "Raw Access helper bodies exclude these written callers; both policy operands execute."
+    },
+    {
+      "site": "LegacyRequestBytes",
+      "ordinal": 168,
+      "component": "X",
+      "sealed_body_component": 5,
+      "necessary_body_component": 6,
+      "parts": [
+        {
+          "source_operation": "two retainedWindow.clock() selectors",
+          "count": 2
+        },
+        {
+          "source_operation": "c.byteLimit and clockLimits.maxReservedBytes",
+          "count": 2
+        },
+        {
+          "source_operation": "byteLimit-minus-minimum subtraction",
+          "count": 1
+        },
+        {
+          "source_operation": "eager OR",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:321-328",
+      "basis": "ARROW_HANDLE already represents each written arrow once. Neither a second arrow selector nor SDK forwarding internals is added."
+    },
+    {
+      "site": "LegacyRequestReturned",
+      "ordinal": 171,
+      "component": "X",
+      "sealed_body_component": 14,
+      "necessary_body_component": 15,
+      "parts": [
+        {
+          "source_operation": "s.raw_.legacy.returned[1]+=1",
+          "count": 5
+        },
+        {
+          "source_operation": "known-status destination",
+          "count": 1
+        },
+        {
+          "source_operation": "result.requestStatus assignment destination",
+          "count": 1
+        },
+        {
+          "source_operation": "observation evidence destination",
+          "count": 3
+        },
+        {
+          "source_operation": "observation cumulative destination and RHS state field",
+          "count": 4
+        },
+        {
+          "source_operation": "status.status condition operand",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:355-361",
+      "basis": "Aggregate assignment retains its explicit destination once; no generated per-field traversal is added."
+    },
+    {
+      "site": "LegacyRequestException",
+      "ordinal": 174,
+      "component": "X",
+      "sealed_body_component": 5,
+      "necessary_body_component": 6,
+      "parts": [
+        {
+          "source_operation": "s.raw_.legacy.exceptions[1]+=1",
+          "count": 5
+        },
+        {
+          "source_operation": "result.outcome destination",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:375-378",
+      "basis": "This catch makes no native.check call; all six operations are directly written."
+    },
+    {
+      "site": "LegacyPlanExtent",
+      "ordinal": 177,
+      "component": "X",
+      "sealed_body_component": 3,
+      "necessary_body_component": 5,
+      "parts": [
+        {
+          "source_operation": "two selected field selections",
+          "count": 2
+        },
+        {
+          "source_operation": "named-channel division",
+          "count": 1
+        },
+        {
+          "source_operation": "two eager OR operations",
+          "count": 2
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:399-401",
+      "basis": "The two mapped arrows remain in ARROW_HANDLE and max() remains in MAX2."
+    },
+    {
+      "site": "LegacyPlanProduct",
+      "ordinal": 178,
+      "component": "X",
+      "sealed_body_component": 7,
+      "necessary_body_component": 9,
+      "parts": [
+        {
+          "source_operation": "three selected field selections",
+          "count": 3
+        },
+        {
+          "source_operation": "frames-minus-offset subtraction",
+          "count": 1
+        },
+        {
+          "source_operation": "interleaved.size() selector",
+          "count": 1
+        },
+        {
+          "source_operation": "frames-times-channels multiplication",
+          "count": 1
+        },
+        {
+          "source_operation": "window().inputFrames() selector",
+          "count": 1
+        },
+        {
+          "source_operation": "two eager OR operations",
+          "count": 2
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:402-405",
+      "basis": "All four arrows and the logical getter/extent bodies remain separately retained once."
+    },
+    {
+      "site": "LegacyPlanBytes",
+      "ordinal": 179,
+      "component": "X",
+      "sealed_body_component": 6,
+      "necessary_body_component": 7,
+      "parts": [
+        {
+          "source_operation": "window().clock() selector",
+          "count": 1
+        },
+        {
+          "source_operation": "three explicit fields feeding byte minimum",
+          "count": 3
+        },
+        {
+          "source_operation": "accounting().reservedBytes field",
+          "count": 1
+        },
+        {
+          "source_operation": "byteLimit-minus-minimum subtraction",
+          "count": 1
+        },
+        {
+          "source_operation": "eager OR",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:406-414",
+      "basis": "The two corrected by-value limits getters remain unchanged; this ledger is outside those helper bodies."
+    },
+    {
+      "site": "LegacyPlanReturned",
+      "ordinal": 183,
+      "component": "X",
+      "sealed_body_component": 17,
+      "necessary_body_component": 18,
+      "parts": [
+        {
+          "source_operation": "s.raw_.legacy.returned[2]+=1",
+          "count": 5
+        },
+        {
+          "source_operation": "known-status destination",
+          "count": 1
+        },
+        {
+          "source_operation": "result.planStatus assignment destination",
+          "count": 1
+        },
+        {
+          "source_operation": "observation evidence destination",
+          "count": 3
+        },
+        {
+          "source_operation": "observation cumulative destination and state RHS",
+          "count": 4
+        },
+        {
+          "source_operation": "three status.status selections",
+          "count": 3
+        },
+        {
+          "source_operation": "full-scan eager OR",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:436-454",
+      "basis": "Both full-scan classification operands and later success predicate are literal source operations; the FullScan body is separate."
+    },
+    {
+      "site": "LegacyPlanFullScan",
+      "ordinal": 186,
+      "component": "X",
+      "sealed_body_component": 18,
+      "necessary_body_component": 19,
+      "parts": [
+        {
+          "source_operation": "four observation array/field destinations",
+          "count": 12
+        },
+        {
+          "source_operation": "two selected.srcLen selections",
+          "count": 2
+        },
+        {
+          "source_operation": "sample-count multiplication",
+          "count": 1
+        },
+        {
+          "source_operation": "knownFullScanOutcomes compound increment",
+          "count": 4
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:446-451",
+      "basis": "Each observation destination is member/subscript/member, including a constant index; the counter has three members and an increment."
+    },
+    {
+      "site": "LegacyPlanException",
+      "ordinal": 187,
+      "component": "X",
+      "sealed_body_component": 5,
+      "necessary_body_component": 6,
+      "parts": [
+        {
+          "source_operation": "s.raw_.legacy.exceptions[2]+=1",
+          "count": 5
+        },
+        {
+          "source_operation": "result.outcome destination",
+          "count": 1
+        }
+      ],
+      "source_anchor": "legacy-adapter.h:473-476",
+      "basis": "Six explicitly written operations; no native-check or private discarded accounting work is invented."
+    },
+    {
+      "site": "QueryEntry",
+      "ordinal": 275,
+      "component": "R",
+      "sealed_body_component": 3,
+      "necessary_body_component": 6,
+      "parts": [
+        {
+          "source_operation": "three metadata/options field loads",
+          "count": 3
+        },
+        {
+          "source_operation": "start,length,frames value arguments passed to predict",
+          "count": 3
+        }
+      ],
+      "source_anchor": "window-query.h:995-1001",
+      "basis": "Local first writes do not erase the later named caller reads; PredictEntry owns destination parameter writes but has no incoming-value reads."
+    },
+    {
+      "site": "QueryEntry",
+      "ordinal": 275,
+      "component": "X",
+      "sealed_body_component": 9,
+      "necessary_body_component": 10,
+      "parts": [
+        {
+          "source_operation": "native.beginReplay() selector",
+          "count": 1
+        },
+        {
+          "source_operation": "s.metadata().clip.timelineStart",
+          "count": 3
+        },
+        {
+          "source_operation": "s.metadata().clip.timelineLength",
+          "count": 3
+        },
+        {
+          "source_operation": "s.legacyOptions().mappedWindow.srcLen",
+          "count": 3
+        }
+      ],
+      "source_anchor": "window-query.h:995-1001",
+      "basis": "The three raw Access helper bodies are retained separately and do not include these written caller selectors."
+    },
+    {
+      "site": "QueryEndpointMap",
+      "ordinal": 308,
+      "component": "R",
+      "sealed_body_component": 7,
+      "necessary_body_component": 8,
+      "parts": [
+        {
+          "source_operation": "tick value passed to search",
+          "count": 1
+        },
+        {
+          "source_operation": "found.index and rate passed to prefixTo",
+          "count": 2
+        },
+        {
+          "source_operation": "prefix copied into out.frame",
+          "count": 1
+        },
+        {
+          "source_operation": "tick,map pointer,found.index,row.tick in final guard",
+          "count": 4
+        }
+      ],
+      "source_anchor": "window-query.h:890-896",
+      "basis": "SearchEntry and PrefixEntry own parameter writes, not these incoming value reads. Named Search return copying remains in SearchEnd once."
+    },
+    {
+      "site": "QueryEndpointPartial",
+      "ordinal": 309,
+      "component": "X",
+      "sealed_body_component": 7,
+      "necessary_body_component": 8,
+      "parts": [
+        {
+          "source_operation": "s.map_[found.index] reference designators",
+          "count": 3
+        },
+        {
+          "source_operation": "found.index+1 and s.mapConstructed_ designators/arithmetic",
+          "count": 3
+        },
+        {
+          "source_operation": "isfinite(out.frame) field selector",
+          "count": 1
+        },
+        {
+          "source_operation": "final native.check() selector",
+          "count": 1
+        }
+      ],
+      "source_anchor": "window-query.h:898-920",
+      "basis": "Append out.frame reference selector is already sponsored by the selected Next/LastArgs case and is not duplicated here."
+    },
+    {
+      "site": "QueryPredictionEndpoints",
+      "ordinal": 343,
+      "component": "C",
+      "sealed_body_component": 2,
+      "necessary_body_component": 3,
+      "parts": [
+        {
+          "source_operation": "eligibility threshold comparison",
+          "count": 1
+        },
+        {
+          "source_operation": "endpoint A boolean return guard",
+          "count": 1
+        },
+        {
+          "source_operation": "a.status success guard",
+          "count": 1
+        }
+      ],
+      "source_anchor": "window-query.h:947-957",
+      "basis": "Both return and status conditions execute separately; failure may return before QueryPredictionB."
+    },
+    {
+      "site": "QueryPredictionEndpoints",
+      "ordinal": 343,
+      "component": "X",
+      "sealed_body_component": 7,
+      "necessary_body_component": 8,
+      "parts": [
+        {
+          "source_operation": "rows().size() selector",
+          "count": 1
+        },
+        {
+          "source_operation": "threshold multiplication/addition",
+          "count": 2
+        },
+        {
+          "source_operation": "limits().maxWorkUnits field",
+          "count": 1
+        },
+        {
+          "source_operation": "metadata accessor/projectRate/hz chain",
+          "count": 3
+        },
+        {
+          "source_operation": "a.status field",
+          "count": 1
+        }
+      ],
+      "source_anchor": "window-query.h:947-957",
+      "basis": "The R2 ReturnSpanValue and GetterTwo remain correct and separate. The explicit nonidentity U64 cast remains the same d term."
+    }
+  ],
+  "ledger_component_count": 25,
+  "affected_sites": 23,
+  "CommitPrepared_R17_source_ledger": {
+    "fee_reads": 5,
+    "index_reads": 3,
+    "updated_cells": 6,
+    "phase_reads": 2,
+    "ix_parameter_body_read": 1,
+    "total": 17,
+    "extra_prepared_fee_caller_read": 0,
+    "reference_binding_read": 0
+  },
+  "QueryQuote_W17_source_ledger": {
+    "rows_parameter": 1,
+    "bits_prefix_append_locals": 3,
+    "first_amount_write": 1,
+    "returned_bool_locals": 12,
+    "total": 17,
+    "reserveQuery_uninitialized_amount_write": 0
+  },
+  "supported_max_case_not_a_finding": {
+    "QueryVectorEntry": "Direct two-path-reference/default1 caller case costs98; packet named-times case costs97 and explicitly has one caller R. Scalar max98 is source-supported. Do not add a duplicate times R to Packet.",
+    "NativeComparedByte": "Continue104 dominates mismatch101; fixed match-refusal+reject tail remains held.",
+    "PrefixIteration": "Failed returned-bool branch92 plus reject116 dominates successful continuation95.",
+    "roles": "Drain120 dominates Current113 and AcquireReader118 dominates AbortReader116; all five whole-lifetime roles remain held."
+  },
+  "prior_R1_findings_closed": {
+    "GetterTwo_actual_copy_HZ_retained": true,
+    "ReturnSpanValue_only_162_343": true,
+    "no_SampleRate_getter_at343": true,
+    "old190_vectors_untouched": true
+  },
+  "source_audit_families": [
+    "Complete original formation/root/capture/search/cleanup/roles, current aggregate sizes and changed initialization/copy paths",
+    "All adapter preflight/budget/prepare/commit/cumulative/return/catch/cancellation branches",
+    "All stage and output raw-owner constructors/destructors; result Cell/Take/publish/drop; actual prebody DMIs",
+    "Every query vector/sum/record/callee preparation/commit, search/prefix/classifier/endpoint/prediction/reconciliation path and caller case",
+    "Six native leaves, all native scope/identity/check/restoration paths, all57 matcher/access source Sites and finite positive-progress bounds"
+  ],
+  "no_positive_price_certificate_for_unblocked_rows": true,
+  "subject_edits_or_execution": false
+}

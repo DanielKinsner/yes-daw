@@ -1,0 +1,2404 @@
+{
+  "schema": "R3_INDEPENDENT_EXPLICIT_VS_UNQUALIFIED_DESIGNATOR_WITNESSES_R1",
+  "contract": "PRODUCTION404E214B; only explicit reached selections, no implicit-this selectors. Root reconfirmed without changing contract.",
+  "body_rows": [
+    {
+      "ordinal": 238,
+      "site": "QueryNativeScope",
+      "source": "window-query.h:573-579",
+      "basis": "state_,result_,accepted_,restoring_,matched_,initialFma3Selection_: six unqualified assignment destinations; only &s,&result are written X.",
+      "sealed_body_vector": [
+        0,
+        6,
+        2,
+        8,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        0,
+        6,
+        2,
+        2,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -6,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 239,
+      "site": "QueryNativeBaseline",
+      "source": "window-query.h:580-581",
+      "basis": "baseline_ unqualified destination; actual snapshot assignment/copy retains its R/W/H/Z.",
+      "sealed_body_vector": [
+        13,
+        13,
+        0,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        13,
+        13,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -1,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 240,
+      "site": "QueryNativeConstructComplete",
+      "source": "window-query.h:593",
+      "basis": "accepted_=true unqualified destination; actual W remains.",
+      "sealed_body_vector": [
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -1,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 241,
+      "site": "QueryNativeCheckEntry",
+      "source": "window-query.h:595-599",
+      "basis": "*state_ has one explicit dereference, no implicit member selector.",
+      "sealed_body_vector": [
+        1,
+        0,
+        1,
+        2,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        1,
+        0,
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -1,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 242,
+      "site": "QueryNativeIdentity",
+      "source": "window-query.h:536-545",
+      "basis": "*state_ has one explicit dereference; qualified NativeBinding::data_.compute and actual predicate selectors remain.",
+      "sealed_body_vector": [
+        16,
+        7,
+        9,
+        27,
+        1,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        16,
+        7,
+        9,
+        26,
+        1,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -1,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 252,
+      "site": "QueryNativeRead",
+      "source": "window-query.h:313-319",
+      "basis": "Unqualified state_ and matched_ add no selector; explicit * and s.raw_.legacy counter path/update remain.",
+      "sealed_body_vector": [
+        16,
+        14,
+        1,
+        7,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        16,
+        14,
+        1,
+        5,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -2,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 253,
+      "site": "QueryNativeCompare",
+      "source": "window-query.h:321-332",
+      "basis": "Unqualified state_ and initialFma3Selection_ add no selector;14 field selections,8 eager &,one *,one qualified data_ giveX24.",
+      "sealed_body_vector": [
+        16,
+        0,
+        9,
+        26,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        16,
+        0,
+        9,
+        24,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -2,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 254,
+      "site": "QueryNativeAccepted",
+      "source": "window-query.h:600-601",
+      "basis": "return accepted_ has actual scalar R, no implicit selector.",
+      "sealed_body_vector": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -1,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 255,
+      "site": "QueryNativeRejected",
+      "source": "window-query.h:305-310",
+      "basis": "Unqualified state_,result_,accepted_ add no selector; *state_,result_->outcome and explicit s.raw_ paths remain.",
+      "sealed_body_vector": [
+        3,
+        5,
+        0,
+        11,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        3,
+        5,
+        0,
+        8,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -3,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 256,
+      "site": "QueryNativeBeginReplay",
+      "source": "window-query.h:603-607",
+      "basis": "Unqualified state_ plus replayStatus_ assignment and reference argument add no selector; *state_ remains.",
+      "sealed_body_vector": [
+        14,
+        13,
+        1,
+        4,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        14,
+        13,
+        1,
+        1,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -3,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 257,
+      "site": "QueryNativeReplayReady",
+      "source": "window-query.h:608",
+      "basis": "restoring_=true is an actual W, not a selector.",
+      "sealed_body_vector": [
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -1,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 258,
+      "site": "QueryNativeRestore",
+      "source": "window-query.h:617-620",
+      "basis": "Unqualified replayStatus_ reference argument and restoring_ write add no selector; RestorePrefix separately owns entry and state alias.",
+      "sealed_body_vector": [
+        1,
+        3,
+        0,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        1,
+        3,
+        0,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -2,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 260,
+      "site": "QueryNativeScopeDestroy",
+      "source": "window-query.h:634-637",
+      "basis": "Unqualified state_ and restoring_ add no selectors; explicit dereference and real condition remain; sponsored RestorePrefix is a separate helper correction.",
+      "sealed_body_vector": [
+        2,
+        0,
+        1,
+        3,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        2,
+        0,
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -2,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 356,
+      "site": "QueryNativeRestoreVerify",
+      "source": "window-query.h:623-628",
+      "basis": "Three unqualified replayStatus_ bases add no selectors; three written replayStatus_.field selections plus after fields and two eager | remain.",
+      "sealed_body_vector": [
+        6,
+        0,
+        4,
+        11,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        6,
+        0,
+        4,
+        8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -3,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 357,
+      "site": "QueryNativeRestoreReady",
+      "source": "window-query.h:629",
+      "basis": "return accepted_ scalar R, no implicit selector.",
+      "sealed_body_vector": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -1,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 363,
+      "site": "NativeMatchEntry",
+      "source": "window-query.h:340-346",
+      "basis": "Unqualified state_ adds no selector; *,qualified NativeBinding::data_,written counter path/update remain.",
+      "sealed_body_vector": [
+        2,
+        1,
+        0,
+        7,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        2,
+        1,
+        0,
+        6,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -1,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 397,
+      "site": "NativeMatchAccepted",
+      "source": "window-query.h:480-481",
+      "basis": "matched_=true actual W, no implicit selector; written counter path/update remain.",
+      "sealed_body_vector": [
+        1,
+        2,
+        0,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        1,
+        2,
+        0,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -1,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 398,
+      "site": "NativeMatchFailed",
+      "source": "window-query.h:334-338",
+      "basis": "Unqualified state_ adds no selector; * and written counter path/update remain.",
+      "sealed_body_vector": [
+        2,
+        1,
+        0,
+        6,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        2,
+        1,
+        0,
+        5,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -1,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 399,
+      "site": "NativeMatchSelection",
+      "source": "window-query.h:582-584",
+      "basis": "Two baseline_ unqualified bases add no selectors; two written .fma3Selection and eager | remain.",
+      "sealed_body_vector": [
+        2,
+        0,
+        2,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        2,
+        0,
+        2,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -2,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 400,
+      "site": "NativeMatchSelectionPolicy",
+      "source": "window-query.h:588-590",
+      "basis": "baseline_ unqualified base adds no selector; written field,qualified static-data designator,cast,shift and bitwise & remain.",
+      "sealed_body_vector": [
+        2,
+        0,
+        1,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        2,
+        0,
+        1,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -1,
+      "source_price_acceptance": false
+    },
+    {
+      "ordinal": 401,
+      "site": "NativeMatchSelectionStore",
+      "source": "window-query.h:591-592",
+      "basis": "Unqualified initialFma3Selection_,baseline_ RHS base and baseline_ reference argument add no selectors; one written .fma3Selection remains.",
+      "sealed_body_vector": [
+        1,
+        1,
+        1,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "necessary_body_vector_retaining_other_proposed_components": [
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "X_delta": -3,
+      "source_price_acceptance": false
+    }
+  ],
+  "helper_rows": [
+    {
+      "helper": "Access",
+      "source": [
+        "worker-result.h:24",
+        "formation-r8.h:696-700",
+        "formation-r8.h:1323",
+        "formation-r8.h:1347"
+      ],
+      "sealed_tuple": [
+        0,
+        1,
+        0,
+        3,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "necessary_tuple_retaining_other_proposed_components": [
+        0,
+        1,
+        0,
+        2,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "basis": "Unqualified byte-array field base is not explicit member selector; retain written pointer cast,dereference and launder/own boundary."
+    },
+    {
+      "helper": "RestorePrefix",
+      "source": [
+        "window-query.h:611-616"
+      ],
+      "sealed_tuple": [
+        1,
+        0,
+        1,
+        2,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "necessary_tuple_retaining_other_proposed_components": [
+        1,
+        0,
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "basis": "state_ R retained; only written * gives X1; own entry/return and check guard remain."
+    }
+  ],
+  "wider_required_rebuild_witnesses": [
+    {
+      "helper": "Q",
+      "source": "formation-r8.h:1601-1602",
+      "basis": "slots_ base is unqualified. Four written operations remain:subscript,.bytes,cast,deref. Actual index read/parameter and launder H/Z remain."
+    },
+    {
+      "helpers": [
+        "C",
+        "U"
+      ],
+      "source": [
+        "formation-r8.h:574-575",
+        "formation-r8.h:1348-1352"
+      ],
+      "basis": "Descriptions charge unqualified member-initializer labels as selectors; keep actual initialization W/copy/HZ and actual RHS/caller field selections, rebuild expression ledger."
+    },
+    {
+      "body_families": [
+        "WorkerArtifacts",
+        "FundedOwner",
+        "WorkerLegacyResult"
+      ],
+      "source": [
+        "worker-result.h:18-33",
+        "worker-result.h:72-79",
+        "worker-result.h:90-92",
+        "worker-result.h:105-108",
+        "worker-result.h:117-130",
+        "worker-result.h:135-159"
+      ],
+      "basis": "Unqualified fields/member-initializer labels occur throughout constructor/publish/destructor paths; no unchanged-body or grandfathered price acceptance."
+    }
+  ],
+  "necessary_site_effects": [
+    {
+      "ordinal": 137,
+      "site": "LegacyCommonIdentity",
+      "body_X_removed": 0,
+      "helper_X_removed": 2,
+      "constant_X_delta": -2,
+      "sealed_price": [
+        149,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        36,
+        19,
+        8,
+        52,
+        0,
+        16,
+        16,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        147,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 138,
+      "site": "LegacyMappedPresent",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        105,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        13,
+        4,
+        36,
+        0,
+        12,
+        12,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        104,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 158,
+      "site": "LegacyClockPrepare",
+      "body_X_removed": 0,
+      "helper_X_removed": 2,
+      "constant_X_delta": -2,
+      "sealed_price": [
+        142,
+        0,
+        1
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        32,
+        21,
+        6,
+        47,
+        0,
+        17,
+        17,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        140,
+        0,
+        1
+      ]
+    },
+    {
+      "ordinal": 161,
+      "site": "LegacyClockStore",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        117,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        28,
+        14,
+        4,
+        41,
+        0,
+        14,
+        14,
+        1,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        116,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 162,
+      "site": "LegacyClockCumulative",
+      "body_X_removed": 0,
+      "helper_X_removed": 3,
+      "constant_X_delta": -3,
+      "sealed_price": [
+        185,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        41,
+        22,
+        6,
+        67,
+        0,
+        23,
+        23,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        182,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 165,
+      "site": "LegacyQueryInvoke",
+      "body_X_removed": 0,
+      "helper_X_removed": 2,
+      "constant_X_delta": -2,
+      "sealed_price": [
+        111,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        26,
+        14,
+        3,
+        40,
+        0,
+        13,
+        13,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        109,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 167,
+      "site": "LegacyRequestPreflight",
+      "body_X_removed": 0,
+      "helper_X_removed": 2,
+      "constant_X_delta": -2,
+      "sealed_price": [
+        123,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        28,
+        15,
+        5,
+        45,
+        0,
+        14,
+        14,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        121,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 169,
+      "site": "LegacyRequestPrepare",
+      "body_X_removed": 0,
+      "helper_X_removed": 3,
+      "constant_X_delta": -3,
+      "sealed_price": [
+        161,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        39,
+        28,
+        5,
+        46,
+        0,
+        20,
+        20,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        158,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 172,
+      "site": "LegacyRequestStore",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        117,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        28,
+        14,
+        4,
+        41,
+        0,
+        14,
+        14,
+        1,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        116,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 173,
+      "site": "LegacyRequestCumulative",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        135,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        33,
+        18,
+        4,
+        53,
+        0,
+        13,
+        13,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        134,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 175,
+      "site": "LegacyPlanPreflight",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        156,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        38,
+        17,
+        9,
+        47,
+        0,
+        22,
+        22,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        155,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 181,
+      "site": "LegacyPlanPrepare",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        122,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        33,
+        17,
+        6,
+        37,
+        0,
+        14,
+        14,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        121,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 185,
+      "site": "LegacyPlanCumulative",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        153,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        34,
+        21,
+        4,
+        67,
+        0,
+        13,
+        13,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        152,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 189,
+      "site": "LegacyWorkerCaller",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        104,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        12,
+        4,
+        38,
+        0,
+        11,
+        11,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        103,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 208,
+      "site": "LegacyClockOutputDestroy",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        110,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        13,
+        3,
+        41,
+        0,
+        12,
+        12,
+        1,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        109,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 210,
+      "site": "LegacyRequestOutputDestroy",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        110,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        13,
+        3,
+        41,
+        0,
+        12,
+        12,
+        1,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        109,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 212,
+      "site": "LegacyPlanOutputDestroy",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        110,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        13,
+        3,
+        41,
+        0,
+        12,
+        12,
+        1,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        109,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 214,
+      "site": "LegacyClockStageDestroy",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        110,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        13,
+        3,
+        41,
+        0,
+        12,
+        12,
+        1,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        109,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 216,
+      "site": "LegacyWindowStageDestroy",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        112,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        13,
+        3,
+        41,
+        0,
+        13,
+        13,
+        1,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        111,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 218,
+      "site": "LegacyRequestStageDestroy",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        110,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        13,
+        3,
+        41,
+        0,
+        12,
+        12,
+        1,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        109,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 220,
+      "site": "LegacyCellDestroy",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        126,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        31,
+        14,
+        6,
+        49,
+        0,
+        12,
+        12,
+        1,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        125,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 223,
+      "site": "LegacyCellMove",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        433,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        162,
+        150,
+        9,
+        81,
+        0,
+        15,
+        15,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        432,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 224,
+      "site": "LegacyResultPlanMove",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        112,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        14,
+        3,
+        40,
+        0,
+        13,
+        13,
+        1,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        111,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 228,
+      "site": "LegacyControlResultDestroy",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        98,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        25,
+        13,
+        3,
+        36,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        97,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 231,
+      "site": "LegacyAbortResult",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        101,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        26,
+        13,
+        4,
+        37,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        100,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 232,
+      "site": "LegacyTakeResult",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        133,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        30,
+        18,
+        5,
+        47,
+        0,
+        16,
+        16,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        132,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 238,
+      "site": "QueryNativeScope",
+      "body_X_removed": 6,
+      "helper_X_removed": 0,
+      "constant_X_delta": -6,
+      "sealed_price": [
+        113,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        19,
+        5,
+        34,
+        0,
+        11,
+        11,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        107,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 239,
+      "site": "QueryNativeBaseline",
+      "body_X_removed": 1,
+      "helper_X_removed": 0,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        124,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        40,
+        26,
+        3,
+        32,
+        0,
+        11,
+        11,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        123,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 240,
+      "site": "QueryNativeConstructComplete",
+      "body_X_removed": 1,
+      "helper_X_removed": 0,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        97,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        14,
+        3,
+        32,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        96,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 241,
+      "site": "QueryNativeCheckEntry",
+      "body_X_removed": 1,
+      "helper_X_removed": 0,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        101,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        28,
+        13,
+        4,
+        33,
+        0,
+        11,
+        11,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        100,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 242,
+      "site": "QueryNativeIdentity",
+      "body_X_removed": 1,
+      "helper_X_removed": 0,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        159,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        43,
+        20,
+        12,
+        58,
+        1,
+        12,
+        12,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        158,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 252,
+      "site": "QueryNativeRead",
+      "body_X_removed": 2,
+      "helper_X_removed": 0,
+      "constant_X_delta": -2,
+      "sealed_price": [
+        240,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        60,
+        73,
+        4,
+        57,
+        0,
+        22,
+        22,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        238,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 253,
+      "site": "QueryNativeCompare",
+      "body_X_removed": 2,
+      "helper_X_removed": 0,
+      "constant_X_delta": -2,
+      "sealed_price": [
+        148,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        43,
+        13,
+        12,
+        56,
+        0,
+        11,
+        11,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        146,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 254,
+      "site": "QueryNativeAccepted",
+      "body_X_removed": 1,
+      "helper_X_removed": 0,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        97,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        28,
+        13,
+        3,
+        32,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        96,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 255,
+      "site": "QueryNativeRejected",
+      "body_X_removed": 3,
+      "helper_X_removed": 0,
+      "constant_X_delta": -3,
+      "sealed_price": [
+        116,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        30,
+        18,
+        3,
+        40,
+        0,
+        11,
+        11,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        113,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 256,
+      "site": "QueryNativeBeginReplay",
+      "body_X_removed": 3,
+      "helper_X_removed": 0,
+      "constant_X_delta": -3,
+      "sealed_price": [
+        131,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        41,
+        26,
+        4,
+        33,
+        0,
+        12,
+        12,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        128,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 257,
+      "site": "QueryNativeReplayReady",
+      "body_X_removed": 1,
+      "helper_X_removed": 0,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        97,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        14,
+        3,
+        32,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        96,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 258,
+      "site": "QueryNativeRestore",
+      "body_X_removed": 2,
+      "helper_X_removed": 0,
+      "constant_X_delta": -2,
+      "sealed_price": [
+        151,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        35,
+        25,
+        6,
+        49,
+        0,
+        17,
+        17,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        149,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 260,
+      "site": "QueryNativeScopeDestroy",
+      "body_X_removed": 2,
+      "helper_X_removed": 1,
+      "constant_X_delta": -3,
+      "sealed_price": [
+        109,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        30,
+        13,
+        5,
+        34,
+        0,
+        12,
+        12,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        106,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 275,
+      "site": "QueryEntry",
+      "body_X_removed": 0,
+      "helper_X_removed": 3,
+      "constant_X_delta": -3,
+      "sealed_price": [
+        151,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        32,
+        31,
+        5,
+        48,
+        0,
+        16,
+        16,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        148,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 322,
+      "site": "QueryResolvePrepare",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        101,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        27,
+        13,
+        5,
+        35,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        100,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 343,
+      "site": "QueryPredictionEndpoints",
+      "body_X_removed": 0,
+      "helper_X_removed": 1,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        178,
+        0,
+        1
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        40,
+        49,
+        6,
+        44,
+        0,
+        19,
+        19,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        177,
+        0,
+        1
+      ]
+    },
+    {
+      "ordinal": 356,
+      "site": "QueryNativeRestoreVerify",
+      "body_X_removed": 3,
+      "helper_X_removed": 0,
+      "constant_X_delta": -3,
+      "sealed_price": [
+        116,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        33,
+        13,
+        7,
+        40,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        113,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 357,
+      "site": "QueryNativeRestoreReady",
+      "body_X_removed": 1,
+      "helper_X_removed": 0,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        97,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        28,
+        13,
+        3,
+        32,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        96,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 363,
+      "site": "NativeMatchEntry",
+      "body_X_removed": 1,
+      "helper_X_removed": 0,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        107,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        29,
+        14,
+        3,
+        38,
+        0,
+        11,
+        11,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        106,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 397,
+      "site": "NativeMatchAccepted",
+      "body_X_removed": 1,
+      "helper_X_removed": 0,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        103,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        28,
+        15,
+        3,
+        36,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        102,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 398,
+      "site": "NativeMatchFailed",
+      "body_X_removed": 1,
+      "helper_X_removed": 0,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        106,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        29,
+        14,
+        3,
+        37,
+        0,
+        11,
+        11,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        105,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 399,
+      "site": "NativeMatchSelection",
+      "body_X_removed": 2,
+      "helper_X_removed": 0,
+      "constant_X_delta": -2,
+      "sealed_price": [
+        104,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        29,
+        13,
+        5,
+        35,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        102,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 400,
+      "site": "NativeMatchSelectionPolicy",
+      "body_X_removed": 1,
+      "helper_X_removed": 0,
+      "constant_X_delta": -1,
+      "sealed_price": [
+        105,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        29,
+        13,
+        4,
+        38,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        104,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 401,
+      "site": "NativeMatchSelectionStore",
+      "body_X_removed": 3,
+      "helper_X_removed": 0,
+      "constant_X_delta": -3,
+      "sealed_price": [
+        102,
+        0,
+        0
+      ],
+      "necessary_constant_vector_if_other_components_retained": [
+        28,
+        14,
+        4,
+        33,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        99,
+        0,
+        0
+      ]
+    }
+  ],
+  "necessary_schedule_effects": [
+    {
+      "schedule": "NativeCheck",
+      "constant_delta": -8,
+      "sealed_price": [
+        605,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        597,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "AppendNew",
+      "constant_delta": -24,
+      "sealed_price": [
+        10475,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        10451,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "PrefixIteration",
+      "constant_delta": -27,
+      "sealed_price": [
+        10924,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        10897,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "EndpointFixed",
+      "constant_delta": -24,
+      "sealed_price": [
+        63273,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        63249,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "PredictFixed",
+      "constant_delta": -49,
+      "sealed_price": [
+        146079,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        146030,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "ResolveFixed",
+      "constant_delta": -53,
+      "sealed_price": [
+        154199,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        154146,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "ReplayFixed",
+      "constant_delta": -11,
+      "sealed_price": [
+        732,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        721,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "RestorePhysicalFixed",
+      "constant_delta": -13,
+      "sealed_price": [
+        965,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        952,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "QueryNewFixed",
+      "constant_delta": -152,
+      "sealed_price": [
+        161648,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        161496,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "NativeMatchFixed",
+      "constant_delta": -25,
+      "sealed_price": [
+        129332,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        129307,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "LegacyFixed",
+      "constant_delta": -25,
+      "sealed_price": [
+        24464,
+        0,
+        5
+      ],
+      "necessary_price_if_other_components_retained": [
+        24439,
+        0,
+        5
+      ]
+    },
+    {
+      "schedule": "LegacyCleanup",
+      "constant_delta": -10,
+      "sealed_price": [
+        1997,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        1987,
+        0,
+        0
+      ]
+    }
+  ],
+  "partial_only": true,
+  "final_prices_root_Q_or_fit_accepted": false,
+  "required_next_hypothesis": "Fresh whole420/51 source operand and sponsor inventory distinguishing unqualified identifiers/member-initializer labels from actual explicit member selection; then all schedule/root/Q/capture/lifetime dependencies and conditional arithmetic regenerate, preserving190 old exact rows."
+}

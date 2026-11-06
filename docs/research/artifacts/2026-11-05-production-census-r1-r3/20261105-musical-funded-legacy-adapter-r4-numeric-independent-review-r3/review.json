@@ -1,0 +1,315 @@
+{
+  "schema": "R4_PRODUCTION_CENSUS_R3_INDEPENDENT_WHOLE_NUMERIC_REVIEW_R1",
+  "reviewer": "/root/clock_r9_numeric_review",
+  "status": "REVISE_COMPLETE_SOURCE_BOUNDARY_CENSUS",
+  "scope": "Complete420Site/51helper/38schedule/12term/190old78composition packet;source/data-only whole verdict,notonly23priorfixes.",
+  "subject_seals": {
+    "census.md": "D01F74AE8986D0AFD843B6F7405C63F996505324343A498655595B2D9C46B0A4",
+    "census.json": "3867588D746FD95D1445CF07A24D4C099777B248B195B85D48960B75097C2D5D",
+    "source-pins.json": "B467F90C7CE4D31330F3123A7DB231B31D409133D0CF3CF00C8E3413F839C909"
+  },
+  "file_integer_checks": {
+    "pass": true,
+    "count": 4647,
+    "pin_records": 51,
+    "events": 420,
+    "helpers": 51,
+    "schedules": 38,
+    "query_terms": 12,
+    "old_rows": 190,
+    "old_compositions": 78,
+    "ordered_groups": 113,
+    "prior_corrections": 23,
+    "source_literal_references": 422,
+    "source_anchors": 420
+  },
+  "source_findings": [
+    {
+      "id": "F1",
+      "severity": "BLOCKING",
+      "type": "Unqualified own-member implicit selectors invented",
+      "evidence": "evidence/source-ledgers.json body_rows",
+      "concrete_sites": 21,
+      "example_ordinal": 253,
+      "example": "QueryNativeCompare X26 must remove state_/initialFma3Selection_ implicit selectors;X24 retaining others.",
+      "all_other_components_not_accepted_by_retention": true
+    },
+    {
+      "id": "F2",
+      "severity": "BLOCKING",
+      "type": "Same boundary defect shared through accessor/restore sponsorship helpers",
+      "helpers": [
+        "Access",
+        "RestorePrefix"
+      ],
+      "explicit_helper_deltas": {
+        "Access": -1,
+        "RestorePrefix": -1
+      },
+      "affected_site_prices_with_F1": 50,
+      "wider_inventory": [
+        {
+          "helper": "Q",
+          "source": "formation-r8.h:1601-1602",
+          "basis": "slots_ base is unqualified. Four written operations remain:subscript,.bytes,cast,deref. Actual index read/parameter and launder H/Z remain."
+        },
+        {
+          "helpers": [
+            "C",
+            "U"
+          ],
+          "source": [
+            "formation-r8.h:574-575",
+            "formation-r8.h:1348-1352"
+          ],
+          "basis": "Descriptions charge unqualified member-initializer labels as selectors; keep actual initialization W/copy/HZ and actual RHS/caller field selections, rebuild expression ledger."
+        },
+        {
+          "body_families": [
+            "WorkerArtifacts",
+            "FundedOwner",
+            "WorkerLegacyResult"
+          ],
+          "source": [
+            "worker-result.h:18-33",
+            "worker-result.h:72-79",
+            "worker-result.h:90-92",
+            "worker-result.h:105-108",
+            "worker-result.h:117-130",
+            "worker-result.h:135-159"
+          ],
+          "basis": "Unqualified fields/member-initializer labels occur throughout constructor/publish/destructor paths; no unchanged-body or grandfathered price acceptance."
+        }
+      ],
+      "no_complete_replacement_price_claim": true
+    }
+  ],
+  "necessary_component_only_schedule_effects": [
+    {
+      "schedule": "NativeCheck",
+      "constant_delta": -8,
+      "sealed_price": [
+        605,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        597,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "AppendNew",
+      "constant_delta": -24,
+      "sealed_price": [
+        10475,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        10451,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "PrefixIteration",
+      "constant_delta": -27,
+      "sealed_price": [
+        10924,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        10897,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "EndpointFixed",
+      "constant_delta": -24,
+      "sealed_price": [
+        63273,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        63249,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "PredictFixed",
+      "constant_delta": -49,
+      "sealed_price": [
+        146079,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        146030,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "ResolveFixed",
+      "constant_delta": -53,
+      "sealed_price": [
+        154199,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        154146,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "ReplayFixed",
+      "constant_delta": -11,
+      "sealed_price": [
+        732,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        721,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "RestorePhysicalFixed",
+      "constant_delta": -13,
+      "sealed_price": [
+        965,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        952,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "QueryNewFixed",
+      "constant_delta": -152,
+      "sealed_price": [
+        161648,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        161496,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "NativeMatchFixed",
+      "constant_delta": -25,
+      "sealed_price": [
+        129332,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        129307,
+        0,
+        0
+      ]
+    },
+    {
+      "schedule": "LegacyFixed",
+      "constant_delta": -25,
+      "sealed_price": [
+        24464,
+        0,
+        5
+      ],
+      "necessary_price_if_other_components_retained": [
+        24439,
+        0,
+        5
+      ]
+    },
+    {
+      "schedule": "LegacyCleanup",
+      "constant_delta": -10,
+      "sealed_price": [
+        1997,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        1987,
+        0,
+        0
+      ]
+    }
+  ],
+  "necessary_partial_quote_unit_deltas": {
+    "pendingWindowQueryFixed": -152,
+    "pendingWindowQueryPerPrefix": -27,
+    "pendingWindowQueryPerSearch": 0,
+    "pendingNativeMatchFixed": -25,
+    "pendingNativeMatchPerRegion": 0,
+    "pendingNativeMatchPerPage": 0,
+    "pendingNativeMatchPerByte": 0
+  },
+  "partial_schedule_only_root_constant_delta": -35,
+  "partial_effect_scope": "Only21native-body/two-helper witnesses are propagated. Wider Q/C/U/constructor/other420 operand audit and physical-prefix/capture effects are not included. None is a corrected final price,total or fit certificate.",
+  "whole_coverage": [
+    "all420 factorization/MD/source name/reference/anchor inventory",
+    "51helper vectors and SDK/owned boundaries",
+    "23rebuilt bodies/113ordered groups/earlier sponsorship",
+    "constructor DMI/brace temporary/assignment/named return/reference distinction",
+    "38finite source schedules and root aggregation",
+    "12terms/P,b,E,M,L,D,A checked overflow/refusal shape",
+    "190old rows/78compositions untouched",
+    "five lifetime roles and sequential Result then RetainedReader",
+    "two physical result cells/six owner drops/cleanup before finalState drop",
+    "repeated failed restore prechecks vs one physical restore",
+    "sameOrigin phase split/protected queryCallee/attempt once/no refunds",
+    "conditional positive example and domain-extreme arithmetic;not universal fit",
+    "selected R5 d0 object constant independent rawCOFF read",
+    "R4 warning failure/R5 correspondence and missing native/physical resource/integration gates"
+  ],
+  "positive_scope": [
+    "rawsubject/reference/evidence/output pins intact",
+    "packet arithmetic and MD/JSON consistency",
+    "previous23corrections represented exactly",
+    "old190identity preserved",
+    "selected R5 type-identity table supports d0 on its profile"
+  ],
+  "not_accepted": [
+    "complete source prices",
+    "unflagged397body acceptance",
+    "corrected root/Q or minimal funding",
+    "using overcounts/slack to certify",
+    "immutable typed Catalogue/NativeBinding definitions",
+    "resource/CPU/native/forward/publicAPI executionbinding",
+    "actual R4 executable source admission",
+    "execution GO"
+  ],
+  "next_supported_hypothesis": "Fresh whole420/51 source operand and sponsor inventory distinguishing unqualified identifiers/member-initializer labels from actual explicit member selection; then all schedule/root/Q/capture/lifetime dependencies and conditional arithmetic regenerate, preserving190 old exact rows.",
+  "holds": [
+    "R4 C4324 historical compile gate",
+    "typed immutable data/storage source identity",
+    "complete physical allocator/control blocks/parent and owner overlap/stack/resources",
+    "actual SDK/CPU/control/dispatch/observer/errno/floor/true interval qualification",
+    "genuine worker/control/model/job lifecycle and mechanical integration checks",
+    "separate execution GO"
+  ],
+  "actions": {
+    "file_hash_integer_data_reads_and_own_checker_only": true,
+    "target_parser_AST_import_helper_compiler_linker_program_test_stage_native_API_GUI_audio_Git_CI": false,
+    "subject_modified": false
+  }
+}

@@ -77,7 +77,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The separate metadata successor also passed25 types/110 declared fields, including the discovered
    JObject iterator and three CoreLib enumerators. Complete payload equations remain in progress.
    R5's conditional all-input/source-object argument passed18,197 independent checks; actual native
-   binding/funding/resources/integration remain held. Production census R3 is rebuilt and in whole review.
+   binding/funding/resources/integration remain held. Whole production census R3 review is REVISE;
+   a systematic explicit/unqualified-designator inventory across420 bodies/51 helpers is required next.
    The narrow candidate observation/restoration lemma passed13,368 independent checks; actual errno,
    floor/provider/interval and whole runtime/resource qualification remain pending.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
@@ -100,6 +101,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Preserve all three rejected complete production census proposals
+
+- R3's fresh whole critic passed4,647 file/data checks but returned REVISE: unqualified member names/constructor initializer labels were charged as explicit selectors. The21 native-body and two helper witnesses affect50 Site prices, with further Q/C/U/constructor cases requiring a complete inventory. No replacement source price/root/query total or fit is accepted.
+- Archived49 complete R1/R2/R3 proposal/helper/critic files under `docs/research/artifacts/2026-11-05-production-census-r1-r3/`. Preserve every previous seal, old190 rows/78 compositions and necessary partial deltas as evidence only. Internal equation agreement does not certify source operands.
+- The next supported hypothesis inventories written versus unqualified designators across all420 bodies/51 helpers, names each caller/body/helper/earlier sponsor, and regenerates every schedule/root/query/example before another fresh whole critic. No cap, source, ADR, golden, old catalogue or Data changed.
+- Separate R12 hash-carrier source is being prepared UNRUN to reduce repeated temporary maps/hex strings while preserving every fresh hash and wire witness; its resource/pricing/whole review remain pending. Continue recipe/renderer/jobs/model after complete admission, then linked/folder/piano. Native lemma checkpoint756836c passed CI42180171899; no GUI, input or device ran.
 
 ## 2026-11-05 - Preserve the conditional native observation/restoration lemma
 

@@ -1,0 +1,580 @@
+{
+  "schema": "YESDAW_PRODUCTION_R4_COMPLETE_CENSUS_INDEPENDENT_NUMERIC_REVIEW_V1",
+  "date": "2026-11-05",
+  "reviewer": "/root/clock_r9_numeric_review",
+  "verdict": "REVISE_WHOLE_SOURCE_CENSUS_GETTER_RETURN_CASES_UNDERCOUNTED",
+  "subject_seals": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-census-r1/census.md",
+      "bytes": 50614,
+      "sha256": "EF03FDF70D329508F7594DC60380881106BE6919542FE2756982E81FA26C6916"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-census-r1/census.json",
+      "bytes": 665739,
+      "sha256": "9FC18AA295F0469D2EF4589E2D171E7CCABD80F4E73479CD9538EEF647E96B62"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-census-r1/source-pins.json",
+      "bytes": 5162,
+      "sha256": "A6BC8693976BFE82D80E544E47CCAFB945E48010A18FA6CFC202ABED181B5E25"
+    }
+  ],
+  "contract": "PRODUCTION404E214B_AND709B8A43_NOT_RESEARCH",
+  "scope": "Whole sealed420-row/50-helper/38-schedule/12-term census packet critic. Whole arithmetic/MD/input coverage plus concrete source boundary findings; no whole source-price acceptance is issued for unblocked rows. All required numerical/native/resource/binding/GO holds remain.",
+  "findings": [
+    {
+      "id": "F1",
+      "priority": "P1",
+      "title": "Owned aggregate-return getter omits its selected copy constructor edges",
+      "census_anchors": [
+        "census.json:1180",
+        "census.md:601",
+        "census.json:14382",
+        "census.json:14879",
+        "census.json:14955",
+        "census.json:15172",
+        "census.json:26732"
+      ],
+      "cases": [
+        {
+          "site": "LegacyRequestBytes",
+          "ordinal": 168,
+          "caller": "legacy-adapter.h:322",
+          "getter": "MusicalAudioClock::limits",
+          "definition": "src/engine/MusicalAudioWindow.h:163",
+          "return_type": "MusicalAudioLimits",
+          "kind": "data-member lvalue copy",
+          "scalar_cells": 2
+        },
+        {
+          "site": "LegacyPlanPreflight",
+          "ordinal": 175,
+          "caller": "legacy-adapter.h:390",
+          "getter": "MusicalAudioChannelRequest::policy",
+          "definition": "src/engine/MusicalAudioChannelPlan.h:101",
+          "return_type": "MusicalAudioChannelPolicy",
+          "kind": "data-member lvalue copy",
+          "scalar_cells": 2
+        },
+        {
+          "site": "LegacyPlanOwner",
+          "ordinal": 176,
+          "caller": "legacy-adapter.h:396",
+          "getter": "MusicalAudioChannelRequest::mappedWindow",
+          "definition": "src/engine/MusicalAudioChannelPlan.h:100",
+          "return_type": "ViewWindow",
+          "kind": "data-member lvalue copy",
+          "scalar_cells": 2
+        },
+        {
+          "site": "LegacyPlanBytes",
+          "ordinal": 179,
+          "caller": "legacy-adapter.h:407",
+          "getter": "MusicalAudioClock::limits",
+          "definition": "src/engine/MusicalAudioWindow.h:163",
+          "return_type": "MusicalAudioLimits",
+          "kind": "data-member lvalue copy",
+          "scalar_cells": 2
+        },
+        {
+          "site": "LegacyPlanBytes",
+          "ordinal": 179,
+          "caller": "legacy-adapter.h:408",
+          "getter": "MusicalAudioChannelRequest::limits",
+          "definition": "src/engine/MusicalAudioChannelPlan.h:104",
+          "return_type": "MusicalAudioLimits",
+          "kind": "data-member lvalue copy",
+          "scalar_cells": 2
+        },
+        {
+          "site": "QueryPredictionEndpoints",
+          "ordinal": 343,
+          "caller": "window-query.h:950",
+          "getter": "MusicalAudioClock::limits",
+          "definition": "src/engine/MusicalAudioWindow.h:163",
+          "return_type": "MusicalAudioLimits",
+          "kind": "data-member lvalue copy",
+          "scalar_cells": 2
+        }
+      ],
+      "sealed_vector": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "necessary_case_vector": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price_change_per_call": [
+        6,
+        8
+      ],
+      "basis": "These are our engine methods returning an existing aggregate data member by value, not an opaque SDK reference access. The getter and selected copy each have actual H/Z. Existing2R/2W already cover the result transfer and must not be repeated. No initialization zeros/DMIs are introduced by this copy. The member is not a local eligible for NRVO; direct function-result materialization does not erase that copy.",
+      "supported_correction": "Use an explicitly owned aggregate-value getter case with extra H1/Z1 for these six calls. Recompute the six Site effects together with F2; do not modify the separately frozen190-row old callee catalogue."
+    },
+    {
+      "id": "F2",
+      "priority": "P1",
+      "title": "rows() is a constructed by-value span, not the reference getter charged",
+      "census_anchors": [
+        "census.json:1152",
+        "census.json:13961",
+        "census.json:26732",
+        "census.md:291",
+        "census.md:472"
+      ],
+      "cases": [
+        {
+          "site": "LegacyClockCumulative",
+          "ordinal": 162,
+          "caller": "legacy-adapter.h:273",
+          "definition": "src/engine/MusicalAudioWindow.h:162",
+          "result": "std::span<const TempoChange> by-value from rows_ vector",
+          "caller_W_ownership": "W5 = stored local1 + two counter writes2 + two observation stores2; no span result cells."
+        },
+        {
+          "site": "QueryPredictionEndpoints",
+          "ordinal": 343,
+          "caller": "window-query.h:949",
+          "definition": "src/engine/MusicalAudioWindow.h:162",
+          "result": "std::span<const TempoChange> by-value from rows_ vector",
+          "caller_W_ownership": "W31 = at,prefix,threshold,eligible,rate5 + two13-cell Endpoint value-inits26; no span result cells. Its separate GetterTwo is limits() at950."
+        }
+      ],
+      "sealed_getter_case": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "necessary_case_vector": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price_change_per_call": [
+        2,
+        8
+      ],
+      "basis": "The actual declaration returns std::span<const TempoChange> from the vector member. Its selected range constructor produces logical base/extent result cells; the engine getter also enters/returns. The typed return cannot bind directly as a reference, and those result destinations are absent from both caller W subtotals. The selected span constructor is a visible logical SDK boundary; its forwarding internals are not recursively expanded.",
+      "supported_correction": "Replace only these two mistaken GetterReference uses with a concrete rows-value/span case. Keep the actual clock/accounting/window reference getters unchanged, retain existing size()/bit_width/caller actions once, and charge no vector copy/O/allocator operation."
+    }
+  ],
+  "necessary_site_corrections_if_other_components_retained": [
+    {
+      "ordinal": 162,
+      "site": "LegacyClockCumulative",
+      "delta_vector": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        179,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        185,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        41,
+        22,
+        6,
+        70,
+        0,
+        23,
+        23,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 168,
+      "site": "LegacyRequestBytes",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        144,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        146,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        44,
+        20,
+        7,
+        39,
+        0,
+        18,
+        18,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 175,
+      "site": "LegacyPlanPreflight",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        154,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        156,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        38,
+        17,
+        9,
+        48,
+        0,
+        22,
+        22,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 176,
+      "site": "LegacyPlanOwner",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        118,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        120,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        34,
+        14,
+        5,
+        35,
+        0,
+        16,
+        16,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 179,
+      "site": "LegacyPlanBytes",
+      "delta_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        168,
+        0,
+        0
+      ],
+      "necessary_price_if_other_components_retained": [
+        172,
+        0,
+        0
+      ],
+      "necessary_vector_if_other_components_retained": [
+        52,
+        24,
+        8,
+        42,
+        0,
+        23,
+        23,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "ordinal": 343,
+      "site": "QueryPredictionEndpoints",
+      "delta_vector": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "sealed_price": [
+        168,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        176,
+        0,
+        1
+      ],
+      "necessary_vector_if_other_components_retained": [
+        40,
+        49,
+        5,
+        44,
+        0,
+        19,
+        19,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "necessary_schedule_corrections_if_other_components_retained": [
+    {
+      "schedule": "PredictFixed",
+      "delta": 8,
+      "sealed_price": [
+        146065,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        146073,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "ResolveFixed",
+      "delta": 8,
+      "sealed_price": [
+        154181,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        154189,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "QueryNewFixed",
+      "delta": 8,
+      "sealed_price": [
+        161630,
+        0,
+        1
+      ],
+      "necessary_price_if_other_components_retained": [
+        161638,
+        0,
+        1
+      ]
+    },
+    {
+      "schedule": "LegacyFixed",
+      "delta": 16,
+      "sealed_price": [
+        24433,
+        0,
+        5
+      ],
+      "necessary_price_if_other_components_retained": [
+        24449,
+        0,
+        5
+      ]
+    }
+  ],
+  "necessary_root": [
+    51747,
+    9,
+    8
+  ],
+  "necessary_conditional_examples_if_other_components_retained": {
+    "root": [
+      51747,
+      9,
+      8
+    ],
+    "Q_for_R": {
+      "0": 11804006,
+      "1": 11804882,
+      "2": 11816588,
+      "64": 12503144,
+      "1024": 23083176
+    },
+    "source_upper_excluding_N_term": 11905951,
+    "C1_N1": 11905975,
+    "C1_max_N": 10688729,
+    "C2_max_N": 6413237,
+    "scope": "Necessary conditional data arithmetic only; no price acceptance or fit/binding credit."
+  },
+  "required_12_quote_term_delta": {
+    "term": 1,
+    "unit": "pendingWindowQueryFixed",
+    "old": [
+      161630,
+      0,
+      1
+    ],
+    "necessary": [
+      161638,
+      0,
+      1
+    ],
+    "other11_unchanged_by_findings": true
+  },
+  "old190_catalogue": "Exact independent data equality and190 component sums/78 compositions passed; frozen prices/vectors are not modified by findings in new wrapper getter calls.",
+  "aggregate_initialization_boundary": "Accepted braces125W =121 zero+4DMIs/no initialization ctor H/Z; default-member4DMI/3 ctor edges remain distinct. This review adds only actual selected return-copy/converting-constructor obligations, not zero-before-DMI or extra scalar transfer.",
+  "finite_lifetime_structure": "All five role reserves are present in the root equation including sequential Result then Retained/Reader. Native comparisons/page positive-progress and checked quote/refusal upper structures remain conditional bounds, not observed visits. No failure is excused by aggregate slack.",
+  "mechanical_checks": {
+    "count": 2826,
+    "categories": {
+      "seal": 3,
+      "pin": 23,
+      "inventory": 1,
+      "helper_arithmetic": 50,
+      "helper_coefficient": 612,
+      "event_factorization": 420,
+      "event_scalar_sums": 420,
+      "event_nonnegative": 420,
+      "schedule_arithmetic": 38,
+      "schedule_scope": 38,
+      "MD_JSON": 3,
+      "MD_event": 420,
+      "MD_helper": 50,
+      "MD_schedule": 38,
+      "old_catalogue": 3,
+      "old_row_sum": 190,
+      "old_composition": 78,
+      "root_arithmetic": 1,
+      "copy_cells": 4,
+      "explicit_max_alternative": 6,
+      "quote": 1,
+      "conditional_example": 5,
+      "necessary_delta": 2
+    },
+    "all_pass": true,
+    "meaning": "Stored arithmetic and correspondence reproduce; source omissions require whole REVISE."
+  },
+  "evidence": [
+    "evidence/check_packet.py",
+    "evidence/packet-checks.json",
+    "evidence/getter-cases.json"
+  ],
+  "source_return_semantics_primary_references": [
+    "https://eel.is/c++draft/stmt.return",
+    "https://eel.is/c++draft/class.copy.elision"
+  ],
+  "new_supported_hypothesis": "Use separate concrete owned aggregate-member value-return and vector-to-span value-return cases, reprice only their actual callers, and propagate the exact no-double-transfer changes through complete finite schedules before a new whole review. No new tariff or contract relaxation is needed.",
+  "not_granted": [
+    "Acceptance or binding of all420 source prices or any corrected whole replacement census.",
+    "Reuse of reserve slack, semantic builder fees or frozen old190 prices for omitted new work.",
+    "R4 compiled ABI or R4/R5 size/offset equality from separate R5 records.",
+    "Source/U/ABI/native/resource/stack/overlap/cap-fit/all-input forward or whole API/query/renderer/Ready proof.",
+    "Any Catalogue/NativeBinding Data definitions, target execution or separate GO."
+  ],
+  "preservation": "All subject/reference/evidence/output files pinned by the sealed R1 census were raw-byte rechecked; all were preserved.",
+  "operations": {
+    "source_data_hash_integer_JSON_only": true,
+    "own_arithmetic_checker_executed": true,
+    "author_helpers_executed": false,
+    "target_PS_parse_AST_import": false,
+    "target_helper_compiler_linker_program_test_stage": false,
+    "native_API_GUI_audio_Git_CI": false,
+    "subject_edits": false
+  }
+}

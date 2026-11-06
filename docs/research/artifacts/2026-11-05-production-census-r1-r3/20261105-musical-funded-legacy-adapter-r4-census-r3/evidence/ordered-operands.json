@@ -1,0 +1,2949 @@
+{
+  "schema": "PRODUCTION_R4_CENSUS_R3_ORDERED_BODY_CALLER_OPERANDS_V1",
+  "vector_order": [
+    "R",
+    "W",
+    "C",
+    "X",
+    "LE",
+    "H",
+    "Z",
+    "O",
+    "A",
+    "F"
+  ],
+  "production_conventions": "404E214B/709B8A43",
+  "target_manifest_sha256": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077",
+  "scope": "Complete source-ordered body vectors for all23 affected packets, including every component rather than only the25 witnessed errors. Full420 event/helper/schedule recomposition remains a new proposal for fresh whole critic.",
+  "rows": [
+    {
+      "site": "LegacyQueryReserve",
+      "source_anchor": "legacy-adapter.h:143-157",
+      "ordered_body_operands": [
+        {
+          "source_operation": "reserveQuery own entry and return",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "U64 amount; has no scalar initialization store",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "quote(s,c.rows,amount): one actual c.rows caller value read and field selector; returned-bool guard",
+          "vector": [
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "Ledger::reserve: actual amount caller read, s.legacyCheck_ and s.legacyQuery_ written selectors, returned-bool guard",
+          "vector": [
+            1,
+            0,
+            1,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        }
+      ],
+      "body_vector": [
+        2,
+        0,
+        2,
+        3,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "Fixed owns this checkpoint implementation.",
+        "QueryQuote owns rows parameter W and the actual first amount=0 write; declaring the uninitialized local adds no W.",
+        "ReserveScan owns reserve amount parameter W and actual scan/body; ready/refuse bodies retain their separate Sites."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 146,
+      "old_body_vector": [
+        2,
+        1,
+        2,
+        3,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyAttemptPrepare",
+      "source_anchor": "legacy-adapter.h:159-173",
+      "ordered_body_operands": [
+        {
+          "source_operation": "prepare stage,fee,inheritedWorkLimit,inheritedByteLimit scalar parameter destinations",
+          "vector": [
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "prepare own entry/return",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "index=static_cast<size_t>(stage)",
+          "vector": [
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "index>=3",
+          "vector": [
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        },
+        {
+          "source_operation": "s.raw_.legacy.invocations[index]!=0: actual cell and index reads; three members and builtin subscript",
+          "vector": [
+            2,
+            0,
+            1,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 5
+        },
+        {
+          "source_operation": "s.legacyAttempt_[index].remaining!=0: actual cell and index reads; member/subscript/member",
+          "vector": [
+            2,
+            0,
+            1,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 6
+        },
+        {
+          "source_operation": "eager bitwise OR joining those invariant comparisons",
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 7
+        },
+        {
+          "source_operation": "existingTotal=total(s); returned local write and existingTotal>workCap",
+          "vector": [
+            1,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 8
+        }
+      ],
+      "body_vector": [
+        7,
+        6,
+        4,
+        9,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "total own entry, scan, incoming field loads, arithmetic and return belong LegacyBudgetEntry/Test/Row/Continue/End.",
+        "All reference parameters bind without copying any referent. Four scalar caller reads, where named, belong the actual stage callers; no incoming-parameter R is invented."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 153,
+      "old_body_vector": [
+        7,
+        6,
+        4,
+        8,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyAttemptLimit",
+      "source_anchor": "legacy-adapter.h:174-186",
+      "ordered_body_operands": [
+        {
+          "source_operation": "headroom=workCap-existingTotal",
+          "vector": [
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "existingLegacy=s.legacyEnteredContribution_",
+          "vector": [
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "existingLegacy>workCap-headroom",
+          "vector": [
+            2,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "originCumulativeCeiling=existingLegacy+headroom",
+          "vector": [
+            2,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        },
+        {
+          "source_operation": "effectiveWork nested minima: c.requested.maxWorkUnits, inheritedWorkLimit and originCumulativeCeiling named caller values; destination",
+          "vector": [
+            3,
+            1,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 5
+        },
+        {
+          "source_operation": "(existingLegacy>effectiveWork)|(fee>headroom): four named reads, two comparisons, eager OR",
+          "vector": [
+            4,
+            0,
+            2,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 6
+        }
+      ],
+      "body_vector": [
+        13,
+        4,
+        3,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "Minimum occurs three times with each actual parameter/body/selected return retained in the helper.",
+        "workCap and engine maximum constants have no production read/conversion fee.",
+        "Returned minimum temporaries are not invented named caller R operations."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 154,
+      "old_body_vector": [
+        13,
+        4,
+        3,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyClockCommitInvoke",
+      "source_anchor": "legacy-adapter.h:247-249",
+      "ordered_body_operands": [
+        {
+          "source_operation": "commitPrepared(s,prepared) reference call adds no caller referent or fee read",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "old build value inputs map2/rate1/prepared.limits2, their actual parameter destinations and limits selector",
+          "vector": [
+            5,
+            5,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "three selected aggregate copy constructors and one visible old build call",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            4,
+            4,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "returned scalar status local destination",
+          "vector": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        }
+      ],
+      "body_vector": [
+        5,
+        6,
+        0,
+        1,
+        0,
+        4,
+        4,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "CommitPrepared helper owns all17 real internal reads,6 writes, its ix call and own H/Z.",
+        "Clock builder semantic1+6R is separate, unchanged and consumed once immediately after the branchless commit.",
+        "No duplicate caller destination or reference read is added."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 159,
+      "old_body_vector": [
+        6,
+        6,
+        0,
+        1,
+        0,
+        4,
+        4,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyClockReturned",
+      "source_anchor": "legacy-adapter.h:250-254",
+      "ordered_body_operands": [
+        {
+          "source_operation": "s.raw_.legacy.returned[0]+=1: cell read/write, three members,builtin subscript and addition",
+          "vector": [
+            1,
+            1,
+            0,
+            5,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "result.clockStatusKnown=true",
+          "vector": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "result.clockStatus=status",
+          "vector": [
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "native.check() written selector and returned-bool guard",
+          "vector": [
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        },
+        {
+          "source_operation": "status!=Ok",
+          "vector": [
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 5
+        }
+      ],
+      "body_vector": [
+        3,
+        3,
+        2,
+        8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "NativeCheck retains its read/compare/control/return Sites; this body owns only the literal native.check caller selector/guard."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 160,
+      "old_body_vector": [
+        3,
+        3,
+        2,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyClockException",
+      "source_anchor": "legacy-adapter.h:280-284",
+      "ordered_body_operands": [
+        {
+          "source_operation": "s.raw_.legacy.exceptions[0]+=1: read/write and five written operations",
+          "vector": [
+            1,
+            1,
+            0,
+            5,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "result.outcome=UnexpectedLegacyException",
+          "vector": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "discarded native.check() still has its written selector; no discarded-result condition",
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        }
+      ],
+      "body_vector": [
+        1,
+        2,
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "NativeCheck retains its complete body.",
+        "Literal false return has no R; the clock function entry/return belongs LegacyClockPrepare."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 163,
+      "old_body_vector": [
+        1,
+        2,
+        0,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyRequestPreflight",
+      "source_anchor": "legacy-adapter.h:308-317",
+      "ordered_body_operands": [
+        {
+          "source_operation": "request own entry/return",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "result.stage=Request",
+          "vector": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "s.legacyOptions() and artifacts.window_.value() reference callers: one and two selectors",
+          "vector": [
+            0,
+            0,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "options.policy.channelRevision!=1",
+          "vector": [
+            1,
+            0,
+            1,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        },
+        {
+          "source_operation": "options.policy.materializationRevision!=1",
+          "vector": [
+            1,
+            0,
+            1,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 5
+        },
+        {
+          "source_operation": "eager OR between policy comparisons",
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 6
+        }
+      ],
+      "body_vector": [
+        2,
+        1,
+        2,
+        9,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "Two Access helper bodies retain their own H/Z/reference operations; they do not own these written callers.",
+        "References options/retainedWindow create no aggregate copy or destination W."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 167,
+      "old_body_vector": [
+        2,
+        1,
+        2,
+        8,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyRequestBytes",
+      "source_anchor": "legacy-adapter.h:321-328",
+      "ordered_body_operands": [
+        {
+          "source_operation": "retainedWindow.clock() caller feeding limits()",
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "byteLimit=minimum(c.byteLimit,clockLimits.maxReservedBytes): two field reads/selectors and scalar destination",
+          "vector": [
+            2,
+            1,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "retainedWindow.clock() caller feeding reservedBytes(); clockBytes scalar destination",
+          "vector": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "clockBytes>byteLimit",
+          "vector": [
+            2,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        },
+        {
+          "source_operation": "keyBytes>byteLimit-minimum(clockBytes,byteLimit): three named reads, subtraction,comparison",
+          "vector": [
+            3,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 5
+        },
+        {
+          "source_operation": "eager OR",
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 6
+        }
+      ],
+      "body_vector": [
+        7,
+        2,
+        2,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "GetterReference2/ARROW_HANDLE2 retain actual clock reference/arrow boundaries once.",
+        "GetterTwo owns two limit-cell R/W and getter+selected copy H/Z; GetterScalar owns the actual bytes-cell R.",
+        "Minimum2 retains actual two parameter destinations/body/return.",
+        "constexpr keyBytes/requestBytes sizeof+64 do not execute a runtime read or expression."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 168,
+      "old_body_vector": [
+        7,
+        2,
+        2,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyRequestCommitInvoke",
+      "source_anchor": "legacy-adapter.h:350-354",
+      "ordered_body_operands": [
+        {
+          "source_operation": "commitPrepared(s,prepared) is a reference call with no extra fee or referent R",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "metadata.clip,metadata.asset,parents.original,parents.readyView reference designators and prepared.limits selector",
+          "vector": [
+            0,
+            0,
+            0,
+            5,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "mapped2,tier1,identity6,policy2,limits2 value transfers",
+          "vector": [
+            13,
+            13,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "four selected aggregate copy constructors and one visible old factory call",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            5,
+            5,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        }
+      ],
+      "body_vector": [
+        13,
+        13,
+        0,
+        5,
+        0,
+        5,
+        5,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "CommitPrepared retains all17 actual internal reads including every prepared.fee use.",
+        "The two-cell returned result prvalue retains its original callee production; mandatory elision adds no caller copy/destination.",
+        "Unchanged4096 semantic debit is separate and once."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 170,
+      "old_body_vector": [
+        14,
+        13,
+        0,
+        5,
+        0,
+        5,
+        5,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyRequestReturned",
+      "source_anchor": "legacy-adapter.h:355-361",
+      "ordered_body_operands": [
+        {
+          "source_operation": "s.raw_.legacy.returned[1]+=1",
+          "vector": [
+            1,
+            1,
+            0,
+            5,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "result.requestStatusKnown=true",
+          "vector": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "result.requestStatus=status: actual two-cell assignment and explicit destination",
+          "vector": [
+            2,
+            2,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "result.observations[1].cumulativeEvidence=SourceProved",
+          "vector": [
+            0,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        },
+        {
+          "source_operation": "result.observations[1].cumulative=s.legacyEnteredContribution_",
+          "vector": [
+            1,
+            1,
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 5
+        },
+        {
+          "source_operation": "status.status!=Ok",
+          "vector": [
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 6
+        }
+      ],
+      "body_vector": [
+        5,
+        6,
+        1,
+        15,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "No compiler-generated per-field designator traversal is invented for the two-cell assignment.",
+        "Constant builtin array index1 still contributes one reached X."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 171,
+      "old_body_vector": [
+        5,
+        6,
+        1,
+        14,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyRequestException",
+      "source_anchor": "legacy-adapter.h:375-378",
+      "ordered_body_operands": [
+        {
+          "source_operation": "s.raw_.legacy.exceptions[1]+=1",
+          "vector": [
+            1,
+            1,
+            0,
+            5,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "result.outcome=UnexpectedLegacyException",
+          "vector": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        }
+      ],
+      "body_vector": [
+        1,
+        2,
+        0,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "There is no native.check invocation in this catch.",
+        "The enclosing request entry/return belongs LegacyRequestPreflight."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 174,
+      "old_body_vector": [
+        1,
+        2,
+        0,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyPlanExtent",
+      "source_anchor": "legacy-adapter.h:399-401",
+      "ordered_body_operands": [
+        {
+          "source_operation": "selected.srcLen==0",
+          "vector": [
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "selected.srcOffset>mapped->frames: actual scalar field reads and selected field selector",
+          "vector": [
+            2,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "mapped->frames>max()/channels: actual frame/channel reads,division,comparison",
+          "vector": [
+            2,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "two eager OR operators",
+          "vector": [
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        }
+      ],
+      "body_vector": [
+        5,
+        0,
+        3,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "ARROW_HANDLE2 retains each written mapped arrow once; no additional arrow selector is added.",
+        "MAX2 owns the visible max() logical call; compile-time type syntax is not a runtime operand."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 177,
+      "old_body_vector": [
+        5,
+        0,
+        3,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyPlanProduct",
+      "source_anchor": "legacy-adapter.h:402-405",
+      "ordered_body_operands": [
+        {
+          "source_operation": "selected.srcLen>mapped->frames-selected.srcOffset",
+          "vector": [
+            3,
+            0,
+            1,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "mapped->interleaved.size()!=mapped->frames*channels: actual frame/channel reads,size selector,product,comparison",
+          "vector": [
+            2,
+            0,
+            1,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "selected.srcLen!=input->window().inputFrames(): selected field read plus its selector and inputFrames selector/comparison",
+          "vector": [
+            1,
+            0,
+            1,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "two eager OR operators",
+          "vector": [
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        }
+      ],
+      "body_vector": [
+        6,
+        0,
+        3,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "ARROW_HANDLE4 owns the four written arrow logical boundaries once.",
+        "EXT3 owns the size extent read/HZ. GetterReference and GetterScalar own their actual reference/scalar bodies, not the explicit .inputFrames caller."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 178,
+      "old_body_vector": [
+        6,
+        0,
+        3,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyPlanBytes",
+      "source_anchor": "legacy-adapter.h:406-414",
+      "ordered_body_operands": [
+        {
+          "source_operation": "input->window().clock()->limits(): .clock selector outside arrow/reference/getter helper bodies",
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "input->limits(): both limits results are actual two-cell copied values in GetterTwo helpers",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "byteLimit nested minima: three explicit caller field reads/selectors and destination",
+          "vector": [
+            3,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "retainedBytes=input->accounting().reservedBytes: scalar field read/selector and destination",
+          "vector": [
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        },
+        {
+          "source_operation": "retainedBytes>byteLimit",
+          "vector": [
+            2,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 5
+        },
+        {
+          "source_operation": "planBytes>byteLimit-minimum(retainedBytes,byteLimit): three named reads, subtraction,comparison",
+          "vector": [
+            3,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 6
+        },
+        {
+          "source_operation": "eager OR",
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 7
+        }
+      ],
+      "body_vector": [
+        9,
+        2,
+        2,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "ARROW_HANDLE4, GetterReference3, GetterTwo2 and Minimum3 retain their complete logical bodies once.",
+        "The two corrected getters each own2R/2W and getter+copy H/Z; no second local/caller destination is charged.",
+        "constexpr planBytes sizeof+64 remains a constant expression."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 179,
+      "old_body_vector": [
+        9,
+        2,
+        2,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyPlanCommitInvoke",
+      "source_anchor": "legacy-adapter.h:433-435",
+      "ordered_body_operands": [
+        {
+          "source_operation": "commitPrepared(s,prepared) has no caller fee/referent read",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "prepared.limits two-cell value input and actual parameter destination, explicit limits selector",
+          "vector": [
+            2,
+            2,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "selected two-cell copy constructor and one visible old plan call",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        }
+      ],
+      "body_vector": [
+        2,
+        2,
+        0,
+        1,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "CommitPrepared owns all17 actual body reads.",
+        "Returned plan-status prvalue has mandatory elision and no additional caller aggregate copy.",
+        "Unchanged1024+N*(8+16C) semantic debit remains separate, once."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 182,
+      "old_body_vector": [
+        3,
+        2,
+        0,
+        1,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyPlanReturned",
+      "source_anchor": "legacy-adapter.h:436-454",
+      "ordered_body_operands": [
+        {
+          "source_operation": "s.raw_.legacy.returned[2]+=1",
+          "vector": [
+            1,
+            1,
+            0,
+            5,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "result.planStatusKnown=true",
+          "vector": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "result.planStatus=status: two-cell assignment plus explicit destination",
+          "vector": [
+            2,
+            2,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "result.observations[2].cumulativeEvidence=SourceProved",
+          "vector": [
+            0,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        },
+        {
+          "source_operation": "result.observations[2].cumulative=s.legacyEnteredContribution_",
+          "vector": [
+            1,
+            1,
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 5
+        },
+        {
+          "source_operation": "two status.status full-scan comparisons and eager OR",
+          "vector": [
+            2,
+            0,
+            2,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 6
+        },
+        {
+          "source_operation": "later status.status!=Ok after possible FullScan",
+          "vector": [
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 7
+        }
+      ],
+      "body_vector": [
+        7,
+        6,
+        3,
+        18,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "LegacyPlanFullScan owns only its entered stores/arithmetic/counter, not these surrounding tests.",
+        "Assignment copies scalar cells with one selected assignment H/Z, not generated per-field selectors."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 183,
+      "old_body_vector": [
+        7,
+        6,
+        3,
+        17,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyPlanFullScan",
+      "source_anchor": "legacy-adapter.h:446-451",
+      "ordered_body_operands": [
+        {
+          "source_operation": "framesVisitedEvidence and samplesVisitedEvidence observation destinations",
+          "vector": [
+            0,
+            2,
+            0,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "frames=selected.srcLen: observation destination and actual selected field read",
+          "vector": [
+            1,
+            1,
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "samples=selected.srcLen*channels: observation destination,field read,channel read,product",
+          "vector": [
+            2,
+            1,
+            0,
+            5,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "s.raw_.legacy.knownFullScanOutcomes+=1",
+          "vector": [
+            1,
+            1,
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        }
+      ],
+      "body_vector": [
+        4,
+        5,
+        0,
+        19,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "Four observation destinations are each member/subscript/member, including the constant index.",
+        "Source-proved evidence is literal current returned control flow; no discarded private accounting/allocator trace is claimed."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 186,
+      "old_body_vector": [
+        4,
+        5,
+        0,
+        18,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyPlanException",
+      "source_anchor": "legacy-adapter.h:473-476",
+      "ordered_body_operands": [
+        {
+          "source_operation": "s.raw_.legacy.exceptions[2]+=1",
+          "vector": [
+            1,
+            1,
+            0,
+            5,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "result.outcome=UnexpectedLegacyException",
+          "vector": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        }
+      ],
+      "body_vector": [
+        1,
+        2,
+        0,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "No native.check is invoked in this catch.",
+        "The enclosing plan entry/return belongs LegacyPlanPreflight."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 187,
+      "old_body_vector": [
+        1,
+        2,
+        0,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "LegacyWorkerCaller",
+      "source_anchor": "legacy-adapter.h:539-548",
+      "ordered_body_operands": [
+        {
+          "source_operation": "workerBuildLegacy own entry/return",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "auto& s=*context.state_: actual pointer read,member selector and dereference; no referent copy",
+          "vector": [
+            1,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "owner.resultLive_ invariant field load/selector/test",
+          "vector": [
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "owner.result() actual caller selector; class-qualified static run adds no object selector",
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        }
+      ],
+      "body_vector": [
+        2,
+        0,
+        1,
+        4,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "ReceiveWorker concrete new-adapter caller case already sponsors owner.receiveWorker selector; it is not counted again.",
+        "Access owns owner.result body. run/ContextScope actual body,cleanup and return scopes retain their existing distinct source funding."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 189,
+      "old_body_vector": [
+        2,
+        0,
+        1,
+        5,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "QueryEntry",
+      "source_anchor": "window-query.h:995-1001",
+      "ordered_body_operands": [
+        {
+          "source_operation": "resolve own entry/return",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "native.beginReplay() actual selector/returned-bool guard",
+          "vector": [
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "start=s.metadata().clip.timelineStart",
+          "vector": [
+            1,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "length=s.metadata().clip.timelineLength",
+          "vector": [
+            1,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        },
+        {
+          "source_operation": "frames=s.legacyOptions().mappedWindow.srcLen",
+          "vector": [
+            1,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 5
+        },
+        {
+          "source_operation": "Prediction predicted{} thirteen scalar cell initializations",
+          "vector": [
+            0,
+            13,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 6
+        },
+        {
+          "source_operation": "predict start,length,frames actual named caller reads and returned-bool guard",
+          "vector": [
+            3,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 7
+        }
+      ],
+      "body_vector": [
+        6,
+        16,
+        2,
+        10,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "Access3 owns only the actual reference getter bodies.",
+        "QueryPredictEntry owns the three scalar parameter destinations and real predict body; it does not invent incoming-parameter reads.",
+        "beginReplay own body has ReplayFixed/NativeCheck source funding."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 275,
+      "old_body_vector": [
+        3,
+        16,
+        2,
+        9,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        3,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "QueryEndpointMap",
+      "source_anchor": "window-query.h:890-896",
+      "ordered_body_operands": [
+        {
+          "source_operation": "search(s,tick) actual tick caller read",
+          "vector": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "prefixTo found.index and rate named caller values, explicit found.index selector,returned-bool guard",
+          "vector": [
+            2,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "out.frame=prefix",
+          "vector": [
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "tick>s.map_[found.index].tick: tick,map pointer,index,row tick actual loads; four explicit designators",
+          "vector": [
+            4,
+            0,
+            1,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        }
+      ],
+      "body_vector": [
+        8,
+        1,
+        2,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "SearchEntry/PrefixEntry own parameter writes, not these caller reads. SearchEnd owns its three-cell returned source/copy case.",
+        "Packet and VectorEntry own their concrete old-id/t/f/path incoming expressions; no second packet transfer is inserted here."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 308,
+      "old_body_vector": [
+        7,
+        1,
+        2,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "QueryEndpointPartial",
+      "source_anchor": "window-query.h:898-920",
+      "ordered_body_operands": [
+        {
+          "source_operation": "row reference=s.map_[found.index]: actual map/index reads and member,member,subscript designators",
+          "vector": [
+            2,
+            0,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "next=found.index+1<s.mapConstructed_: two reads,local write,comparison and three operations",
+          "vector": [
+            2,
+            1,
+            1,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "if(next) selected argument-construction branch",
+          "vector": [
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "append returned-bool guard",
+          "vector": [
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        },
+        {
+          "source_operation": "finishEndpoint returned&&isfinite(out.frame): returned/out.frame reads,short circuit and field selector",
+          "vector": [
+            2,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 5
+        },
+        {
+          "source_operation": "final native.check() written selector",
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 6
+        }
+      ],
+      "body_vector": [
+        7,
+        1,
+        4,
+        8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "Math1 owns isfinite parameter destination and visible H/Z.",
+        "PartialNextArgs/LastArgs own six-cell argument construction/assignment, complete AppendPrefix sponsorship and actual out.frame append-reference selector.",
+        "QueryPacket concrete cases own the next/returned ternary incoming tests/reads and selected packet transfers. No duplicate packet caller action belongs here."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 309,
+      "old_body_vector": [
+        7,
+        1,
+        4,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "site": "QueryPredictionEndpoints",
+      "source_anchor": "window-query.h:947-957",
+      "ordered_body_operands": [
+        {
+          "source_operation": "at=0 and prefix=0.0 scalar first writes",
+          "vector": [
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        },
+        {
+          "source_operation": "threshold: rows().size selector,constant-times-named-result product and addition,local destination",
+          "vector": [
+            0,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 2
+        },
+        {
+          "source_operation": "eligible: limits().maxWorkUnits field read/selector,threshold read,comparison and local destination",
+          "vector": [
+            2,
+            1,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 3
+        },
+        {
+          "source_operation": "rate=s.metadata().projectRate.hz: actual scalar load,three written selectors and destination",
+          "vector": [
+            1,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 4
+        },
+        {
+          "source_operation": "Endpoint a{},b{}: two thirteen-scalar aggregate initializations",
+          "vector": [
+            0,
+            26,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 5
+        },
+        {
+          "source_operation": "endpoint A actual start,eligible,rate named caller reads and returned-bool guard",
+          "vector": [
+            3,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 6
+        },
+        {
+          "source_operation": "a.status!=Ok field read,selector and condition",
+          "vector": [
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "order": 7
+        }
+      ],
+      "body_vector": [
+        7,
+        31,
+        3,
+        8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "callee_or_earlier_sponsors": [
+        "ARROW_HANDLE2, ReturnSpanValue1, EXT3, Math1, GetterTwo1 and Access1 retain complete distinct bodies once.",
+        "ReturnSpanValue and GetterTwo each own2R/2W plus their actual getter/construction H/Z; no duplicated destination W.",
+        "The named U64/size_t cast contributes separately X*d; constants and constant-only casts have no runtime fee.",
+        "QueryPacket/VectorEntry own actual path/packet/vector caller operands. Rate here is a stored metadata field, not another SampleRate value getter."
+      ],
+      "scope": "Maximum reached body/caller case under the production logical convention; not an observed trace. Exact written operands are grouped in source order; no literal read fee or reference referent copy.",
+      "ordinal": 343,
+      "old_body_vector": [
+        7,
+        31,
+        2,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "delta_vector": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "review_witness_crosscheck": {
+    "affected_sites": 23,
+    "component_witnesses": 25,
+    "all_own_source_rebuilt_vectors_match_necessary_deltas": true
+  },
+  "execution": "Own ordinary Python integer/JSON/file/hash only. No target parser,compiler,helper,program,stage,native,GUI,Git orCI."
+}

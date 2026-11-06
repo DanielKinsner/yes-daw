@@ -1,0 +1,11 @@
+# Production census history: R1, R2 and R3 remain REVISE
+
+These are three complete proposed420-Site packets with their helper/schedule/query-term inventories and independent critics. All frozen190 old rows/78 compositions and source identities remain preserved. Internal arithmetic agreement and source-price acceptance are distinct. None of these three proposals is an accepted replacement catalogue, root/query price, fit, Data or execution authority.
+
+R1 review identified aggregate-getter return copies and span-by-value costs. R2 rebuilt those fixes; fresh whole critique then identified23 caller/read/write/explicit-designator errors. R3 rebuilt those23 bodies in113 ordered groups and regenerated the whole packet. Its fresh whole review passed4,647 file/data checks but found a systematic boundary error: unqualified own member names and constructor initializer labels were charged as explicit selectors. Native bodies plus Access/RestorePrefix affect50 Site prices, with further Q/C/U/constructor witnesses requiring a complete inventory. The independent review does not certify otherwise unflagged prices by default.
+
+The next supported hypothesis is a written-designator versus unqualified-identifier inventory across every420 body and51 helper, retaining actual scalar reads/writes, explicit operators, caller/prebody sponsors and constructor/copy/return work exactly once. Regenerate the whole proposal and request a fresh whole critic. Keep all source, prior seals and original old catalogue unchanged; a larger reserve cannot sponsor an invented source operation. Necessary partial deltas in critic evidence are not final corrected prices or fit examples.
+
+The selected R5 d=0 COFF fact is separately supported and scoped; it supplies no measured R4 layout equality or physical resource credit. Actual native/provider/interval, allocator/control-block/stack/lifetime resources, immutable binding and public recipe/renderer/jobs/model remain unfinished.
+
+All49 proposal/helper/review files and original raw-byte hashes are preserved in archive-manifest.json. LF display/EOF conversions retain lossless raw base64. No target program, compiler, native function, GUI, desktop input or device ran for these numeric reviews. Rejected proposals and failed assumptions remain historical evidence; they are not silently rewritten into a passing result.
