@@ -1,0 +1,16 @@
+{
+  "scope": "STAGED_LOSSLESS_CONTAINER_DELIVERY_ONLY_NOT_NUMERIC_RESOURCE_OR_TARGET_PROOF",
+  "source_rows_reconstructed": 410,
+  "tree_members_verified": 412,
+  "old_frozen_delivery_files_verified": 7,
+  "failed_partial_outputs_roundtripped": 266,
+  "failed_staging_index_snapshots_roundtripped": 2,
+  "packed_checker_failure_snapshot_roundtripped": true,
+  "writer_case_order_independent_correction": "WINDOWS_LOWERCASED_COMPONENT_ORDER_OLD_WRITER_UNCHANGED",
+  "ignored_logs_preserved": true,
+  "unchanged_git_diff_cached_check": "PASS",
+  "protected_test_and_instructions_unchanged": true,
+  "staged_checker_sha256": "1713B03068CB9AB73E2177074F0B181F7EAF1C5EEB553E5EE2E458557062B657",
+  "target_execution": false,
+  "first_passing_result": true
+}

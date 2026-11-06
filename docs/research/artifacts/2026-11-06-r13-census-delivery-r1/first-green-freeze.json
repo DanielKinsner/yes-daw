@@ -1,0 +1,42 @@
+{
+  "scope": "LOSSLESS_DELIVERY_ONLY",
+  "files": [
+    {
+      "file": "corrected-archive-helper.py",
+      "bytes": 4504,
+      "sha256": "822E0AF600EDFB2348B0F1046E1D5BC587C276D941838CD0D809C5AD702258F0"
+    },
+    {
+      "file": "failed-archive-helper.py",
+      "bytes": 4276,
+      "sha256": "16387F692BF15FFA55F40A140B6701F51D32C4A0B776B894F9166112930F0480"
+    },
+    {
+      "file": "failed-attempt.json",
+      "bytes": 1419,
+      "sha256": "AC4E9D60CE6A68EE2FB9702444AC7CC53BDD57EBBBC4A64841EA729A5CA0EF09"
+    },
+    {
+      "file": "failed-partial-output.json",
+      "bytes": 4286709,
+      "sha256": "14AC7CF7B637BBEF71735E8DC1EC6E2F5343F39C7FDF823501AD7BFA1C0EB5DD"
+    },
+    {
+      "file": "preserve_delivery.py",
+      "bytes": 4809,
+      "sha256": "24D09B8B5930FB1270B65200C512703EBC6243DBA39DB55D4A8BDB2BBE39914B"
+    },
+    {
+      "file": "receipt.json",
+      "bytes": 2668,
+      "sha256": "5D626E62C25504FE5D6B83F6CEDB4E2FB34484B39051BD17BCA85C2A6B49C18B"
+    },
+    {
+      "file": "staged-verifier.py",
+      "bytes": 1819,
+      "sha256": "E511EF0C5D57D3C732B3CB71F418051E020FE15BB1F07738ECC75D0DD86F247A"
+    }
+  ],
+  "all266_partial_outputs_roundtripped": true,
+  "target_execution": false
+}

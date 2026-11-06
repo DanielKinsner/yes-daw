@@ -1,0 +1,12 @@
+{
+  "scope": "LOSSLESS_PRESENTATION_SUCCESSOR_ONLY",
+  "original_archive_members": 410,
+  "complete_tree_members": 412,
+  "original_manifest_sha256": "AC5AAE3957A58B56A7CB3128E95FFE35C4084DAA5A6024ABD9CC36D26AF17BE6",
+  "candidate_pins_sha256": "DFC0F598BF3CECC00484A3772B86819BA2EF71A11078B26B30ED73ECA8BB4B93",
+  "candidate_whole_freeze_sha256": "F0C4439F557C5E59DBB1096AA0DACFE9DB62EDAD944E68AD52D14B20C4876BB6",
+  "strategy_critic_checks": 422,
+  "all_original_members_unchanged": true,
+  "new_staged_verification": "PENDING_SEPARATE_CHECK",
+  "target_execution": false
+}

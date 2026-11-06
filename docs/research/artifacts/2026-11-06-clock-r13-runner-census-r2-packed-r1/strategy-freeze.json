@@ -1,0 +1,16 @@
+{
+  "files": [
+    {
+      "file": "critic.py",
+      "bytes": 6192,
+      "sha256": "FA7F3651ECB4D6E3D59F40A9AE44447FB1E8A7DEE9E12313E634CD79D5ADC836"
+    },
+    {
+      "file": "review.json",
+      "bytes": 38527,
+      "sha256": "E6EB1AC0841DD986AE8CAA2D20E9EE8898287377BD3A887AE1E55CDB678EF4B3"
+    }
+  ],
+  "first_green": true,
+  "target_execution": false
+}

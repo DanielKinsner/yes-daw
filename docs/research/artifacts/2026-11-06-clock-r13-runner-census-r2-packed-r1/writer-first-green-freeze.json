@@ -1,0 +1,46 @@
+{
+  "scope": "FIRST_GREEN_WRITER_SOURCE_AND_RAW_CONTAINER_ONLY_STAGED_CHECK_PENDING",
+  "files": [
+    {
+      "file": "census.md",
+      "bytes": 20942,
+      "sha256": "5566BFD65CF3B3ACDA73CA91EBE927CB9C17DF99C6A2EC6D169456FFD7E66166"
+    },
+    {
+      "file": "receipt.json",
+      "bytes": 576,
+      "sha256": "FC2C735A94AE9F12A901E59A7C53B5A321FDC0AF4575EE83BF956F5653228363"
+    },
+    {
+      "file": "source-archive.json",
+      "bytes": 5601467,
+      "sha256": "A50EC08B88DB56D0953EC2DFC2ED28E5C4395A73ED460308CD3009FC5250D210"
+    },
+    {
+      "file": "strategy-critic.py",
+      "bytes": 6192,
+      "sha256": "FA7F3651ECB4D6E3D59F40A9AE44447FB1E8A7DEE9E12313E634CD79D5ADC836"
+    },
+    {
+      "file": "strategy-freeze.json",
+      "bytes": 363,
+      "sha256": "9203B89D6236193F2C654CF588EEF35D62BA117F45EAB684212A647EBAFFD626"
+    },
+    {
+      "file": "strategy-review.json",
+      "bytes": 38527,
+      "sha256": "E6EB1AC0841DD986AE8CAA2D20E9EE8898287377BD3A887AE1E55CDB678EF4B3"
+    },
+    {
+      "file": "verify_staged.py",
+      "bytes": 6368,
+      "sha256": "2822BE81E2EF84D0596EE0196809EF5E4862F615BE304F62B6C07749EA4B51DE"
+    },
+    {
+      "file": "writer.py",
+      "bytes": 4130,
+      "sha256": "0AA25014535AAD768FB99F8F5FE6D06642B71F3C866CB3B12FB41E1C458F0120"
+    }
+  ],
+  "target_execution": false
+}

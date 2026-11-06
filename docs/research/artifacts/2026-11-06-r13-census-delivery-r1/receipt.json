@@ -1,0 +1,62 @@
+{
+  "scope": "DELIVERY_ONLY_NO_NUMERIC_RESOURCE_OR_RUNTIME_ACCEPTANCE",
+  "first_archive_exit": 1,
+  "corrected_archive_exit": 0,
+  "failed_partial_files_preserved_and_roundtripped": 266,
+  "raw_non_UTF8_sources_preserved": [
+    {
+      "file": "sources/267-README.md.original.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/README.md",
+      "original_bytes": 12021,
+      "original_sha256": "FAFCD75CD2BF4496732CC5C5DBFE9B6808B2B13ECC8A8F41FE7D371A872B215B",
+      "bytes": 16176,
+      "sha256": "F6DE33D297DEBD70F65F038A5F9BD6362F5098296697A9039C34B9DE7CD65F28",
+      "transformation": "COMPLETE_RAW_NON_UTF8_SOURCE_BASE64"
+    },
+    {
+      "file": "sources/279-README.md.original.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/README.md",
+      "original_bytes": 10900,
+      "original_sha256": "CB698327E344993D9D96E15D6B4D1E44082D342F72D449400DD376562C14B56E",
+      "bytes": 14684,
+      "sha256": "5B5E16A87871872E96C1BABEC226C7ED23455D49DCBF90C91B71738724623551",
+      "transformation": "COMPLETE_RAW_NON_UTF8_SOURCE_BASE64"
+    }
+  ],
+  "census_archive_files": 410,
+  "census_archive_manifest_sha256": "AC5AAE3957A58B56A7CB3128E95FFE35C4084DAA5A6024ABD9CC36D26AF17BE6",
+  "candidate_pins_unchanged": true,
+  "target_execution": false,
+  "files": [
+    {
+      "file": "preserve_delivery.py",
+      "original_path": "build-ci/20261106-r13-census-delivery-r1/preserve_delivery.py",
+      "bytes": 4809,
+      "sha256": "24D09B8B5930FB1270B65200C512703EBC6243DBA39DB55D4A8BDB2BBE39914B"
+    },
+    {
+      "file": "failed-archive-helper.py",
+      "original_path": "build-ci/20261106-r13-census-delivery-r1/attempt-01/archive-research-source-packet-r1.py",
+      "bytes": 4276,
+      "sha256": "16387F692BF15FFA55F40A140B6701F51D32C4A0B776B894F9166112930F0480"
+    },
+    {
+      "file": "failed-attempt.json",
+      "original_path": "build-ci/20261106-r13-census-delivery-r1/attempt-01/failure.json",
+      "bytes": 1419,
+      "sha256": "AC4E9D60CE6A68EE2FB9702444AC7CC53BDD57EBBBC4A64841EA729A5CA0EF09"
+    },
+    {
+      "file": "corrected-archive-helper.py",
+      "original_path": "build-ci/20261106-archive-research-source-packet-r1.py",
+      "bytes": 4504,
+      "sha256": "822E0AF600EDFB2348B0F1046E1D5BC587C276D941838CD0D809C5AD702258F0"
+    },
+    {
+      "file": "staged-verifier.py",
+      "original_path": "build-ci/20261106-verify-staged-research-evidence-r1.py",
+      "bytes": 1819,
+      "sha256": "E511EF0C5D57D3C732B3CB71F418051E020FE15BB1F07738ECC75D0DD86F247A"
+    }
+  ]
+}

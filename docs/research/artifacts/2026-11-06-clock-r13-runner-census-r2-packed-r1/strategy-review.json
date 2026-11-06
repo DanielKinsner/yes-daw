@@ -1,0 +1,1713 @@
+{
+  "checks": [
+    {
+      "name": "archive exact first-green manifest",
+      "pass": true
+    },
+    {
+      "name": "all410 source rows",
+      "pass": true
+    },
+    {
+      "name": "sources/001-AGENTS.md",
+      "pass": true
+    },
+    {
+      "name": "sources/002-20261105-clock-oracle-budget-arithmetic-erratum.json",
+      "pass": true
+    },
+    {
+      "name": "sources/003-20261105-clock-oracle-budget-erratum-independent-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/004-packet.md",
+      "pass": true
+    },
+    {
+      "name": "sources/005-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/006-newtonsoft-JavaScriptUtils.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/007-newtonsoft-JsonConvert.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/008-origins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/009-powershell-ConvertToJsonCommand.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/010-powershell-JsonObject.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/011-powershell-TypeTable_Types.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/012-powershell-TypeTable_TypesV3.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/013-census.json",
+      "pass": true
+    },
+    {
+      "name": "sources/014-census.md",
+      "pass": true
+    },
+    {
+      "name": "sources/015-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/016-20261105-clock-oracle-r4-independent-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/017-census.json",
+      "pass": true
+    },
+    {
+      "name": "sources/018-census.md",
+      "pass": true
+    },
+    {
+      "name": "sources/019-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/020-20261105-clock-oracle-r5-independent-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/021-20261105-clock-oracle-r6-independent-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/022-newtonsoft-JsonTextReader.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/023-origins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/024-powershell-CommandDiscovery.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/025-20261105-clock-oracle-r6-runner-call-count-correction.md",
+      "pass": true
+    },
+    {
+      "name": "sources/026-census.json",
+      "pass": true
+    },
+    {
+      "name": "sources/027-census.md",
+      "pass": true
+    },
+    {
+      "name": "sources/028-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/029-20261105-clock-oracle-r7-independent-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/030-microsoft-FileStream-constructors.html",
+      "pass": true
+    },
+    {
+      "name": "sources/031-microsoft-Thread-Sleep.html",
+      "pass": true
+    },
+    {
+      "name": "sources/032-origins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/033-census.json",
+      "pass": true
+    },
+    {
+      "name": "sources/034-census.md",
+      "pass": true
+    },
+    {
+      "name": "sources/035-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/036-20261105-clock-oracle-r8-independent-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/037-erratum.json",
+      "pass": true
+    },
+    {
+      "name": "sources/038-erratum.md",
+      "pass": true
+    },
+    {
+      "name": "sources/039-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/040-20261105-clock-oracle-r9-independent-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/041-body-and-parent-evidence.json",
+      "pass": true
+    },
+    {
+      "name": "sources/042-graph-evidence.json",
+      "pass": true
+    },
+    {
+      "name": "sources/043-graph-review.py",
+      "pass": true
+    },
+    {
+      "name": "sources/044-hashhelpers-identity.json",
+      "pass": true
+    },
+    {
+      "name": "sources/045-mechanical-evidence.json",
+      "pass": true
+    },
+    {
+      "name": "sources/046-primary-source-evidence.json",
+      "pass": true
+    },
+    {
+      "name": "sources/047-Dictionary.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/048-Environment.Variables.Windows.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/049-HashHelpers.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/050-Hashtable.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/051-List.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/052-Path.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/053-Path.Windows.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/054-Process.Windows.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/055-ProcessStartInfo.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/056-StreamReader.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/057-StringBuilder.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/058-StringReader.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/059-review-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/060-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/061-review.md",
+      "pass": true
+    },
+    {
+      "name": "sources/062-verify.py",
+      "pass": true
+    },
+    {
+      "name": "sources/063-census.json",
+      "pass": true
+    },
+    {
+      "name": "sources/064-census.md",
+      "pass": true
+    },
+    {
+      "name": "sources/065-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/066-20261105-clock-oracle-research-bulk-leaf-clarification.md",
+      "pass": true
+    },
+    {
+      "name": "sources/067-20261105-clock-oracle-research-leaf-census-conventions.md",
+      "pass": true
+    },
+    {
+      "name": "sources/068-contract.md",
+      "pass": true
+    },
+    {
+      "name": "sources/069-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/070-packet.md",
+      "pass": true
+    },
+    {
+      "name": "sources/071-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/072-Write-Object.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/073-Write.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/074-InitialSessionState.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/075-LanguagePrimitives.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/076-Compiler.cs",
+      "pass": true
+    },
+    {
+      "name": "sources/077-first-green-proof.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/078-receipt.json",
+      "pass": true
+    },
+    {
+      "name": "sources/079-source-cost-audit.md",
+      "pass": true
+    },
+    {
+      "name": "sources/080-packet.md",
+      "pass": true
+    },
+    {
+      "name": "sources/081-proof-plan.json",
+      "pass": true
+    },
+    {
+      "name": "sources/082-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/083-authored-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/084-verification-receipt.json",
+      "pass": true
+    },
+    {
+      "name": "sources/085-execution-receipt.json",
+      "pass": true
+    },
+    {
+      "name": "sources/086-packet.md",
+      "pass": true
+    },
+    {
+      "name": "sources/087-proof-plan.json",
+      "pass": true
+    },
+    {
+      "name": "sources/088-packet.md",
+      "pass": true
+    },
+    {
+      "name": "sources/089-proof-plan.json",
+      "pass": true
+    },
+    {
+      "name": "sources/090-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/091-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/092-packet.md",
+      "pass": true
+    },
+    {
+      "name": "sources/093-proof-plan.json",
+      "pass": true
+    },
+    {
+      "name": "sources/094-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/095-packet.md",
+      "pass": true
+    },
+    {
+      "name": "sources/096-proof-plan.json",
+      "pass": true
+    },
+    {
+      "name": "sources/097-authored-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/098-fast_fit.h",
+      "pass": true
+    },
+    {
+      "name": "sources/099-freeze_reference.py",
+      "pass": true
+    },
+    {
+      "name": "sources/100-independent_clock.h",
+      "pass": true
+    },
+    {
+      "name": "sources/101-quality_calibration.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/102-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/103-calibration-results.tsv",
+      "pass": true
+    },
+    {
+      "name": "sources/104-clock-results.tsv",
+      "pass": true
+    },
+    {
+      "name": "sources/105-summary.json",
+      "pass": true
+    },
+    {
+      "name": "sources/106-whole-results.tsv",
+      "pass": true
+    },
+    {
+      "name": "sources/107-calibration.stderr.log",
+      "pass": true
+    },
+    {
+      "name": "sources/108-calibration.stdout.log",
+      "pass": true
+    },
+    {
+      "name": "sources/109-compile.stderr.log",
+      "pass": true
+    },
+    {
+      "name": "sources/110-compile.stdout.log",
+      "pass": true
+    },
+    {
+      "name": "sources/111-stage_receipt.json",
+      "pass": true
+    },
+    {
+      "name": "sources/112-calibration.tsv",
+      "pass": true
+    },
+    {
+      "name": "sources/113-clock.tsv",
+      "pass": true
+    },
+    {
+      "name": "sources/114-compile-calibrate-consumed.json",
+      "pass": true
+    },
+    {
+      "name": "sources/115-freeze_bundle.json",
+      "pass": true
+    },
+    {
+      "name": "sources/116-freeze_receipt.json",
+      "pass": true
+    },
+    {
+      "name": "sources/117-geometry.jsonl",
+      "pass": true
+    },
+    {
+      "name": "sources/118-whole-case-source-hold.json",
+      "pass": true
+    },
+    {
+      "name": "sources/119-whole-cases.tsv",
+      "pass": true
+    },
+    {
+      "name": "sources/120-whole-windows.tsv",
+      "pass": true
+    },
+    {
+      "name": "sources/121-stage_receipt.json",
+      "pass": true
+    },
+    {
+      "name": "sources/122-run_stage.py",
+      "pass": true
+    },
+    {
+      "name": "sources/123-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/124-20261105-physical-c1-r5-measured-root-audit.json",
+      "pass": true
+    },
+    {
+      "name": "sources/125-20261105-stereo-context-r1-root-measured-audit.json",
+      "pass": true
+    },
+    {
+      "name": "sources/126-packet.md",
+      "pass": true
+    },
+    {
+      "name": "sources/127-proof-plan.json",
+      "pass": true
+    },
+    {
+      "name": "sources/128-resource-and-lifetime.md",
+      "pass": true
+    },
+    {
+      "name": "sources/129-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/130-packet.md",
+      "pass": true
+    },
+    {
+      "name": "sources/131-proof-plan.json",
+      "pass": true
+    },
+    {
+      "name": "sources/132-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/133-20261105-waveform-r4-first-stage-root-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/134-census.json",
+      "pass": true
+    },
+    {
+      "name": "sources/135-argument.md",
+      "pass": true
+    },
+    {
+      "name": "sources/136-body_ledgers.py",
+      "pass": true
+    },
+    {
+      "name": "sources/137-failure.json",
+      "pass": true
+    },
+    {
+      "name": "sources/138-body_ledgers.py",
+      "pass": true
+    },
+    {
+      "name": "sources/139-failure.json",
+      "pass": true
+    },
+    {
+      "name": "sources/140-body_ledgers.py",
+      "pass": true
+    },
+    {
+      "name": "sources/141-failure.json",
+      "pass": true
+    },
+    {
+      "name": "sources/142-body_ledgers.py",
+      "pass": true
+    },
+    {
+      "name": "sources/143-failure.json",
+      "pass": true
+    },
+    {
+      "name": "sources/144-body_ledgers.py",
+      "pass": true
+    },
+    {
+      "name": "sources/145-derive_prices.py",
+      "pass": true
+    },
+    {
+      "name": "sources/146-failure.json",
+      "pass": true
+    },
+    {
+      "name": "sources/147-body-components.json",
+      "pass": true
+    },
+    {
+      "name": "sources/148-body_ledgers.py",
+      "pass": true
+    },
+    {
+      "name": "sources/149-build-census.py",
+      "pass": true
+    },
+    {
+      "name": "sources/150-census.json",
+      "pass": true
+    },
+    {
+      "name": "sources/151-census.md",
+      "pass": true
+    },
+    {
+      "name": "sources/152-checks.json",
+      "pass": true
+    },
+    {
+      "name": "sources/153-argument.md",
+      "pass": true
+    },
+    {
+      "name": "sources/154-body_ledgers.py",
+      "pass": true
+    },
+    {
+      "name": "sources/155-build-census.py",
+      "pass": true
+    },
+    {
+      "name": "sources/156-compose.py",
+      "pass": true
+    },
+    {
+      "name": "sources/157-derive_graphs.py",
+      "pass": true
+    },
+    {
+      "name": "sources/158-derive_prices.py",
+      "pass": true
+    },
+    {
+      "name": "sources/159-derive_schedules.py",
+      "pass": true
+    },
+    {
+      "name": "sources/160-failure.json",
+      "pass": true
+    },
+    {
+      "name": "sources/161-public-cmdlet-ports.json",
+      "pass": true
+    },
+    {
+      "name": "sources/162-WORKING.md",
+      "pass": true
+    },
+    {
+      "name": "sources/163-argument.md",
+      "pass": true
+    },
+    {
+      "name": "sources/164-body_ledgers.py",
+      "pass": true
+    },
+    {
+      "name": "sources/165-build-census.py",
+      "pass": true
+    },
+    {
+      "name": "sources/166-compose.py",
+      "pass": true
+    },
+    {
+      "name": "sources/167-derive_graphs.py",
+      "pass": true
+    },
+    {
+      "name": "sources/168-derive_prices.py",
+      "pass": true
+    },
+    {
+      "name": "sources/169-derive_schedules.py",
+      "pass": true
+    },
+    {
+      "name": "sources/170-failure.json",
+      "pass": true
+    },
+    {
+      "name": "sources/171-public-cmdlet-ports.json",
+      "pass": true
+    },
+    {
+      "name": "sources/172-WORKING.md",
+      "pass": true
+    },
+    {
+      "name": "sources/173-compose.py",
+      "pass": true
+    },
+    {
+      "name": "sources/174-derive_graphs.py",
+      "pass": true
+    },
+    {
+      "name": "sources/175-derive_prices.py",
+      "pass": true
+    },
+    {
+      "name": "sources/176-derive_schedules.py",
+      "pass": true
+    },
+    {
+      "name": "sources/177-first-green-whole-source-freeze.json",
+      "pass": true
+    },
+    {
+      "name": "sources/178-phase-schedules.json",
+      "pass": true
+    },
+    {
+      "name": "sources/179-public-cmdlet-ports.json",
+      "pass": true
+    },
+    {
+      "name": "sources/180-source-graphs.json",
+      "pass": true
+    },
+    {
+      "name": "sources/181-source-inventory.json",
+      "pass": true
+    },
+    {
+      "name": "sources/182-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/183-WORKING.md",
+      "pass": true
+    },
+    {
+      "name": "sources/184-caller-inventory.json",
+      "pass": true
+    },
+    {
+      "name": "sources/185-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/186-caller-ledger.json",
+      "pass": true
+    },
+    {
+      "name": "sources/187-argument.md",
+      "pass": true
+    },
+    {
+      "name": "sources/188-caller-ledger.json",
+      "pass": true
+    },
+    {
+      "name": "sources/189-cast-sites.json",
+      "pass": true
+    },
+    {
+      "name": "sources/190-check_main.py",
+      "pass": true
+    },
+    {
+      "name": "sources/191-main_ledger.py",
+      "pass": true
+    },
+    {
+      "name": "sources/192-prepare_r3.py",
+      "pass": true
+    },
+    {
+      "name": "sources/193-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/194-WORKING.md",
+      "pass": true
+    },
+    {
+      "name": "sources/195-review.json",
+      "pass": true
+    },
+    {
+      "name": "sources/196-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "sources/197-20261106-research-array-cmdlet-boundary-clarifier-r1.md",
+      "pass": true
+    },
+    {
+      "name": "sources/198-20261106-research-callback-destination-clarifier-r1.md",
+      "pass": true
+    },
+    {
+      "name": "sources/199-20261106-research-catch-input-clarifier-r1.md",
+      "pass": true
+    },
+    {
+      "name": "sources/200-20261106-research-getter-destination-clarifier-r1.md",
+      "pass": true
+    },
+    {
+      "name": "sources/201-20261106-research-nullable-argument-clarifier-r1.md",
+      "pass": true
+    },
+    {
+      "name": "sources/202-20261106-research-powershell-signed-literal-clarifier-r1.md",
+      "pass": true
+    },
+    {
+      "name": "sources/203-20261106-research-static-property-clarifier-r1.md",
+      "pass": true
+    },
+    {
+      "name": "sources/204-20261106-research-typed-local-null-clarifier-r1.md",
+      "pass": true
+    },
+    {
+      "name": "sources/205-fft.h",
+      "pass": true
+    },
+    {
+      "name": "sources/206-spectral.h",
+      "pass": true
+    },
+    {
+      "name": "sources/207-signalsmith-stretch.h",
+      "pass": true
+    },
+    {
+      "name": "sources/208-clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/209-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/210-run-clock.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/211-source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/212-clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/213-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/214-run-clock.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/215-source-costs.h",
+      "pass": true
+    },
+    {
+      "name": "sources/216-source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/217-clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/218-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/219-run-clock.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/220-source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/221-clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/222-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/223-run-clock.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/224-source-costs.h",
+      "pass": true
+    },
+    {
+      "name": "sources/225-source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/226-clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/227-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/228-run-clock.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/229-source-costs.h",
+      "pass": true
+    },
+    {
+      "name": "sources/230-source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/231-clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/232-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/233-run-clock.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/234-source-costs.h",
+      "pass": true
+    },
+    {
+      "name": "sources/235-source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/236-clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/237-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/238-run-clock.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/239-source-costs.h",
+      "pass": true
+    },
+    {
+      "name": "sources/240-source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/241-clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/242-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/243-run-clock.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/244-source-costs.h",
+      "pass": true
+    },
+    {
+      "name": "sources/245-source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/246-clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/247-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/248-run-clock.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/249-source-costs.h",
+      "pass": true
+    },
+    {
+      "name": "sources/250-source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/251-clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/252-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/253-run-clock.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/254-source-costs.h",
+      "pass": true
+    },
+    {
+      "name": "sources/255-source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/256-authored-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/257-freeze_context.py",
+      "pass": true
+    },
+    {
+      "name": "sources/258-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/259-run-context.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/260-verify_context.py",
+      "pass": true
+    },
+    {
+      "name": "sources/261-authored-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/262-clock_oracle.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/263-fast_fit.h",
+      "pass": true
+    },
+    {
+      "name": "sources/264-freeze_waveform.py",
+      "pass": true
+    },
+    {
+      "name": "sources/265-independent_clock.h",
+      "pass": true
+    },
+    {
+      "name": "sources/266-plan_probe.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/267-README.md.original.json",
+      "pass": true
+    },
+    {
+      "name": "sources/268-run-waveform.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/269-verify_waveform.py",
+      "pass": true
+    },
+    {
+      "name": "sources/270-waveform_check.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/271-waveform_probe.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/272-WaveformCandidate.h",
+      "pass": true
+    },
+    {
+      "name": "sources/273-authored-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/274-clock_oracle.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/275-fast_fit.h",
+      "pass": true
+    },
+    {
+      "name": "sources/276-freeze_waveform.py",
+      "pass": true
+    },
+    {
+      "name": "sources/277-independent_clock.h",
+      "pass": true
+    },
+    {
+      "name": "sources/278-plan_probe.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/279-README.md.original.json",
+      "pass": true
+    },
+    {
+      "name": "sources/280-run-waveform.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/281-verify_waveform.py",
+      "pass": true
+    },
+    {
+      "name": "sources/282-waveform_check.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/283-waveform_probe.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/284-WaveformCandidate.h",
+      "pass": true
+    },
+    {
+      "name": "sources/285-authored-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/286-freeze_waveform.py",
+      "pass": true
+    },
+    {
+      "name": "sources/287-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/288-run-waveform.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/289-MusicalAudioChannelMaterialization.h",
+      "pass": true
+    },
+    {
+      "name": "sources/290-MusicalAudioChannelPlan.h",
+      "pass": true
+    },
+    {
+      "name": "sources/291-MusicalAudioChannelMaterialization.h",
+      "pass": true
+    },
+    {
+      "name": "sources/292-MusicalAudioChannelPlan.h",
+      "pass": true
+    },
+    {
+      "name": "sources/293-MusicalAudioChannelMaterialization.h",
+      "pass": true
+    },
+    {
+      "name": "sources/294-MusicalAudioChannelPlan.h",
+      "pass": true
+    },
+    {
+      "name": "sources/295-baseline.materializer.isolation.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/296-baseline.materializer.isolation.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/297-baseline.plan.isolation.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/298-baseline.plan.isolation.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/299-corrupt_constructed_output.materializer.fault.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/300-corrupt_constructed_output.materializer.fault.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/301-corrupt_constructed_output.materializer.isolation.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/302-corrupt_constructed_output.materializer.isolation.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/303-corrupt_constructed_output.plan.isolation.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/304-corrupt_constructed_output.plan.isolation.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/305-ignore_last_mismatch.materializer.isolation.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/306-ignore_last_mismatch.materializer.isolation.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/307-ignore_last_mismatch.plan.fault.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/308-ignore_last_mismatch.plan.fault.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/309-ignore_last_mismatch.plan.isolation.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/310-ignore_last_mismatch.plan.isolation.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/311-skip_late_finite.materializer.isolation.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/312-skip_late_finite.materializer.isolation.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/313-skip_late_finite.plan.fault.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/314-skip_late_finite.plan.fault.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/315-skip_late_finite.plan.isolation.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/316-skip_late_finite.plan.isolation.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/317-swap_stored_channels.materializer.fault.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/318-swap_stored_channels.materializer.fault.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/319-swap_stored_channels.materializer.isolation.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/320-swap_stored_channels.materializer.isolation.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/321-swap_stored_channels.plan.isolation.inverse.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/322-swap_stored_channels.plan.isolation.patch",
+      "pass": true
+    },
+    {
+      "name": "sources/323-MusicalAudioChannelMaterialization.h",
+      "pass": true
+    },
+    {
+      "name": "sources/324-MusicalAudioChannelPlan.h",
+      "pass": true
+    },
+    {
+      "name": "sources/325-source-copy-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/326-source-copy-verification.json",
+      "pass": true
+    },
+    {
+      "name": "sources/327-MusicalAudioChannelMaterialization.h",
+      "pass": true
+    },
+    {
+      "name": "sources/328-MusicalAudioChannelPlan.h",
+      "pass": true
+    },
+    {
+      "name": "sources/329-r48000-early-distinct-late-nan.json",
+      "pass": true
+    },
+    {
+      "name": "sources/330-r48000-equivalent-last-ulp.json",
+      "pass": true
+    },
+    {
+      "name": "sources/331-r48000-mixed-signed-zero.json",
+      "pass": true
+    },
+    {
+      "name": "sources/332-definition-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/333-original-case-inventory.json",
+      "pass": true
+    },
+    {
+      "name": "sources/334-reference-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/335-r44100-f220-p0.json",
+      "pass": true
+    },
+    {
+      "name": "sources/336-r44100-f220-p1q7.json",
+      "pass": true
+    },
+    {
+      "name": "sources/337-r44100-f997-p0.json",
+      "pass": true
+    },
+    {
+      "name": "sources/338-r44100-f997-p1q7.json",
+      "pass": true
+    },
+    {
+      "name": "sources/339-r48000-f220-p0.json",
+      "pass": true
+    },
+    {
+      "name": "sources/340-r48000-f220-p1q7.json",
+      "pass": true
+    },
+    {
+      "name": "sources/341-r48000-f997-p0.json",
+      "pass": true
+    },
+    {
+      "name": "sources/342-r48000-f997-p1q7.json",
+      "pass": true
+    },
+    {
+      "name": "sources/343-r96000-f220-p0.json",
+      "pass": true
+    },
+    {
+      "name": "sources/344-r96000-f220-p1q7.json",
+      "pass": true
+    },
+    {
+      "name": "sources/345-r96000-f997-p0.json",
+      "pass": true
+    },
+    {
+      "name": "sources/346-r96000-f997-p1q7.json",
+      "pass": true
+    },
+    {
+      "name": "sources/347-source-error-summary.json",
+      "pass": true
+    },
+    {
+      "name": "sources/348-bundle.json",
+      "pass": true
+    },
+    {
+      "name": "sources/349-consumed.json",
+      "pass": true
+    },
+    {
+      "name": "sources/350-receipt.json",
+      "pass": true
+    },
+    {
+      "name": "sources/351-stderr.log",
+      "pass": true
+    },
+    {
+      "name": "sources/352-stdout.log",
+      "pass": true
+    },
+    {
+      "name": "sources/353-verify_waveform.py",
+      "pass": true
+    },
+    {
+      "name": "sources/354-authored-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "sources/355-clock_oracle.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/356-fast_fit.h",
+      "pass": true
+    },
+    {
+      "name": "sources/357-freeze_waveform.py",
+      "pass": true
+    },
+    {
+      "name": "sources/358-independent_clock.h",
+      "pass": true
+    },
+    {
+      "name": "sources/359-plan_probe.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/360-README.md",
+      "pass": true
+    },
+    {
+      "name": "sources/361-run-waveform.ps1",
+      "pass": true
+    },
+    {
+      "name": "sources/362-verify_waveform.py",
+      "pass": true
+    },
+    {
+      "name": "sources/363-waveform_check.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/364-waveform_probe.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/365-WaveformCandidate.h",
+      "pass": true
+    },
+    {
+      "name": "sources/366-CLAUDE.md",
+      "pass": true
+    },
+    {
+      "name": "sources/367-CONTEXT.md",
+      "pass": true
+    },
+    {
+      "name": "sources/368-0030-time-stretch-node.md",
+      "pass": true
+    },
+    {
+      "name": "sources/369-0042-stereo-sources-track-width-and-balance.md",
+      "pass": true
+    },
+    {
+      "name": "sources/370-0049-autonomous-delivery-and-usable-song-milestone.md",
+      "pass": true
+    },
+    {
+      "name": "sources/371-0055-cross-rate-audio.md",
+      "pass": true
+    },
+    {
+      "name": "sources/372-0059-shared-decoded-assets.md",
+      "pass": true
+    },
+    {
+      "name": "sources/373-0078-ship-first-cadence.md",
+      "pass": true
+    },
+    {
+      "name": "sources/374-0083-musical-audio-prepared-lane.md",
+      "pass": true
+    },
+    {
+      "name": "sources/375-0084-musical-audio-channel-equivalence.md",
+      "pass": true
+    },
+    {
+      "name": "sources/376-0085-owned-musical-call-recipes.md",
+      "pass": true
+    },
+    {
+      "name": "sources/377-2026-11-03-editing-improvements-headless-plan.md",
+      "pass": true
+    },
+    {
+      "name": "sources/378-2026-11-04-musical-audio-prepared-lane-plan.md",
+      "pass": true
+    },
+    {
+      "name": "sources/379-2026-11-05-clock-oracle-budget-arithmetic-correction.md",
+      "pass": true
+    },
+    {
+      "name": "sources/380-LinearRamp.h",
+      "pass": true
+    },
+    {
+      "name": "sources/381-Automation.h",
+      "pass": true
+    },
+    {
+      "name": "sources/382-ClipEnvelope.h",
+      "pass": true
+    },
+    {
+      "name": "sources/383-ClipSchedule.h",
+      "pass": true
+    },
+    {
+      "name": "sources/384-InstrumentState.h",
+      "pass": true
+    },
+    {
+      "name": "sources/385-MixerValue.h",
+      "pass": true
+    },
+    {
+      "name": "sources/386-MusicalAudioChannelMaterialization.h",
+      "pass": true
+    },
+    {
+      "name": "sources/387-MusicalAudioChannelPlan.h",
+      "pass": true
+    },
+    {
+      "name": "sources/388-MusicalAudioCutPlan.h",
+      "pass": true
+    },
+    {
+      "name": "sources/389-MusicalAudioWindow.h",
+      "pass": true
+    },
+    {
+      "name": "sources/390-Node.h",
+      "pass": true
+    },
+    {
+      "name": "sources/391-CompressorNode.h",
+      "pass": true
+    },
+    {
+      "name": "sources/392-EqNode.h",
+      "pass": true
+    },
+    {
+      "name": "sources/393-FaderNode.h",
+      "pass": true
+    },
+    {
+      "name": "sources/394-FxDelayNode.h",
+      "pass": true
+    },
+    {
+      "name": "sources/395-LimiterNode.h",
+      "pass": true
+    },
+    {
+      "name": "sources/396-MidiEffectNode.h",
+      "pass": true
+    },
+    {
+      "name": "sources/397-PanNode.h",
+      "pass": true
+    },
+    {
+      "name": "sources/398-ReverbNode.h",
+      "pass": true
+    },
+    {
+      "name": "sources/399-SamplerNode.h",
+      "pass": true
+    },
+    {
+      "name": "sources/400-SimpleSynthNode.h",
+      "pass": true
+    },
+    {
+      "name": "sources/401-ParamSpec.h",
+      "pass": true
+    },
+    {
+      "name": "sources/402-Project.h",
+      "pass": true
+    },
+    {
+      "name": "sources/403-RateMatchedView.h",
+      "pass": true
+    },
+    {
+      "name": "sources/404-Resample.h",
+      "pass": true
+    },
+    {
+      "name": "sources/405-Time.h",
+      "pass": true
+    },
+    {
+      "name": "sources/406-TimeStretch.h",
+      "pass": true
+    },
+    {
+      "name": "sources/407-RtHot.h",
+      "pass": true
+    },
+    {
+      "name": "sources/408-musical_audio_channel_materialization_tests.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/409-musical_audio_channel_plan_tests.cpp",
+      "pass": true
+    },
+    {
+      "name": "sources/410-time_stretch_tests.cpp",
+      "pass": true
+    },
+    {
+      "name": "whole tree exactly410 plus archive manifest and README",
+      "pass": true
+    },
+    {
+      "name": "D71 original checker unchanged",
+      "pass": true
+    },
+    {
+      "name": "failure checker 1",
+      "pass": true
+    },
+    {
+      "name": "failure checker 2",
+      "pass": true
+    },
+    {
+      "name": "second complete index preserved",
+      "pass": true
+    },
+    {
+      "name": "actual whitespace failure2 preserved",
+      "pass": true
+    },
+    {
+      "name": "actual HTML issue 030-microsoft-FileStream-constructors.html",
+      "pass": true
+    },
+    {
+      "name": "actual HTML issue 031-microsoft-Thread-Sleep.html",
+      "pass": true
+    },
+    {
+      "name": "all410+7+266 reached before final gate",
+      "pass": true
+    },
+    {
+      "name": "no frozen transform helper changed",
+      "pass": true
+    }
+  ],
+  "passed": 422,
+  "failed": 0,
+  "critic": {
+    "disposition": "ACCEPT_STRATEGY_A_FOR_NEW_DELIVERY_SOURCE_ONLY",
+    "diagnosis": "The first-green410 display archive is lossless but not Git-whitespace-clean. Its display transform strips trailing space and normalizes LF; it does not remove leading space-before-tab. D71 correctly refuses that final required gate after validating410 source rows,7 frozen delivery files and266 failed partial outputs. This is a presentation/staging incompatibility, not a numeric, source-candidate, ABI or target runtime failure.",
+    "recommended": "A: preserve entire exact412-file tree (410 members+original archive-manifest+README) as a new deterministic ZIP/Base64 JSON container. Keep original410 archive members and all frozen helpers unchanged. Commit a clean byte-exact census argument separately for reading.",
+    "new_supported_hypothesis": "A raw-byte container keeps complete original whitespace outside Git text-line diagnostics while preserving every byte and former mapping. A fresh staged roundtrip plus git diff --cached --check can therefore satisfy both losslessness and unchanged repository whitespace policy. No old checker assertion or gate is waived.",
+    "required_concrete_steps": [
+      "Preserve both complete failed staging inputs/index snapshots/checker bytes/stdout/stderr/exit and original partial266 lineage before any index/file correction.",
+      "Before Move-Item verify absolute source and destination are within this repo, exact expected directories, nonoverlapping, destination absent; preserve entire original412-file tree. No delete/overwrite or string-built cross-shell move.",
+      "New container writer explicitly enumerates all412 actual files including ignored.log, sorts stable relative names, stores fixed ZIP metadata and raw bytes, full member bytes/SHA, original AC5 manifest and DFC0 census pins/F0C freeze and original source metadata. Do not recode UTF8 or alter old manifest paths.",
+      "New checker reads staged Git blobs with headless null-stdin Git. Strictly decodes Base64/ZIP, rejects duplicate/unsafe/absolute/dotdot member names, compares exact complete membership and each raw member against preserved original bytes and pinned hash. Reconstruct each original via old archive transformation metadata and compare current source pins, including nonUTF8 and raw-diff wrappers.",
+      "Verify separate original delivery7 freeze and failed266 ZIP plus both staging snapshots remain recoverable; verify clean census argument and new checker/writer staged bytes exact, protected test and instructions unchanged.",
+      "Run unchanged git diff --cached --check as final required gate. Freeze new writer/checker/whole output at first green; preserve any new failed attempt without patching old freezes. Container delivery gives no source/numeric/resource/ABI/Clock acceptance."
+    ],
+    "alternative_B": "Wrap only HTML in a new display revision. Technically possible but adds many new row/path/transformation/helper changes. No advantage over A for preserving the already frozen whole archive.",
+    "remaining": "This accepts a concrete correction strategy only, not unreviewed future writer/checker or its output. Root must validate that new concrete packet mechanically before certification.",
+    "source_only": true,
+    "target_execution": false,
+    "Git_mutations_by_critic": false
+  }
+}

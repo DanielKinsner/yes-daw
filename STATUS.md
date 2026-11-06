@@ -54,8 +54,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Current app code isd3ec661:491 local pure checks and GUI3 compile-only passed; exact-code CI42146047209
    passed all ten jobs. Later evidence/docs commits use the separate docs-only CI path, with runtime jobs skipped.
    Research runner R13's bootstrap receiver is wrong and its operation-budget proposal remains REVISE.
-   R14 corrects that receiver, but its whole functional source review found eight failure-path issues;
-   the frozen candidate is REVISE and R15 is being authored. No new scalar price is accepted.
+   R14 corrects that receiver, but its whole functional source review found eight failure-path issues.
+   The complete R15 correction is now frozen after1,764 own source checks and under a fresh whole critic.
+   No new scalar price is accepted.
    All Clock execution guards remain false; no supervisor/Clock run has started.
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
    reader actually passed88 types/391 declared fields. A separate /c-only purpose now measured194 type/layout
@@ -64,8 +65,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    unknown SDK/context/layout terms. The measured405,128-byte large-object component is not whole fit.
    ADR-0090's complete supervisor protocol passed115 independent checks; its v2 diagnostic delta is Accepted.
    The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
-   is REVISE, with no runtime credit. R13's complete scalar successor awaits a different fresh critic.
-   Next: finish the complete R15 correction and fresh whole review, the R13 numeric review, and resource/native/binding proof
+   is REVISE, with no runtime credit. R13's complete R2 scalar proposal is frozen at5,577,409,900;
+   its5,852 own checks are source/data only. A different fresh whole critic is reviewing it now.
+   Next: finish the fresh whole R15 review, the R13 numeric review, and resource/native/binding proof
    before any Clock attempt. Detailed evidence and earlier
    source revisions remain in the dated entries below; Dan is not a tester or approval gate.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
@@ -88,6 +90,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Freeze the complete scalar successor for a different critic
+
+- R13 scalarR2 is a complete frozen, unaccepted5,577,409,900 proposal:74 bodies,347 actual calls,54 families and six phases;5,852 own source/data/integer checks passed after two preserved complete-check failures. The new inventory includes17 punctuation-delimited calls missed by the old330 count; all114 main calls remain separately crosschecked.
+- A different fresh critic is reviewing the [whole proposal](docs/research/artifacts/2026-11-06-clock-r13-runner-census-r2-packed-r1/census.md), without importing its generator or accepting individual prices. R13's bootstrap defect remains functionality HOLD; no numeric result transfers to R15, and no whole resource/limit/Data/binding/execution claim follows. See the [preservation receipt](docs/research/2026-11-06-r13-scalar-r2-preservation.json).
+- Source delivery preserves the exact412-member archive tree, including410 source files, two raw non-UTF8 READMEs and ignored logs, in a lossless container. Encoding/staging/order failures,266 partial outputs and full failed index snapshots are preserved. The fresh staged checker reconstructed all410 sources/all412 members and passed the unchanged Git whitespace gate; this is delivery credit only. Historical binary/external inputs are identity-pinned, not newly claimed as byte-archived.
+- R15's complete eight-finding correction is frozen after1,764 own source checks and under a fresh whole critic; the selected SDK/context ledger continues separately. Previous8c604807 passed CI42230963070; app source is unchanged and no new Clock/helper/compiler/GUI/device run occurred.
 
 ## 2026-11-06 - Preserve the native-object remainder without inventing fit
 

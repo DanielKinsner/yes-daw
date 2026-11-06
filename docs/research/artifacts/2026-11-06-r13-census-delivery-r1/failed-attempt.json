@@ -1,0 +1,16 @@
+{
+  "scope": "LOSSLESS_ARCHIVE_DELIVERY_FAILURE_NOT_CANDIDATE_OR_TARGET_CHECK",
+  "command": "python -E build-ci/20261106-archive-research-source-packet-r1.py 20261106-clock-r13-runner-census-r2 2026-11-06-clock-r13-runner-census-r2 DFC0F598BF3CECC00484A3772B86819BA2EF71A11078B26B30ED73ECA8BB4B93",
+  "raw_exit": 1,
+  "helper_sha256": "16387F692BF15FFA55F40A140B6701F51D32C4A0B776B894F9166112930F0480",
+  "stdout": "",
+  "stderr": "Traceback (most recent call last):\n  File \"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261106-archive-research-source-packet-r1.py\", line 37, in <module>\n    raw.decode('utf-8')\n    ~~~~~~~~~~^^^^^^^^^\nUnicodeDecodeError: 'utf-8' codec can't decode byte 0x97 in position 16: invalid start byte\n",
+  "partial_output_files_preserved": 266,
+  "first_non_UTF8_source_ordinal": 267,
+  "partial_output_original_path": "docs/research/artifacts/2026-11-06-clock-r13-runner-census-r2",
+  "partial_output_preserved_path": "build-ci/20261106-r13-census-delivery-r1/attempt-01/partial-archive",
+  "move_authority": "Agent-created partial output only; both resolved absolute paths verified inside the workspace before native PowerShell Move-Item",
+  "correction": "Preserve non-UTF8 source as a complete raw Base64 JSON wrapper with byte/hash identity; never recode or mutate the frozen source",
+  "candidate_source_and_results_changed": false,
+  "target_execution": false
+}
