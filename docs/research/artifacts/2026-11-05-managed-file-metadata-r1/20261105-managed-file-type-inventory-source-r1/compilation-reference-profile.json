@@ -1,0 +1,851 @@
+{
+  "schema": "METADATA_READER_COMPILATION_REFERENCE_CORRECTION_R1",
+  "scope": "Use pinned cached PowerShell default reference assemblies, not mixed runtime implementation/facade references; unchanged reader source.",
+  "first_hidden_attempt_raw_exit": 2,
+  "first_main_invoked": false,
+  "first_failure_stdout_bytes": 0,
+  "first_failure_stderr_bytes": 92,
+  "compiler_only_explicit_reference_diagnostic": "CS1069 HashSet<T> type forwarded to System.Private.CoreLib; explicit runtime implementation/facade reference set is not a consistent compilation reference surface.",
+  "compiler_only_default_reference_profile_raw_exit": 0,
+  "compiler_only_metadata_Main_invoked": false,
+  "source_sha256": "E9B1CC2AC4D5B1B3C8D1DE955A30A938E95EADB1FA92C8757350DB07BADACC74",
+  "default_ref_directory": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref",
+  "default_reference_file_pins": [
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\Microsoft.CSharp.dll",
+      "bytes": 18216,
+      "sha256": "50AC73D1DF3BD9C1AB431587EFD4089C03B3CC373C5DA382F97A565575966109"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\Microsoft.VisualBasic.Core.dll",
+      "bytes": 59176,
+      "sha256": "543E89A131F804BA89DD09EB82331BEA22EF0BC4BCC9F9228399C7916D468988"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\Microsoft.VisualBasic.dll",
+      "bytes": 17232,
+      "sha256": "6ADCDD16418823C4D27BC65C9EF07DF2EAC26215FAFC3D27EDA58AE44A4787B3"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\Microsoft.Win32.Primitives.dll",
+      "bytes": 16168,
+      "sha256": "48D7B58BBFC4D449D96D14A163D1650974743C23DA36C31A954C71845BB351BA"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\Microsoft.Win32.Registry.dll",
+      "bytes": 21328,
+      "sha256": "AADA3B0BD87218CE548807E45B47D480BA122BE3C10D589C3CFE4F8152653EF6"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\mscorlib.dll",
+      "bytes": 55592,
+      "sha256": "AB604FA323BDEA3A67D0174592EE98AFA5220F1090D586B725D538D51C4594EF"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\netstandard.dll",
+      "bytes": 100648,
+      "sha256": "CE09CEF0D758196F2467F320D840C03202453EFE9FB1920DDDD24EA8277BBBB3"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.AppContext.dll",
+      "bytes": 15184,
+      "sha256": "36447D0E4C9C86352905726EAF37292C55CAED5B87C74C22836AE8B0334395C3"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Buffers.dll",
+      "bytes": 15144,
+      "sha256": "7EFC8DFEF9548771EC328610DE7B8E5C4308A8EA6B1CA73021F336FC00653176"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Collections.Concurrent.dll",
+      "bytes": 27472,
+      "sha256": "F48FF883B0D905D9CD957B3A0D962B17E422F40B4AC6CF49BE7BEC3505FE0845"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Collections.dll",
+      "bytes": 55120,
+      "sha256": "FBDC13964314B14C60A2705A8E8F3B3C2B0955DD9EA28C1A13D0883B758B6DDA"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Collections.Immutable.dll",
+      "bytes": 75088,
+      "sha256": "F4C67F68538E2E20B313A3699AB65947FF872B51A1561A8BFF7D57EC6C2F346E"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Collections.NonGeneric.dll",
+      "bytes": 22824,
+      "sha256": "00CAE90D190EE35400E1E3A15627FB2DED27C4B0E0B9A75AEAA442AA2E11B4AD"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Collections.Specialized.dll",
+      "bytes": 25936,
+      "sha256": "ADCA02F501647B874CB24741CA77B51405DEF7AFC8330536F1FCA3E671DF2E70"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.ComponentModel.Annotations.dll",
+      "bytes": 31568,
+      "sha256": "738BE8F09CD126FA6EEDF8C36F9A24094A69E5955E62341384C9F8E9DD86928E"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.ComponentModel.DataAnnotations.dll",
+      "bytes": 16720,
+      "sha256": "C4AD5B72E9461F82B6F5346AF3B2F4F46D76763DAAF51586943F99F1CC7D5AFB"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.ComponentModel.dll",
+      "bytes": 15656,
+      "sha256": "9AB343E98B9C40ADD20AA395D9C0F8989BCECBA6B3A2C4E1C95BED1A0813BB0A"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.ComponentModel.EventBasedAsync.dll",
+      "bytes": 19240,
+      "sha256": "E8088DE5916E318A4121A59D78E5D6D6CFA69A7B77B0EB7E5BF980ADE3253193"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.ComponentModel.Primitives.dll",
+      "bytes": 25896,
+      "sha256": "1E871AD054AB7D975FDCDA99DE044A751C6EB43520D21D26CD4CFF86E5B3A5ED"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.ComponentModel.TypeConverter.dll",
+      "bytes": 104784,
+      "sha256": "66705B0C1A9BE4B310B844E048E04F5D87BF70A3EA5549D087F045D549C09E1D"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Configuration.dll",
+      "bytes": 19240,
+      "sha256": "495B65CD3C8488FA39A4905F072D14B336A5851C87F1B70D3B57AFC565025A9F"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Console.dll",
+      "bytes": 26408,
+      "sha256": "9B47EFBE55F5CAEBB5C3E648673915E5AC26CA4B7F6FBD25DB3BED23053115C5"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Core.dll",
+      "bytes": 23336,
+      "sha256": "C4908DD3C89942880310CD1C19CC2DCA2C8CE3D564BE04BE80897CB7F5B9D351"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Data.Common.dll",
+      "bytes": 154448,
+      "sha256": "CB09594D635C6DD0496E6E16C7B2A6867A135208FEC8DF4022642FB52D229FED"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Data.DataSetExtensions.dll",
+      "bytes": 15656,
+      "sha256": "ABD30BF053CE162967B8EE2B95E4A4A60DDF288BB959CD64DFC107BC6C7D762E"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Data.dll",
+      "bytes": 23848,
+      "sha256": "6BA1C840BED995BA4ABD9CBDC3C2713ED977C79110D8FD472864BB468F3B517C"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Diagnostics.Contracts.dll",
+      "bytes": 19752,
+      "sha256": "B279ACB89B56B62007CF5781F524562386E0C3BEDD4E1AD4E2189E546D9DE767"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Diagnostics.Debug.dll",
+      "bytes": 15656,
+      "sha256": "44B71CB2BC82E2E93C99C095A0E493F3C4AFC0E50AAFE8E91849629DA295E6DC"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Diagnostics.DiagnosticSource.dll",
+      "bytes": 43304,
+      "sha256": "34CB601B566E63381E571C026D023E343FDDFDBCFF3D2869CD8872278D4BCF09"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Diagnostics.FileVersionInfo.dll",
+      "bytes": 16680,
+      "sha256": "E150430A64A60533B024D5AE986544F6BECEA708C964BCA69261A3A732BCB3BD"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Diagnostics.Process.dll",
+      "bytes": 31568,
+      "sha256": "30B13D76F9D3A456AFA63734F01694A96E923A3F53CD6A14FAE3FF31D4438839"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Diagnostics.StackTrace.dll",
+      "bytes": 22824,
+      "sha256": "26060B06C96E387ABDEB8B644B4AA061867440F6F27ED98A18D90476C5695A50"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Diagnostics.TextWriterTraceListener.dll",
+      "bytes": 17704,
+      "sha256": "E11614E0D7CF3D96BD4ABB2535E810E7C5D24FB5AB158A797334A1CDF98AB699"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Diagnostics.Tools.dll",
+      "bytes": 15144,
+      "sha256": "4BFC11BEBAE21C6A604F090F8EC94CE2D76D57FCFEAFD8FFC9BEB139AF2A086E"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Diagnostics.TraceSource.dll",
+      "bytes": 27944,
+      "sha256": "9FE0A114CC5E1B6DF694F32D55C68F976414D8A8C2C185FF306BA38518C51204"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Diagnostics.Tracing.dll",
+      "bytes": 28968,
+      "sha256": "9022274045A78AE9A1925D3B7EF0774B309434496B8B5CA228F003D6F97E0636"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.dll",
+      "bytes": 49448,
+      "sha256": "D3F42BE0BC2A26F7573405136EB446CC76C033E3B54C9CD7845D495117B1E257"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Drawing.dll",
+      "bytes": 20264,
+      "sha256": "9F68761F68125E3596C7AF69D56799CF3E08DC2947661069B433D3043FEED7DA"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Drawing.Primitives.dll",
+      "bytes": 35624,
+      "sha256": "7AE54B475E98BB00B4F3A4C09AD52D210C4D1C6BBC4F11D03C3F8D7FADDD6684"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Dynamic.Runtime.dll",
+      "bytes": 16168,
+      "sha256": "00B37B775253D8011E0220BACADDA3566224272EA787CB0C4CC24FA6B70643FF"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Formats.Asn1.dll",
+      "bytes": 26408,
+      "sha256": "9F107447F23D0591BFF2D4FE46545FE70E9A8D70C5FA946D5B354DDCBABBF0F9"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Formats.Tar.dll",
+      "bytes": 20264,
+      "sha256": "45990E2000AA241F7216596947DE5AF192D38D4A4F4C3FEED447B39ACD49BEF8"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Globalization.Calendars.dll",
+      "bytes": 15656,
+      "sha256": "885967ADB01EF10E764EF54A0F6D646FD41DEAB81BD80908407D0BA8F834DCAC"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Globalization.dll",
+      "bytes": 15696,
+      "sha256": "28DB274E2CBB417C61C346D437A0C8265FC0B3BB93CBA7330E5EF75CB4D16226"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Globalization.Extensions.dll",
+      "bytes": 15184,
+      "sha256": "5DC6A7838A0B2F472FDC093FD1206C61DF3494C66D1E5BFB1081EE00A372F50B"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.Compression.Brotli.dll",
+      "bytes": 18216,
+      "sha256": "3AA69AFD6EAFF90C984FDB8565EB4A212BFCB6DC2C4F88F6CF1CA28B41A11C74"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.Compression.dll",
+      "bytes": 21840,
+      "sha256": "E7EBEEB09411D782D9D6071C143BFEDABCAC7333BCA6E3826B20932974D7E97E"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.Compression.FileSystem.dll",
+      "bytes": 15184,
+      "sha256": "AA87020C837176940637A4C672B2F2B33FD2517506FA12CAE1F655FF1E515CC6"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.Compression.ZipFile.dll",
+      "bytes": 18728,
+      "sha256": "E77196CD5820847C57BE4678D6274DC604E03DD62C4D6C6B24027EA96346F032"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.dll",
+      "bytes": 15656,
+      "sha256": "7A820716EE9AB010EA624B9448EA1ACB4C78B0F79DFC9D98DB01B7F99C610B6A"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.FileSystem.AccessControl.dll",
+      "bytes": 20264,
+      "sha256": "C75708906CE41504FF283A5CBAB39176166B1A1BC764665EDAD594DB614F60A4"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.FileSystem.dll",
+      "bytes": 15656,
+      "sha256": "1D619955D7495E7E040C446FB1A24FA4FF4B9145F9A7D39DD90E92C59666930C"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.FileSystem.DriveInfo.dll",
+      "bytes": 17192,
+      "sha256": "A12CA1DBC9332B2D6236CB53A7FAF40446CEA0293E8C31E3F98A1B092D9EA972"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.FileSystem.Primitives.dll",
+      "bytes": 15184,
+      "sha256": "6BF2B62E83F43B9E2A679ABDCAB875F37280A36E4C6E9FEAB99A410AB43F846C"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.FileSystem.Watcher.dll",
+      "bytes": 20776,
+      "sha256": "40E22E53CC16A760FD5CE6BC8722212BCD36AEC67C5FCE7801C3920511501B0E"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.IsolatedStorage.dll",
+      "bytes": 22312,
+      "sha256": "20BABBD2E456D7DBDF5F25895BD1955862D0D87B7F67214F4EF47BA9ADC2CC01"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.MemoryMappedFiles.dll",
+      "bytes": 18216,
+      "sha256": "4D03AFC1522666BE753DDDE9D9D16A12303C3154EC811F4F24A184069105591E"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.Pipelines.dll",
+      "bytes": 20264,
+      "sha256": "49E9094AB22557B3511CF3D8AD046682A0E348EE7DD544812924708E2D51022D"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.Pipes.AccessControl.dll",
+      "bytes": 18216,
+      "sha256": "A04D1AA2C554F9CA241262377695C7A674EFE3D995F8B2FD498ACDC35CB44ADD"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.Pipes.dll",
+      "bytes": 22312,
+      "sha256": "8C0A9E9A3C0A7D92D40AB2F9D35E751C714B61FBFB15887510DEB3A6A497D18F"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.IO.UnmanagedMemoryStream.dll",
+      "bytes": 15656,
+      "sha256": "A988846408ABF1513AC7AB81A9F72218FFCAB410B2A06CAF3844677604032075"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Linq.AsyncEnumerable.dll",
+      "bytes": 36136,
+      "sha256": "4960C241DA863F11F48573A08DFD83A19600965F62765FF47263A70408421059"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Linq.dll",
+      "bytes": 33576,
+      "sha256": "DDA13024BC5786A08FBFC135DF363A5DF9BE6CF9336CF6BDD9C31100030F333A"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Linq.Expressions.dll",
+      "bytes": 63272,
+      "sha256": "B6FEB7CE5C10C82DADBAB8840F2274AC68EA5CA17402A57156D7C3F6BDA8AD3F"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Linq.Parallel.dll",
+      "bytes": 31016,
+      "sha256": "158D9118E2FCAFE0D8E1A26DA7BB85977CF982AC190325FE96DAB9DC9E8C66FB"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Linq.Queryable.dll",
+      "bytes": 32040,
+      "sha256": "D7C0EF662E52FF8100EDE337B03ECEDA37E23A3C70C0618CCCF957C0EDDD4791"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Memory.dll",
+      "bytes": 57128,
+      "sha256": "BB4113DF11941CB83612C2611DF5135D6A6287AF9A4B254B3A50A5FFC7B3F735"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.dll",
+      "bytes": 17232,
+      "sha256": "D7A4C693B1922E0E69AEE3597AC72C25E0A5E1D3AC2D1072D7D8DC854D27E488"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.Http.dll",
+      "bytes": 60200,
+      "sha256": "39F955E0E8BFBA21CF52C23AC11A22A52BEE37CA5CA38CD1CD640D0E8490EB9E"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.Http.Json.dll",
+      "bytes": 23336,
+      "sha256": "061D4F9593E095FA0739C185DAF8154CFE504C3CDAFB19EE1B2E479A6A7551DC"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.HttpListener.dll",
+      "bytes": 25424,
+      "sha256": "1C9A1F3D9D2591C531AA09901D36D7FC985A6E7A643E29F64D9C15320398442C"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.Mail.dll",
+      "bytes": 32040,
+      "sha256": "B0339DA06D0867065BC6D617C78A04D1E1A61FA88C19460A808870693E228289"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.NameResolution.dll",
+      "bytes": 17744,
+      "sha256": "3F05750F1CFD044363546A98472EC91DCB2E5A08E3AD9CBEAE1D5A10A97BCEE3"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.NetworkInformation.dll",
+      "bytes": 33576,
+      "sha256": "7B8D52FD01949B1D3D47A2B678BFF023415A25AC82F84C4AAF110B542DF65B84"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.Ping.dll",
+      "bytes": 20264,
+      "sha256": "44AD2DB7FAE09862879A9B03E37076D311F7BDA0EA94877DFD6A2601D7608B10"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.Primitives.dll",
+      "bytes": 37160,
+      "sha256": "DB18B5C7D781B2D24B66FA0E3FF9659817468279BB3334D88F4E0974281C5077"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.Quic.dll",
+      "bytes": 23848,
+      "sha256": "39A5DBF80D930712C14F01F99B614C958592579B631E474C87D878DDE81917A4"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.Requests.dll",
+      "bytes": 41256,
+      "sha256": "280BC9CA79B6C10A40FF5CEBDD9A331D9A7EBFAEB541F0BF81FF449D92B6E803"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.Security.dll",
+      "bytes": 53544,
+      "sha256": "A0EAE480FE662581BC27D8B96BC9CD91390EA2110463377B169C0873EF327842"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.ServerSentEvents.dll",
+      "bytes": 17192,
+      "sha256": "1779D074F4124B0F82C1E6FE2A7D6BAB154ED75595ABA98AA083F4F3A6F7738A"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.ServicePoint.dll",
+      "bytes": 15144,
+      "sha256": "9645242A547B02BC0CBFA78C365FE8CBF02869C182DEBE4CE37BAC32BE1CA42B"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.Sockets.dll",
+      "bytes": 47440,
+      "sha256": "004D2F3B1D02DEDBD69225A76A83CA81F17BA8212F3830F700F183ACF7819A19"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.WebClient.dll",
+      "bytes": 27944,
+      "sha256": "022810DC9F600A74E8B24C542A94F56E249D4149639E4E678800F7C3953E1704"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.WebHeaderCollection.dll",
+      "bytes": 19240,
+      "sha256": "5D57E1AF0D87C4DFD2E5E72330238D8FD5BBB8D33F9F84DDE86B77C8862CA672"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.WebProxy.dll",
+      "bytes": 18256,
+      "sha256": "9018109C5124AD36F450C6442825C9A1F5079CBFF3D3016DFF426B72D3014D27"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.WebSockets.Client.dll",
+      "bytes": 19240,
+      "sha256": "797E3A6610CA8A64EB64567286B98E23617858C105F00614820F424AD8A3CAAA"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Net.WebSockets.dll",
+      "bytes": 23848,
+      "sha256": "C47F7777A22DF329783179789F44D598376DBB4684CF9C1D461ACA03EB1430AA"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Numerics.dll",
+      "bytes": 15144,
+      "sha256": "FD4F0BC0541231FC01C21CAB517A948019D4C9ADBF66F81B65B276298E6AB922"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Numerics.Vectors.dll",
+      "bytes": 58192,
+      "sha256": "81B031C64B47CF3ADAA2E40B7F340D13A59453696DAC04964E8073ACCD43C443"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.ObjectModel.dll",
+      "bytes": 23376,
+      "sha256": "00FC9909F5392D9CC678D51A58BBA0D44FACD84EB87B5E2E0148465F90FF821F"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Reflection.DispatchProxy.dll",
+      "bytes": 15656,
+      "sha256": "509A9595A077FE299E15832DA91557F5BEF34B5955B72CF071D2799264F5A96E"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Reflection.dll",
+      "bytes": 16168,
+      "sha256": "80FB9E206044C6F1C02BCC6895E2CE432119C670EA12248A6CBA112AFA78A9B6"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Reflection.Emit.dll",
+      "bytes": 44328,
+      "sha256": "056C85453C402B2C8BB0066578DC8E95D27A9A1E99AA464F2A6ECB159D434257"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Reflection.Emit.ILGeneration.dll",
+      "bytes": 20776,
+      "sha256": "51109C277B97D20296B41D3F382677B18FB0B3D4C5C06D76F4A73B7D3763BE7E"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Reflection.Emit.Lightweight.dll",
+      "bytes": 19240,
+      "sha256": "51AC7D868003E0BC6ED23B1E547AF03207CCE94046B0C71080749BFF55389B53"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Reflection.Extensions.dll",
+      "bytes": 15144,
+      "sha256": "4E6967D52CBC95AE9EDA01B8D8705F59C2C56F8B69471EFAA6ECA8F0E22A9A6A"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Reflection.Metadata.dll",
+      "bytes": 122152,
+      "sha256": "406476A6D4EA636FA9062C346EAB006A9B4219997B4808C32E6FCEC29A3DF137"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Reflection.Primitives.dll",
+      "bytes": 21800,
+      "sha256": "260613532DB76DEFA83DB55F3C3BD856E1308088AF459A0B36CD2B251D678BC5"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Reflection.TypeExtensions.dll",
+      "bytes": 19792,
+      "sha256": "347A27707EB449C1B744D8CE1D1E222A64BF00768C676397C523C88A64BE873E"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Resources.Reader.dll",
+      "bytes": 15184,
+      "sha256": "AE5E53448ADF49F3BB0E6FCC4DF836BCD413CE0EEEAAD0B94F7363AD238D71DD"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Resources.ResourceManager.dll",
+      "bytes": 15656,
+      "sha256": "C3456835CFBD88D081A3EE4030CE533CB6FBB27AD0F60F954A5AE7D45B1422CD"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Resources.Writer.dll",
+      "bytes": 16208,
+      "sha256": "597F21FABF0EE72903EC0E1A450CFE8B5549E1E81C8A98A5E796C15293AAA843"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.CompilerServices.Unsafe.dll",
+      "bytes": 15144,
+      "sha256": "6F396205ABE594C9C72E618F4278657B4FF9DA9CD2BC17D8083481B287838ECC"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.CompilerServices.VisualC.dll",
+      "bytes": 17192,
+      "sha256": "324F2129D5D4D172561B8A042E17CD7DAE73F9D290728F9DA8396642D4D43A5D"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.dll",
+      "bytes": 862504,
+      "sha256": "8E4D60785C1DEA2B6AA566BD58FA0CDAEE5B211A42C8AF9951A7D17AEA72B2B0"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.Extensions.dll",
+      "bytes": 17744,
+      "sha256": "633F210388E326F0A2FBA3148312FB2900A9E0BA32F08015BB606ABC44A3D634"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.Handles.dll",
+      "bytes": 15656,
+      "sha256": "834ED37905ECAFB69C3D33D1B659E5F8216CEF9995CBFCC7B2CF858752ADD880"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.InteropServices.dll",
+      "bytes": 101160,
+      "sha256": "BC47DE3940DA9A9BB9D4BBE9608966067A8FC6341D6674E8864F07CB2ADDD814"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.InteropServices.JavaScript.dll",
+      "bytes": 25936,
+      "sha256": "44AB7F7D93AB668E80A7EB72DA88946C989B5FEF0299C5BC65C1DBEA2F18C255"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.InteropServices.RuntimeInformation.dll",
+      "bytes": 15656,
+      "sha256": "506DC257F2F039746172057CF574992D4DB07E31F9338B0AB2D90E88D385C472"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.Intrinsics.dll",
+      "bytes": 466216,
+      "sha256": "93DFD2338A21A7289C8C5527CB7DCFDD3C0511FAAF1F4E28E7A100B1E9E6476C"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.Loader.dll",
+      "bytes": 19792,
+      "sha256": "2A6852BD1B133E7E5D6CFB85E63B465E234E4EAAD79AF74984BB574D8E4616B7"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.Numerics.dll",
+      "bytes": 36176,
+      "sha256": "9ECA27389110DFB8F0CBC161945260BC1840951D25944FD17C1D780D9BBFDF47"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.Serialization.dll",
+      "bytes": 17192,
+      "sha256": "2092AD8E233C2A01A8DCC640AB218C1EABC059F6BEBAAA8F81D1CE8225A939A0"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.Serialization.Formatters.dll",
+      "bytes": 23888,
+      "sha256": "E6191864F3F75F92C0D9B057447BB09E8320F33B57F7C73E8BCADE16733C4D15"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.Serialization.Json.dll",
+      "bytes": 20816,
+      "sha256": "31C4378C888F786BFA7B907F593463ADD5424D1E464F6901A179204E9FFF9EA1"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.Serialization.Primitives.dll",
+      "bytes": 19752,
+      "sha256": "79E2656F417064375DDF2ECBC37D9087320D540992FC1A2F2A45A3350D5125F1"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Runtime.Serialization.Xml.dll",
+      "bytes": 39760,
+      "sha256": "40A9DDE0889AA7E87CEE18E13A2499667CD3C98B94F4894CF6D9B5E414990571"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.AccessControl.dll",
+      "bytes": 37200,
+      "sha256": "F586CB1C198FE3708FA0DD333D1025DF9B80A8CBF6C6BF2069A464F5DCF9EB93"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.Claims.dll",
+      "bytes": 32552,
+      "sha256": "18D0B67B38E4D2EEEAD2EC427A9FEEFC92476B24DC5C30CD9E88B1C41B7F1DFC"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.Cryptography.Algorithms.dll",
+      "bytes": 17192,
+      "sha256": "35677214A8B8388D82FF5BF45789790FA048612F6ACA8B8F71EFB3AA93EF70B1"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.Cryptography.Cng.dll",
+      "bytes": 16168,
+      "sha256": "328A4EA1C05177E97F65A24D68268C96674BBFBCFB5BC3906229EEA2C46AC6D2"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.Cryptography.Csp.dll",
+      "bytes": 16168,
+      "sha256": "0BE1DED6AC6B8BDC53D0D49BB01292770F9A022FE7D2D2F1A480223ECA5CA6BA"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.Cryptography.dll",
+      "bytes": 163152,
+      "sha256": "C9DDFB3F7DFEA06538E1EC2062178E53182280A440E3FA82B5D3C95289D9DBDC"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.Cryptography.Encoding.dll",
+      "bytes": 15696,
+      "sha256": "09FBBD2934040BA1260775F34A8B901F5F9EDEC9BD1A2203B3726686006B7829"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.Cryptography.OpenSsl.dll",
+      "bytes": 15656,
+      "sha256": "695EBDF0901AFD27B7504DD4FDBC504A5AAE8EA87D3B342DA800789A6A94A732"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.Cryptography.Primitives.dll",
+      "bytes": 15656,
+      "sha256": "C4D76A73F7147DF7999B371ADBC091850984A40CD45F4D0464E85424DE412E30"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.Cryptography.X509Certificates.dll",
+      "bytes": 16720,
+      "sha256": "BCBCD0C436BFD24052AE4F7A3785B434436CBC18E6465F0BE19437A453872CF3"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.dll",
+      "bytes": 18256,
+      "sha256": "2A0EE1358A507F20BB9099AFB2C79745212BCA44C1102E580C20742ECCA560D5"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.Principal.dll",
+      "bytes": 15144,
+      "sha256": "F4E101D9D1B328868CD91199CA441E4EE273047FE96DD6EC34A1E889E523DA21"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.Principal.Windows.dll",
+      "bytes": 26920,
+      "sha256": "69F2A5A5ACD6271F5E8B79D18CFD4F3C0D18E7291F3978332B350A373C67540D"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Security.SecureString.dll",
+      "bytes": 15656,
+      "sha256": "F371FB101973637A772E44F75B48D66540466A914F61E4B1F4AE7EB01DAD1B62"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.ServiceModel.Web.dll",
+      "bytes": 16720,
+      "sha256": "948E182337526B0DECAAB7A9274C1BDE5BE3E419B076CFE0161A335E22643AC3"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.ServiceProcess.dll",
+      "bytes": 15656,
+      "sha256": "04E5CA5A4DF4D31E8E6B527CE5A16B6F150A256384B2CBDABEEBA1F6974CFA99"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Text.Encoding.CodePages.dll",
+      "bytes": 15696,
+      "sha256": "A0163C8A0E2129821433EAE93009F4FB44AC996CA471F3771A20F8CAC11A03E8"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Text.Encoding.dll",
+      "bytes": 15696,
+      "sha256": "4C140DE2FDD2C673ECE196892E28786B85200B8F315FC9BB2DE7AEB862372D9D"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Text.Encoding.Extensions.dll",
+      "bytes": 20776,
+      "sha256": "19AAFE3D2A0BA11A44F8550599A90FF3EEAE2E181BA32C429DB40C48F64FEA74"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Text.Encodings.Web.dll",
+      "bytes": 26408,
+      "sha256": "260172D2E7882477FBF36EBFE354C22044B4F65F729CD85D8F732EF66DC11F47"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Text.Json.dll",
+      "bytes": 82256,
+      "sha256": "8342B27367A617F32A0ADEC3FDCCBCDDC608D7F9D8B5B1A51DA6D57E0FAA6BD8"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Text.RegularExpressions.dll",
+      "bytes": 36688,
+      "sha256": "84DC0247302C20FA03EACD987229E30084C9DD55C2267691F6DF37F2A0363082"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Threading.AccessControl.dll",
+      "bytes": 20776,
+      "sha256": "8D16B916D9FFE200106DB8E7F3FA899B6D9414989322506CA196F1ED66CA7EDE"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Threading.Channels.dll",
+      "bytes": 19280,
+      "sha256": "BEB25547BE9B5FD5EC534108C9A745B86D65B3BE544C7A15C84CB2E49B2BDC11"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Threading.dll",
+      "bytes": 33576,
+      "sha256": "C3D631CF421C1983F432D695F31FC42E8AB750609716B5F700142681A7E19BF3"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Threading.Overlapped.dll",
+      "bytes": 18768,
+      "sha256": "2BD70E37089D1CC0AD587993D1625BA1C624B4F69175D12F09A4313B61C121C1"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Threading.Tasks.Dataflow.dll",
+      "bytes": 32040,
+      "sha256": "141875ED90A547B3BC3266013F4CE99781D02E45BB74C10D31DB23A6BC5B7C81"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Threading.Tasks.dll",
+      "bytes": 16680,
+      "sha256": "D95CEE14D0DBB97D8F8A8F4DCC5EEFA35F394F9D94B0FA0BF29068786AEE6A06"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Threading.Tasks.Extensions.dll",
+      "bytes": 15656,
+      "sha256": "6EC70446F8FAEFAA167A0E3360468203CB03FFAB90369644E92C22DC650A9CD5"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Threading.Tasks.Parallel.dll",
+      "bytes": 20264,
+      "sha256": "7BCAC25197E78CAB18AB9803E2BC5053037A2D4EBE86C305879BFEC7773C443B"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Threading.Thread.dll",
+      "bytes": 23888,
+      "sha256": "4125927A00FE7B5A342511B07BBDC03DB5684007CFCA771A02FAE42440675CF8"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Threading.ThreadPool.dll",
+      "bytes": 18216,
+      "sha256": "DF8E152B26DD1A541437D861C8AB3F431EE4F6E45B9F67737F700DD79C93DC06"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Threading.Timer.dll",
+      "bytes": 15144,
+      "sha256": "5B21F38133328E8017BB7A4651007738CE76FCFA673AF267B4C8B5E857D572D7"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Transactions.dll",
+      "bytes": 16680,
+      "sha256": "9BA6785FAF04DE3B018A7E6BDB349C538CA861ADD4A3558C693FE4C9EF905335"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Transactions.Local.dll",
+      "bytes": 25896,
+      "sha256": "5AEA91769E038F5CBC5011CB9820673C2CFE0BE5279C90DA0A5BC72536DCAB29"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.ValueTuple.dll",
+      "bytes": 15656,
+      "sha256": "63E0EAC320A2EAC02F418E186232405427E036D9CE9DD80951923280308CFE59"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Web.dll",
+      "bytes": 15184,
+      "sha256": "45B1D8E331AEB3D4006AFE64CDE59EDDAC958968D6C432DF3F869982D94996F0"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Web.HttpUtility.dll",
+      "bytes": 17192,
+      "sha256": "91638C85774765FE78C429972C49707783EEFF6B0F2693F71DE309CD2E590C08"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Windows.dll",
+      "bytes": 15696,
+      "sha256": "5898D03D2707C44B55883BC475F8C3AA779738A439DB6EC2ABBF9E0FAC82E6D5"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Xml.dll",
+      "bytes": 23376,
+      "sha256": "3BF8CF7C17A8EC51EF64A48707DBCBB0359E466A7903BB564A4C74228D895E32"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Xml.Linq.dll",
+      "bytes": 15656,
+      "sha256": "06BE8D12AB41B70960703EC77899DA99E0A93A6D125E77E7F8154AB071220D54"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Xml.ReaderWriter.dll",
+      "bytes": 116008,
+      "sha256": "77DC198362DE48C4A92F05EEEF4A8208D902A58468B46925B62AB14960F1BB7F"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Xml.Serialization.dll",
+      "bytes": 16168,
+      "sha256": "868E566390C0A0800253511B757644433C512989A213F32153464A4611667D8B"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Xml.XDocument.dll",
+      "bytes": 34088,
+      "sha256": "17ABF9D1E542A16AF97B5BB401056C77F756B9BFB935E4A61AA7AD2BDADAA3E5"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Xml.XmlDocument.dll",
+      "bytes": 15656,
+      "sha256": "E6D348CE2E40D5F8E767F3863F3217F6075F3E4E331270BE1D13E45430F87811"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Xml.XmlSerializer.dll",
+      "bytes": 51024,
+      "sha256": "C3416AFCF97C3C9059042335819663CB7BAAB7C1125FEB326BEC129AD0ACCC5D"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Xml.XPath.dll",
+      "bytes": 16680,
+      "sha256": "560EBF5EB16D6E97CE1831E6A9651D95C05078AF8C705B3DDE25ABCF8318824D"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\System.Xml.XPath.XDocument.dll",
+      "bytes": 16168,
+      "sha256": "1B20537A1BCD62F21B8C7AFA59EEFE2A7EC2660B5A04EA5D306784CE404A5C04"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\ref\\WindowsBase.dll",
+      "bytes": 16208,
+      "sha256": "2586159B2C347D39A93BEBCBD8811A6DC05D0252202B24CEBF2E28188F8CE7AB"
+    }
+  ],
+  "root_review": "Same metadata-only behavior; no target assembly loading/constructor/runtime layout. One new hidden bounded actual Main attempt with the already successful default compile profile; all runtime/reader/ref pins pre/post."
+}

@@ -1,0 +1,163 @@
+{
+  "schema": "PUBLIC_FIXED_FILE_METADATA_ARCHIVE_R1",
+  "purpose": "Actual fixed-file metadata only; no runtime layout, object values, memory fit or target runner execution",
+  "actual_receipt_sha256": "835069D1A02E69687FA992B71E21ED44D4FAFFE3637246DAB0CB948443336298",
+  "source_manifest_sha256": "8DB54EA7407FA296E658221580644825B532959387EDA287AC75311A5834318C",
+  "whole_source_and_root_runners_frozen_at_first_green": true,
+  "files": [
+    {
+      "file": "20261105-managed-file-type-inventory-independent-review-r1/review.json",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-independent-review-r1/review.json",
+      "original_bytes": 7492,
+      "original_sha256": "1C473DFDCBE4D10DA28A70A06708AE88055E36C421045B14E96C37FF1AFCDCEA",
+      "transformation": "BYTE_EXACT",
+      "bytes": 7492,
+      "sha256": "1C473DFDCBE4D10DA28A70A06708AE88055E36C421045B14E96C37FF1AFCDCEA"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/compilation-reference-profile.json",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/compilation-reference-profile.json",
+      "original_bytes": 46558,
+      "original_sha256": "229900F0D91E29589B2DBE9584CDDC9812BFDB99625ED8924494BA093658C3F3",
+      "transformation": "BYTE_EXACT",
+      "bytes": 46558,
+      "sha256": "229900F0D91E29589B2DBE9584CDDC9812BFDB99625ED8924494BA093658C3F3"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/evidence/seal.py",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/evidence/seal.py",
+      "original_bytes": 3141,
+      "original_sha256": "BCF164C555E3036CCE4A5F35AAB3F9139B0E5C7E44921C2A240D95703167A722",
+      "transformation": "BYTE_EXACT",
+      "bytes": 3141,
+      "sha256": "BCF164C555E3036CCE4A5F35AAB3F9139B0E5C7E44921C2A240D95703167A722"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/execution-r1/inventory.json",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/execution-r1/inventory.json",
+      "original_bytes": 0,
+      "original_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "transformation": "BYTE_EXACT",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/execution-r1/receipt.json",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/execution-r1/receipt.json",
+      "original_bytes": 1661,
+      "original_sha256": "44AEADE38779340A58AA8FA7875446F69172307B8071B5A0AAA05A1C34BB6713",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1661,
+      "sha256": "44AEADE38779340A58AA8FA7875446F69172307B8071B5A0AAA05A1C34BB6713"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/execution-r1/stderr.log",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/execution-r1/stderr.log",
+      "original_bytes": 92,
+      "original_sha256": "2A7A8C7DAF85830F468C57AC433D8D8D000E71148EF7545275A34ADB7F93C3B2",
+      "transformation": "LF_DISPLAY_RAW_BASE64_PRESERVED",
+      "bytes": 91,
+      "sha256": "F0D4943706D9FFFC9833658E91D986FE8A4D9C20194829F88A3C7DA11C9E12F1",
+      "original_raw_base64": "eyJzdGF0dXMiOiJGQUlMIiwiZXhjZXB0aW9uX3R5cGUiOiJSdW5uZXJGYWlsdXJlIiwicmVhc29uIjoiTUVUQURBVEFfSE9TVF9PUl9DT01QSUxBVElPTiJ9DQo="
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/execution-r2/first-green-whole-source-freeze.json",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/execution-r2/first-green-whole-source-freeze.json",
+      "original_bytes": 1091,
+      "original_sha256": "8E91BC38FD3B9C99C2380E2038720B943D41D179EA11C922FC345CCCC6A72FC2",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1091,
+      "sha256": "8E91BC38FD3B9C99C2380E2038720B943D41D179EA11C922FC345CCCC6A72FC2"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/execution-r2/inventory.json",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/execution-r2/inventory.json",
+      "original_bytes": 35291,
+      "original_sha256": "B50DB68E7E10D67E12D3380FCD5D528C02F80F83155F3593E8C88392227C37FD",
+      "transformation": "BYTE_EXACT",
+      "bytes": 35291,
+      "sha256": "B50DB68E7E10D67E12D3380FCD5D528C02F80F83155F3593E8C88392227C37FD"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/execution-r2/receipt.json",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/execution-r2/receipt.json",
+      "original_bytes": 1725,
+      "original_sha256": "835069D1A02E69687FA992B71E21ED44D4FAFFE3637246DAB0CB948443336298",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1725,
+      "sha256": "835069D1A02E69687FA992B71E21ED44D4FAFFE3637246DAB0CB948443336298"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/execution-r2/stderr.log",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/execution-r2/stderr.log",
+      "original_bytes": 0,
+      "original_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "transformation": "BYTE_EXACT",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/reader.cs",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/reader.cs",
+      "original_bytes": 18034,
+      "original_sha256": "E9B1CC2AC4D5B1B3C8D1DE955A30A938E95EADB1FA92C8757350DB07BADACC74",
+      "transformation": "BYTE_EXACT",
+      "bytes": 18034,
+      "sha256": "E9B1CC2AC4D5B1B3C8D1DE955A30A938E95EADB1FA92C8757350DB07BADACC74"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/README.md",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/README.md",
+      "original_bytes": 5162,
+      "original_sha256": "3BEF93D7216A4597E887874F6D23019F7C8F3C5D91FAA7D6CAFBB02BE645A503",
+      "transformation": "BYTE_EXACT",
+      "bytes": 5162,
+      "sha256": "3BEF93D7216A4597E887874F6D23019F7C8F3C5D91FAA7D6CAFBB02BE645A503"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/run-reader-r2.ps1",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/run-reader-r2.ps1",
+      "original_bytes": 3147,
+      "original_sha256": "9C04C79F9FC0F535BC72B28B4155B53ADB7BAD7777BDB61E0DDFC2B29FB143C4",
+      "transformation": "BYTE_EXACT",
+      "bytes": 3147,
+      "sha256": "9C04C79F9FC0F535BC72B28B4155B53ADB7BAD7777BDB61E0DDFC2B29FB143C4"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/run-reader-r2.py",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/run-reader-r2.py",
+      "original_bytes": 7182,
+      "original_sha256": "EC8328E0083B32F2536FED1F57C4D013A3412509EAD326109527500B97FB7B35",
+      "transformation": "BYTE_EXACT",
+      "bytes": 7182,
+      "sha256": "EC8328E0083B32F2536FED1F57C4D013A3412509EAD326109527500B97FB7B35"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/run-reader.ps1",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/run-reader.ps1",
+      "original_bytes": 3200,
+      "original_sha256": "A66605BB6FBD641464C11D195283BF55575C7935CF4DEA6C258C4C551CD0D202",
+      "transformation": "BYTE_EXACT",
+      "bytes": 3200,
+      "sha256": "A66605BB6FBD641464C11D195283BF55575C7935CF4DEA6C258C4C551CD0D202"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/run-reader.py",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/run-reader.py",
+      "original_bytes": 6423,
+      "original_sha256": "B03FAAA8A18CBD3508AA9A333CE51106360CF24C2F60AF7D967329DE2311ECDC",
+      "transformation": "BYTE_EXACT",
+      "bytes": 6423,
+      "sha256": "B03FAAA8A18CBD3508AA9A333CE51106360CF24C2F60AF7D967329DE2311ECDC"
+    },
+    {
+      "file": "20261105-managed-file-type-inventory-source-r1/source-pins.json",
+      "original_path": "build-ci/20261105-managed-file-type-inventory-source-r1/source-pins.json",
+      "original_bytes": 7291,
+      "original_sha256": "8DB54EA7407FA296E658221580644825B532959387EDA287AC75311A5834318C",
+      "transformation": "BYTE_EXACT",
+      "bytes": 7291,
+      "sha256": "8DB54EA7407FA296E658221580644825B532959387EDA287AC75311A5834318C"
+    }
+  ]
+}

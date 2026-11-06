@@ -69,6 +69,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    or GO follows. The exact strict native observer compiles warning-free. R5's minimal inline-result
    declaration reorder repairs the full-header C4324 failure without suppression;37 selected public
    type layouts were independently checked from compiler constants. No combined adapter was executed.
+   A separate fixed-file metadata reader passed for21 types/99 declared fields; this supplies no runtime
+   layout or payload-fit credit. Fresh whole numeric review rejected23 production Site packets;
+   the complete census is being rebuilt from operand ledgers before another independent review.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -89,6 +92,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Preserve the bounded public-file metadata check
+
+- A separately reviewed console reader exited0 with empty stderr for21 selected types/99 declared instance fields in four pinned DLL files. It reads public file metadata only: no target assembly load, target constructors, target IL, live values, object sizes or runtime offsets.
+- Archived17 source/evidence files under `docs/research/artifacts/2026-11-05-managed-file-metadata-r1/`; original bytes, the compilation failure before Main and the corrected pinned reference profile remain preserved. The complete reader and successful root launchers froze at first green.
+- Fresh whole production census R2 review found23 incorrect Site packets despite internally consistent totals; preserve that REVISE and regenerate all420 rows/equations from ordered operand ledgers. R5 compute compiled warning-free under the recorded app command; native/caller/funding and whole-proof premises remain pending.
+- Continue the tuple-source functional review, six payload phase joins and full production census/native/recipe/renderer/jobs/model work, then linked/folder/piano. No clock-research target stage, GUI, desktop input or audio/MIDI device ran; no memory-fit or execution GO is claimed.
 
 ## 2026-11-05 - Preserve the accepted conditional R10 census and native-path repair
 
