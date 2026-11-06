@@ -1,0 +1,7 @@
+{
+  "exit_code": 1,
+  "wall_time_seconds": 0.1548065,
+  "phase": "read-only source file ingress before any output",
+  "reason": "Parent concurrently flattened delivery archive paths after Git overlong-path rejection; final archive maps exact original bytes to short sources/NNN-name paths. Use unchanged working baseline and verify manifest mapping. No source/price/profile defect or target execution.",
+  "source_sha256": "FA12ECF53B0F03C9F8C6DFBEF852CC11B3BA8BBF57F68EB2A0F230A204DD5708"
+}

@@ -1,0 +1,39 @@
+{
+  "schema": "R12_P_FRESH_FIRST_COMPLETE_OWN_SOURCE_CHECK_FREEZE_R1",
+  "actual_check": {
+    "exit_code": 0,
+    "wall_time_seconds": 0.2110536,
+    "checks": 58,
+    "source_sites": 82
+  },
+  "boundary": "derive.py and closure.json froze at first complete passing source check; argument and pin metadata added afterward without changing any frozen source/value",
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-r12-fresh-path-source-closure-r1/argument.md",
+      "bytes": 10897,
+      "sha256": "E26458D01D44D2049D92DE0476B11F1612D4B26E7FD4B55D29B944B5FFE063C9"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-fresh-path-source-closure-r1/attempt-r1/derive.py",
+      "bytes": 19045,
+      "sha256": "FA12ECF53B0F03C9F8C6DFBEF852CC11B3BA8BBF57F68EB2A0F230A204DD5708"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-fresh-path-source-closure-r1/attempt-r1/failure.json",
+      "bytes": 492,
+      "sha256": "90C9F6D6A704F9F1D46A2E61E744A5BC2C376B77465D25D4917F45AF7164418F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-fresh-path-source-closure-r1/closure.json",
+      "bytes": 65020,
+      "sha256": "FC054EFE5B17B82382A328A8172654839FE7AFB397B08E1F5AD37D0A53420F18"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-fresh-path-source-closure-r1/derive.py",
+      "bytes": 19717,
+      "sha256": "2C62D0BA2657359322EF397B2D67394CC791B9A51FB33DACB18E13D0F74D9873"
+    }
+  ],
+  "no_target_execution": true,
+  "no_source_cap_profile_binding_or_fit_change": true
+}

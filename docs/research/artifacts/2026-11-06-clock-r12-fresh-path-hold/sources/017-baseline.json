@@ -1,0 +1,358 @@
+{
+  "schema": "R12_COMPLETE_RESOURCE_BASELINE_DISPOSITION_HOLD_R1",
+  "verdict": "HOLD_NO_COMPLETE_NUMERIC_UPPER_NO_FIT_OR_NOFIT",
+  "complete_means": "Every one of13 resource families has a concrete evaluated component or precise remaining source/profile equation. Complete does not mean all resource obligations are proved or the selected partial is a whole upper.",
+  "source_manifest_sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557",
+  "runner_sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F",
+  "cap": 33554432,
+  "source_or_cap_or_domain_changed": false,
+  "target_execution": false,
+  "phases": [
+    {
+      "id": "P0",
+      "stage_calls": 0,
+      "stage_rows": 0,
+      "children": 0,
+      "FileInfo_calls_upper": 2359,
+      "possible_randomized_comparer_instances_upper": 8,
+      "selected_terms": {
+        "previous_selected_conditional": 12011206,
+        "remove_six_unreachable_fixed_rehash_backings": -384024,
+        "A_source_site_capture_correction": 0,
+        "A_exact_string_array_alias_correction": 0,
+        "A_two_expected_control_missing_unknown_List_backings": 0,
+        "A_own_fence_and_native_id_HashSets": 464,
+        "A_explicit_key_view_instances": 88,
+        "J_possible_failed_close_null_value": 64,
+        "J_A_possible_randomized_comparer_objects": 320,
+        "V_source_FileInfo_wrappers": 320824,
+        "N_conditional_capture_and_outgoing": 0
+      },
+      "selected_numeric_partial": 11948942,
+      "remaining_equation": "11948942 + P_fresh_0 + V_managed_native_stream_async_0 + V_native_child_0 + F_SDKcold_0 + A_association_delta_0"
+    },
+    {
+      "id": "P1",
+      "stage_calls": 7,
+      "stage_rows": 45,
+      "children": 0,
+      "FileInfo_calls_upper": 2493,
+      "possible_randomized_comparer_instances_upper": 8,
+      "selected_terms": {
+        "previous_selected_conditional": 15244102,
+        "remove_six_unreachable_fixed_rehash_backings": -384024,
+        "A_source_site_capture_correction": 0,
+        "A_exact_string_array_alias_correction": 0,
+        "A_two_expected_control_missing_unknown_List_backings": 0,
+        "A_own_fence_and_native_id_HashSets": 464,
+        "A_explicit_key_view_instances": 328,
+        "J_possible_failed_close_null_value": 64,
+        "J_A_possible_randomized_comparer_objects": 320,
+        "V_source_FileInfo_wrappers": 339048,
+        "N_conditional_capture_and_outgoing": 0
+      },
+      "selected_numeric_partial": 15200302,
+      "remaining_equation": "15200302 + P_fresh_1 + V_managed_native_stream_async_1 + V_native_child_1 + F_SDKcold_1 + A_association_delta_1"
+    },
+    {
+      "id": "P2",
+      "stage_calls": 264,
+      "stage_rows": 1587,
+      "children": 1,
+      "FileInfo_calls_upper": 8746,
+      "possible_randomized_comparer_instances_upper": 29,
+      "selected_terms": {
+        "previous_selected_conditional": 35564564,
+        "remove_six_unreachable_fixed_rehash_backings": -384024,
+        "A_source_site_capture_correction": -144,
+        "A_exact_string_array_alias_correction": -48,
+        "A_two_expected_control_missing_unknown_List_backings": 0,
+        "A_own_fence_and_native_id_HashSets": 1392,
+        "A_explicit_key_view_instances": 408,
+        "J_possible_failed_close_null_value": 64,
+        "J_A_possible_randomized_comparer_objects": 1160,
+        "V_source_FileInfo_wrappers": 1189456,
+        "N_conditional_capture_and_outgoing": 143504
+      },
+      "selected_numeric_partial": 36516332,
+      "remaining_equation": "36516332 + P_fresh_2 + V_managed_native_stream_async_2 + V_native_child_2 + F_SDKcold_2 + A_association_delta_2"
+    },
+    {
+      "id": "P3",
+      "stage_calls": 523,
+      "stage_rows": 3141,
+      "children": 2,
+      "FileInfo_calls_upper": 15115,
+      "possible_randomized_comparer_instances_upper": 37,
+      "selected_terms": {
+        "previous_selected_conditional": 39810972,
+        "remove_six_unreachable_fixed_rehash_backings": -384024,
+        "A_source_site_capture_correction": -2384,
+        "A_exact_string_array_alias_correction": -992,
+        "A_two_expected_control_missing_unknown_List_backings": 112,
+        "A_own_fence_and_native_id_HashSets": 2536,
+        "A_explicit_key_view_instances": 688,
+        "J_possible_failed_close_null_value": 64,
+        "J_A_possible_randomized_comparer_objects": 1480,
+        "V_source_FileInfo_wrappers": 2055640,
+        "N_conditional_capture_and_outgoing": 287008
+      },
+      "selected_numeric_partial": 41771100,
+      "remaining_equation": "41771100 + P_fresh_3 + V_managed_native_stream_async_3 + V_native_child_3 + F_SDKcold_3 + A_association_delta_3"
+    },
+    {
+      "id": "P4",
+      "stage_calls": 782,
+      "stage_rows": 4695,
+      "children": 3,
+      "FileInfo_calls_upper": 23921,
+      "possible_randomized_comparer_instances_upper": 49,
+      "selected_terms": {
+        "previous_selected_conditional": 45033012,
+        "remove_six_unreachable_fixed_rehash_backings": -384024,
+        "A_source_site_capture_correction": -9672,
+        "A_exact_string_array_alias_correction": -2632,
+        "A_two_expected_control_missing_unknown_List_backings": 112,
+        "A_own_fence_and_native_id_HashSets": 4920,
+        "A_explicit_key_view_instances": 1288,
+        "J_possible_failed_close_null_value": 64,
+        "J_A_possible_randomized_comparer_objects": 1960,
+        "V_source_FileInfo_wrappers": 3253256,
+        "N_conditional_capture_and_outgoing": 430512
+      },
+      "selected_numeric_partial": 48328796,
+      "remaining_equation": "48328796 + P_fresh_4 + V_managed_native_stream_async_4 + V_native_child_4 + F_SDKcold_4 + A_association_delta_4"
+    },
+    {
+      "id": "P5",
+      "stage_calls": 784,
+      "stage_rows": 4707,
+      "children": 3,
+      "FileInfo_calls_upper": 23941,
+      "possible_randomized_comparer_instances_upper": 49,
+      "selected_terms": {
+        "previous_selected_conditional": 54521900,
+        "remove_six_unreachable_fixed_rehash_backings": -384024,
+        "A_source_site_capture_correction": -9672,
+        "A_exact_string_array_alias_correction": -2632,
+        "A_two_expected_control_missing_unknown_List_backings": 112,
+        "A_own_fence_and_native_id_HashSets": 4920,
+        "A_explicit_key_view_instances": 1288,
+        "J_possible_failed_close_null_value": 64,
+        "J_A_possible_randomized_comparer_objects": 1960,
+        "V_source_FileInfo_wrappers": 3255976,
+        "N_conditional_capture_and_outgoing": 430512
+      },
+      "selected_numeric_partial": 57820404,
+      "remaining_equation": "57820404 + P_fresh_5 + V_managed_native_stream_async_5 + V_native_child_5 + F_SDKcold_5 + A_association_delta_5"
+    }
+  ],
+  "families": [
+    {
+      "id": "F",
+      "disposition": "EVALUATED_LITERAL_FIXED_BYTES_KNOWN_COLD_PLUS_PROFILE_HOLD",
+      "evidence": [
+        "originals.json",
+        "collections.json",
+        "writer B R3"
+      ],
+      "remaining": [
+        "F_SDKcold"
+      ]
+    },
+    {
+      "id": "R",
+      "disposition": "EVALUATED_RAW_CAPTURE_COMPACT_STRING_GRAMMAR_COPY_MUTATION_PE_BYTES",
+      "evidence": [
+        "evaluation.json",
+        "originals.json"
+      ],
+      "remaining": [
+        "V source stream/path buffers, separately owned"
+      ]
+    },
+    {
+      "id": "J",
+      "disposition": "EVALUATED_FIXED_GRAPHS_GENERIC2698_CHILD13_25_AND_READER_INSTANCES",
+      "evidence": [
+        "evaluation.json",
+        "components.json",
+        "small-owner b20=160 source"
+      ],
+      "remaining": [
+        "A/source/SDK association conditions; normal/failure close-null source qualification"
+      ]
+    },
+    {
+      "id": "H",
+      "disposition": "EVALUATED_TUPLE_DIGEST_STORED_LENGTH_HEX",
+      "evidence": [
+        "evaluation.json"
+      ],
+      "remaining": [
+        "V_hash provider/native wrappers, not digest or Tuple copies"
+      ]
+    },
+    {
+      "id": "W",
+      "disposition": "EVALUATED_ROWS_STORED_BOXES_QUEUE_LIST_TOARRAY",
+      "evidence": [
+        "evaluation.json",
+        "components.json"
+      ],
+      "remaining": [
+        "P iterator strings/native buffers and V iterator wrappers"
+      ]
+    },
+    {
+      "id": "O",
+      "disposition": "EVALUATED_ORIGINAL_DTO_MAP_LIST_BOX_AND_ALL11_PREFLIGHTS",
+      "evidence": [
+        "originals.json"
+      ],
+      "remaining": [
+        "A exact copy/alias association condition"
+      ]
+    },
+    {
+      "id": "K",
+      "disposition": "EVALUATED_SEVEN_CODEC_PREPROCESS_CLONE_FAMILIES",
+      "evidence": [
+        "components.json"
+      ],
+      "remaining": [
+        "F SDK cold/type/cache source profile, not traversal duplicated in B"
+      ]
+    },
+    {
+      "id": "B",
+      "disposition": "ACCEPTED_CONDITIONAL_R3_SOURCE_COMPONENT",
+      "evidence": [
+        "B R3 246F9C0F",
+        "independent reviewer B2EA9D0F"
+      ],
+      "remaining": [
+        "F_SDKcold"
+      ]
+    },
+    {
+      "id": "P",
+      "disposition": "EVALUATED_STRUCTURES_FIXED_HASH_THEOREM_ACCEPTED_P_FRESH_HOLD",
+      "evidence": [
+        "collections.json",
+        "fixed-key-hash-chains.json",
+        "root fixed hash review freeze1F7FC5"
+      ],
+      "remaining": [
+        "P_fresh"
+      ]
+    },
+    {
+      "id": "A",
+      "disposition": "EVALUATED_EXPLICIT_ARRAY_SET_COPY_SOURCE_ENVELOPES_WITH_ASSOCIATION_HOLD",
+      "evidence": [
+        "originals.json",
+        "collections.json",
+        "this source-site correction"
+      ],
+      "remaining": [
+        "A_association_delta"
+      ]
+    },
+    {
+      "id": "N",
+      "disposition": "EVALUATED143504_PER_CHILD_CONDITIONAL_STOCK_ENV_PROFILE",
+      "evidence": [
+        "environment.json",
+        "root N writer closure",
+        "DictionaryWrapper.cs B8E2B538 one-ref source slot24"
+      ],
+      "remaining": [
+        "ordinary selected SDK/stock noninterference qualification"
+      ]
+    },
+    {
+      "id": "V",
+      "disposition": "FILEINFO136_EVALUATED_OTHER_WRAPPERS_AND_NATIVE_CHILD_HOLD",
+      "evidence": [
+        "small-owner source",
+        "this FileInfo call schedule",
+        "numeric agent V source closure in progress"
+      ],
+      "remaining": [
+        "V_managed_native_stream_async",
+        "V_native_child"
+      ]
+    },
+    {
+      "id": "E",
+      "disposition": "EVALUATED_SOURCE_WITNESSES_PROJECTIONS_REFERENCES_AND_B_FAILURE_CODEC_PATHS",
+      "evidence": [
+        "collections.json",
+        "B R3 failure/orphan model",
+        "fixed reference slots in F"
+      ],
+      "remaining": [
+        "General CLR/SDK exception,task-fault,ErrorRecord heap remains explicitly UNQUALIFIED under contract, not0"
+      ]
+    }
+  ],
+  "fixed_hash_theorem": {
+    "helper_sha256": "BACD6D7F66B76334429005BBF38A7C028733E66E3596C649CE11827DB5D5671C",
+    "result_sha256": "587CB936BC03C25E3C6336AC1240C8B4EA763AEAE1EE327F4D43D1987610E1FD",
+    "independent_freeze_sha256": "1F7FC534921DFCDE46CB1F425EDAE36D4AD769FAB18EF975FBDF259949D25883",
+    "removed_optional_array_requests": 384024,
+    "scope": "Only exact R12 provisional P geometry and selected source arithmetic; no R13 transfer."
+  },
+  "N_wrapper_source_correction": {
+    "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/DictionaryWrapper.cs",
+    "bytes": 3096,
+    "sha256": "B8E2B5381CF374C615F64C044DF2B5BB1E17FC3A44500331EFC4F7D53955CEEB",
+    "field_slot_upper": 24,
+    "scope": "Object plus one readonly Dictionary reference; direct IDictionary implementation, no StringDictionary/unused Hashtable. Source association/model only, not observed runtime size."
+  },
+  "remaining": [
+    {
+      "id": "P_fresh",
+      "required": "Evaluate the complete source-indexed Join-Path/provider/fullpath/Current/GetFileName/GetRelativePath/Replace/safe-prefix/unknown-first-refusal strings, including failed-copy candidates and long native normalizer rents; this baseline already owns catalogue/parent-reference/dictionary structures and FileInfo objects.",
+      "authority": "Root P geometry review explicitly leaves these request/lifetime terms open."
+    },
+    {
+      "id": "V_managed_native_stream_async",
+      "required": "Selected source fields/buffers for every FileStream/crypto/provider/handle/process/Stopwatch/CTS/decoder/encoding/iterator/async wrapper; source actual stream site vector and concurrent handles; command-line ValueStringBuilder/native pools; callback/registration/worker/thread-static ownership.",
+      "equation": "Sum actual siteCount*sourceWrapperUpper + c*(two4096 source read arrays + two4096 hidden StreamReader byte arrays + two char[m4096] arrays) + outerOps*v_outer + innerOps*v_inner + workerThreads*v_thread + bounded failed-allocation/cancellation tails; corrected outerOps<=259c and innerOps<=1056772c are separate source proposals. No unverified pool hit/rollback/reuse or cp0=UTF8.",
+      "owner": "Root/numeric agent independent V source closure.",
+      "outer_correction": "Earlier258 omitted two EOF-short positive returns.255 full4096 chunks+two1-byte EOFshort positive results fit1MiB; two subsequent zero results yield2initial+257positive successors=259. Earlier unsealed258 records remain preserved history, not current authority."
+    },
+    {
+      "id": "V_native_child",
+      "required": "Joint controller plus one actual active native child; no per-process cap split. Count child-owned fixed Catalogue, FractionCache, Stream/Text, fixture/vector/prefix/string/argv/control/metadata/exception payloads and selected allocator/deallocation/ABI facts.",
+      "equation": "Catalogue + atMost2*sizeof(Stream) + atMost4*sizeof(Text) (including no-NRVO return/caller alternatives) + sizeof(FractionCache) + actual live vectors/string capacities + remaining own POD/call-chain storage + selected CRT/FILE/native-library resource qualification. Source asserts Text<=65552,Stream<=65664 and an8*(Stream+Text)+FractionCache+32768<=2MiB condition, but the assertion alone is not the whole allocation/lifetime proof.",
+      "lifetime": "Only observed native child exit releases that entire process term. Parent managed request owners are not freed by Clear,Dispose,null or scope."
+    },
+    {
+      "id": "F_SDKcold",
+      "required": "Root B names EnumUtils/concurrent store/reflection/contract cache initialization and selected wrapper/array storage profiles. Shared nonrandomized comparer singleton sources and underlying comparer identities must be joined once rather than implicitly preinitialized/free.",
+      "boundary": "Pure VM frames,transient scalar parameter/counter boxing,binder/type-metadata/general CLR execution and Exception/ErrorRecord/task-fault internals remain expressly UNQUALIFIED outside controlled source payload. This applies original contract47-50/109-110 and corrects R1 overbroad binder wording; it never claims their allocations0 or whole-process heap fit."
+    },
+    {
+      "id": "A_association_delta",
+      "required": "Independently reconcile selected Compiler/Pipe/PipelineResult/PSToObjectArrayBinder and exact typed conversion branches at each explicit @()/function/ToArray/concat/key-view site. The candidate selected envelopes are finite and source-sized; a correction can be positive or negative. It is NOT safely0 by omission, nor a generic per-call boxing/iterator tariff."
+    },
+    {
+      "id": "PROFILE",
+      "required": "Exact canonical final input/root/caller/environment/binary/source/ABI association and independent whole review. Current provisional1220-input/31-namespace geometry is not a promoted future binding or execution profile."
+    }
+  ],
+  "controlled_failure_model": [
+    "All bounded abnormal native stdout/stderr remain admitted:1MiB child log cap,65536 captured stdout,33nonempty slices,4/12 SDK-call envelope. No quiet-main law.",
+    "GetTaskStage can append a seventh first-refusing row; full source main/inventory/footer schedules remain. SaveFailureInventory inner walk catch CONTINUES to document write; no3-region retry shortcut.",
+    "Known persistent dictionaries have no post-created growth and no comparer rehash only by independently accepted fixed-root theorem. Ephemeral generic J/FileSet failure candidates retain one capacity/rehash history and comparer40 per possible transition; whole source-failure review remains required.",
+    "B R3 includes close-time +3 text,56-byte SB object field-slot bound,orphan expansion retry allocations and up to3 failed codec paths. R1/R2 are preserved revisions.",
+    "All selected managed old allocations remain in the upper without GC credit. Native source releases/pool reuse require their own proof."
+  ],
+  "branch_join": "For bootstrap/predecessor raw identity failure compare max(rawcap request, fixed successful capture+decode+graph requests); the successful fixed branches dominate the raw-only alternatives. Compiler report and captured children use their full cap-domain alternatives. Max over all six source prefixes after every residual is joined; do not add six phase totals together.",
+  "numerical_meaning": "Selected partials are conservative upper bounds of selected components under their source/profile premises, not lower bounds. A partial upper above32MiB proves neither actual coexisting NOFIT nor fit. No complete U_i is asserted while the residual/profile terms remain open.",
+  "tests": "Ordinary Python/source/file/JSON/uint/integer arithmetic only. No target PowerShell parse/AST/import/helper,compiler,stage,native program,GUI,Git/CI or host environment enumeration by this author.",
+  "successor": "R13 is a separate root-authored/reviewed successor; no R12 scalar/capacity/profile authority automatically transfers. This baseline proposes no further source optimization or cap change."
+}

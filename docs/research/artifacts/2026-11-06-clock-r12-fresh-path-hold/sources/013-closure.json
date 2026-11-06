@@ -1,0 +1,1339 @@
+{
+  "schema": "R12_FRESH_PATH_SOURCE_CLOSURE_R1",
+  "verdict": "PARTIAL_SOURCE_CLOSURE_COMPLETE_PRODUCER_EQUATIONS_P_FRESH_STILL_HOLD",
+  "subject_manifest_sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557",
+  "runner_sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F",
+  "geometry_sha256": "BE95DC06AB85E7BF0A706656B08A6C2C8B5581C4AE3376BFE7AB1D98CADBAD9F",
+  "no_source_cap_profile_change": true,
+  "no_target_execution": true,
+  "evaluated_is_not_whole_upper_or_fit": true,
+  "known_one_time_requests": {
+    "parent_candidates_before_interning": 351880,
+    "absolute_slash_and_noninput_canonical_result_strings": 241336,
+    "relative_input_JoinPath_final_outputs": 121808,
+    "noninput_alias_Replace_char_results": 27704,
+    "initial_five_IOJoin_outputs": 1944,
+    "catalogue_73_IOJoin_outputs": 32936,
+    "controller_15_IOJoin_output_upper": 4384,
+    "seven_bootstrap_parent_candidates_upper": 255600
+  },
+  "source_site_inventory": [
+    {
+      "kind": "JoinPath_provider",
+      "line": 105,
+      "owner": "Get-TaskCatalogueEntryPath",
+      "source": " if($Entry['repo_input'] -and -not [IO.Path]::IsPathFullyQualified($taskName)){$taskRaw=Join-Path $taskRepo $taskName}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 197,
+      "owner": "Invoke-TaskChild",
+      "source": "  $taskOut=[IO.FileStream]::new((Join-Path $taskStageRoot 'stdout.log'),[IO.FileMode]::Append,[IO.FileAccess]::Write,[IO.FileShare]::Read,4096,[IO.FileOptions]::SequentialScan)"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 198,
+      "owner": "Invoke-TaskChild",
+      "source": "  $taskErr=[IO.FileStream]::new((Join-Path $taskStageRoot 'stderr.log'),[IO.FileMode]::Append,[IO.FileAccess]::Write,[IO.FileShare]::Read,4096,[IO.FileOptions]::SequentialScan)"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 501,
+      "owner": "Copy-TaskOwned",
+      "source": " if($ExpectedBytes -gt $Cap -or -not $Destination.StartsWith((Join-Path $taskRoot 'controls')+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Declared bounded owned control copy'}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 506,
+      "owner": "Mutate-TaskOwnedBytes",
+      "source": " if(-not $Path.StartsWith((Join-Path $taskRoot 'controls')+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or $Replacement.Length -gt 2){throw 'Bounded owned mutation path/bytes'};$taskFile=$null;$taskBefore=[byte[]]::new($Replacement.Length);$taskPriorPrimary=$script:taskPrimaryRaw;$taskBody=$null"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 739,
+      "owner": "Save-TaskReceipt",
+      "source": " $taskPath=Join-Path $taskStageRoot 'receipt.json'"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 780,
+      "owner": "Resolve-TaskInput",
+      "source": " return [IO.Path]::GetFullPath((Join-Path $taskRepo $Name))"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 791,
+      "owner": "Assert-TaskPins",
+      "source": " foreach($taskPin in $taskManifest['sources']){if($taskPin['path'] -cnotin $taskOwnNames -or -not $taskSeen.Add($taskPin['path'])){throw 'Exact own4 names'};$taskExpectedPath=Join-Path $taskBase $taskPin['path'];$taskExpectedBytes=$taskPin['bytes'];$taskExpectedHash=$taskPin['sha256'];Assert-TaskFreshHashIdentity $taskExpectedPath $taskExpectedBytes $taskExpectedHash (Get-TaskHash $taskExpectedPath $taskExpectedBytes)}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 817,
+      "owner": "Read-TaskChildResult",
+      "source": " Assert-TaskCodecBinding;$taskOut=Join-Path $taskStageRoot 'stdout.log';$taskFile=$null;$taskBefore=$script:taskPrimaryRaw;$taskBody=$null"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 871,
+      "owner": "Assert-TaskDependencies",
+      "source": " $taskReportPath=Get-TaskCanonicalPath (Join-Path $taskBuildRoot 'source-dependencies.json');$taskReportHash=$null;$taskReportMatches=0"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 878,
+      "owner": "Assert-TaskDependencies",
+      "source": " if((Resolve-TaskInput $taskData['Source']) -ine (Join-Path $taskBase 'clock_stage.cpp')){throw 'Compiler source-dependency source binding'}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 892,
+      "owner": "Save-TaskFailureInventory",
+      "source": " Write-TaskJson (Join-Path $taskStageRoot 'failure-inventory.json') @{files=$taskRows.ToArray();complete=$taskComplete;code=$taskReason;root_prefix=(Get-TaskSafePrefix $taskRoot 512);compiler_temporary_peak_disk_qualified=$false;admitted_pool_success=$false;quarantine_retains_ownership=($null -ne $taskQuarantine)}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 921,
+      "owner": "MAIN_AND_ERROR",
+      "source": " foreach($taskName in $taskManifest['current_include_inputs']){if($taskName -cne 'source-costs.h'){throw 'Unlisted current source header'};$taskPin=@($taskManifest['sources']|Where-Object {$_['path'] -ceq $taskName});if($taskPin.Count -ne 1){throw 'Current source header exact own pin'};$taskIncludeIndex.Add((Join-Path $taskBase $taskName),$taskPin[0])}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 925,
+      "owner": "MAIN_AND_ERROR",
+      "source": " if(-not $taskRoot.StartsWith((Join-Path $taskBase 'runs')+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or $taskRoot.Substring((Join-Path $taskBase 'runs').Length+1).Contains([IO.Path]::DirectorySeparatorChar)){throw 'New owned direct run root'}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 925,
+      "owner": "MAIN_AND_ERROR",
+      "source": " if(-not $taskRoot.StartsWith((Join-Path $taskBase 'runs')+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or $taskRoot.Substring((Join-Path $taskBase 'runs').Length+1).Contains([IO.Path]::DirectorySeparatorChar)){throw 'New owned direct run root'}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 928,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskRuns=Join-Path $taskBase 'runs';if((Test-Path -LiteralPath $taskRuns) -and @(Get-TaskEntries $taskRuns $false 1).Count -gt 0){throw 'Revision sole attempt already exists'}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 933,
+      "owner": "MAIN_AND_ERROR",
+      "source": " foreach($taskDir in @($taskStageRoot,$taskBuildRoot,$taskOpaqueRoot,(Join-Path $taskDataRoot 'references/clock'),(Join-Path $taskDataRoot 'references/native-inverse'),(Join-Path $taskRoot 'controls'))){$null=New-Item -ItemType Directory -Path $taskDir}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 933,
+      "owner": "MAIN_AND_ERROR",
+      "source": " foreach($taskDir in @($taskStageRoot,$taskBuildRoot,$taskOpaqueRoot,(Join-Path $taskDataRoot 'references/clock'),(Join-Path $taskDataRoot 'references/native-inverse'),(Join-Path $taskRoot 'controls'))){$null=New-Item -ItemType Directory -Path $taskDir}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 933,
+      "owner": "MAIN_AND_ERROR",
+      "source": " foreach($taskDir in @($taskStageRoot,$taskBuildRoot,$taskOpaqueRoot,(Join-Path $taskDataRoot 'references/clock'),(Join-Path $taskDataRoot 'references/native-inverse'),(Join-Path $taskRoot 'controls'))){$null=New-Item -ItemType Directory -Path $taskDir}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 934,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskMarkerPath=Join-Path $taskStageRoot 'consumed.json';$taskMarkerValue=@{stage=$Stage;manifest=$taskExpectedManifest;work=$taskTotalWork;retained_reservation=$taskReservedRetained;attempts=1;opaque_compiler_peak_disk_qualified=$false}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 946,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskSourceBundle=Resolve-TaskInput $taskPredecessorDescriptor['path'];$taskBundleHash=Get-TaskHash $taskSourceBundle 98009;$taskMutantBundle=Join-Path $taskRoot 'controls/predecessor-mutant.json';Copy-TaskOwned $taskSourceBundle $taskMutantBundle 98009 98009"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 959,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskBinary=Join-Path $taskBuildRoot 'clock_stage.exe';$taskPE=Get-TaskPEHeader $taskBinary;Assert-TaskConsolePE $taskPE;$taskInitialBinary=Get-TaskHash $taskBinary 33554432"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 960,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskGuiPath=Join-Path $taskRoot 'controls/gui-mutant.exe';Copy-TaskOwned $taskBinary $taskGuiPath $taskInitialBinary.Item1 33554432;Assert-TaskFreshHashIdentity $taskGuiPath $taskInitialBinary.Item1 $taskInitialBinary.Item2 (Get-TaskHash $taskGuiPath 33554432);Assert-TaskConsolePE (Get-TaskPEHeader $taskGuiPath)"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 976,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskControlsFiles=[Collections.Generic.List[object]]::new();foreach($taskC in $taskManifest['control_files']){$taskPath=Join-Path $taskRoot $taskC['path'];$taskH=Get-TaskHash $taskPath $taskC['bytes_cap'];if($taskC.Contains('exact_bytes') -and $taskH.Item1 -ne $taskC['exact_bytes']){throw 'Actual bounded record-control file length'};$taskControlsFiles.Add(@{path=$taskPath;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 982,
+      "owner": "MAIN_AND_ERROR",
+      "source": " foreach($taskName in @('stdout.log','stderr.log','receipt.json','consumed.json')){$taskPath=Join-Path $taskStageRoot $taskName;$taskH=Get-TaskHash $taskPath 67108864;$taskArtifacts.Add(@{path=$taskPath;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 984,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskTransitive=[Collections.Generic.List[object]]::new();foreach($taskPin in $taskManifest['inputs']){$taskTransitive.Add(@{path=(Resolve-TaskInput $taskPin['path']);bytes=$taskPin['bytes'];sha256=$taskPin['sha256'];origin_bundle_sha256=$taskExpectedManifest})};foreach($taskPin in $taskManifest['sources']){$taskTransitive.Add(@{path=(Join-Path $taskBase $taskPin['path']);bytes=$taskPin['bytes'];sha256=$taskPin['sha256'];origin_bundle_sha256=$taskExpectedManifest})};$taskTransitive.Add(@{path=$taskManifestPath;bytes=(Get-Item -LiteralPath $taskManifestPath).Length;sha256=$taskExpectedManifest;origin_bundle_sha256=$taskExpectedManifest})"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 994,
+      "owner": "MAIN_AND_ERROR",
+      "source": " Write-TaskJson (Join-Path $taskStageRoot 'bundle.json') $taskBundle 1048576 $taskBundleMeasure"
+    },
+    {
+      "kind": "JoinPath_provider",
+      "line": 995,
+      "owner": "MAIN_AND_ERROR",
+      "source": " Write-Output ('CONTROLLED_CLOCK_COMPLETE_ROOT_OUTPUT_REVIEW_REQUIRED bundle_sha256='+(Get-TaskHashHex (Get-TaskHash (Join-Path $taskStageRoot 'bundle.json') 1048576)))"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 30,
+      "owner": "BOOTSTRAP_DEFINITIONS",
+      "source": "$taskBase=[IO.Path]::GetFullPath($PSScriptRoot);$taskRepo=[IO.Path]::GetFullPath($Repo);$taskRoot=[IO.Path]::GetFullPath($NewRunRoot)"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 30,
+      "owner": "BOOTSTRAP_DEFINITIONS",
+      "source": "$taskBase=[IO.Path]::GetFullPath($PSScriptRoot);$taskRepo=[IO.Path]::GetFullPath($Repo);$taskRoot=[IO.Path]::GetFullPath($NewRunRoot)"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 30,
+      "owner": "BOOTSTRAP_DEFINITIONS",
+      "source": "$taskBase=[IO.Path]::GetFullPath($PSScriptRoot);$taskRepo=[IO.Path]::GetFullPath($Repo);$taskRoot=[IO.Path]::GetFullPath($NewRunRoot)"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 31,
+      "owner": "BOOTSTRAP_DEFINITIONS",
+      "source": "$taskManifestPath=[IO.Path]::Join($taskBase,'source-manifest.json');$taskExpectedManifest=$ReviewedManifestSha256.ToUpperInvariant()"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 32,
+      "owner": "BOOTSTRAP_DEFINITIONS",
+      "source": "$taskStageRoot=[IO.Path]::Join($taskRoot,'stage');$taskDataRoot=[IO.Path]::Join($taskRoot,'data');$taskBuildRoot=[IO.Path]::Join($taskRoot,'build');$taskOpaqueRoot=[IO.Path]::Join($taskRoot,'opaque-temp')"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 32,
+      "owner": "BOOTSTRAP_DEFINITIONS",
+      "source": "$taskStageRoot=[IO.Path]::Join($taskRoot,'stage');$taskDataRoot=[IO.Path]::Join($taskRoot,'data');$taskBuildRoot=[IO.Path]::Join($taskRoot,'build');$taskOpaqueRoot=[IO.Path]::Join($taskRoot,'opaque-temp')"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 32,
+      "owner": "BOOTSTRAP_DEFINITIONS",
+      "source": "$taskStageRoot=[IO.Path]::Join($taskRoot,'stage');$taskDataRoot=[IO.Path]::Join($taskRoot,'data');$taskBuildRoot=[IO.Path]::Join($taskRoot,'build');$taskOpaqueRoot=[IO.Path]::Join($taskRoot,'opaque-temp')"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 32,
+      "owner": "BOOTSTRAP_DEFINITIONS",
+      "source": "$taskStageRoot=[IO.Path]::Join($taskRoot,'stage');$taskDataRoot=[IO.Path]::Join($taskRoot,'data');$taskBuildRoot=[IO.Path]::Join($taskRoot,'build');$taskOpaqueRoot=[IO.Path]::Join($taskRoot,'opaque-temp')"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 88,
+      "owner": "Initialize-TaskPathCatalogue",
+      "source": " foreach($taskName in $taskOwnNames){Add-TaskPathCatalogueEntry ([IO.Path]::Join($taskBase,$taskName)) $false}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 90,
+      "owner": "Initialize-TaskPathCatalogue",
+      "source": " foreach($taskA in $taskManifest['references']){Add-TaskPathCatalogueEntry ([IO.Path]::Join($taskDataRoot,$taskA['path'])) $false}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 91,
+      "owner": "Initialize-TaskPathCatalogue",
+      "source": " foreach($taskA in $taskManifest['compiler_final_outputs']){Add-TaskPathCatalogueEntry ([IO.Path]::Join($taskBuildRoot,$taskA['name'])) $false}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 92,
+      "owner": "Initialize-TaskPathCatalogue",
+      "source": " foreach($taskA in $taskManifest['control_files']){Add-TaskPathCatalogueEntry ([IO.Path]::Join($taskRoot,$taskA['path'])) $false}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 93,
+      "owner": "Initialize-TaskPathCatalogue",
+      "source": " foreach($taskName in $taskManifest['stage_files']){Add-TaskPathCatalogueEntry ([IO.Path]::Join($taskStageRoot,$taskName)) $false}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 108,
+      "owner": "Get-TaskCatalogueEntryPath",
+      "source": " if($taskRaw.IndexOf([char]126) -ge 0){return [IO.Path]::GetFullPath($taskRaw)}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 109,
+      "owner": "Get-TaskCatalogueEntryPath",
+      "source": " $taskCanonical=[IO.Path]::GetFullPath($taskRaw)"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 118,
+      "owner": "Get-TaskCatalogueEntryPath",
+      "source": "   $taskParent=[IO.Path]::GetDirectoryName($taskAt)"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 139,
+      "owner": "Get-TaskCanonicalPath",
+      "source": " return [IO.Path]::GetFullPath($Path)"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 144,
+      "owner": "Assert-NoLink",
+      "source": " while($taskAt){Spend-Task 1;$taskDepth++;if($taskDepth -gt 64){throw 'Path depth'};if([IO.File]::Exists($taskAt) -or [IO.Directory]::Exists($taskAt)){if(([IO.File]::GetAttributes($taskAt)-band [IO.FileAttributes]::ReparsePoint)-ne 0){throw 'Reparse path refused'}};if((Test-TaskPathCatalogueContext) -and $script:taskPathCatalogue['parent_strings'].ContainsKey($taskAt)){$taskAt=$script:taskPathCatalogue['parent_strings'][$taskAt]}else{$taskAt=[IO.Path]::GetDirectoryName($taskAt)}}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 310,
+      "owner": "Get-TaskBootstrapHash",
+      "source": " while($taskAt){$taskDepth++;if($taskDepth -gt 64){throw 'BOOTSTRAP_PATH_DEPTH'};if(([IO.File]::Exists($taskAt) -or [IO.Directory]::Exists($taskAt)) -and (([IO.File]::GetAttributes($taskAt)-band [IO.FileAttributes]::ReparsePoint)-ne 0)){throw 'BOOTSTRAP_REPARSE'};$taskAt=[IO.Path]::GetDirectoryName($taskAt)}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 336,
+      "owner": "Initialize-TaskController",
+      "source": " foreach($taskPin in $taskPins){$taskPath=[IO.Path]::Join($taskRuntime,$taskPin[0]);if((Get-TaskBootstrapHash $taskPath $taskPin[1]) -cne $taskPin[2]){throw 'EXACT_BOOTSTRAP_RUNTIME_IDENTITY'}}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 338,
+      "owner": "Initialize-TaskController",
+      "source": " try{if(-not $taskSelf.MainModule.FileName.Equals([IO.Path]::Join($taskRuntime,'pwsh.exe'),[StringComparison]::OrdinalIgnoreCase)){throw 'EXACT_NATIVE_CONTROLLER'}}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskSelf;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 340,
+      "owner": "Initialize-TaskController",
+      "source": " $taskExpected=@('<APPHOST>','-NoLogo','-NoProfile','-NonInteractive','-File',[IO.Path]::Join($taskBase,'run-clock.ps1'),'-Stage','ClockOracle','-Repo',$Repo,'-NewRunRoot',$NewRunRoot,'-ReviewedManifestSha256',$ReviewedManifestSha256)"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 343,
+      "owner": "Initialize-TaskController",
+      "source": " $taskApp=[IO.Path]::GetFullPath($taskArgs[0]);if(-not $taskApp.Equals([IO.Path]::Join($taskRuntime,'pwsh.exe'),[StringComparison]::OrdinalIgnoreCase) -and -not $taskApp.Equals([IO.Path]::Join($taskRuntime,'pwsh.dll'),[StringComparison]::OrdinalIgnoreCase)){throw 'EXACT_APPHOST_ARGUMENT'}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 343,
+      "owner": "Initialize-TaskController",
+      "source": " $taskApp=[IO.Path]::GetFullPath($taskArgs[0]);if(-not $taskApp.Equals([IO.Path]::Join($taskRuntime,'pwsh.exe'),[StringComparison]::OrdinalIgnoreCase) -and -not $taskApp.Equals([IO.Path]::Join($taskRuntime,'pwsh.dll'),[StringComparison]::OrdinalIgnoreCase)){throw 'EXACT_APPHOST_ARGUMENT'}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 343,
+      "owner": "Initialize-TaskController",
+      "source": " $taskApp=[IO.Path]::GetFullPath($taskArgs[0]);if(-not $taskApp.Equals([IO.Path]::Join($taskRuntime,'pwsh.exe'),[StringComparison]::OrdinalIgnoreCase) -and -not $taskApp.Equals([IO.Path]::Join($taskRuntime,'pwsh.dll'),[StringComparison]::OrdinalIgnoreCase)){throw 'EXACT_APPHOST_ARGUMENT'}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 345,
+      "owner": "Initialize-TaskController",
+      "source": " Microsoft.PowerShell.Core\\Import-Module -Name ([IO.Path]::Join($taskRuntime,'Modules/Microsoft.PowerShell.Management/Microsoft.PowerShell.Management.psd1')) -ErrorAction Stop"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 346,
+      "owner": "Initialize-TaskController",
+      "source": " Microsoft.PowerShell.Core\\Import-Module -Name ([IO.Path]::Join($taskRuntime,'Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1')) -ErrorAction Stop"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 350,
+      "owner": "Initialize-TaskController",
+      "source": " foreach($taskCodec in @($script:taskConvertToJson,$script:taskConvertFromJson)){if(-not $taskCodec.ImplementingType.Assembly.Location.Equals([IO.Path]::Join($taskRuntime,'Microsoft.PowerShell.Commands.Utility.dll'),[StringComparison]::OrdinalIgnoreCase)){throw 'EXACT_SERIALIZER_ASSEMBLY'}}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 494,
+      "owner": "Get-TaskEntries",
+      "source": "   try{$taskIterator=[IO.Directory]::EnumerateFileSystemEntries($taskDirectory).GetEnumerator();while($taskIterator.MoveNext()){$taskCandidate=[string]$taskIterator.Current;Assert-TaskString $taskCandidate 512;$taskPath=Get-TaskCanonicalPath $taskCandidate;$taskSeen++;if($taskSeen -gt $Maximum){Reject-TaskGate 'DIRECTORY_ENTRY_PROFILE' @{root=$Root;maximum=$Maximum;observed=$taskSeen;overflow_path=$taskPath}};Spend-Task 1;if($taskPath.Length -gt 512){throw 'Finite owned/input path length'};$taskAttributes=[IO.File]::GetAttributes($taskPath);$taskDirectoryFlag=($taskAttributes -band [IO.FileAttributes]::Directory)-ne 0;$taskLink=($taskAttributes -band [IO.FileAttributes]::ReparsePoint)-ne 0;$taskLength=if($taskDirectoryFlag -or $taskLink){0L}else{[IO.FileInfo]::new($taskPath).Length};$taskRows.Add([System.Tuple[object,object,object,object,object]]::new($taskPath,[IO.Path]::GetFileName($taskPath),$taskDirectoryFlag,$taskLength,$taskLink));if($taskLink){throw 'Reparse entry refused before traversal'};if($Recursive -and $taskDirectoryFlag){if($taskDepth -ge 64){Reject-TaskGate 'DIRECTORY_DEPTH_PROFILE' @{path=$taskPath;depth=($taskDepth+1);maximum=64}};$taskPending.Enqueue(@{path=$taskPath;depth=($taskDepth+1)})}}}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 776,
+      "owner": "Resolve-TaskInput",
+      "source": "  return [IO.Path]::GetFullPath($Name)"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 780,
+      "owner": "Resolve-TaskInput",
+      "source": " return [IO.Path]::GetFullPath((Join-Path $taskRepo $Name))"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 786,
+      "owner": "Assert-TaskPins",
+      "source": "  $taskObservedNames=@($taskActualFiles|ForEach-Object {[IO.Path]::GetRelativePath($taskRootDir,$_.Item1).Replace([char]92,[char]47)})"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 806,
+      "owner": "Get-TaskReferences",
+      "source": " foreach($taskF in (Get-TaskEntries $taskDataRoot $true 60)){Spend-Task 2;Assert-NoLink $taskF.Item1;if($taskF.Item3){continue};$taskRelative=[IO.Path]::GetRelativePath($taskDataRoot,$taskF.Item1).Replace([char]92,[char]47);$taskNames.Add($taskRelative);if(-not $taskCaps.ContainsKey($taskRelative)){throw 'Unknown reference output before admission'};$taskH=Get-TaskHash $taskF.Item1 $taskCaps[$taskRelative];if($taskH.Item1 -gt 152627224L-$taskBytes){throw 'Complete reference pool cap'};$taskBytes+=$taskH.Item1;$taskRows.Add(@{path=$taskF.Item1;relative_path=$taskRelative;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "kind": "IO_Path",
+      "line": 978,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskObservedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskF in (Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']))){Assert-NoLink $taskF.Item1;if(-not $taskF.Item3){$taskObservedRunFiles.Add([IO.Path]::GetRelativePath($taskRoot,$taskF.Item1).Replace([char]92,[char]47))}}"
+    },
+    {
+      "kind": "Replace",
+      "line": 76,
+      "owner": "Add-TaskPathCatalogueEntry",
+      "source": "   $taskSlashes=$Name.Replace([IO.Path]::AltDirectorySeparatorChar,[IO.Path]::DirectorySeparatorChar)"
+    },
+    {
+      "kind": "Replace",
+      "line": 291,
+      "owner": "Replace-TaskBounded",
+      "source": " return $Value.Replace($Token,$Replacement)"
+    },
+    {
+      "kind": "Replace",
+      "line": 786,
+      "owner": "Assert-TaskPins",
+      "source": "  $taskObservedNames=@($taskActualFiles|ForEach-Object {[IO.Path]::GetRelativePath($taskRootDir,$_.Item1).Replace([char]92,[char]47)})"
+    },
+    {
+      "kind": "Replace",
+      "line": 806,
+      "owner": "Get-TaskReferences",
+      "source": " foreach($taskF in (Get-TaskEntries $taskDataRoot $true 60)){Spend-Task 2;Assert-NoLink $taskF.Item1;if($taskF.Item3){continue};$taskRelative=[IO.Path]::GetRelativePath($taskDataRoot,$taskF.Item1).Replace([char]92,[char]47);$taskNames.Add($taskRelative);if(-not $taskCaps.ContainsKey($taskRelative)){throw 'Unknown reference output before admission'};$taskH=Get-TaskHash $taskF.Item1 $taskCaps[$taskRelative];if($taskH.Item1 -gt 152627224L-$taskBytes){throw 'Complete reference pool cap'};$taskBytes+=$taskH.Item1;$taskRows.Add(@{path=$taskF.Item1;relative_path=$taskRelative;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "kind": "Replace",
+      "line": 978,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskObservedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskF in (Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']))){Assert-NoLink $taskF.Item1;if(-not $taskF.Item3){$taskObservedRunFiles.Add([IO.Path]::GetRelativePath($taskRoot,$taskF.Item1).Replace([char]92,[char]47))}}"
+    },
+    {
+      "kind": "Substring",
+      "line": 370,
+      "owner": "Get-TaskSafePrefix",
+      "source": " return $Value.Substring(0,$taskN)"
+    },
+    {
+      "kind": "Substring",
+      "line": 828,
+      "owner": "Read-TaskChildResult",
+      "source": "    if($taskI -gt $taskStart){if($taskLines.Count -ge 33){throw 'Missing/bounded child result'};$taskLines.Add($taskText.Substring($taskStart,$taskI-$taskStart))}"
+    },
+    {
+      "kind": "Substring",
+      "line": 925,
+      "owner": "MAIN_AND_ERROR",
+      "source": " if(-not $taskRoot.StartsWith((Join-Path $taskBase 'runs')+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or $taskRoot.Substring((Join-Path $taskBase 'runs').Length+1).Contains([IO.Path]::DirectorySeparatorChar)){throw 'New owned direct run root'}"
+    },
+    {
+      "kind": "iterator_Current",
+      "line": 494,
+      "owner": "Get-TaskEntries",
+      "source": "   try{$taskIterator=[IO.Directory]::EnumerateFileSystemEntries($taskDirectory).GetEnumerator();while($taskIterator.MoveNext()){$taskCandidate=[string]$taskIterator.Current;Assert-TaskString $taskCandidate 512;$taskPath=Get-TaskCanonicalPath $taskCandidate;$taskSeen++;if($taskSeen -gt $Maximum){Reject-TaskGate 'DIRECTORY_ENTRY_PROFILE' @{root=$Root;maximum=$Maximum;observed=$taskSeen;overflow_path=$taskPath}};Spend-Task 1;if($taskPath.Length -gt 512){throw 'Finite owned/input path length'};$taskAttributes=[IO.File]::GetAttributes($taskPath);$taskDirectoryFlag=($taskAttributes -band [IO.FileAttributes]::Directory)-ne 0;$taskLink=($taskAttributes -band [IO.FileAttributes]::ReparsePoint)-ne 0;$taskLength=if($taskDirectoryFlag -or $taskLink){0L}else{[IO.FileInfo]::new($taskPath).Length};$taskRows.Add([System.Tuple[object,object,object,object,object]]::new($taskPath,[IO.Path]::GetFileName($taskPath),$taskDirectoryFlag,$taskLength,$taskLink));if($taskLink){throw 'Reparse entry refused before traversal'};if($Recursive -and $taskDirectoryFlag){if($taskDepth -ge 64){Reject-TaskGate 'DIRECTORY_DEPTH_PROFILE' @{path=$taskPath;depth=($taskDepth+1);maximum=64}};$taskPending.Enqueue(@{path=$taskPath;depth=($taskDepth+1)})}}}"
+    },
+    {
+      "kind": "safe_prefix",
+      "line": 892,
+      "owner": "Save-TaskFailureInventory",
+      "source": " Write-TaskJson (Join-Path $taskStageRoot 'failure-inventory.json') @{files=$taskRows.ToArray();complete=$taskComplete;code=$taskReason;root_prefix=(Get-TaskSafePrefix $taskRoot 512);compiler_temporary_peak_disk_qualified=$false;admitted_pool_success=$false;quarantine_retains_ownership=($null -ne $taskQuarantine)}"
+    },
+    {
+      "kind": "other_provider_boundary",
+      "line": 345,
+      "owner": "Initialize-TaskController",
+      "source": " Microsoft.PowerShell.Core\\Import-Module -Name ([IO.Path]::Join($taskRuntime,'Modules/Microsoft.PowerShell.Management/Microsoft.PowerShell.Management.psd1')) -ErrorAction Stop"
+    },
+    {
+      "kind": "other_provider_boundary",
+      "line": 346,
+      "owner": "Initialize-TaskController",
+      "source": " Microsoft.PowerShell.Core\\Import-Module -Name ([IO.Path]::Join($taskRuntime,'Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1')) -ErrorAction Stop"
+    },
+    {
+      "kind": "other_provider_boundary",
+      "line": 810,
+      "owner": "Get-TaskPEHeader",
+      "source": "function Get-TaskPEHeader([string]$Path){$taskItem=Get-Item -LiteralPath $Path;if($taskItem.Length -gt 33554432 -or $taskItem.Length -lt 88){throw 'PE file size'};$taskFile=$null;$taskBefore=$script:taskPrimaryRaw;$taskBody=$null"
+    },
+    {
+      "kind": "other_provider_boundary",
+      "line": 923,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskAuthoredBytes=[long](Get-Item -LiteralPath $taskManifestPath).Length;foreach($taskPin in $taskManifest['sources']){$taskAuthoredBytes+=[long]$taskPin['bytes']};if($taskAuthoredBytes -gt 1048576L){throw 'Own five-file source payload1MiB'}"
+    },
+    {
+      "kind": "other_provider_boundary",
+      "line": 927,
+      "owner": "MAIN_AND_ERROR",
+      "source": " Assert-NoLink $taskRoot;Assert-TaskAttempt (Test-Path -LiteralPath $taskRoot) $taskRoot"
+    },
+    {
+      "kind": "other_provider_boundary",
+      "line": 928,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskRuns=Join-Path $taskBase 'runs';if((Test-Path -LiteralPath $taskRuns) -and @(Get-TaskEntries $taskRuns $false 1).Count -gt 0){throw 'Revision sole attempt already exists'}"
+    },
+    {
+      "kind": "other_provider_boundary",
+      "line": 932,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $null=New-Item -ItemType Directory -Path $taskRoot;$taskCreated=$true"
+    },
+    {
+      "kind": "other_provider_boundary",
+      "line": 933,
+      "owner": "MAIN_AND_ERROR",
+      "source": " foreach($taskDir in @($taskStageRoot,$taskBuildRoot,$taskOpaqueRoot,(Join-Path $taskDataRoot 'references/clock'),(Join-Path $taskDataRoot 'references/native-inverse'),(Join-Path $taskRoot 'controls'))){$null=New-Item -ItemType Directory -Path $taskDir}"
+    },
+    {
+      "kind": "other_provider_boundary",
+      "line": 945,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskControls.Add((Expect-TaskGate 'one-use-already-consumed' {Assert-TaskAttempt (Test-Path -LiteralPath $taskMarkerPath) $taskMarkerPath} 'ONE_ATTEMPT_ALREADY_CONSUMED' @{path=$taskMarkerPath;exists=$true}))"
+    },
+    {
+      "kind": "other_provider_boundary",
+      "line": 984,
+      "owner": "MAIN_AND_ERROR",
+      "source": " $taskTransitive=[Collections.Generic.List[object]]::new();foreach($taskPin in $taskManifest['inputs']){$taskTransitive.Add(@{path=(Resolve-TaskInput $taskPin['path']);bytes=$taskPin['bytes'];sha256=$taskPin['sha256'];origin_bundle_sha256=$taskExpectedManifest})};foreach($taskPin in $taskManifest['sources']){$taskTransitive.Add(@{path=(Join-Path $taskBase $taskPin['path']);bytes=$taskPin['bytes'];sha256=$taskPin['sha256'];origin_bundle_sha256=$taskExpectedManifest})};$taskTransitive.Add(@{path=$taskManifestPath;bytes=(Get-Item -LiteralPath $taskManifestPath).Length;sha256=$taskExpectedManifest;origin_bundle_sha256=$taskExpectedManifest})"
+    }
+  ],
+  "phases": [
+    {
+      "id": "P0",
+      "source_schedule": {
+        "stage_calls": 0,
+        "stage_rows": 0,
+        "fences": 1,
+        "children": 0,
+        "walkers": 32,
+        "walker_rows": 1124,
+        "directory_iterations": 721,
+        "Current_requests_upper": 1156,
+        "GetFileName_requests_upper": 1124,
+        "GetRelativePath_source_calls_upper": 1123,
+        "NoLink_calls_upper": 1978,
+        "GetDirectoryName_unknown_fallback_calls_upper": 127040,
+        "JoinPath_calls_upper": 394,
+        "JoinPath_site_families": {
+          "entry_relative_first_build_upper": 366,
+          "namespace_relative_resolution": 24,
+          "compiler_report_relative_fallback_upper": 0,
+          "child_stdout_and_stderr": 0,
+          "copy_owned_prefix": 0,
+          "mutation_owned_prefix": 0,
+          "receipt_path": 0,
+          "native_stdout_capture": 0,
+          "dependency_report_and_source": 0,
+          "failure_inventory_path": 0,
+          "current_header": 1,
+          "direct_run_root_and_sibling_attempt": 3,
+          "created_directories": 0,
+          "marker_path": 0,
+          "mutant_predecessor_path": 0,
+          "binary_and_gui_paths": 0,
+          "control_artifact_paths": 0,
+          "stage_artifact_paths": 0,
+          "own_transitive_paths": 0,
+          "bundle_write_and_hash_paths": 0
+        },
+        "unknown_compiler_path_values_upper": 0,
+        "all_normalizer_exposure_upper": 406259
+      },
+      "evaluated_source_request_components": {
+        "parent_candidates_before_interning": 351880,
+        "absolute_slash_and_noninput_canonical_result_strings": 241336,
+        "relative_input_JoinPath_final_outputs": 121808,
+        "noninput_alias_Replace_char_results": 27704,
+        "initial_five_IOJoin_outputs": 1944,
+        "catalogue_73_IOJoin_outputs": 32936,
+        "controller_15_IOJoin_output_upper": 4384,
+        "seven_bootstrap_parent_candidates_upper": 255600,
+        "namespace_absolute_canonical_results": 1600,
+        "namespace_relative_JoinPath_final_outputs": 6288,
+        "all_after_guard_GetFileName_strings": 1177952,
+        "generic_missing_unknown_join_strings": 5027488,
+        "expected_FileSet_control_join_result_strings": 0,
+        "compiler_five_Replace_results": 0,
+        "failed_known_parent_candidates": 110760,
+        "failed_known_relative_join_and_canonical_candidates": 3408,
+        "other_fixed_profile_JoinPath_final_results": 2272,
+        "selected_root_leaf_Substring": 56,
+        "selected_safe_prefix_result_strings": 0
+      },
+      "evaluated_component_sum": 7367416,
+      "conditional_1024_char_rent_component": {
+        "known_normalizer_calls_upper": 102,
+        "relative_builder_calls_upper": 11,
+        "per_request": 2072,
+        "bytes": 234136,
+        "premise": "Selected ordinary no-tilde spelling and required Win32 capacity<=271 (or0 error), selected pool bucket rules; no pool-hit/free credit. Provider/unknown/expanded calls excluded, remain residual."
+      },
+      "remaining_equation": "P_fresh_i <= evaluated_component_sum + K_known_normalizer_and_error_i + K_1024_rents_i + Current_i + Relative_unknown_i + Provider_intermediates_i + Compiler_fallback_join_outputs_i + Parent_fallback_i + Native_normalizer_expansion_failure_i; no term silently0"
+    },
+    {
+      "id": "P1",
+      "source_schedule": {
+        "stage_calls": 7,
+        "stage_rows": 45,
+        "fences": 1,
+        "children": 0,
+        "walkers": 40,
+        "walker_rows": 1247,
+        "directory_iterations": 807,
+        "Current_requests_upper": 1287,
+        "GetFileName_requests_upper": 1247,
+        "GetRelativePath_source_calls_upper": 1123,
+        "NoLink_calls_upper": 2069,
+        "GetDirectoryName_unknown_fallback_calls_upper": 132864,
+        "JoinPath_calls_upper": 404,
+        "JoinPath_site_families": {
+          "entry_relative_first_build_upper": 366,
+          "namespace_relative_resolution": 24,
+          "compiler_report_relative_fallback_upper": 0,
+          "child_stdout_and_stderr": 0,
+          "copy_owned_prefix": 1,
+          "mutation_owned_prefix": 1,
+          "receipt_path": 2,
+          "native_stdout_capture": 0,
+          "dependency_report_and_source": 0,
+          "failure_inventory_path": 1,
+          "current_header": 1,
+          "direct_run_root_and_sibling_attempt": 3,
+          "created_directories": 3,
+          "marker_path": 1,
+          "mutant_predecessor_path": 1,
+          "binary_and_gui_paths": 0,
+          "control_artifact_paths": 0,
+          "stage_artifact_paths": 0,
+          "own_transitive_paths": 0,
+          "bundle_write_and_hash_paths": 0
+        },
+        "unknown_compiler_path_values_upper": 0,
+        "all_normalizer_exposure_upper": 424229
+      },
+      "evaluated_source_request_components": {
+        "parent_candidates_before_interning": 351880,
+        "absolute_slash_and_noninput_canonical_result_strings": 241336,
+        "relative_input_JoinPath_final_outputs": 121808,
+        "noninput_alias_Replace_char_results": 27704,
+        "initial_five_IOJoin_outputs": 1944,
+        "catalogue_73_IOJoin_outputs": 32936,
+        "controller_15_IOJoin_output_upper": 4384,
+        "seven_bootstrap_parent_candidates_upper": 255600,
+        "namespace_absolute_canonical_results": 1600,
+        "namespace_relative_JoinPath_final_outputs": 6288,
+        "all_after_guard_GetFileName_strings": 1306856,
+        "generic_missing_unknown_join_strings": 5027488,
+        "expected_FileSet_control_join_result_strings": 0,
+        "compiler_five_Replace_results": 0,
+        "failed_known_parent_candidates": 110760,
+        "failed_known_relative_join_and_canonical_candidates": 3408,
+        "other_fixed_profile_JoinPath_final_results": 7952,
+        "selected_root_leaf_Substring": 56,
+        "selected_safe_prefix_result_strings": 0
+      },
+      "evaluated_component_sum": 7502000,
+      "conditional_1024_char_rent_component": {
+        "known_normalizer_calls_upper": 102,
+        "relative_builder_calls_upper": 11,
+        "per_request": 2072,
+        "bytes": 234136,
+        "premise": "Selected ordinary no-tilde spelling and required Win32 capacity<=271 (or0 error), selected pool bucket rules; no pool-hit/free credit. Provider/unknown/expanded calls excluded, remain residual."
+      },
+      "remaining_equation": "P_fresh_i <= evaluated_component_sum + K_known_normalizer_and_error_i + K_1024_rents_i + Current_i + Relative_unknown_i + Provider_intermediates_i + Compiler_fallback_join_outputs_i + Parent_fallback_i + Native_normalizer_expansion_failure_i; no term silently0"
+    },
+    {
+      "id": "P2",
+      "source_schedule": {
+        "stage_calls": 264,
+        "stage_rows": 1587,
+        "fences": 3,
+        "children": 1,
+        "walkers": 360,
+        "walker_rows": 5039,
+        "directory_iterations": 2505,
+        "Current_requests_upper": 5399,
+        "GetFileName_requests_upper": 5039,
+        "GetRelativePath_source_calls_upper": 3369,
+        "NoLink_calls_upper": 6288,
+        "GetDirectoryName_unknown_fallback_calls_upper": 402880,
+        "JoinPath_calls_upper": 1682,
+        "JoinPath_site_families": {
+          "entry_relative_first_build_upper": 366,
+          "namespace_relative_resolution": 72,
+          "compiler_report_relative_fallback_upper": 1222,
+          "child_stdout_and_stderr": 2,
+          "copy_owned_prefix": 2,
+          "mutation_owned_prefix": 2,
+          "receipt_path": 2,
+          "native_stdout_capture": 0,
+          "dependency_report_and_source": 2,
+          "failure_inventory_path": 1,
+          "current_header": 1,
+          "direct_run_root_and_sibling_attempt": 3,
+          "created_directories": 3,
+          "marker_path": 1,
+          "mutant_predecessor_path": 1,
+          "binary_and_gui_paths": 2,
+          "control_artifact_paths": 0,
+          "stage_artifact_paths": 0,
+          "own_transitive_paths": 0,
+          "bundle_write_and_hash_paths": 0
+        },
+        "unknown_compiler_path_values_upper": 1222,
+        "all_normalizer_exposure_upper": 1260181
+      },
+      "evaluated_source_request_components": {
+        "parent_candidates_before_interning": 351880,
+        "absolute_slash_and_noninput_canonical_result_strings": 241336,
+        "relative_input_JoinPath_final_outputs": 121808,
+        "noninput_alias_Replace_char_results": 27704,
+        "initial_five_IOJoin_outputs": 1944,
+        "catalogue_73_IOJoin_outputs": 32936,
+        "controller_15_IOJoin_output_upper": 4384,
+        "seven_bootstrap_parent_candidates_upper": 255600,
+        "namespace_absolute_canonical_results": 4800,
+        "namespace_relative_JoinPath_final_outputs": 18864,
+        "all_after_guard_GetFileName_strings": 5280872,
+        "generic_missing_unknown_join_strings": 5027488,
+        "expected_FileSet_control_join_result_strings": 0,
+        "compiler_five_Replace_results": 5240,
+        "failed_known_parent_candidates": 110760,
+        "failed_known_relative_join_and_canonical_candidates": 3408,
+        "other_fixed_profile_JoinPath_final_results": 12496,
+        "selected_root_leaf_Substring": 56,
+        "selected_safe_prefix_result_strings": 0
+      },
+      "evaluated_component_sum": 11501576,
+      "conditional_1024_char_rent_component": {
+        "known_normalizer_calls_upper": 278,
+        "relative_builder_calls_upper": 33,
+        "per_request": 2072,
+        "bytes": 644392,
+        "premise": "Selected ordinary no-tilde spelling and required Win32 capacity<=271 (or0 error), selected pool bucket rules; no pool-hit/free credit. Provider/unknown/expanded calls excluded, remain residual."
+      },
+      "remaining_equation": "P_fresh_i <= evaluated_component_sum + K_known_normalizer_and_error_i + K_1024_rents_i + Current_i + Relative_unknown_i + Provider_intermediates_i + Compiler_fallback_join_outputs_i + Parent_fallback_i + Native_normalizer_expansion_failure_i; no term silently0"
+    },
+    {
+      "id": "P3",
+      "source_schedule": {
+        "stage_calls": 523,
+        "stage_rows": 3141,
+        "fences": 5,
+        "children": 2,
+        "walkers": 682,
+        "walker_rows": 8899,
+        "directory_iterations": 4265,
+        "Current_requests_upper": 9581,
+        "GetFileName_requests_upper": 8899,
+        "GetRelativePath_source_calls_upper": 5675,
+        "NoLink_calls_upper": 10677,
+        "GetDirectoryName_unknown_fallback_calls_upper": 683776,
+        "JoinPath_calls_upper": 1734,
+        "JoinPath_site_families": {
+          "entry_relative_first_build_upper": 366,
+          "namespace_relative_resolution": 120,
+          "compiler_report_relative_fallback_upper": 1222,
+          "child_stdout_and_stderr": 4,
+          "copy_owned_prefix": 2,
+          "mutation_owned_prefix": 2,
+          "receipt_path": 3,
+          "native_stdout_capture": 1,
+          "dependency_report_and_source": 2,
+          "failure_inventory_path": 1,
+          "current_header": 1,
+          "direct_run_root_and_sibling_attempt": 3,
+          "created_directories": 3,
+          "marker_path": 1,
+          "mutant_predecessor_path": 1,
+          "binary_and_gui_paths": 2,
+          "control_artifact_paths": 0,
+          "stage_artifact_paths": 0,
+          "own_transitive_paths": 0,
+          "bundle_write_and_hash_paths": 0
+        },
+        "unknown_compiler_path_values_upper": 1222,
+        "all_normalizer_exposure_upper": 2129371
+      },
+      "evaluated_source_request_components": {
+        "parent_candidates_before_interning": 351880,
+        "absolute_slash_and_noninput_canonical_result_strings": 241336,
+        "relative_input_JoinPath_final_outputs": 121808,
+        "noninput_alias_Replace_char_results": 27704,
+        "initial_five_IOJoin_outputs": 1944,
+        "catalogue_73_IOJoin_outputs": 32936,
+        "controller_15_IOJoin_output_upper": 4384,
+        "seven_bootstrap_parent_candidates_upper": 255600,
+        "namespace_absolute_canonical_results": 8000,
+        "namespace_relative_JoinPath_final_outputs": 31440,
+        "all_after_guard_GetFileName_strings": 9326152,
+        "generic_missing_unknown_join_strings": 5027488,
+        "expected_FileSet_control_join_result_strings": 0,
+        "compiler_five_Replace_results": 5240,
+        "failed_known_parent_candidates": 110760,
+        "failed_known_relative_join_and_canonical_candidates": 3408,
+        "other_fixed_profile_JoinPath_final_results": 14768,
+        "selected_root_leaf_Substring": 56,
+        "selected_safe_prefix_result_strings": 0
+      },
+      "evaluated_component_sum": 15564904,
+      "conditional_1024_char_rent_component": {
+        "known_normalizer_calls_upper": 454,
+        "relative_builder_calls_upper": 55,
+        "per_request": 2072,
+        "bytes": 1054648,
+        "premise": "Selected ordinary no-tilde spelling and required Win32 capacity<=271 (or0 error), selected pool bucket rules; no pool-hit/free credit. Provider/unknown/expanded calls excluded, remain residual."
+      },
+      "remaining_equation": "P_fresh_i <= evaluated_component_sum + K_known_normalizer_and_error_i + K_1024_rents_i + Current_i + Relative_unknown_i + Provider_intermediates_i + Compiler_fallback_join_outputs_i + Parent_fallback_i + Native_normalizer_expansion_failure_i; no term silently0"
+    },
+    {
+      "id": "P4",
+      "source_schedule": {
+        "stage_calls": 782,
+        "stage_rows": 4695,
+        "fences": 8,
+        "children": 3,
+        "walkers": 1037,
+        "walker_rows": 13964,
+        "directory_iterations": 6825,
+        "Current_requests_upper": 15001,
+        "GetFileName_requests_upper": 13964,
+        "GetRelativePath_source_calls_upper": 9182,
+        "NoLink_calls_upper": 17207,
+        "GetDirectoryName_unknown_fallback_calls_upper": 1101696,
+        "JoinPath_calls_upper": 1814,
+        "JoinPath_site_families": {
+          "entry_relative_first_build_upper": 366,
+          "namespace_relative_resolution": 192,
+          "compiler_report_relative_fallback_upper": 1222,
+          "child_stdout_and_stderr": 6,
+          "copy_owned_prefix": 2,
+          "mutation_owned_prefix": 2,
+          "receipt_path": 4,
+          "native_stdout_capture": 2,
+          "dependency_report_and_source": 2,
+          "failure_inventory_path": 1,
+          "current_header": 1,
+          "direct_run_root_and_sibling_attempt": 3,
+          "created_directories": 3,
+          "marker_path": 1,
+          "mutant_predecessor_path": 1,
+          "binary_and_gui_paths": 2,
+          "control_artifact_paths": 4,
+          "stage_artifact_paths": 0,
+          "own_transitive_paths": 0,
+          "bundle_write_and_hash_paths": 0
+        },
+        "unknown_compiler_path_values_upper": 1222,
+        "all_normalizer_exposure_upper": 3420321
+      },
+      "evaluated_source_request_components": {
+        "parent_candidates_before_interning": 351880,
+        "absolute_slash_and_noninput_canonical_result_strings": 241336,
+        "relative_input_JoinPath_final_outputs": 121808,
+        "noninput_alias_Replace_char_results": 27704,
+        "initial_five_IOJoin_outputs": 1944,
+        "catalogue_73_IOJoin_outputs": 32936,
+        "controller_15_IOJoin_output_upper": 4384,
+        "seven_bootstrap_parent_candidates_upper": 255600,
+        "namespace_absolute_canonical_results": 12800,
+        "namespace_relative_JoinPath_final_outputs": 50304,
+        "all_after_guard_GetFileName_strings": 14634272,
+        "generic_missing_unknown_join_strings": 5027488,
+        "expected_FileSet_control_join_result_strings": 0,
+        "compiler_five_Replace_results": 5240,
+        "failed_known_parent_candidates": 110760,
+        "failed_known_relative_join_and_canonical_candidates": 3408,
+        "other_fixed_profile_JoinPath_final_results": 19312,
+        "selected_root_leaf_Substring": 56,
+        "selected_safe_prefix_result_strings": 0
+      },
+      "evaluated_component_sum": 20901232,
+      "conditional_1024_char_rent_component": {
+        "known_normalizer_calls_upper": 718,
+        "relative_builder_calls_upper": 88,
+        "per_request": 2072,
+        "bytes": 1670032,
+        "premise": "Selected ordinary no-tilde spelling and required Win32 capacity<=271 (or0 error), selected pool bucket rules; no pool-hit/free credit. Provider/unknown/expanded calls excluded, remain residual."
+      },
+      "remaining_equation": "P_fresh_i <= evaluated_component_sum + K_known_normalizer_and_error_i + K_1024_rents_i + Current_i + Relative_unknown_i + Provider_intermediates_i + Compiler_fallback_join_outputs_i + Parent_fallback_i + Native_normalizer_expansion_failure_i; no term silently0"
+    },
+    {
+      "id": "P5",
+      "source_schedule": {
+        "stage_calls": 784,
+        "stage_rows": 4707,
+        "fences": 8,
+        "children": 3,
+        "walkers": 1039,
+        "walker_rows": 13976,
+        "directory_iterations": 6827,
+        "Current_requests_upper": 15015,
+        "GetFileName_requests_upper": 13976,
+        "GetRelativePath_source_calls_upper": 9182,
+        "NoLink_calls_upper": 17214,
+        "GetDirectoryName_unknown_fallback_calls_upper": 1102144,
+        "JoinPath_calls_upper": 1824,
+        "JoinPath_site_families": {
+          "entry_relative_first_build_upper": 366,
+          "namespace_relative_resolution": 192,
+          "compiler_report_relative_fallback_upper": 1222,
+          "child_stdout_and_stderr": 6,
+          "copy_owned_prefix": 2,
+          "mutation_owned_prefix": 2,
+          "receipt_path": 4,
+          "native_stdout_capture": 2,
+          "dependency_report_and_source": 2,
+          "failure_inventory_path": 1,
+          "current_header": 1,
+          "direct_run_root_and_sibling_attempt": 3,
+          "created_directories": 3,
+          "marker_path": 1,
+          "mutant_predecessor_path": 1,
+          "binary_and_gui_paths": 2,
+          "control_artifact_paths": 4,
+          "stage_artifact_paths": 4,
+          "own_transitive_paths": 4,
+          "bundle_write_and_hash_paths": 2
+        },
+        "unknown_compiler_path_values_upper": 1222,
+        "all_normalizer_exposure_upper": 3421727
+      },
+      "evaluated_source_request_components": {
+        "parent_candidates_before_interning": 351880,
+        "absolute_slash_and_noninput_canonical_result_strings": 241336,
+        "relative_input_JoinPath_final_outputs": 121808,
+        "noninput_alias_Replace_char_results": 27704,
+        "initial_five_IOJoin_outputs": 1944,
+        "catalogue_73_IOJoin_outputs": 32936,
+        "controller_15_IOJoin_output_upper": 4384,
+        "seven_bootstrap_parent_candidates_upper": 255600,
+        "namespace_absolute_canonical_results": 12800,
+        "namespace_relative_JoinPath_final_outputs": 50304,
+        "all_after_guard_GetFileName_strings": 14646848,
+        "generic_missing_unknown_join_strings": 5027488,
+        "expected_FileSet_control_join_result_strings": 0,
+        "compiler_five_Replace_results": 5240,
+        "failed_known_parent_candidates": 110760,
+        "failed_known_relative_join_and_canonical_candidates": 3408,
+        "other_fixed_profile_JoinPath_final_results": 24992,
+        "selected_root_leaf_Substring": 56,
+        "selected_safe_prefix_result_strings": 0
+      },
+      "evaluated_component_sum": 20919488,
+      "conditional_1024_char_rent_component": {
+        "known_normalizer_calls_upper": 718,
+        "relative_builder_calls_upper": 88,
+        "per_request": 2072,
+        "bytes": 1670032,
+        "premise": "Selected ordinary no-tilde spelling and required Win32 capacity<=271 (or0 error), selected pool bucket rules; no pool-hit/free credit. Provider/unknown/expanded calls excluded, remain residual."
+      },
+      "remaining_equation": "P_fresh_i <= evaluated_component_sum + K_known_normalizer_and_error_i + K_1024_rents_i + Current_i + Relative_unknown_i + Provider_intermediates_i + Compiler_fallback_join_outputs_i + Parent_fallback_i + Native_normalizer_expansion_failure_i; no term silently0"
+    }
+  ],
+  "identity_return_proofs": {
+    "GetFullPath": "Path.Windows129..143+PathHelper25..40: extended returnsinput; ordinaryno~ exactnativecomparison returnsinput after scratch/native work, not another resultstring",
+    "ReplaceChar": "String.Manipulation1271..1280: samechars/nomatch returnthis;one equal-length result otherwise",
+    "Substring": "String.Manipulation2217..2261: fullrange returnsinput;empty returnsEmpty;propernonempty requestsnewstring",
+    "StringJoin": "String.Manipulation785..800/916..932/1035..1068: exactList<string> fastpath to span;0/1 aliases;>=2 onefinalstring,noVSB builder or defensivecopy under closedprivateList no mutation",
+    "GetFileName": "Path221..230: identity if span is entireinput,otherwise one suffix string; actual fullpaths containroot, after canonical512guard so result<=512",
+    "IteratorCurrent": "UserEntries transform ToSpecifiedFullPath; FileSystemEntry.cs Directory.Slice(RootDirectory.Length),then private WindowsJoin. Currentcreatedbefore raw512gate; transformed resultnot bounded512 bythat laterguard."
+  },
+  "remaining": [
+    {
+      "id": "Current",
+      "calls": "E_i+W_i",
+      "exact_leaf": "Selected native filename span capacity and original/root/relative directory lengths for the first failing MoveNext, before raw512 guard. Need Windows enumeration buffer/name-length source/API association, not a new filename-domain restriction."
+    },
+    {
+      "id": "Provider",
+      "calls": "JoinPath_calls_upper plus explicit GetItem/TestPath/NewItem/ImportModule source sites",
+      "exact_leaf": "Pinned CombinePathCommand->SessionState.MakePath->GetProviderPath->LocationGlobber/ContractRelativePath requests and temporary arrays/strings. Final known join strings above excluded from this residual; discarded provider results are not0."
+    },
+    {
+      "id": "NativeNormalizer",
+      "calls": "all_normalizer_exposure_upper; actual selected/cache-hit branches can tighten",
+      "exact_leaf": "Unknown/~ and failure Win32 result/grow sequence, input/output builder rents/copies and explicit path.ToString on error; no assumed pool hit, no Dispose/Return/free. Known identity result alone is insufficient."
+    },
+    {
+      "id": "Relative",
+      "calls": "GetRelativePath_source_calls_upper",
+      "exact_leaf": "Both GetFullPath calls and EnsureCapacity(max(fullnames)) precede shortened relative result. Unknown expansion/capacity terms stay; known no~ proper-descendant results use pinned geometry."
+    },
+    {
+      "id": "OtherKnownJoinsAndParents",
+      "calls": "source-site inventory and join family counts",
+      "exact_leaf": "Root/bootstrap/fixed/output joins, root leaf Substring, bootstrap parent candidates and unknown/failure parent candidates still join their explicit output/input extents. Existing catalogue structures/FileInfo136 never sponsor these referents."
+    },
+    {
+      "id": "Association",
+      "exact_leaf": "Selected source/binary/ABI/pool/provider/currentdrive and immutable final profile remain conditional; R13 root/union/prices receive no credit."
+    }
+  ],
+  "no_reclaim": true,
+  "no_numeric_price_or_binding_authority": true,
+  "checks": {
+    "count": 58,
+    "all_passed": true,
+    "rows": [
+      {
+        "name": "final flattened archive identity",
+        "passed": true
+      },
+      {
+        "name": "archive mapping unique baseline.json",
+        "passed": true
+      },
+      {
+        "name": "archive exact original baseline.json",
+        "passed": true
+      },
+      {
+        "name": "working byte correspondence baseline.json",
+        "passed": true
+      },
+      {
+        "name": "archive mapping unique evaluation.json",
+        "passed": true
+      },
+      {
+        "name": "archive exact original evaluation.json",
+        "passed": true
+      },
+      {
+        "name": "working byte correspondence evaluation.json",
+        "passed": true
+      },
+      {
+        "name": "exact geometry",
+        "passed": true
+      },
+      {
+        "name": "exact R12 manifest",
+        "passed": true
+      },
+      {
+        "name": "exact R12 runner",
+        "passed": true
+      },
+      {
+        "name": "same baseline source",
+        "passed": true
+      },
+      {
+        "name": "selected known geometry",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:if (oldChar == newChar)",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:if (firstIndex < 0)",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:string result = FastAllocateString(Length);",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:if (length == Length)",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:return InternalSubString(startIndex, length);",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:if (values is List<string?> valuesList)",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:return JoinCore(separator.AsSpan(), CollectionsMarshal.",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:if (values.Length <= 1)",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:string result = FastAllocateString(totalLength);",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:if (typeof(T) == typeof(string))",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:if (replacementIndices.Length == 0)",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:string dst = FastAllocateString((int)dstLength);",
+        "passed": true
+      },
+      {
+        "name": "String.Manipulation.cs:internal const int StackallocIntBufferSizeLimit = 128;",
+        "passed": true
+      },
+      {
+        "name": "PathHelper.Windows.cs:new ValueStringBuilder(stackalloc char[PathInternal.Max",
+        "passed": true
+      },
+      {
+        "name": "PathHelper.Windows.cs:builder.AsSpan().Equals(path.AsSpan(), StringComparison",
+        "passed": true
+      },
+      {
+        "name": "PathHelper.Windows.cs:builder.EnsureCapacity(checked((int)result));",
+        "passed": true
+      },
+      {
+        "name": "PathHelper.Windows.cs:path.ToString()",
+        "passed": true
+      },
+      {
+        "name": "PathHelper.Windows.cs:ValueStringBuilder inputBuilder = default;",
+        "passed": true
+      },
+      {
+        "name": "PathHelper.Windows.cs:GetLongPathNameW",
+        "passed": true
+      },
+      {
+        "name": "PathHelper.Windows.cs:inputBuilder.Dispose();",
+        "passed": true
+      },
+      {
+        "name": "Path.cs:PathInternal.NormalizeDirectorySeparators(path.Substrin",
+        "passed": true
+      },
+      {
+        "name": "Path.cs:if (path.Length == result.Length)",
+        "passed": true
+      },
+      {
+        "name": "Path.cs:return result.ToString();",
+        "passed": true
+      },
+      {
+        "name": "Path.cs:relativeTo = GetFullPath(relativeTo);",
+        "passed": true
+      },
+      {
+        "name": "Path.cs:path = GetFullPath(path);",
+        "passed": true
+      },
+      {
+        "name": "Path.cs:sb.EnsureCapacity(Math.Max(relativeTo.Length, path.Leng",
+        "passed": true
+      },
+      {
+        "name": "Path.Windows.cs:if (PathInternal.IsExtended(path.AsSpan()))",
+        "passed": true
+      },
+      {
+        "name": "Path.Windows.cs:return PathHelper.Normalize(path);",
+        "passed": true
+      },
+      {
+        "name": "FileSystemEntry.cs:ReadOnlySpan<char> relativePath = Directory.Slice(RootD",
+        "passed": true
+      },
+      {
+        "name": "FileSystemEntry.cs:return Join(OriginalRootDirectory, relativePath, FileNa",
+        "passed": true
+      },
+      {
+        "name": "FileSystemEnumerableFactory.cs:(ref FileSystemEntry entry) => entry.ToSpecifiedFullPat",
+        "passed": true
+      },
+      {
+        "name": "FileSystemEntry.Windows.cs:return Path.Join(originalRootDirectory, relativePath, f",
+        "passed": true
+      },
+      {
+        "name": "proper nonempty parent requests",
+        "passed": true
+      },
+      {
+        "name": "known request partitions",
+        "passed": true
+      },
+      {
+        "name": "seven controller pin leaves",
+        "passed": true
+      },
+      {
+        "name": "controller IOJoin sites15",
+        "passed": true
+      },
+      {
+        "name": "namespace branches",
+        "passed": true
+      },
+      {
+        "name": "long known paths11",
+        "passed": true
+      },
+      {
+        "name": "all long are input leaves",
+        "passed": true
+      },
+      {
+        "name": "all long in namespace files",
+        "passed": true
+      },
+      {
+        "name": "phase stage/rows 0",
+        "passed": true
+      },
+      {
+        "name": "phase stage/rows 1",
+        "passed": true
+      },
+      {
+        "name": "phase stage/rows 2",
+        "passed": true
+      },
+      {
+        "name": "phase stage/rows 3",
+        "passed": true
+      },
+      {
+        "name": "phase stage/rows 4",
+        "passed": true
+      },
+      {
+        "name": "phase stage/rows 5",
+        "passed": true
+      }
+    ]
+  },
+  "input_pins": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/geometry.json",
+      "bytes": 2350419,
+      "sha256": "BE95DC06AB85E7BF0A706656B08A6C2C8B5581C4AE3376BFE7AB1D98CADBAD9F"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-manifest.json",
+      "bytes": 501180,
+      "sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/baseline.json",
+      "bytes": 17712,
+      "sha256": "0B7093605D65D8F0E7C4BA5EBCADCE1843D2FE54FED601FE1E0DB72BE7095D49"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/evaluation.json",
+      "bytes": 16060,
+      "sha256": "872E24B3B7A11476AAE4949E6B0D43B54D6DD19B266FF0FA52D66A26691E5C4F"
+    },
+    {
+      "path": "docs/research/artifacts/2026-11-06-clock-r12-resource-hold-baseline/archive-manifest.json",
+      "bytes": 419256,
+      "sha256": "8227755BC047005FF285E0AC63E1FFFFD6D266F36292946567CFD0412BF6E70A"
+    },
+    {
+      "path": "docs/research/artifacts/2026-11-06-clock-r12-resource-hold-baseline/sources/039-baseline.json",
+      "bytes": 17712,
+      "sha256": "0B7093605D65D8F0E7C4BA5EBCADCE1843D2FE54FED601FE1E0DB72BE7095D49"
+    },
+    {
+      "path": "docs/research/artifacts/2026-11-06-clock-r12-resource-hold-baseline/sources/050-evaluation.json",
+      "bytes": 16060,
+      "sha256": "872E24B3B7A11476AAE4949E6B0D43B54D6DD19B266FF0FA52D66A26691E5C4F"
+    },
+    {
+      "path": "docs/research/artifacts/2026-11-06-clock-r12-resource-hold-baseline/README.md",
+      "bytes": 1669,
+      "sha256": "8CCB8981A5EEB0178F8EBEC23DC7FF1230202C2ADA50CBE6AD56F9B0B3DBB6E2"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/review.md",
+      "bytes": 10703,
+      "sha256": "FF501A8A1AAED10E21E0F71B125FFE471E109288647526F4F93037746A14BE97"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/source-pins.json",
+      "bytes": 8548,
+      "sha256": "E03CD209E34D70C94D6925A7C7ACBDD4331D926F13149C45F07716587AF8A389"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json",
+      "bytes": 30471,
+      "sha256": "01B4289C2F8E521093987C259D15C5DD4BBF2388EFD9E594A90319C9B0BB5EE6"
+    },
+    {
+      "path": "build-ci/20261106-fresh-path-primary-source-r1/String.Manipulation.cs",
+      "bytes": 108827,
+      "sha256": "1956723302DABE05550580BAAF682491569DC3F825502D330D38978864D4679D"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary/PathHelper.Windows.cs",
+      "bytes": 10890,
+      "sha256": "1AD8B06C5615896C1DA6DEEA0C0D83E458040A6D4A7E2A3A0FB783AE7E7046FD"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Path.cs",
+      "bytes": 39112,
+      "sha256": "51E40D247651B4BD267A14C102709C1CB460CFFB386064C2F05A0CB69DDB0BE8"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Path.Windows.cs",
+      "bytes": 15866,
+      "sha256": "C0CF4FE4202E48F8553900ECF1C956C84263E674F62B14B43D401C2DB7F8D049"
+    },
+    {
+      "path": "build-ci/20261106-file-system-entry-core-source-r1/FileSystemEntry.cs",
+      "bytes": 2806,
+      "sha256": "19CC40A3F0EFDBB52BA381C2809BAA0C501444CD5439BE62B3FDCA50469B259E"
+    },
+    {
+      "path": "build-ci/20261106-fresh-path-primary-source-r1/FileSystemEnumerableFactory.cs",
+      "bytes": 9506,
+      "sha256": "A97DB39A4C6B35C1D3F87807589C6B1EAC79FA357E6545644B883B7CB679BB65"
+    },
+    {
+      "path": "build-ci/20261106-fresh-path-primary-source-r1/FileSystemEntry.Windows.cs",
+      "bytes": 4646,
+      "sha256": "46F1A1E05CD272C7B0BBFC4FD2C53B34C2AAD7B7F9B90FE0A3ECA5337D721BA6"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/ValueStringBuilder.cs",
+      "bytes": 9703,
+      "sha256": "737198AD816E8023DFD3CB4309D092DD1CE431A4CE2268CC37D42310F0528056"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/SharedArrayPool.cs",
+      "bytes": 25609,
+      "sha256": "9AB00C5DE4F3B220149DBDA3B9E4924F04AC132FC451B592EBD53872FC198DBA"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/PathInternal.Windows.cs",
+      "bytes": 18415,
+      "sha256": "1473848F007E73E49E19A3D3C2D615673A0A3D971528227FF6D1AFBB5DA26986"
+    }
+  ]
+}

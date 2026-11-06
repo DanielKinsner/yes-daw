@@ -47,52 +47,19 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Delivered: continuous MIDI note updates; background import/stretch and captured-target adoption; prepared-Asset
    persistence/recovery; reversed/cross-rate editing repairs; complete MIDI clipboard/export and full-map timing,
    grids, quantize and metronome/count-in. Musical MIDI defaults and explicit Fixed-time commands are implemented.
-   Active: Musical audio tempo-follow. Window/channel planning and pure history foundations are pushed; audible
-   tempo-follow is not enabled. The request-owner prototype now passes135,111 headless checks and eight biting
-   mutants; the source/evidence archive is `docs/research/artifacts/2026-11-05-musical-origin-formation-r4/`.
-   The combined funded adapter/native-guard R5 source passed whole correspondence review; all420 source Sites now have
-   an accepted conditional census. Immutable binding and whole combined proof, recipe/resource/renderer and model/job
-   integration remain unfinished. A finite native timing probe
-   passed both compiler profiles: each checked22,284 queries over96maps and six rates; archived source/results
-   are `docs/research/artifacts/2026-11-05-musical-query-fp-profile-r1/`. This is not whole-equivalence proof.
-   Current CI: metronome performance repair5785a3f passes490 local pure checks, GUI3 compile-only and Clang4.
-   The exact-source diagnostic repaird3ec661 passes19 policy methods, all491 local pure checks and GUI3
-   compile-only. Fresh exact-head CI42146047209 passed ALL TEN jobs, including all three platform tests,
-   both sanitizers and package/publication gates. The metronome repair and build correction are certified.
-   Separate clock research remains unrun: corrected C++ censusR2 has conditional acceptance; R9 whole source
-   is accepted. Independent R9 review conditionally accepts5,041,187,603 runner operations; the exact
-   clone-capacity correction also passed review. Payload remains on hold, with no execution GO. R10 is
-   a separate unrun source successor for path-string reuse and byte-validated whitespace compaction;
-   its runner scalar upper5,543,964,320 is conditionally accepted, with payload HOLD. The separately
-   reviewed R10 native-path correction R3 repairs the controller guard; all execution guards stay false.
-   The separate ABI probe R2 passed574 checks/156 measurements and froze its whole source; no R10 fit
-   or GO follows. The exact strict native observer compiles warning-free. R5's minimal inline-result
-   declaration reorder repairs the full-header C4324 failure without suppression;37 selected public
-   type layouts were independently checked from compiler constants. No combined adapter was executed.
-   A separate fixed-file metadata reader passed for21 types/99 declared fields; this supplies no runtime
-   layout or payload-fit credit. The complete production census R5 passed fresh whole independent source review;
-   actual native/resource qualification, immutable binding and public recipe remain held.
-   R11's tuple metadata replacement passed5,331 independent functional source checks against its
-   provisional input set; final union, new census/lifetime proof, binding and execution remain held.
-   The separate metadata successor also passed26 types/112 declared fields, including Tuple2, the
-   discovered JObject iterator and three CoreLib enumerators. Complete payload equations remain in progress.
-   R12's internal hash carrier passed2,735 whole functional source checks against provisional inputs;
-   final input/root/environment, numeric/resource closure, binding and execution remain held.
-   The controller environment equations passed1,293 conditional source checks; actual native startup,
-   unjoined early-startup callbacks and the true writer interval remain unqualified. No environment dump was read.
-   Corrected writer component R3 passed198 independent checks, including cleanup retry arrays and diagnostic
-   owners; complete cold/runtime/profile/phase joins and the32MiB resource gate remain held.
-   R5's conditional all-input/source-object argument passed18,197 independent checks; actual native
-   binding/funding/resources/integration remain held. Whole production census R4 review remains REVISE;
-   its complete R5 successor passed5,713 independent checks over420 bodies/51 helpers/38 schedules/12 query terms.
-   R13 is a separate unrun source successor for typed preflight counters and streamed dependency parsing;
-   its whole functional review passed1,491 checks; fresh complete scalar/resource censuses are in progress
-   and all target execution guards remain false. Parser/source checks are not target runtime success.
-   The fixed-key R12 dictionary theorem passed228 independent source checks; whole resources remain held.
-   Separate metadata reader R4 passed for88 types/391 declared fields; actual object sizes remain unmeasured.
-   The complete R12 resource disposition is frozen HOLD; R13's full scalar proposal is in independent review.
-   The narrow candidate observation/restoration lemma passed13,368 independent checks; actual errno,
-   floor/provider/interval and whole runtime/resource qualification remain pending.
+   Active: Musical audio tempo-follow. Window/channel planning and history foundations are pushed;
+   audible tempo-follow is not enabled. The request-owner prototype passed135,111 headless checks and
+   eight mutants. Complete production source counting and source/object correspondences have conditional
+   acceptance; actual native/resources/binding, public recipe/DSP, renderer and jobs/model remain unfinished.
+   Current app code isd3ec661:491 local pure checks and GUI3 compile-only passed; exact-code CI42146047209
+   passed all ten jobs. Later evidence/docs commits use the separate docs-only CI path, with runtime jobs skipped.
+   The latest research runner R13 passed1,491 functional source checks. Its whole operation-budget review
+   has found corrections; no new scalar price is accepted. All target execution guards remain false.
+   Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
+   reader actually passed88 types/391 declared fields; this supplies no live object-size or whole-fit result.
+   Next: finish the whole numeric critique and review the concrete owned-process supervisor proposal,
+   then complete resource/native/binding proof before any Clock attempt. Detailed evidence and earlier
+   source revisions remain in the dated entries below; Dan is not a tester or approval gate.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -113,6 +80,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Preserve fresh path-string owners and clear resource gaps
+
+- Archived29 complete source/helper/input records. The P_fresh author passed58 checks over82 sites, preserving the archive-path read failure and resolving the original bytes through their manifest mapping.
+- Conditional string-request pieces end at20,919,488 bytes, including previously unowned generic refusal joins; Current/provider/unknown-normalizer/failure terms remain HOLD. These are not a whole P/global upper, fit or actual coexisting NOFIT.
+- R13 numeric critique and the owned-process architecture proposal review continue; the latest V evidence commit e7fa786 passed docs-only CI42205349753. No Clock target, GUI, input or device ran.
 
 ## 2026-11-06 - Freeze the complete scoped process and stream source baseline
 
