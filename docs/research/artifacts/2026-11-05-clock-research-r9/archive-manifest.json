@@ -1,0 +1,176 @@
+{
+  "schema": "YESDAW_HEADLESS_RESEARCH_CHECKPOINT_ARCHIVE",
+  "scope": "Sealed R9 unrun source, conditional C++/runner scalar review and exact clone-capacity erratum only; controlled payload HOLD, no execution GO or production credit.",
+  "archive_checkout_head": "8e5c2852419904a548650493a732aee06180933e",
+  "no_executables_or_objects": true,
+  "files": [
+    {
+      "file": "runner-source/run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype/run-clock.ps1",
+      "original_sha256": "34B85E7CA230DA34A86EDBF5250BC8D460106C9B3F10ADF7D40541B9A604BBE5",
+      "bytes": 89803,
+      "sha256": "34B85E7CA230DA34A86EDBF5250BC8D460106C9B3F10ADF7D40541B9A604BBE5"
+    },
+    {
+      "file": "runner-source/clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype/clock_stage.cpp",
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "file": "runner-source/source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype/source-costs.h",
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "file": "runner-source/source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype/source-manifest.json",
+      "original_sha256": "777F41A33837BFA8F1E2517A062D0C144CBDCCE93B59CA08FBAF54718E72F75A",
+      "bytes": 476569,
+      "sha256": "777F41A33837BFA8F1E2517A062D0C144CBDCCE93B59CA08FBAF54718E72F75A"
+    },
+    {
+      "file": "runner-source/README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype/README.md",
+      "original_sha256": "55F2AC89F86E274B50C561B15DC4D00D21EDE12D81D3CAADB2AAC6DB8F332AD2",
+      "bytes": 13201,
+      "sha256": "55F2AC89F86E274B50C561B15DC4D00D21EDE12D81D3CAADB2AAC6DB8F332AD2"
+    },
+    {
+      "file": "cpp-census/census.md",
+      "original_path": "build-ci/20261105-clock-oracle-r6-cpp-census-r2/census.md",
+      "original_sha256": "4F08A0E4AB1923941A4EB645316C94A3C21B498C19FBA0CEE91F9F3D2D2A6298",
+      "bytes": 43258,
+      "sha256": "4F08A0E4AB1923941A4EB645316C94A3C21B498C19FBA0CEE91F9F3D2D2A6298"
+    },
+    {
+      "file": "cpp-census/census.json",
+      "original_path": "build-ci/20261105-clock-oracle-r6-cpp-census-r2/census.json",
+      "original_sha256": "9138C454661284C2F0639CD0AD657B6F5A1647023F896B0D789621E0B07C7130",
+      "bytes": 25800,
+      "sha256": "9138C454661284C2F0639CD0AD657B6F5A1647023F896B0D789621E0B07C7130"
+    },
+    {
+      "file": "cpp-census/source-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r6-cpp-census-r2/source-pins.json",
+      "original_sha256": "907BF302BE06E182ADD4625ABC713295F0E6BF0659BF88C79FB00E8391EFB930",
+      "bytes": 15208,
+      "sha256": "907BF302BE06E182ADD4625ABC713295F0E6BF0659BF88C79FB00E8391EFB930"
+    },
+    {
+      "file": "runner-census/census.md",
+      "original_path": "build-ci/20261105-clock-oracle-r9-runner-census/census.md",
+      "original_sha256": "9F43A03908B5BDE7CC67AFE9EA48D46B18217AD6BCB903B804154FF21C368D78",
+      "bytes": 22548,
+      "sha256": "9F43A03908B5BDE7CC67AFE9EA48D46B18217AD6BCB903B804154FF21C368D78"
+    },
+    {
+      "file": "runner-census/census.json",
+      "original_path": "build-ci/20261105-clock-oracle-r9-runner-census/census.json",
+      "original_sha256": "7F8425F9982EFEC1C5218AFD95F3A8E443C172DEC61112E5F9008306EA6A654E",
+      "bytes": 122330,
+      "sha256": "7F8425F9982EFEC1C5218AFD95F3A8E443C172DEC61112E5F9008306EA6A654E"
+    },
+    {
+      "file": "runner-census/source-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r9-runner-census/source-pins.json",
+      "original_sha256": "840645DFD6FFD12177A915081C9757F1BB07943FC8384494A9F4C110D1AE3599",
+      "bytes": 14161,
+      "sha256": "840645DFD6FFD12177A915081C9757F1BB07943FC8384494A9F4C110D1AE3599"
+    },
+    {
+      "file": "numeric-review/review.md",
+      "original_path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/review.md",
+      "original_sha256": "9C9C48E1560600BA5FC669E92303A23236C9AA7B63BDF2DCC4B2FC2F3B8B18F1",
+      "bytes": 2698,
+      "sha256": "9C9C48E1560600BA5FC669E92303A23236C9AA7B63BDF2DCC4B2FC2F3B8B18F1"
+    },
+    {
+      "file": "numeric-review/review.json",
+      "original_path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/review.json",
+      "original_sha256": "D0DCA45718C6ACAD715DE0B44B7C864F03AFFF442A6819C22B416F3C73BCB696",
+      "bytes": 12530,
+      "sha256": "D0DCA45718C6ACAD715DE0B44B7C864F03AFFF442A6819C22B416F3C73BCB696"
+    },
+    {
+      "file": "numeric-review/review-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/review-pins.json",
+      "original_sha256": "1827DB0415C2136748F378EE2BC2FD4D5EE001CD1C1D382894E774489A084FEC",
+      "bytes": 4850,
+      "sha256": "1827DB0415C2136748F378EE2BC2FD4D5EE001CD1C1D382894E774489A084FEC"
+    },
+    {
+      "file": "numeric-review/graph-review.py",
+      "original_path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/graph-review.py",
+      "original_sha256": "6ACC11284E4E102E82EAB49E82B0B799EC9D994C5C84B0E53737903CFC06A4D9",
+      "bytes": 9266,
+      "sha256": "6ACC11284E4E102E82EAB49E82B0B799EC9D994C5C84B0E53737903CFC06A4D9"
+    },
+    {
+      "file": "numeric-review/graph-evidence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/graph-evidence.json",
+      "original_sha256": "EE9129FA0E4FF91D999FDB5796B08BBC3D606A596BC76773721CE43AAA921F9F",
+      "bytes": 7688,
+      "sha256": "EE9129FA0E4FF91D999FDB5796B08BBC3D606A596BC76773721CE43AAA921F9F"
+    },
+    {
+      "file": "numeric-review/primary-source-evidence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-source-evidence.json",
+      "original_sha256": "27E2F678C0EA021519BCF4F3B9C443D257F8C69494BCEDD11BE01F3BA3526C46",
+      "bytes": 4676,
+      "sha256": "27E2F678C0EA021519BCF4F3B9C443D257F8C69494BCEDD11BE01F3BA3526C46"
+    },
+    {
+      "file": "numeric-review/hashhelpers-identity.json",
+      "original_path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/hashhelpers-identity.json",
+      "original_sha256": "7604E66F3F34CE9D9C4928C6F2138FA94F67A9BF989BE081D81B3E6DBF5DDC2F",
+      "bytes": 367,
+      "sha256": "7604E66F3F34CE9D9C4928C6F2138FA94F67A9BF989BE081D81B3E6DBF5DDC2F"
+    },
+    {
+      "file": "clone-capacity-erratum/erratum.md",
+      "original_path": "build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1/erratum.md",
+      "original_sha256": "E017B59E87BD3ABD76A9FEAFEFB80DBFA1DE41F9397B06B855A4B02A382996DA",
+      "bytes": 1349,
+      "sha256": "E017B59E87BD3ABD76A9FEAFEFB80DBFA1DE41F9397B06B855A4B02A382996DA"
+    },
+    {
+      "file": "clone-capacity-erratum/erratum.json",
+      "original_path": "build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1/erratum.json",
+      "original_sha256": "36453AC17D85CFAF7C28F6FDFE32290FB09DDF4124E97B974A4FED58BFBC79EA",
+      "bytes": 2453,
+      "sha256": "36453AC17D85CFAF7C28F6FDFE32290FB09DDF4124E97B974A4FED58BFBC79EA"
+    },
+    {
+      "file": "clone-capacity-erratum/source-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1/source-pins.json",
+      "original_sha256": "11A033497879FE7F1056E6E281DD72B11F705964E61DBBE6BC1DF33C06408C77",
+      "bytes": 1733,
+      "sha256": "11A033497879FE7F1056E6E281DD72B11F705964E61DBBE6BC1DF33C06408C77"
+    },
+    {
+      "file": "clone-capacity-review.json",
+      "original_path": "build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-independent-review-r1/review.json",
+      "original_sha256": "7BE6A0515B2ACC9AA2641584EA5D37C7C3926437CA5D997BCC83BB80D1670957",
+      "bytes": 8665,
+      "sha256": "7BE6A0515B2ACC9AA2641584EA5D37C7C3926437CA5D997BCC83BB80D1670957"
+    },
+    {
+      "file": "cpp-census-independent-review.json",
+      "original_path": "build-ci/20261105-clock-oracle-r6-cpp-census-r2-independent-review.json",
+      "original_sha256": "A3AB947A6597CB25F64F3304FABFEF367AD484635AED32ECEDBF6CD819DF1A43",
+      "bytes": 1728,
+      "sha256": "A3AB947A6597CB25F64F3304FABFEF367AD484635AED32ECEDBF6CD819DF1A43"
+    },
+    {
+      "file": "runner-functional-source-review.json",
+      "original_path": "build-ci/20261105-clock-oracle-r9-independent-review.json",
+      "original_sha256": "27B51F4AB48EEEFAC4E0BD12AD7AEF3573B083DDBDA82F0ED8F617B077F015E4",
+      "bytes": 1549,
+      "sha256": "27B51F4AB48EEEFAC4E0BD12AD7AEF3573B083DDBDA82F0ED8F617B077F015E4"
+    }
+  ]
+}

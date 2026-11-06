@@ -1,0 +1,33 @@
+{
+  "schema": "SOURCE_ONLY_NATIVE_MODULE_ASSOCIATION_PINS",
+  "purpose": "Pre-first-green source revision: exactlytwo explicit double-overload selections; README revision label. Earlier source/review retained.",
+  "inputs": [
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r1/association.cpp",
+      "sha256": "12C17FCC5B52BC93179546ADCF56F1D9876130144350F83B386056187EE42992"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r1/README.md",
+      "sha256": "613DFDD24E6B1366EB837FB306CF003F9E6489F054CA2958094D88F17A606E8F"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r1/source-pins.json",
+      "sha256": "BAD9C2F2E004D274C2841B36C2143353CC15C18075B710D3DEA09B37E1FF4701"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-review-r1/review.json",
+      "sha256": "B703D83160AFC479DD5165A977793FBE3B1B6A2F12281C3F34EA756D632DB95B"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r2/association.cpp",
+      "sha256": "23CAD6CD7213F88599AD43D6BD625AB34C7D8045DE66ABF08A4C1850AA3D2F89"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r2/README.md",
+      "sha256": "0D7217D50796C580C9EA769D00CF2D2F2B8B3CB240ED2F0D9A1F3EFF21B7034B"
+    }
+  ],
+  "no_target_execution": true
+}

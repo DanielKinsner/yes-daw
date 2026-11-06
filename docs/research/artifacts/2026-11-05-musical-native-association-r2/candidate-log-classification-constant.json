@@ -1,0 +1,11 @@
+{
+  "schema": "CANDIDATE_UCRT_FINAL_CLASSIFICATION_CONSTANT",
+  "dll": "C:/Windows/System32/ucrtbase.dll",
+  "dll_sha256": "dedb7611e1abc1ff3852dcac3d4c93a048d729e25b061973b9969f22698f14ca",
+  "rva": "0x107410",
+  "raw_offset": 1078288,
+  "raw_hex": "000000000000f07f",
+  "binary64_bits": "0x7ff0000000000000",
+  "positive_infinity": true,
+  "scope": "Candidate file only, no native execution or historical loader/interval proof."
+}

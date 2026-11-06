@@ -1,0 +1,193 @@
+{
+  "schema": "INDEPENDENT_R9_NARROW_CLONE_CAPACITY_ERRATUM_REVIEW_R1",
+  "outcome": "ACCEPT_NARROW_ERRATUM_ONLY",
+  "reviewer": "/root/fp_profile_probe_source",
+  "reviewedManifest": {
+    "path": "build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1/source-pins.json",
+    "sha256": "11A033497879FE7F1056E6E281DD72B11F705964E61DBBE6BC1DF33C06408C77"
+  },
+  "checkedErratumInputsOutputs": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/census.json",
+      "sha256": "7F8425F9982EFEC1C5218AFD95F3A8E443C172DEC61112E5F9008306EA6A654E"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/census.md",
+      "sha256": "9F43A03908B5BDE7CC67AFE9EA48D46B18217AD6BCB903B804154FF21C368D78"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/source-pins.json",
+      "sha256": "840645DFD6FFD12177A915081C9757F1BB07943FC8384494A9F4C110D1AE3599"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/review.json",
+      "sha256": "D0DCA45718C6ACAD715DE0B44B7C864F03AFFF442A6819C22B416F3C73BCB696"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/review.md",
+      "sha256": "9C9C48E1560600BA5FC669E92303A23236C9AA7B63BDF2DCC4B2FC2F3B8B18F1"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/review-pins.json",
+      "sha256": "1827DB0415C2136748F378EE2BC2FD4D5EE001CD1C1D382894E774489A084FEC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1/erratum.json",
+      "sha256": "36453AC17D85CFAF7C28F6FDFE32290FB09DDF4124E97B974A4FED58BFBC79EA"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1/erratum.md",
+      "sha256": "E017B59E87BD3ABD76A9FEAFEFB80DBFA1DE41F9397B06B855A4B02A382996DA"
+    }
+  ],
+  "priorReviewArtifacts": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/body-and-parent-evidence.json",
+      "bytes": 2196,
+      "sha256": "DA843D4E13906CB9BACF4CC5D65302809DC24AEF01F0A30BF06C026C87D43C13"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/graph-evidence.json",
+      "bytes": 7688,
+      "sha256": "EE9129FA0E4FF91D999FDB5796B08BBC3D606A596BC76773721CE43AAA921F9F"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/graph-review.py",
+      "bytes": 9266,
+      "sha256": "6ACC11284E4E102E82EAB49E82B0B799EC9D994C5C84B0E53737903CFC06A4D9"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/hashhelpers-identity.json",
+      "bytes": 367,
+      "sha256": "7604E66F3F34CE9D9C4928C6F2138FA94F67A9BF989BE081D81B3E6DBF5DDC2F"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/mechanical-evidence.json",
+      "bytes": 607303,
+      "sha256": "3C12B2F34C8186A31E14EEA6FFABB3D0329D0B6198AFE71DC139E6ADEB0EE274"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-source-evidence.json",
+      "bytes": 4676,
+      "sha256": "27E2F678C0EA021519BCF4F3B9C443D257F8C69494BCEDD11BE01F3BA3526C46"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "bytes": 93117,
+      "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Environment.Variables.Windows.cs",
+      "bytes": 5749,
+      "sha256": "84E3F67D9C45361C862784C5F75FED4A53507B4D42B364A707C57F411DC6BE4A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "bytes": 5167,
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Hashtable.cs",
+      "bytes": 63165,
+      "sha256": "BC06B72D387FAE36844C63ADA61D0AB5BC447E9710AA3891906EE4E923DE674C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/List.cs",
+      "bytes": 43437,
+      "sha256": "1346574BE64B5708F97AAA196AD474A63FF52F6D977D7AE18C366A600766F036"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Path.cs",
+      "bytes": 39112,
+      "sha256": "51E40D247651B4BD267A14C102709C1CB460CFFB386064C2F05A0CB69DDB0BE8"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Path.Windows.cs",
+      "bytes": 15866,
+      "sha256": "C0CF4FE4202E48F8553900ECF1C956C84263E674F62B14B43D401C2DB7F8D049"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Process.Windows.cs",
+      "bytes": 41903,
+      "sha256": "49620FB20FEFFB84E36D587A381C0CF161E3EC8C114F6FF1E7FA2D7672B518CF"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/ProcessStartInfo.cs",
+      "bytes": 8090,
+      "sha256": "E3CA0240C9FB9AF963631AD0C04B62CE577079D7FD177AF150096E9E15627E6E"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/StreamReader.cs",
+      "bytes": 61606,
+      "sha256": "9E570DB6C4CA8CBDF8065BACB8212ECE0CB5A4216738217EB99C3E8018E488B9"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/StringBuilder.cs",
+      "bytes": 144081,
+      "sha256": "4852F4B57D749BBFB9D5B865E0784974EE5F056DE4427C6E584FB4ECD193C751"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/StringReader.cs",
+      "bytes": 11996,
+      "sha256": "78804249EB16A854FAEF70B19D0A7B4922DC504C1EAF2DAC446F26EEE45429AD"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/review.json",
+      "bytes": 12530,
+      "sha256": "D0DCA45718C6ACAD715DE0B44B7C864F03AFFF442A6819C22B416F3C73BCB696"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/review.md",
+      "bytes": 2698,
+      "sha256": "9C9C48E1560600BA5FC669E92303A23236C9AA7B63BDF2DCC4B2FC2F3B8B18F1"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/verify.py",
+      "bytes": 8781,
+      "sha256": "452CE46C6AAC7855307D785B1CC62A9ECB06A9834439707F812BDFE9BE3A75F3"
+    }
+  ],
+  "sourceBasis": [
+    "Pinned HashHelpers.cs entire prime table and GetPrime first prime>=minimum loop read directly",
+    "Pinned prior review.md and exact capacity finding in review.json",
+    "Sealed census exact four arithmetic occurrences read; no original artifact edited"
+  ],
+  "independentlyRecomputed": {
+    "maps": 58,
+    "fields": 300,
+    "receiptCapacity": 362,
+    "fourReceiptsCapacity": 1448,
+    "allSevenEachArrayFamily": 10844,
+    "equation": "3*3+37*3+6*7+5*7+1*7+2*17+3*29+1*37=362;7+4*362+8836+553=10844",
+    "storage": "10844*(4+dictionary_entry_object_stride)"
+  },
+  "supersededScope": [
+    "graphs.receipt.clone_dictionary_prime_capacity_sum:462->362",
+    "controlled_payload.serialization.map_clone_capacity_cells.receipts_four:1848->1448",
+    "controlled_payload.serialization.map_clone_capacity_cells.total_each_of_entry_and_bucket_arrays:11244->10844",
+    "controlled_payload.serialization.map_clone_storage multiplier:11244->10844",
+    "Corresponding census.md exact arithmetic text only"
+  ],
+  "preserved": {
+    "scalarUpper": 5041187603,
+    "scalarStatus": "Prior conditional ACCEPT remains conditional; not recomputed as a whole new scalar review",
+    "payload": "HOLD_UNQUALIFIED",
+    "newNOFIT": false,
+    "completeFit": false,
+    "selectedWorkLimit": null,
+    "targetExecutionAuthority": false,
+    "originalSealedCensusAndPriorReviewByteExact": true,
+    "priorReviewArtifactCountReverified": 21
+  },
+  "conclusion": "Correctly removes conservative exact-capacity overstatement. It closes this arithmetic finding without closing any managed/native ABI, retained payload, lifetime, allocator or execution qualification.",
+  "actions": {
+    "inputEdits": false,
+    "targetPowerShellParseImportHelperProgramCompilerTestExecution": false,
+    "nativeGUIAudioDeviceGitCI": false,
+    "metadataHashAndIndependentIntegerArithmeticOnly": true
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "supersedes_field": "failure.json.dumpbin_log1p_raw_exit",
+  "corrected_raw_exit": null,
+  "observed_nonzero_exit": true,
+  "diagnostic_code": "LNK1147",
+  "reason": "The assertion only recorded nonzero, not its exact value.1147 was the diagnostic number and must not be represented as an observed raw exit. Original metadata retained with this explicit correction."
+}

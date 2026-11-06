@@ -1,0 +1,309 @@
+{
+  "schema": "READ_ONLY_NATIVE_CODEGEN_FILE_ASSOCIATION",
+  "utc": "2026-11-06T03:16:39.082199+00:00",
+  "scope": "Existing objects/executables and candidate toolchain/runtime files only. No probe rerun, compiler invocation or historical loaded-module/dispatch equivalence claim.",
+  "commands": [
+    {
+      "name": "precise-default-imports",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/imports",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default.exe"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "76416edbd626b9a8a197b23d34588f1f1fcf1aa64b1874a14598b575b45698f4"
+    },
+    {
+      "name": "precise-default-dependents",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/dependents",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default.exe"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "76416edbd626b9a8a197b23d34588f1f1fcf1aa64b1874a14598b575b45698f4"
+    },
+    {
+      "name": "precise-default-headers",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/headers",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default.exe"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "76416edbd626b9a8a197b23d34588f1f1fcf1aa64b1874a14598b575b45698f4"
+    },
+    {
+      "name": "strict-imports",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/imports",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict.exe"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "cd38a42e41dfc53c4d3286614545010a98e543639210905f92226ff6ff34ea5d"
+    },
+    {
+      "name": "strict-dependents",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/dependents",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict.exe"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "cd38a42e41dfc53c4d3286614545010a98e543639210905f92226ff6ff34ea5d"
+    },
+    {
+      "name": "strict-headers",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/headers",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict.exe"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "cd38a42e41dfc53c4d3286614545010a98e543639210905f92226ff6ff34ea5d"
+    },
+    {
+      "name": "precise-default-build-and-query-symbols",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/symbols",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default-build-and-query.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "01340764b1e6eb63faea483857643194bb27bbdd158e0fbb76f9c31d03e76030"
+    },
+    {
+      "name": "precise-default-build-and-query-relocations",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/relocations",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default-build-and-query.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "01340764b1e6eb63faea483857643194bb27bbdd158e0fbb76f9c31d03e76030"
+    },
+    {
+      "name": "precise-default-build-and-query-disasm-nobytes",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default-build-and-query.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "01340764b1e6eb63faea483857643194bb27bbdd158e0fbb76f9c31d03e76030"
+    },
+    {
+      "name": "precise-default-replay-probe-symbols",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/symbols",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default-replay-probe.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "00a680b3ff9aea682591b6627eb226654d0972237904ec54852d752cc9add728"
+    },
+    {
+      "name": "precise-default-replay-probe-relocations",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/relocations",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default-replay-probe.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "00a680b3ff9aea682591b6627eb226654d0972237904ec54852d752cc9add728"
+    },
+    {
+      "name": "precise-default-replay-probe-disasm-nobytes",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default-replay-probe.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "00a680b3ff9aea682591b6627eb226654d0972237904ec54852d752cc9add728"
+    },
+    {
+      "name": "strict-build-and-query-symbols",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/symbols",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict-build-and-query.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "578cd82233372c6a3187572a08d455bf884628a46050bcf109a2878e789ee281"
+    },
+    {
+      "name": "strict-build-and-query-relocations",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/relocations",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict-build-and-query.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "578cd82233372c6a3187572a08d455bf884628a46050bcf109a2878e789ee281"
+    },
+    {
+      "name": "strict-build-and-query-disasm-nobytes",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict-build-and-query.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "578cd82233372c6a3187572a08d455bf884628a46050bcf109a2878e789ee281"
+    },
+    {
+      "name": "strict-replay-probe-symbols",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/symbols",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict-replay-probe.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "1ff8512e8c2a4288d9754b60284b17fce69551926fdf7aab3b3f958383f6b7a4"
+    },
+    {
+      "name": "strict-replay-probe-relocations",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/relocations",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict-replay-probe.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "1ff8512e8c2a4288d9754b60284b17fce69551926fdf7aab3b3f958383f6b7a4"
+    },
+    {
+      "name": "strict-replay-probe-disasm-nobytes",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict-replay-probe.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "1ff8512e8c2a4288d9754b60284b17fce69551926fdf7aab3b3f958383f6b7a4"
+    },
+    {
+      "name": "fp-observer-symbols",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/symbols",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\fp-observer.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "73e8fd9b537deebff0071835f46daabaa9ecf2486f2dd9cfb8a0e390831c9f79"
+    },
+    {
+      "name": "fp-observer-relocations",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/relocations",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\fp-observer.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "73e8fd9b537deebff0071835f46daabaa9ecf2486f2dd9cfb8a0e390831c9f79"
+    },
+    {
+      "name": "fp-observer-disasm-nobytes",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\fp-observer.obj"
+      ],
+      "raw_exit": 0,
+      "input_sha256": "73e8fd9b537deebff0071835f46daabaa9ecf2486f2dd9cfb8a0e390831c9f79"
+    },
+    {
+      "name": "ucrtbase.dll-exports",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/exports",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "vcruntime140.dll-exports",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/exports",
+        "C:\\Windows\\System32\\vcruntime140.dll"
+      ],
+      "raw_exit": 0
+    }
+  ],
+  "file_identities": [
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/dumpbin.exe",
+      "bytes": 23416,
+      "sha256": "12a1cd87238bd66dfdb788b4fcdcb91ce4b3f81236aab12a7a29e5ae1d85af50"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "bytes": 677736,
+      "sha256": "88c8344236a27a6e727e0a8edc49aaa2690bdc7a9464b9d18cc7abe70a9f1c0d"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/lib/x64/msvcprt.lib",
+      "bytes": 4050616,
+      "sha256": "59d3ab1065f0a14bd9b27debef4008a91eafbc7411290013f61091bf12dfca0f"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/lib/x64/vcruntime.lib",
+      "bytes": 285940,
+      "sha256": "1acbd98b43a4be8373e25c65dcae4412f36f6111d6b64e47e4a2a97a1d16b27b"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.26100.0/ucrt/x64/ucrt.lib",
+      "bytes": 285588,
+      "sha256": "7ef4eac926bf597d2f243f16cdfed7e0db22cb3ca34a1d7e088a84c994a03d66"
+    },
+    {
+      "path": "C:/Windows/System32/ucrtbase.dll",
+      "bytes": 1399656,
+      "sha256": "dedb7611e1abc1ff3852dcac3d4c93a048d729e25b061973b9969f22698f14ca"
+    },
+    {
+      "path": "C:/Windows/System32/vcruntime140.dll",
+      "bytes": 178616,
+      "sha256": "d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/algorithm",
+      "bytes": 533492,
+      "sha256": "e4cfb31da8ec07af89834d829ea72b20c7e3202476af3b0641cfe8d6ebb245d7"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/memory",
+      "bytes": 177948,
+      "sha256": "ebe9836c7d6460e9a414bcbf8e7a57d67a4760ab5f217c1ff1a06cee95af57bb"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cmath",
+      "bytes": 71762,
+      "sha256": "3f10507b4bca07cd07b7b4ae1403377634a37e91459305094e9f8cba34dd8ca5"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vector",
+      "bytes": 161282,
+      "sha256": "351604d91a2ceac79f9bd9448c0553cccc22711e22955b5938eaf41de98334a6"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/math.h",
+      "bytes": 505,
+      "sha256": "fb747990091c8c6e4ed8b4cfb40ed14eadd37547153607459e9ddef71c64edff"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/fenv.h",
+      "bytes": 5947,
+      "sha256": "12e9ee9809314ca1db03e7fb0e36e20cb9052df291c8367d580f600dea7546e3"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/float.h",
+      "bytes": 15397,
+      "sha256": "0fbf87532c053b666940a65360f2488f5b6bb2e601632e32a0f1a8a078d8fdcd"
+    }
+  ],
+  "actual_loader_resolution_qualified": false,
+  "all_input_log1p_state_independence_qualified": false
+}

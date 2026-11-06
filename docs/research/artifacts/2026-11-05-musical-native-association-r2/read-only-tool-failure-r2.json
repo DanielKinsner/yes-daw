@@ -1,0 +1,6 @@
+{
+  "schema": "ASSOCIATION_TOOLING_FAILURE",
+  "python_exit": 1,
+  "dumpbin_headers_raw_exit": 0,
+  "reason": "Image-base parser assumed end of line; actual output appends address range. Raw successful dump retained. No target program execution or native result."
+}

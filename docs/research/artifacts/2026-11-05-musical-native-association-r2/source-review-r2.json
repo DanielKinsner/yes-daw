@@ -1,0 +1,98 @@
+{
+  "schema": "INDEPENDENT_WHOLE_SOURCE_MODULE_ASSOCIATION_SAFETY_REVIEW_R2",
+  "reviewer": "/root/fp_profile_probe_source",
+  "outcome": "ACCEPT",
+  "scope": "Exact R2 whole source is accepted for root to compile and perform one narrowly scoped headless module-association qualification for THIS new executable/run only",
+  "reviewedInputs": [
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r1/association.cpp",
+      "bytes": 3147,
+      "sha256": "12C17FCC5B52BC93179546ADCF56F1D9876130144350F83B386056187EE42992"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r1/README.md",
+      "bytes": 2015,
+      "sha256": "613DFDD24E6B1366EB837FB306CF003F9E6489F054CA2958094D88F17A606E8F"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r1/source-pins.json",
+      "bytes": 487,
+      "sha256": "BAD9C2F2E004D274C2841B36C2143353CC15C18075B710D3DEA09B37E1FF4701"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-review-r1/review.json",
+      "bytes": 6139,
+      "sha256": "B703D83160AFC479DD5165A977793FBE3B1B6A2F12281C3F34EA756D632DB95B"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r2/association.cpp",
+      "bytes": 3231,
+      "sha256": "23CAD6CD7213F88599AD43D6BD625AB34C7D8045DE66ABF08A4C1850AA3D2F89"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r2/README.md",
+      "bytes": 2015,
+      "sha256": "0D7217D50796C580C9EA769D00CF2D2F2B8B3CB240ED2F0D9A1F3EFF21B7034B"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r2/source-pins.json",
+      "bytes": 1419,
+      "sha256": "081D115CD0B561CFF70C4BB5E1EAB53BBA8FE0807E99DACF1EC7DA7B4BC82948"
+    }
+  ],
+  "wholeRead": [
+    "R2 association.cpp complete",
+    "R2 README.md complete",
+    "R2 source-pins.json complete"
+  ],
+  "mechanicalSourceIdentityChecks": {
+    "predecessorThreeFilesAndR1ReviewPreserved": true,
+    "r2SourceEqualsR1WithExactlyTwoSelectedDoubleFunctionPointerCasts": true,
+    "r2ReadmeEqualsR1WithOnlyRevisionLabel": true,
+    "allSevenExpectedRawHashesMatch": true,
+    "UTF8LF": true
+  },
+  "resolvedFinding": {
+    "id": "R1_OVERLOADED_IMPORT_ADDRESS",
+    "status": "CLOSED",
+    "reason": "Both overloaded names are explicitly selected as double (__cdecl *)(double) before conversion to const void*. The selected /MD UCRT double declarations are imported and the function-to-address conversion remains the supported MSVC AMD64 Windows API mechanism."
+  },
+  "safety": [
+    "No mismatched indirect function call: stored addresses are used only for FROM_ADDRESS module lookup",
+    "FROM_ADDRESS prevents interpretation of the cast address as a UTF-16 name",
+    "UNCHANGED_REFCOUNT has no FreeLibrary partner; no CLI-created thread or unload path",
+    "Initialized 512-WCHAR buffer and short-circuit length guards protect path[length] indexing and reject truncation",
+    "Guarded uintptr_t arithmetic avoids unrelated-pointer subtraction and checks 32-bit RVA before conversion",
+    "Six fixed unique entries, compile-time and runtime inventory assertions, bounded output, ordinary return1 failure paths",
+    "Only read-only FMA3 getter invoked; no math integration, setter, FP mode/status writes, GUI, audio, device, new thread, child process or own dynamic global constructor",
+    "README evidence boundaries remain exact and no earlier frozen probe/source was modified"
+  ],
+  "futureRootGates": [
+    "Pinned MSVC C++20 Release /MD flags, no LTO, warnings-as-errors",
+    "Verify AMD64 PE and CONSOLE subsystem before launch",
+    "Inspect actual imports/relocations/address-taking emitted loads to confirm selected imported targets rather than relabel an EXE thunk",
+    "Redirect output, timeout, per-process no-error-box mode, serialized native lane",
+    "Assert complete six-symbol inventory and ordinary exit mechanically; record actual module paths/RVAs and hashes/versions",
+    "Freeze whole source including README and helpers after first GREEN"
+  ],
+  "primarySourcesReusedFromWholeR1Review": [
+    "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandleexw",
+    "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulefilenamew",
+    "https://learn.microsoft.com/en-us/cpp/cpp/general-rules-and-limitations?view=msvc-170",
+    "https://learn.microsoft.com/en-us/cpp/build/importing-function-calls-using-declspec-dllimport?view=vs-2019",
+    "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/get-fma3-enable-set-fma3-enable?view=msvc-170"
+  ],
+  "noCredit": [
+    "Not a compile/run result",
+    "No historical probe module association",
+    "No future R3 binary association",
+    "No FMA3 interval or all-input numerical equivalence",
+    "No prices, resource fit, recipe/renderer/Ready or activation proof"
+  ],
+  "actions": {
+    "inputEdits": false,
+    "compilerParserHelperProgramTestExecution": false,
+    "GUIAudioDeviceGitCI": false,
+    "outputOnly": "build-ci/20261105-musical-native-module-association-source-review-r2/review.json"
+  }
+}

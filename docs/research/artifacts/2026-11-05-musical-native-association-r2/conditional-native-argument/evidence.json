@@ -1,0 +1,276 @@
+{
+  "schema": "YESDAW_MSVC_PRECISE_CONDITIONAL_NATIVE_ARGUMENT_R1",
+  "status": "CONDITIONAL_THEOREM_WITH_EXACT_UNRESOLVED_NATIVE_OBLIGATIONS_NO_BINDING",
+  "scope": "Source/native argument only; old integer query and actual scalar append replay; no source prices or activation",
+  "authorRole": "/root/fp_profile_probe_source",
+  "argument": {
+    "path": "argument.md",
+    "bytes": 22079,
+    "sha256": "00FCE8FB4F2E545318D0E421540DD49D00C7F910B5B8B3D22CC842BE6CA6CF9E",
+    "encoding": "UTF-8 without BOM; LF"
+  },
+  "inputs": [
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    {
+      "path": "src/engine/MusicalAudioWindow.h",
+      "bytes": 19572,
+      "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D"
+    },
+    {
+      "path": "src/dsp/ScopedNoDenormals.h",
+      "bytes": 2444,
+      "sha256": "2A27194589E3256E9F4A309F2FB65AC4840EC10C5E635E3D935BED89AC254812"
+    },
+    {
+      "path": "docs/adr/0085-owned-musical-call-recipes.md",
+      "bytes": 23414,
+      "sha256": "876FC9F16068603CB8D98799060B4FE8F8147502904DBE5C4EB3DA441729C1C9"
+    },
+    {
+      "path": "docs/adr/0088-musical-origin-formation.md",
+      "bytes": 9440,
+      "sha256": "86EAB38B43415191C795632F2EE675C8A476F894B121B78B404E1CC6FB5FAF33"
+    },
+    {
+      "path": "docs/adr/0089-frozen-musical-builder-attempts.md",
+      "bytes": 8136,
+      "sha256": "5943166A5E27B3088783FE072D7FBF67D8AE9489C9432FEC68A7EA0B0A15C944"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-correspondence.md",
+      "bytes": 25170,
+      "sha256": "2B966471F1C9BA1D0BFB92E6E973CF5BFF363900A2D775AC49DAD74CF35FCBE6"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/source-pins.json",
+      "bytes": 4049,
+      "sha256": "DA5DDDA7E4613B0A26A682F169049F8E384AE2AC1CC85F8CCBFCA4B575B0DFEB"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/receipt.json",
+      "bytes": 8133,
+      "sha256": "314C1B5287193451D0A1F0228E88762C40EBA53BD8F150F87BBB247F95629F56"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/precise-default-measurement.log",
+      "bytes": 916,
+      "sha256": "920D6A9B8FE61DE09A9A06FF0D10B8E3AF82F1422D91C7DEC1AA9317CCFCEA86"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r1/receipt.json",
+      "bytes": 14942,
+      "sha256": "0C396AD001FD52B4900EE60BBEA2AF2B41EBA919FC0D211A8ADEAB3A78128E81"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r1/file-versions.json",
+      "bytes": 874,
+      "sha256": "DA1F7DC9DCDB277F91756AD1B98458E6FE63311C0FEB7C732FCCE8B65EAC9E7E"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r1/precise-default-imports.stdout.log",
+      "bytes": 5538,
+      "sha256": "4DB3A37EEE7074EB2A07ED7FF3B8C8A6B2E5326CC7509F09B90665508FB5438E"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r1/precise-default-build-and-query-disasm-nobytes.stdout.log",
+      "bytes": 234665,
+      "sha256": "806DBC2BB07E32CC88D3FF4DFDD6381887F08DDD80C8DC1043B112B4A022F850"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r1/precise-default-replay-probe-disasm-nobytes.stdout.log",
+      "bytes": 300627,
+      "sha256": "7E89372FDD1E6DE47AF48F6B07B26177657131C1BDB17A0C93E80F6C5FF3F346"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r4/receipt.json",
+      "bytes": 2196,
+      "sha256": "9F2FC43A94B44DFEACB566B1BB0D3C6DC5043B7B5156AADFEC3F32B815B4C29D"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r4/log1p.stdout.log",
+      "bytes": 12133,
+      "sha256": "ED3A43355D038A9550D060B1DF04BE2770764702EC5DF6B84F8C384DED2C369C"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r4/fenv-get.stdout.log",
+      "bytes": 14542,
+      "sha256": "7EA3D8662AC7A91F589EC8DEDDE6559551F750EDC77424F65E4B3B62F4EB076D"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r4/fenv-set.stdout.log",
+      "bytes": 13835,
+      "sha256": "A88DD6F47820150C7790010B3254DBD05A927A6B47E396BF1118C81B75F39856"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r5/receipt.json",
+      "bytes": 1267,
+      "sha256": "6611F049B519179DD11E8F331693ABA1A4F59D48552801C6B7712E2E19B494C7"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r5/log.stdout.log",
+      "bytes": 10051,
+      "sha256": "F821BA0F8C81C719831A598C70A2A686B5C53B1BCDD030589876441527CFED76"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r5/floor-dispatch.stdout.log",
+      "bytes": 15541,
+      "sha256": "3B6FE76F7C7843D3DDC54D64FD5670C27F57B34F576549832A6E2591F8F2A7EB"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xutility",
+      "bytes": 331853,
+      "sha256": "D5959E0964EA09991888E5B45EECFD8C71C094034261489FBB450C2F2F450EF5"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/fenv.h",
+      "bytes": 5947,
+      "sha256": "12E9EE9809314CA1DB03E7FB0E36E20CB9052DF291C8367D580F600DEA7546E3"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/float.h",
+      "bytes": 15397,
+      "sha256": "0FBF87532C053B666940A65360F2488F5B6BB2E601632E32A0F1A8A078D8FDCD"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_math.h",
+      "bytes": 39299,
+      "sha256": "CA2F0F25B2E07B3613984EFD1135DD9F1D0786FABAA56DA2BA3C83B1A23EB918"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/crt/src/vcruntime/new_scalar.cpp",
+      "bytes": 1406,
+      "sha256": "FB7F0D8CD2233D10467AC7E39C7AFC2CDB6B194249C5F56B7602794529FA1192"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Source/10.0.26100.0/ucrt/heap/new_handler.cpp",
+      "bytes": 2262,
+      "sha256": "ED7BCD6A7E5E29213A5464D2E79CAB69BDCD2C52E63E50D965A7106C325C18BE"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Source/10.0.26100.0/ucrt/initializers/fma3_initializer.cpp",
+      "bytes": 762,
+      "sha256": "8C6D3FCB939DCA4045F36097DA073C3686A53D3AEAD387E5F9DC9F35A3798E5C"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r6/receipt.json",
+      "bytes": 1030,
+      "sha256": "A99F5CC1ADF2917F7855FDECA5B1BBA73F4D1EAC1706FAB7E28A35FBBCDEE71E"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r6/fma-get-set.stdout.log",
+      "bytes": 4743,
+      "sha256": "AB2E4E83012F24CE2EB207EF62F46EDE4646C06D22FF946D803668358751D015"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r6/log-continuation.stdout.log",
+      "bytes": 4318,
+      "sha256": "5BAA5710BDD97EB01B6AC5A02F7C000D749576126D6CEEFC13C303725C3F0DD7"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r6/log-classification-constant.json",
+      "bytes": 433,
+      "sha256": "5328690D5E7AAD511D4A8455C84BC6AB6E6AFABA4069106B7E9A775619DF1182"
+    }
+  ],
+  "measuredReceiptRead": {
+    "source": "root execution-r1",
+    "bothExitCodes": 0,
+    "maps": 96,
+    "rateCases": 576,
+    "actualClockSuccesses": 546,
+    "actualQueries": 22284,
+    "actualExtraAppendCalls": 123150,
+    "actualKnotPublicByteComparisons": 4470,
+    "actualKnotStatusOnly": 6,
+    "universalEquivalenceCredit": false
+  },
+  "actualObjectInspection": {
+    "scope": "existing precise-default objects only",
+    "appendOffsets": "0x0..0x171",
+    "log1pImportCallOffset": "0x108",
+    "arithmetic": "scalar SSE2 conversion/multiply/divide/add plus movsd double store",
+    "originalBuildAndQueryAndReplayCallSameNamedHelper": true,
+    "futureR3CodegenQualified": false
+  },
+  "candidateRuntime": {
+    "path": "C:/Windows/System32/ucrtbase.dll",
+    "fileVersion": "10.0.26100.9711",
+    "historicalActualLoaderAssociation": false,
+    "log1pRva": "0x4F130",
+    "logRva": "0xA8C60",
+    "logDispatchDwordRva": "0x139E60",
+    "nonzeroArm": "FMA3",
+    "zeroArm": "SSE2",
+    "incomingStatusErrnoIndependenceQualified": false,
+    "dispatchIntervalStabilityQualified": false,
+    "floorDispatchDwordRva": "0x1384C8",
+    "candidateValidDomainInstructionsInspected": true,
+    "candidateValidDomainStatusErrnoValueIndependence": "Conditionally supported by inspected positive-normal log path, stable selected arithmetic arm and default controls; no loaded-module or interval credit",
+    "fmaGetterRva": "0xCC390",
+    "fmaSetterRva": "0xCC3B0"
+  },
+  "exactRestorationLimit": {
+    "sdkFE_ALL_EXCEPTStandardFlags": 5,
+    "rawMXCSRStatusFlags": 6,
+    "denormalOperandFlagIncluded": false,
+    "rawX87RestorationObserved": false,
+    "futureR3BridgeInspected": true,
+    "provisionalR3BridgeScope": "Unsealed source read only: raw six MXCSR status bits restored preserving current controls, five CRT flags plus errno; no native execution or raw x87 proof"
+  },
+  "sourceArgument": {
+    "prefixBase": "actual positive-zero cache store",
+    "inductiveStep": "same exact arguments plus identical supported actual append transition imply identical completed double store",
+    "emptyMap": "separate exact old constant120 formula",
+    "sdkUpperBound": "MSVC14.44 xutility7462..7481 exact integer topology",
+    "finitePrefixesAboveNativeRangeCoveredConditionally": true,
+    "nativeIntegerCastOnlyAfterRangeCheck": true,
+    "noPrivatePrefixObservation": true
+  },
+  "unresolved": [
+    "Bind sealed actual R3 source and emitted old/replay/query sites",
+    "Associate actual loaded math module and IAT target for a new authorized binary; candidate file is insufficient",
+    "Prove CRT startup precedes work and no reachable FMA3 setter/direct dispatch writer across admitted app/dependency threads and permitted allocation callbacks from original cache through query",
+    "Complete whole funded R3 restoration/early cleanup source review and selected native bridge qualification",
+    "Complete separate same-origin source census/reservations before any query implementation admission"
+  ],
+  "recommendedHeadlessNextStep": "Complete closed-application startup/no-reachable-dispatch-writer source closure and whole R3 review, then a separately identified console loader/restoration qualification; no additional broad vendor branch exploration or frozen-probe retrofit",
+  "primarySources": [
+    "https://learn.microsoft.com/en-us/cpp/build/reference/fp-specify-floating-point-behavior?view=msvc-170",
+    "https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170#fpcsr",
+    "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/floor-floorf-floorl?view=msvc-170",
+    "https://learn.microsoft.com/en-us/cpp/standard-library/new-functions?view=msvc-170",
+    "https://learn.microsoft.com/en-us/cpp/c-runtime-library/floating-point-support?view=msvc-170",
+    "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/log1p-log1pf-log1pl2?view=msvc-170",
+    "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/get-fma3-enable-set-fma3-enable?view=msvc-170"
+  ],
+  "actions": {
+    "sourceReads": true,
+    "primaryOfficialDocumentationReads": true,
+    "rawByteHashesAndUTF8LFCheck": true,
+    "newFilesOnly": [
+      "argument.md",
+      "evidence.json"
+    ],
+    "targetCompilerParserHelperProgramTestExecutionByThisAgent": false,
+    "GUIAudioDeviceGitCI": false,
+    "frozenProbeOrOldSourceOrADRChanges": false
+  },
+  "noCredit": [
+    "No numeric price/cap/tariff changes",
+    "No arbitrary caller Boolean/profile permission",
+    "No all-input equivalence from finite equality",
+    "No interval proof from snapshots",
+    "No unobserved status/errno restoration",
+    "No new NativeBinding, funded query, source fit, renderer, Ready or activation certification"
+  ],
+  "provisionalR3Sources": [
+    "build-ci/20261105-musical-funded-legacy-adapter-source-r3/window-query.h",
+    "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-profile.h",
+    "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-observer.cpp"
+  ],
+  "provisionalR3Limit": "No provisional source hash promoted; author still reviewing; future sealed whole source and emitted code need independent binding"
+}

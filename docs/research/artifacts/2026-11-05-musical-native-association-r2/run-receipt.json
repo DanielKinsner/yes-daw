@@ -1,0 +1,53 @@
+{
+  "exit": 0,
+  "scope": "Actual six imported function module paths/RVAs and FMA3 getter for this new console executable only",
+  "stages": {
+    "environment": {
+      "seconds": 1.1366384,
+      "raw_exit": 0
+    },
+    "compile": {
+      "seconds": 0.4635947,
+      "raw_exit": 0
+    },
+    "association": {
+      "seconds": 0.0163594,
+      "raw_exit": 0
+    }
+  },
+  "commands": {
+    "compile": {
+      "file": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "args": [
+        "/nologo",
+        "/DWIN32",
+        "/D_WINDOWS",
+        "/EHsc",
+        "/O2",
+        "/Ob2",
+        "/DNDEBUG",
+        "/std:c++20",
+        "/MD",
+        "/W4",
+        "/WX",
+        "/FoC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-native-module-association-source-r2\\execution-r1\\association.obj",
+        "/FeC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-native-module-association-source-r2\\execution-r1\\association.exe",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-native-module-association-source-r2\\association.cpp",
+        "/link",
+        "kernel32.lib",
+        "/SUBSYSTEM:CONSOLE",
+        "/MACHINE:X64",
+        "/INCREMENTAL:NO"
+      ]
+    }
+  },
+  "desktop_input": false,
+  "native_windows": false,
+  "audio_device": false,
+  "first_green": true,
+  "source_manifest": "081D115CD0B561CFF70C4BB5E1EAB53BBA8FE0807E99DACF1EC7DA7B4BC82948",
+  "source_review": "AF32EE5366D030C8BD3436C4BAA3DB17C85330A161AE0BCC771DB863C29591D9",
+  "compiler_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "candidate_ucrt_sha256": "DEDB7611E1ABC1FF3852DCAC3D4C93A048D729E25B061973B9969F22698F14CA",
+  "executable_sha256": "A268CF8D3DE8B2E4C357E04B1DB31B011A39ED7BE844A84B42977D333FF17E61"
+}

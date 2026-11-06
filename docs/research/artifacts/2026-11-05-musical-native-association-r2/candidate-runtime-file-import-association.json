@@ -1,0 +1,89 @@
+{
+  "schema": "CANDIDATE_RUNTIME_IMPORT_ASSOCIATION",
+  "scope": "Read-only candidate files named by existing app binary; not actual app loaded-module or unfinished R3 qualification.",
+  "candidate_files": [
+    {
+      "path": "C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/YesDaw_artefacts/Release/MSVCP140.dll",
+      "exists": false
+    },
+    {
+      "path": "C:/Windows/System32/MSVCP140.dll",
+      "bytes": 643512,
+      "sha256": "7c26614e1d733892c2deac7e245ce115504b1d80592dd0a01b08e3e5a55f89ca"
+    },
+    {
+      "path": "C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/YesDaw_artefacts/Release/VCRUNTIME140.dll",
+      "exists": false
+    },
+    {
+      "path": "C:/Windows/System32/VCRUNTIME140.dll",
+      "bytes": 178616,
+      "sha256": "d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7"
+    },
+    {
+      "path": "C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/YesDaw_artefacts/Release/VCRUNTIME140_1.dll",
+      "exists": false
+    },
+    {
+      "path": "C:/Windows/System32/VCRUNTIME140_1.dll",
+      "bytes": 50112,
+      "sha256": "a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e"
+    }
+  ],
+  "commands": [
+    {
+      "name": "system32-MSVCP140.dll-imports",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/imports",
+        "C:\\Windows\\System32\\MSVCP140.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "system32-MSVCP140.dll-dependents",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/dependents",
+        "C:\\Windows\\System32\\MSVCP140.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "system32-VCRUNTIME140.dll-imports",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/imports",
+        "C:\\Windows\\System32\\VCRUNTIME140.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "system32-VCRUNTIME140.dll-dependents",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/dependents",
+        "C:\\Windows\\System32\\VCRUNTIME140.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "system32-VCRUNTIME140_1.dll-imports",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/imports",
+        "C:\\Windows\\System32\\VCRUNTIME140_1.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "system32-VCRUNTIME140_1.dll-dependents",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/dependents",
+        "C:\\Windows\\System32\\VCRUNTIME140_1.dll"
+      ],
+      "raw_exit": 0
+    }
+  ]
+}

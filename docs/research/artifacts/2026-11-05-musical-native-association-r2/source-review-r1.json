@@ -1,0 +1,98 @@
+{
+  "schema": "INDEPENDENT_WHOLE_SOURCE_MODULE_ASSOCIATION_SAFETY_REVIEW_R1",
+  "reviewer": "/root/fp_profile_probe_source",
+  "outcome": "REVISE",
+  "scope": "Whole 6-symbol source-only safety/correctness review for this new MSVC AMD64 console executable only",
+  "reviewedInputs": [
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r1/association.cpp",
+      "bytes": 3147,
+      "sha256": "12C17FCC5B52BC93179546ADCF56F1D9876130144350F83B386056187EE42992"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r1/README.md",
+      "bytes": 2015,
+      "sha256": "613DFDD24E6B1366EB837FB306CF003F9E6489F054CA2958094D88F17A606E8F"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r1/source-pins.json",
+      "bytes": 487,
+      "sha256": "BAD9C2F2E004D274C2841B36C2143353CC15C18075B710D3DEA09B37E1FF4701"
+    }
+  ],
+  "selectedHeaderEvidence": [
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cmath",
+      "sha256": "3F10507B4BCA07CD07B7B4AE1403377634A37E91459305094E9F8CBA34DD8CA5"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_math.h",
+      "sha256": "CA2F0F25B2E07B3613984EFD1135DD9F1D0786FABAA56DA2BA3C83B1A23EB918"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/fenv.h",
+      "sha256": "12E9EE9809314CA1DB03E7FB0E36E20CB9052DF291C8367D580F600DEA7546E3"
+    }
+  ],
+  "wholeRead": [
+    "association.cpp complete",
+    "README.md complete",
+    "source-pins.json complete"
+  ],
+  "findings": [
+    {
+      "id": "R1_OVERLOADED_IMPORT_ADDRESS",
+      "severity": "P1",
+      "file": "build-ci/20261105-musical-native-module-association-source-r1/association.cpp",
+      "lines": [
+        30,
+        31
+      ],
+      "title": "Select exact double overload before function-to-address cast",
+      "reason": "The selected MSVC cmath declares global float and long-double overloads for log1p/floor in addition to the C double declarations. reinterpret_cast<const void*>(&::log1p) and the analogous floor expression provide an object-pointer target, not the function-pointer signature required to select an overload. The source has not established a unique imported double function address and is not accepted for compile/run.",
+      "sourceEvidence": [
+        "MSVC14.44.35207/include/cmath:124 float floor;186 float log1p;381 long-double floor;448 long-double log1p; global C++ overload region begins36",
+        "SDK10.0.26100.0/ucrt/corecrt_math.h:539 double floor;551 double log1p"
+      ],
+      "correction": "For each of log1p and floor, first static_cast to the exact double (__cdecl *)(double) function pointer, then reinterpret_cast that selected pointer to const void*. Keep other source behavior and narrow scope unchanged; repin the whole source and obtain fresh review before first compile/run.",
+      "example": "reinterpret_cast<const void*> (static_cast<double (__cdecl *)(double)> (&::log1p))",
+      "verifiedBy": "Source/header inspection only; no compiler execution or claimed compiler diagnostic"
+    }
+  ],
+  "otherwiseSupported": [
+    "FROM_ADDRESS deliberately treats LPCWSTR argument as an address; it is not dereferenced as a string by this API contract",
+    "MSVC AMD64-specific function/data pointer conversion is used only for documented Windows address association; no call through a mismatched signature occurs",
+    "UNCHANGED_REFCOUNT is not paired with FreeLibrary; no app-created threads/unload paths are present in this standalone CLI",
+    "512-WCHAR local initialized path buffer rejects zero/truncated lengths before indexing path[length]; indexing is in range due short circuit",
+    "Integer uintptr_t subtraction is guarded address>=base and bounded to uint32 before conversion; no subtraction of unrelated C++ pointers",
+    "Static inventory has exactly six unique literal names, bounded loop, observed count assertion and ordinary failure return1",
+    "Only documented FMA3 getter is invoked; math/flag/control setters, Clock, GUI, audio, devices, child processes and own dynamic global constructors are absent",
+    "README correctly limits any future evidence to this new executable/run and leaves previous probe, future R3, dispatch interval and universal equivalence unqualified"
+  ],
+  "importedAddressQualification": {
+    "sourceContract": "MSVC C++ dllimport address semantics point to the DLL function when the exact imported declaration is selected; /MD is required",
+    "requiredFutureMechanicalCheck": "Inspect actual emitted loads/relocations/imports and recorded module/RVA inventory. A containing-module result alone would still truthfully identify a thunk module if a thunk were supplied; do not relabel that as the final math host.",
+    "noHistoricalOrFutureBinding": true
+  },
+  "requiredRootExecutionConditionsAfterRevision": [
+    "Fresh reviewed exact source pins",
+    "Verified AMD64 PE and CONSOLE subsystem",
+    "Pinned actual MSVC C++20 /MD Release flags and no LTO",
+    "Headless redirected output, timeout and per-process no-error-box mode",
+    "Complete six-symbol output and ordinary exit checked mechanically",
+    "Whole source frozen after first GREEN"
+  ],
+  "primarySources": [
+    "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandleexw",
+    "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulefilenamew",
+    "https://learn.microsoft.com/en-us/cpp/cpp/general-rules-and-limitations?view=msvc-170",
+    "https://learn.microsoft.com/en-us/cpp/build/importing-function-calls-using-declspec-dllimport?view=vs-2019",
+    "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/get-fma3-enable-set-fma3-enable?view=msvc-170"
+  ],
+  "actions": {
+    "reviewedSourceEdited": false,
+    "compilerParserHelperProgramTestExecution": false,
+    "GUIAudioDeviceGitCI": false,
+    "outputOnly": "build-ci/20261105-musical-native-module-association-source-review-r1/review.json"
+  }
+}

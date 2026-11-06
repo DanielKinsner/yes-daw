@@ -1,0 +1,268 @@
+{
+  "schema": "CLOSED_APPLICATION_FMA3_SOURCE_ARGUMENT_R1",
+  "status": "APPLICATION_SOURCE_EVIDENCE_COMPLETE_FOR_NAMED_SEARCH_SCOPE_CONDITIONAL_NATIVE_INTERVAL_NOT_BOUND",
+  "author": "/root/fp_profile_probe_source",
+  "authoredInputs": [
+    {
+      "path": "argument.md",
+      "bytes": 11027,
+      "sha256": "09E6EC32E72A1183302126F8BAD95C1825C3E332DCC5DDB16F1479E40FD017F2"
+    },
+    {
+      "path": "source-corpus.json",
+      "bytes": 725737,
+      "sha256": "6849E04FD380B16E600AC3C7890AEDE62A2C072F84018A3D7613D0C02E0ED194"
+    }
+  ],
+  "otherInputs": [
+    {
+      "path": "CMakeLists.txt",
+      "bytes": 79816,
+      "sha256": "30606224B191C2E5F7471B186EC6D854B620C81B135F3AB77FDC997D05DEA403"
+    },
+    {
+      "path": "build-ci/CMakeCache.txt",
+      "bytes": 37498,
+      "sha256": "C0AE07D6974A2B3036B68000386C2A304CA7BD0ACFDD1CF9B8240DFF3D0788C7"
+    },
+    {
+      "path": "build-ci/build.ninja",
+      "bytes": 1044713,
+      "sha256": "6947E449C0A5AC36BDF8FC00D70142898CE2A14FDA76431D214AC055C0843A78"
+    },
+    {
+      "path": "build-ci/compile_commands.json",
+      "bytes": 757621,
+      "sha256": "3887A3F2382A9AEB0CF5375390D51FB5C52822E8FB71284DBF44760E44D289DE"
+    },
+    {
+      "path": "src/Main.cpp",
+      "bytes": 6420,
+      "sha256": "34BEE4449A39B5F2863F189919CAB76784B02E13AC34D870F53447B7357342B1"
+    },
+    {
+      "path": "src/app/StretchPreparationJob.h",
+      "bytes": 11728,
+      "sha256": "9BB8AB39327E6E1A9810C018E2904DCBF62177B2DE709AA2E083BE1102E6132D"
+    },
+    {
+      "path": "src/app/AudioImportJob.h",
+      "bytes": 13554,
+      "sha256": "BBC9C98675CB962B7378294C4A32EB6977A082A15779FE7FD21CF5595992FB6D"
+    },
+    {
+      "path": "src/ui/UiAppModel.h",
+      "bytes": 753485,
+      "sha256": "61039E6543F470E19BEECA2BC7232ED8895378B52E47A923D6D5CE536791B5BD"
+    },
+    {
+      "path": "src/persistence/ImportStagingDiscovery.h",
+      "bytes": 4785,
+      "sha256": "D604C0CF6F3E218B3B37C3A4441ADB30DF5B3ECE26BFF8DB39ACC8FFBD3D43A7"
+    },
+    {
+      "path": "build-ci/_deps/juce-src/modules/juce_events/messages/juce_Initialisation.h",
+      "bytes": 9402,
+      "sha256": "099825EC31E3B8FD943E248C5ED3187091DCFA7690211FFE8CAA1FEECD38A7D0"
+    },
+    {
+      "path": "build-ci/_deps/juce-src/modules/juce_core/juce_core.h",
+      "bytes": 15765,
+      "sha256": "F8542285CCC2F27D450E33ACF41C81535152A870A47E252FB9E92DB77FBAC014"
+    },
+    {
+      "path": "build-ci/_deps/juce-src/modules/juce_core/memory/juce_AllocationHooks.cpp",
+      "bytes": 3204,
+      "sha256": "1136EBABA4AF9ADA830989A56C80E94EC8B4FA27ACF8DB18CE129C8C78677CA6"
+    },
+    {
+      "path": "build-ci/_deps/juce-src/modules/juce_core/native/juce_Threads_windows.cpp",
+      "bytes": 17166,
+      "sha256": "FD4E3ACD58B9D7C39B3596479BE463236987479E3E494BF450BD8AB520A7EDAB"
+    },
+    {
+      "path": "build-ci/_deps/juce-src/modules/juce_audio_devices/juce_audio_devices.h",
+      "bytes": 6614,
+      "sha256": "3FFF67B5D2C200D793BA1A0C3682016C61D7288EFDB9D43A11D98981C997A611"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma-app-binary-association-r1/receipt.json",
+      "bytes": 1897,
+      "sha256": "44316B8D0A96CA66AF5247F96D6888CCED7CC319EC30DFDF54A23D81DEB1C9AE"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma-app-binary-association-r1/imports.stdout.log",
+      "bytes": 40666,
+      "sha256": "A160D1EFE7378D8C7FD1B0F08473B67DF179DE42BB68F2B4FE5E5FC3B1ACA4DB"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma-app-binary-association-r1/dependents.stdout.log",
+      "bytes": 1214,
+      "sha256": "517E8ED1805B6417BE9ED3CD674336421BA0C8F59F211944284EE95EF092E069"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma-runtime-import-association-r1/receipt.json",
+      "bytes": 3127,
+      "sha256": "352E004A68B7C0BEA13BEA2163E4860800BEBEB44DF35CA25CF9D782CBD087B8"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma-runtime-import-association-r1/system32-MSVCP140.dll-imports.stdout.log",
+      "bytes": 11820,
+      "sha256": "DA166B51B0371B03B1BD8BE23C69D20351488AFF2E6A22D69B4260A4CB144C49"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma-runtime-import-association-r1/system32-VCRUNTIME140.dll-imports.stdout.log",
+      "bytes": 3350,
+      "sha256": "A05408CD2153585085C600BFE2BE0FEF22794B3CDA48F1C55DF027FB5171A046"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma-runtime-import-association-r1/system32-VCRUNTIME140_1.dll-imports.stdout.log",
+      "bytes": 2665,
+      "sha256": "FFFBE31F8E5E8BC2FF6CC7FC78799ACC099158E91FD4B0BE3F7F99A03ACEC4E9"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r2/execution-r1/receipt.json",
+      "bytes": 1891,
+      "sha256": "B14928550C412B963288F1DB97DF07689F0D3D2F7B0A495D17BDD41A9EB989D8"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-msvc-native-argument-r1/argument.md",
+      "bytes": 22079,
+      "sha256": "00FCE8FB4F2E545318D0E421540DD49D00C7F910B5B8B3D22CC842BE6CA6CF9E"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-msvc-native-argument-r1/evidence.json",
+      "bytes": 12659,
+      "sha256": "B531CFACA5658678690D398E446EC1F64D2EFE52BDC5EFFD2900BD8DF5DE7D9C"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/crt/src/vcruntime/exe_common.inl",
+      "bytes": 10371,
+      "sha256": "06302037B260F066FED492D8BB29EF08D9906FD3AFB9DD34A71B9C4C537A9DBC"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/crt/src/vcruntime/new_scalar.cpp",
+      "bytes": 1406,
+      "sha256": "FB7F0D8CD2233D10467AC7E39C7AFC2CDB6B194249C5F56B7602794529FA1192"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/crt/src/stl/stdhndlr.cpp",
+      "bytes": 942,
+      "sha256": "DE0F276140E870D4A44DCE6E5DDB86F0102138E64B5EF287FFA2861DDA71A2AA"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Source/10.0.26100.0/ucrt/heap/new_handler.cpp",
+      "bytes": 2262,
+      "sha256": "ED7BCD6A7E5E29213A5464D2E79CAB69BDCD2C52E63E50D965A7106C325C18BE"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Source/10.0.26100.0/ucrt/dll/appcrt_dllmain.cpp",
+      "bytes": 3413,
+      "sha256": "71EF8157A498628E7D598C1480AC49264ED82568B264DB479F863AB929BD90D3"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Source/10.0.26100.0/ucrt/internal/initialization.cpp",
+      "bytes": 10501,
+      "sha256": "C86A17451507AB55F89D60FFF3D9713FCB6A0467E62B5A8D0982BF094DC81AB3"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Source/10.0.26100.0/ucrt/initializers/fma3_initializer.cpp",
+      "bytes": 762,
+      "sha256": "8C6D3FCB939DCA4045F36097DA073C3686A53D3AEAD387E5F9DC9F35A3798E5C"
+    }
+  ],
+  "sourceSearch": {
+    "roots": 7,
+    "pinnedConservativeCorpusFiles": 3125,
+    "actualApplicationAndJuceTUs": 25,
+    "staticDependencyTUs": 2,
+    "directNamedFmaWritersAndKnownDispatchAddressMatches": 0,
+    "newHandlerSetterMatches": 0,
+    "broaderFmaMatches": 9,
+    "broaderMatchesMeaning": "JUCE CPU feature fields/readers only",
+    "allocationHookDefines": 1,
+    "allocationHookValue": 0,
+    "targetPreprocessingOrAST": false,
+    "completeLexicalSupersetNotAllIndirectNativeCode": true
+  },
+  "actualBuildFindings": {
+    "noAudioProcessorsPluginHost": true,
+    "JUCE_ASIO_Default": 0,
+    "JUCE_ASIO_CommandOverride": false,
+    "JUCE_WEB_BROWSER": 0,
+    "JUCE_USE_CURL": 0,
+    "SQLITE_OMIT_LOAD_EXTENSION": true,
+    "GUIAdditionalFlags": [
+      "/Ox",
+      "/MP"
+    ],
+    "pureProbeEmittedCodeQualifiesFutureGuiR3": false,
+    "noApplicationMusicalR3IntegrationYet": true
+  },
+  "startup": {
+    "installedExeCommon": "initialize CRT and C/C++/TLS before invoke_main",
+    "installedUcrtDll": "process attach initializes; separate thread attach path",
+    "installedFmaInitializer": ".CRT$XIC __acrt_initialize_fma3",
+    "currentJobs": "Control creates fixed preparation std::threads later",
+    "sourceSupportedOrdering": "Process startup FMA3 selection precedes ordinary captured-request worker work",
+    "installedSourceEqualsEveryPatchedRuntimeBody": false
+  },
+  "handler": {
+    "installedUcrtInitialValue": "encoded null",
+    "installedCppInitialValue": "zero-initialized handler",
+    "installedCppSetter": "only public std::set_new_handler body invokes C setter",
+    "installedCppGetter": "mutex-protected read only",
+    "applicationSetterCallerAbsentInPinnedCorpus": true,
+    "selectedRuntimeSourceBodyAssociationComplete": false,
+    "noCallbackConclusion": "Conditional on selected runtime correspondence, initial null plus no reachable setter means default failed-new calls no application handler",
+    "ABIControlsDoNotPreserveGlobalFmaWord": true
+  },
+  "actualFileImports": {
+    "existingAppSha256": "A16156B5C5D4ACB1618DBF5557B09C57FDD55856E65EAD4AF704BC74D62072B7",
+    "existingAppDirectFmaOrHandlerSetterImport": false,
+    "existingAppImportsCallnewhMallocFree": true,
+    "namedCppRuntime": [
+      "MSVCP140.dll",
+      "VCRUNTIME140.dll",
+      "VCRUNTIME140_1.dll"
+    ],
+    "candidateRuntimeDirectFmaSetterImports": false,
+    "candidateMsvcpImportsCNewHandlerSetter": true,
+    "candidateMsvcpImportsGetProcAddress": true,
+    "appLocalNamedRuntimeCandidates": "absent in root receipt",
+    "actualGuiLoadedModuleIdentity": false
+  },
+  "priorNewConsoleEvidence": {
+    "actualExit": 0,
+    "fmaSelection": 1,
+    "actualDirectUcrtFunctionAssociations": [
+      "log1p",
+      "get_FMA3_enable",
+      "fegetexceptflag",
+      "feclearexcept",
+      "fesetexceptflag"
+    ],
+    "floorAddressIsOwnExeRva": "0x2158",
+    "historicalProbeOrFutureR3Association": false
+  },
+  "conditionalTheorem": "After qualified startup, if the selected allocator/MSVCP/UCRT calls obey the reviewed no-post-startup-writer contract and callbacks/threads belong to the closed admitted source, there is no selection-writing transition between original Clock prefix construction and replay/query; initial getter selection is invariant. This is source closure, not snapshot ABA exclusion.",
+  "remaining": [
+    "Seal and review actual combined R3 worker/control caller and emitted helper/predicate/query sites under real target flags",
+    "Associate selected linked scalar-new and MSVCP handler/getter with reviewed source/API behavior; setter import by itself is neither invocation nor impossibility proof",
+    "Record actual loaded runtime/math address association for the eventual combined headless binary; current candidate files and another console run are insufficient",
+    "Retain exact same-origin source census/funding and strict restoration proofs; no prices/binding are supplied"
+  ],
+  "nextHeadlessStep": "File-only selected linked scalar-new/MSVCP handler-getter source association and whole R3/caller review; then a separately reviewed console combined module/restoration qualification. No GUI, devices, setter, broad vendor catalogue or Dan-operated test.",
+  "primaryReferences": [
+    "https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-initialization?view=msvc-170",
+    "https://learn.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-entry-point-function",
+    "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/get-fma3-enable-set-fma3-enable?view=msvc-170"
+  ],
+  "actions": {
+    "sourceMetadataReadsAndHashes": true,
+    "targetPowerShellParseImportHelperCompilerProgramTestRun": false,
+    "GUIAudioDeviceGitCI": false,
+    "existingFrozenSourcesEdited": false,
+    "noPriceNativeBindingDefinition": true
+  }
+}

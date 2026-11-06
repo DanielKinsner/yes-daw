@@ -1,0 +1,26 @@
+[
+  {
+    "file_version": "14.44.35228.0",
+    "product_version": "14.44.35228.0",
+    "original_name": "DUMPBIN.EXE",
+    "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/dumpbin.exe"
+  },
+  {
+    "file_version": "19.44.35228.0",
+    "product_version": "14.44.35228.0",
+    "original_name": "CL.EXE",
+    "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe"
+  },
+  {
+    "file_version": "10.0.26100.9711 (WinBuild.160101.0800)",
+    "product_version": "10.0.26100.9711",
+    "original_name": "ucrtbase.dll",
+    "path": "C:/Windows/System32/ucrtbase.dll"
+  },
+  {
+    "file_version": "14.51.36247.0",
+    "product_version": "14.51.36247.0",
+    "original_name": "vcruntime140.dll",
+    "path": "C:/Windows/System32/vcruntime140.dll"
+  }
+]

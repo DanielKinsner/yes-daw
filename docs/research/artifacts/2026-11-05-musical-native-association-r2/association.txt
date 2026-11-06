@@ -1,0 +1,8 @@
+compiler_numeric=194435228 fma3_selection=1 symbols=6
+symbol=log1p rva=0x0004f130 module=C:\WINDOWS\System32\ucrtbase.dll
+symbol=floor rva=0x00002158 module=C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261105-musical-native-module-association-source-r2\execution-r1\association.exe
+symbol=get_FMA3_enable rva=0x000cc390 module=C:\WINDOWS\System32\ucrtbase.dll
+symbol=fegetexceptflag rva=0x00055710 module=C:\WINDOWS\System32\ucrtbase.dll
+symbol=feclearexcept rva=0x00054d40 module=C:\WINDOWS\System32\ucrtbase.dll
+symbol=fesetexceptflag rva=0x00055800 module=C:\WINDOWS\System32\ucrtbase.dll
+PASS actual loaded module association for this console executable only

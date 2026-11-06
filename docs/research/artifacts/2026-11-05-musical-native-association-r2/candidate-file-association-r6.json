@@ -1,0 +1,27 @@
+{
+  "schema": "CANDIDATE_UCRT_FINAL_NARROW_ASSOCIATION",
+  "scope": "File-only candidate getter/setter and log continuation. No setter invocation, probe execution, historical loader, dispatch interval or all-path qualification.",
+  "dll_sha256": "dedb7611e1abc1ff3852dcac3d4c93a048d729e25b061973b9969f22698f14ca",
+  "commands": [
+    {
+      "name": "fma-get-set",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x1800cc390,0x1800cc4b0",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "log-continuation",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x1800a9060,0x1800a91c0",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0
+    }
+  ]
+}

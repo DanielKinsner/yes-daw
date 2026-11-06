@@ -1,0 +1,14 @@
+{
+  "schema": "SOURCE_ONLY_NATIVE_MODULE_ASSOCIATION_PINS",
+  "outputs": [
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r1/association.cpp",
+      "sha256": "12C17FCC5B52BC93179546ADCF56F1D9876130144350F83B386056187EE42992"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r1/README.md",
+      "sha256": "613DFDD24E6B1366EB837FB306CF003F9E6489F054CA2958094D88F17A606E8F"
+    }
+  ],
+  "no_target_execution": true
+}

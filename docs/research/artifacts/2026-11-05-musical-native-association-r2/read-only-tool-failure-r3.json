@@ -1,0 +1,6 @@
+{
+  "schema": "ASSOCIATION_COMMAND_FAILURE",
+  "python_exit": 1,
+  "dumpbin_log1p_raw_exit": 1147,
+  "reason": "DUMPBIN /RANGE requires explicit0x prefix for hexadecimal numbers; raw LNK1147 retained. No target program execution."
+}

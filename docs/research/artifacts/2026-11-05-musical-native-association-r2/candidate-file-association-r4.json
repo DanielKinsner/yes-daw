@@ -1,0 +1,60 @@
+{
+  "schema": "CANDIDATE_UCRT_BOUNDED_DISASSEMBLY_ONLY",
+  "scope": "Actual System32 candidate file; no historical loaded host-module claim, no execution, no all-path behavior or mutable dispatch qualification.",
+  "dll": "C:/Windows/System32/ucrtbase.dll",
+  "dll_sha256": "dedb7611e1abc1ff3852dcac3d4c93a048d729e25b061973b9969f22698f14ca",
+  "image_base": "0x180000000",
+  "header_original_sha256": "c475a694b5ea46f6fb9aff9c069fd22327ae9147b7925dee909f359a31bc7c5c",
+  "commands": [
+    {
+      "name": "log1p",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x18004f130,0x18004f530",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "floor",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x1800f8040,0x1800f8440",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "fenv-clear",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x180054d40,0x180055140",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "fenv-get",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x180055710,0x180055b10",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "fenv-set",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x180055800,0x180055c00",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0
+    }
+  ]
+}

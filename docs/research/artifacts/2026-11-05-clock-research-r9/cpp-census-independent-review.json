@@ -1,0 +1,43 @@
+{
+  "schema": "CLOCK_CPP_CENSUS_R2_WHOLE_INDEPENDENT_REVIEW",
+  "verdict": "ACCEPT_CONDITIONAL_CPP_CENSUS_R2",
+  "reviewer": "/root/clock_cpp_census_independent_review",
+  "sealed_files": {
+    "census.md": "4F08A0E4AB1923941A4EB645316C94A3C21B498C19FBA0CEE91F9F3D2D2A6298",
+    "census.json": "9138C454661284C2F0639CD0AD657B6F5A1647023F896B0D789621E0B07C7130",
+    "source-pins.json": "907BF302BE06E182ADD4625ABC713295F0E6BF0659BF88C79FB00E8391EFB930"
+  },
+  "reviewed_whole_MD_lines": 298,
+  "families": 76,
+  "numeric_vectors_equations_independently_recomputed": 70,
+  "source_identity_rows": 6,
+  "listed_pins_matched": 71,
+  "transitive_closure_checks_matched": 49,
+  "accepted_conditional_uppers": {
+    "ChildFixedProduce": 488982569,
+    "ChildFixedVerify": 930107394,
+    "ProducerUpper": 28989106790,
+    "VerifierUpper": 68703563262,
+    "children": 97692670052
+  },
+  "source_grounded_corrections": [
+    "allscalarzeroconversionandSDK/default/pair/witness/terminator/exceptionpropagation",
+    "Compiledvalue-initten-scalarprezero30distinctfromplaindefault",
+    "aggregateSampleRateDMIwithoutinventedconstructor",
+    "unsupportedwholefilepartialerrorreserveremoved;immediateferrorandpersistentEOFterminalcluster493<1085"
+  ],
+  "R6_R7_R8_CPP_header_identical_conditional_transfer_only": true,
+  "pending": [
+    "actualtypedliteralCataloguebindingandconstantevaluation/lifetimeincidences",
+    "staticstorage",
+    "nativeABI/profile",
+    "independentrunnercontrollerlifetime/pooljoin",
+    "completeU",
+    "separaterootGO"
+  ],
+  "actual_startup_exit_observation": false,
+  "compiler_or_target_execution": false,
+  "32MiB_fit": false,
+  "runtime_renderer_Ready_credit": false,
+  "old_R4_full_fit": "UNKNOWN"
+}

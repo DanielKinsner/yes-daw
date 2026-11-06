@@ -1,0 +1,41 @@
+{
+  "schema": "CANDIDATE_UCRT_ADDITIONAL_BOUNDED_DISASSEMBLY_AND_DATA",
+  "scope": "Candidate file only; not actual prior loaded-module evidence or all-path native qualification.",
+  "dll_sha256": "dedb7611e1abc1ff3852dcac3d4c93a048d729e25b061973b9969f22698f14ca",
+  "commands": [
+    {
+      "name": "log",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x1800a8c60,0x1800a9060",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "name": "floor-dispatch",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x18008d6d0,0x18008d9d0",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0
+    }
+  ],
+  "constant_file_reads": [
+    {
+      "rva": "0x103e10",
+      "raw_offset": 1064464,
+      "raw_hex": "000000000000f0bf",
+      "binary64_value": -1.0
+    },
+    {
+      "rva": "0x1020e8",
+      "raw_offset": 1057000,
+      "raw_hex": "000000000000f03f",
+      "binary64_value": 1.0
+    }
+  ]
+}

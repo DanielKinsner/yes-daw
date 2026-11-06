@@ -59,8 +59,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    compile-only. Fresh exact-head CI42146047209 passed ALL TEN jobs, including all three platform tests,
    both sanitizers and package/publication gates. The metronome repair and build correction are certified.
    Separate clock research remains unrun: corrected C++ censusR2 has conditional acceptance; R9 whole source
-   is accepted. The complete R9 runner census proposes5,041,187,603 operations and is in independent
-   numeric review; controlled-payload qualification remains on hold. No new execution GO.
+   is accepted. Independent R9 review conditionally accepts5,041,187,603 runner operations; the exact
+   clone-capacity correction also passed review. Payload remains on hold, with no execution GO. R10 is
+   a separate unrun source successor for path-string reuse and byte-validated whitespace compaction.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -81,6 +82,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Preserve conditional resource review and actual module association
+
+- R9 independent review checked48 scalar groups,62helpers and88main/error rows plus deltas; the runner upper5,041,187,603 is conditionally accepted. The separately reviewed clone-capacity erratum gives362/receipt and10844total. Controlled payload remains HOLD; no new cap, binding or target execution. Archived24 exact source/review files under `docs/research/artifacts/2026-11-05-clock-research-r9/`.
+- A separately reviewed six-address console probe compiled/ran0 and observed current log1p/FMA3/fenv addresses in System32 UCRT with FMA3selection1; floor's address belongs to its own image. This is that new executable's module association, not earlier/future caller or dispatch-interval proof. All three whole source files froze at first green;30 source/evidence files are archived under `docs/research/artifacts/2026-11-05-musical-native-association-r2/`.
+- The native argument now identifies a concrete stable-dispatch/source-code obligation; selected app/dependency startup/callback closure is being checked. R3's concrete funded classifier/one-resolve source is written but remains unbound and unrun, awaiting whole review/census/native qualification. R10's new source counts must be derived independently; it inherits no R9 execution authority.
+- All54 archive identities and original raw-log bytes were mechanically checked. Shipped code remains d3ec661 with all ten CI jobs green; later commits preserve evidence only. Continue combined planner/recipe/renderer/jobs/model, then linked/folder/piano. No desktop input, GUI or devices were used.
 
 ## 2026-11-05 - Preserve both native floating-point measurement profiles
 

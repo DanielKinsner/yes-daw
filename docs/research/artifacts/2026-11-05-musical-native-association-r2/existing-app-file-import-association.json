@@ -1,0 +1,60 @@
+{
+  "schema": "EXISTING_APP_BINARY_FILE_ONLY_IMPORT_ASSOCIATION",
+  "scope": "Existing app binary only; no GUI executable launch or actual loaded-module/R3/code-head qualification.",
+  "image": {
+    "path": "build-ci/YesDaw_artefacts/Release/YesDaw.exe",
+    "bytes": 9054720,
+    "sha256": "a16156b5c5d4acb1618dbf5557b09c57fdd55856e65ead4af704bc74d62072b7"
+  },
+  "commands": [
+    {
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/imports",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\YesDaw_artefacts\\Release\\YesDaw.exe"
+      ],
+      "raw_exit": 0
+    },
+    {
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/dependents",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\YesDaw_artefacts\\Release\\YesDaw.exe"
+      ],
+      "raw_exit": 0
+    }
+  ],
+  "imported_dll_names": [
+    "KERNEL32.dll",
+    "USER32.dll",
+    "GDI32.dll",
+    "SHELL32.dll",
+    "ole32.dll",
+    "OLEAUT32.dll",
+    "COMDLG32.dll",
+    "ADVAPI32.dll",
+    "MSVCP140.dll",
+    "SHLWAPI.dll",
+    "WINMM.dll",
+    "IMM32.dll",
+    "COMCTL32.dll",
+    "dwmapi.dll",
+    "d2d1.dll",
+    "dxgi.dll",
+    "d3d11.dll",
+    "dcomp.dll",
+    "VCRUNTIME140.dll",
+    "VCRUNTIME140_1.dll",
+    "api-ms-win-crt-runtime-l1-1-0.dll",
+    "api-ms-win-crt-heap-l1-1-0.dll",
+    "api-ms-win-crt-string-l1-1-0.dll",
+    "api-ms-win-crt-math-l1-1-0.dll",
+    "api-ms-win-crt-convert-l1-1-0.dll",
+    "api-ms-win-crt-stdio-l1-1-0.dll",
+    "api-ms-win-crt-filesystem-l1-1-0.dll",
+    "api-ms-win-crt-time-l1-1-0.dll",
+    "api-ms-win-crt-locale-l1-1-0.dll",
+    "api-ms-win-crt-utility-l1-1-0.dll",
+    "api-ms-win-crt-environment-l1-1-0.dll"
+  ]
+}
