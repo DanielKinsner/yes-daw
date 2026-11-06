@@ -1,0 +1,1181 @@
+{
+  "schema": "WHOLE_R3_REVIEW_SOURCE_ARITHMETIC_CHECKS",
+  "checks": [
+    {
+      "name": "exact_nine_file_namespace",
+      "pass": true,
+      "files": [
+        "README.md",
+        "formation-r7.h",
+        "legacy-adapter.h",
+        "native-observer.cpp",
+        "native-profile.h",
+        "source-correspondence.md",
+        "source-pins.json",
+        "window-query.h",
+        "worker-result.h"
+      ]
+    },
+    {
+      "name": "utf8_lf_README.md",
+      "pass": true,
+      "sha256": "C06859C274D698BE3F1C2419BBDC809529447D89BD7C643F9C5D66B20EA490DB"
+    },
+    {
+      "name": "utf8_lf_formation-r7.h",
+      "pass": true,
+      "sha256": "0421820B725F97603C0ECB39FF78DC316B477DDE80355B97850A34E83C8B3336"
+    },
+    {
+      "name": "utf8_lf_legacy-adapter.h",
+      "pass": true,
+      "sha256": "6A5A0F3475BCCB05E44ED313EB75392274B730B1E49A1375D9BBC565FF3B0A4D"
+    },
+    {
+      "name": "utf8_lf_native-observer.cpp",
+      "pass": true,
+      "sha256": "D4F4B982924543FD210FC462EC245960BA1F21E6162382DA835F5B6366403A1C"
+    },
+    {
+      "name": "utf8_lf_native-profile.h",
+      "pass": true,
+      "sha256": "7362153745C630DFB3BC2B96FD6AADBF29CB46B4596943BB754B49E7498459D6"
+    },
+    {
+      "name": "utf8_lf_source-correspondence.md",
+      "pass": true,
+      "sha256": "906C834D22448BD963BE90100902F0B81ACE7A25A9ADA193ED5012B9791A4A5D"
+    },
+    {
+      "name": "utf8_lf_source-pins.json",
+      "pass": true,
+      "sha256": "A42DEA7A4FBA5192E4F3208E086F5041163F1D519B8467F9AADE7C2AAAF9FD41"
+    },
+    {
+      "name": "utf8_lf_window-query.h",
+      "pass": true,
+      "sha256": "F1C8E363F6AA404A778CD745AB46791C4BE35BDF22392DFF54C848256435EF4D"
+    },
+    {
+      "name": "utf8_lf_worker-result.h",
+      "pass": true,
+      "sha256": "4818AD42D84C51F8A515E1742BCCE081B283A645986A601010B6678B878DB7BD"
+    },
+    {
+      "name": "old_vector_price_E",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_Z",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_R_C",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_MAX",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_MATH1",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_EXT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_VI",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_POSDIFF",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_BOOL_HANDLE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_ARROW_HANDLE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_HCOPY",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_HDROP",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_HDEFAULT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_HMOVEASSIGN",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_HCOPYASSIGN",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_F0",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_F1",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_HF0",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_HF1",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_SR_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_STATUS",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FB0",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_N_ENTER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_N_FIN",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_N_NEG",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_N_RANGE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_N_STORE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_ENTER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_SEG",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_DELTA",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_RANGE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_BPM_CALL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_ZERO",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_MATH",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_CURVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_EQUAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_LINEAR",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_FINAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_SLOPE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_SLOPE_ZERO",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_FIN_TEST",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_RELATIVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_REL_RANGE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_LOGADD",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_UB_BASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_UB_TEST",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_UB_BODY",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_UB_TRUE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_UB_FALSE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_ENTER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_RATE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_TICK",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_EMPTY",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_EMPTY_MATH",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_SEARCH_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FT_SEARCH_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_SEARCH_ADMIN",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_PREFIX",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_SEGMENT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_HAVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_NEXT_TRUE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_NEXT_FALSE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_BPM_TRUE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_BPM_FALSE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_APPEND_CALLER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_STORE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_ENTER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_NEG",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_FRACTION_CALL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_BUILT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_FAILURE_VALUE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_EMPTY",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_VECEMPTY",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_VECEMPTY",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_VECEMPTY_CALLER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_FRAMELOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_FT_CALLER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_ZERO",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_NATIVE_CALLER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FP_RESET",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_ENTER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_WHOLE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_DENOM",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_NUMERATOR",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_ELIGIBILITY",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_FRACTION_LOCALS",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_FB_CALLER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_TIMES",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_HIGH_ONE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_LOW_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_TIME_CALLER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_STATUS_TEST",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_STATUS_ARG",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_HIGH_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_EQUAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_ORDER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_WIDTH",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_FLOOR",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_FLOOR_EQ",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_OUTPUT_ARGS",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_WINDOW_VALUE_CTOR",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_WINDOW_PLAIN_CTOR",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_WINDOW_MOVE_ASSIGN",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_WINDOW_DTOR",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_WINDOW_RESET",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_WINDOW_RESET",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_ENTER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_START",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_LENGTH",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_N",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_OVERFLOW",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_ENDPOINT_LOCALS",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_A_CALLER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_A_CALLER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_A_ARGS",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_B_CALLER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_B_CALLER",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_B_ARGS",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_STATUS",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_RETURN_STATUS",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_COLLAPSE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_SUCCESS_SCALARS",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_SR0",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_SR0",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_SR1",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_SR1",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_N_NONFINITE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_N_NONFINITE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_N_NEGATIVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_N_NEGATIVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_N_OVERFLOW",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_N_OVERFLOW",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_N_OK",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_N_OK",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_BAD_SEG",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_BAD_SEG",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_BAD_DELTA",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_BAD_DELTA",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_BAD_RANGE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_BAD_RANGE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_START0",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_START0",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_START1",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_START1",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_END0",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_END0",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_END1",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_END1",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_VALID_PREFIX",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_VALID_PREFIX",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_ZERO_OK",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_ZERO_OK",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_DISPATCH",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_DISPATCH",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_JUMP",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_JUMP",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_FLAT_RAMP",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_FLAT_RAMP",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_RAMP_BASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_RAMP_BASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_SLOPE_ZERO_FAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_SLOPE_ZERO_FAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_SLOPE_NONFINITE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_SLOPE_NONFINITE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_REL_BASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_REL_BASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_REL_NONFINITE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_REL_NONFINITE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_REL_RANGE_FAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_REL_RANGE_FAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_AS_RAMP",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_AS_RAMP",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_RATE0_FAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FT_RATE0_FAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_RATE1_FAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FT_RATE1_FAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_VALID_RATE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FT_VALID_RATE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_NEGATIVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FT_NEGATIVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_VALID_BASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FT_VALID_BASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_EMPTY_CASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FT_EMPTY_CASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_NONEMPTY_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FT_NONEMPTY_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_AT_ROW_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FT_AT_ROW_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_PART_NEXT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FT_PART_NEXT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FT_PART_LAST",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FT_PART_LAST",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_NEGATIVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_NEGATIVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_FRAC0_INVALID",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_FRAC0_INVALID",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_FRAC1_INVALID",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_FRAC1_INVALID",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_VALID_TIME",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_VALID_TIME",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_UNBUILT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_UNBUILT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_BUILT_BASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_BUILT_BASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_INVALID_MAP",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_INVALID_MAP",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_EMPTY_BEFORE_FT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_EMPTY_BEFORE_FT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_MAP_BEFORE_FT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_MAP_BEFORE_FT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_AFTER_FT_OK",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_AFTER_FT_OK",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_BEFORE_WHOLE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FA_BEFORE_WHOLE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_NEGATIVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FA_NEGATIVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_INPUTS",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FA_INPUTS",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_RESOURCE_LIMIT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FA_RESOURCE_LIMIT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_BEFORE_TIME",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FA_BEFORE_TIME",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_FAILURE_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FA_FAILURE_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_OK_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FA_OK_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_PRE_NULL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_PRE_NULL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_EXIT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_EXIT",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_NULL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_NULL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_NEGATIVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_NEGATIVE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_NONPOS_LENGTH",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_NONPOS_LENGTH",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_ZERO_N",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_ZERO_N",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_OVERFLOW_CASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_OVERFLOW_CASE",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_BEFORE_A",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_BEFORE_A",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_A_FAIL_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_A_FAIL_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_B_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_B_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_B_FAIL_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_B_FAIL_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_COLLAPSED_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_COLLAPSED_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_SUCCESS_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_SUCCESS_TAIL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_UB_FIXED",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_UB_FIXED",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_UB_T",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_UB_T",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_UB_F",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_UB_F",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_B_TOTAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_B_TOTAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_EMPTY_OK_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_EMPTY_OK_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FF_MAP_OK_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FF_MAP_OK_LOCAL",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_FA_EMPTY_OK",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_FA_EMPTY_OK",
+      "pass": true
+    },
+    {
+      "name": "old_vector_price_RW_EMPTY_OK",
+      "pass": true
+    },
+    {
+      "name": "old_vector_composition_RW_EMPTY_OK",
+      "pass": true
+    },
+    {
+      "name": "empty_endpoint_symbolic_vector",
+      "pass": true,
+      "vector": [
+        60,
+        45,
+        29,
+        30,
+        0,
+        19,
+        19,
+        0,
+        0,
+        0
+      ],
+      "sum": 202
+    },
+    {
+      "name": "empty_resolve_symbolic_vector",
+      "pass": true,
+      "vector": [
+        145,
+        121,
+        66,
+        74,
+        0,
+        54,
+        54,
+        6,
+        0,
+        0
+      ],
+      "sum": 520
+    },
+    {
+      "name": "integer_search_recurrence_sanity_only",
+      "pass": true,
+      "abstract_instances": 33422,
+      "not_dynamic_cpp_visits": true
+    }
+  ],
+  "row_count": 190,
+  "compositions": 78,
+  "target_execution": false,
+  "source_only": true
+}

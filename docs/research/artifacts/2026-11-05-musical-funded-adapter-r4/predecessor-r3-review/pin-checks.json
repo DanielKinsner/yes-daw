@@ -1,0 +1,307 @@
+[
+  {
+    "group": "inputs",
+    "path": "AGENTS.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "CLAUDE.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "docs/adr/0085-owned-musical-call-recipes.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "docs/adr/0088-musical-origin-formation.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "docs/adr/0089-frozen-musical-builder-attempts.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-production-operation-boundary-census-conventions.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "src/engine/MusicalAudioWindow.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "src/engine/MusicalAudioChannelPlan.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "src/engine/Time.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "src/engine/RateMatchedView.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "src/engine/Project.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "src/engine/ClipSchedule.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-formation-bound-source-r2/formation.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-formation-bound-source-r2/formation-data.cpp",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-formation-bound-source-r2/proof-access.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-formation-bound-source-r2/README.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-formation-bound-source-r2/source-pins.json",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-origin-formation-r4-census-r2/census.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-formation-whole-proof-r3/first-green-freeze.json",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-formation-native-layout-r1/execution-r1/receipt.json",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/receipt.json",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-legacy-entry-boundary-prep/proposal.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-legacy-attempt-adr-prep/implementation-steps.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/formation-r5.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/legacy-adapter.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-correspondence.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/README.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-pins.json",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-r1-independent-review.json",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/formation-r6.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/worker-result.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/legacy-adapter.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-correspondence.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/README.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-pins.json",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-r2-independent-review.json",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-window-query-path-census-r1/census.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-window-query-path-census-r1/census.json",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-window-query-path-census-r1/source-pins.json",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-musical-window-query-path-census-r1-independent-review.json",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "build-ci/20261105-production-query-sdk-boundary-clarification.md",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/fenv.h",
+    "pass": true
+  },
+  {
+    "group": "inputs",
+    "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals.h",
+    "pass": true
+  },
+  {
+    "group": "protected_artifacts",
+    "path": "tests/musical_audio_call_recipe_tests.cpp",
+    "pass": true
+  },
+  {
+    "group": "protected_artifacts",
+    "path": "build-ci/20261105-musical-formation-whole-proof-r3/proof.cpp",
+    "pass": true
+  },
+  {
+    "group": "protected_artifacts",
+    "path": "src/engine/MusicalAudioCutPlan.h",
+    "pass": true
+  },
+  {
+    "group": "protected_artifacts",
+    "path": "src/engine/MusicalAudioChannelMaterialization.h",
+    "pass": true
+  },
+  {
+    "group": "protected_artifacts",
+    "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/probe-types.h",
+    "pass": true
+  },
+  {
+    "group": "protected_artifacts",
+    "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/build-and-query.cpp",
+    "pass": true
+  },
+  {
+    "group": "protected_artifacts",
+    "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/replay-probe.cpp",
+    "pass": true
+  },
+  {
+    "group": "protected_artifacts",
+    "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/fp-observer.cpp",
+    "pass": true
+  },
+  {
+    "group": "protected_artifacts",
+    "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/README.md",
+    "pass": true
+  },
+  {
+    "group": "protected_artifacts",
+    "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/source-pins.json",
+    "pass": true
+  },
+  {
+    "group": "outputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/formation-r7.h",
+    "pass": true
+  },
+  {
+    "group": "outputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/worker-result.h",
+    "pass": true
+  },
+  {
+    "group": "outputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/legacy-adapter.h",
+    "pass": true
+  },
+  {
+    "group": "outputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/window-query.h",
+    "pass": true
+  },
+  {
+    "group": "outputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-profile.h",
+    "pass": true
+  },
+  {
+    "group": "outputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-observer.cpp",
+    "pass": true
+  },
+  {
+    "group": "outputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-correspondence.md",
+    "pass": true
+  },
+  {
+    "group": "outputs",
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/README.md",
+    "pass": true
+  }
+]

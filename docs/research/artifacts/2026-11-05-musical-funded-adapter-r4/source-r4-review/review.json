@@ -1,0 +1,406 @@
+{
+  "schema": "YESDAW_FUNDED_LEGACY_ADAPTER_R4_WHOLE_SOURCE_INDEPENDENT_REVIEW_V1",
+  "reviewer": "/root/r3_whole_source_review",
+  "utc": "2026-11-06T04:46:12.842568+00:00",
+  "verdict": "ACCEPT_WHOLE_CONDITIONAL_SOURCE_FOR_INDEPENDENT_CENSUS",
+  "meaning": "Accept complete actual conditional R4 source algorithm/ownership/bootstrap/funding structure for independent source census. No blocking functional defect found. This is not native/data/source-fit/resource/compile/execution/forward-proof admission.",
+  "source_manifest_sha256": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077",
+  "predecessor_review_sha256": "E5069BA2A03F50BA5D4A954132BC89A65533B6A891EF77D17DFF25AE936CD871",
+  "accepted_design_sha256": "5E25CEE9BB03B20F8412E0793BB9EF1519CBC8503927EDF649004E9980787AF3",
+  "whole_files_reviewed": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/formation-r8.h",
+      "sha256": "1308DC2CAA05644FF2AD72FE5EF10EE620A636E2EEC1D1747C8C154769FADEBA",
+      "bytes": 81190,
+      "lines": 1800,
+      "scope": "Whole current file read/reviewed; source-pins record scopes, identities and all nonrecord declarations examined."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/worker-result.h",
+      "sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754",
+      "bytes": 9148,
+      "lines": 178,
+      "scope": "Whole current file read/reviewed; source-pins record scopes, identities and all nonrecord declarations examined."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/legacy-adapter.h",
+      "sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E",
+      "bytes": 28646,
+      "lines": 551,
+      "scope": "Whole current file read/reviewed; source-pins record scopes, identities and all nonrecord declarations examined."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/window-query.h",
+      "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8",
+      "bytes": 48648,
+      "lines": 1030,
+      "scope": "Whole current file read/reviewed; source-pins record scopes, identities and all nonrecord declarations examined."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-profile.h",
+      "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9",
+      "bytes": 6189,
+      "lines": 148,
+      "scope": "Whole current file read/reviewed; source-pins record scopes, identities and all nonrecord declarations examined."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-observer.cpp",
+      "sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714",
+      "bytes": 7067,
+      "lines": 164,
+      "scope": "Whole current file read/reviewed; source-pins record scopes, identities and all nonrecord declarations examined."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-correspondence.md",
+      "sha256": "E38A5D1029E2F013A88EB6908C75553C791678F3D5B1605BD0AB15E80706279D",
+      "bytes": 32604,
+      "lines": 480,
+      "scope": "Whole current file read/reviewed; source-pins record scopes, identities and all nonrecord declarations examined."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/README.md",
+      "sha256": "7C37A469A5696D20376CDAEC5A5C227B14D8467316C1A1BC1FEDA94515D08F2F",
+      "bytes": 6039,
+      "lines": 100,
+      "scope": "Whole current file read/reviewed; source-pins record scopes, identities and all nonrecord declarations examined."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-pins.json",
+      "sha256": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077",
+      "bytes": 52105,
+      "lines": 867,
+      "scope": "Whole current file read/reviewed; source-pins record scopes, identities and all nonrecord declarations examined."
+    }
+  ],
+  "pin_counts": {
+    "inputs": 60,
+    "protected_artifacts": 10,
+    "outputs": 8,
+    "total": 78,
+    "all_match": true,
+    "R3_direct61_preserved": true,
+    "R3_nine_files_preserved": true
+  },
+  "inventory": "inventory-checks.json",
+  "arithmetic": "source-arithmetic-checks.json",
+  "blocking_findings": [],
+  "reviewed_properties": [
+    {
+      "id": "whole_lineage",
+      "anchors": [
+        "source-pins.json:1",
+        "formation-r8.h:25",
+        "formation-r8.h:401",
+        "window-query.h:10"
+      ],
+      "conclusion": "All nine current files reviewed. All78 direct pins match before review; all61 R3 direct identities and all nine R3 files remain exact. R4 has420 Sites preserving the full363 R3 prefix, unchanged role/phase/evidence ordinals and190 exact old packet IDs in accepted catalogue order."
+    },
+    {
+      "id": "one_origin_and_quotes",
+      "anchors": [
+        "formation-r8.h:911",
+        "formation-r8.h:946",
+        "legacy-adapter.h:143",
+        "window-query.h:669",
+        "window-query.h:680"
+      ],
+      "conclusion": "ONE genuine captured-request logical root precedes first physical initialization. All twelve quote terms use separately held fixed source and independently check multiplication/addition before variable NativeSession locals. Native M,D,L,A products are separate; no unchecked M+D or L+A. Q is a reservation only; all reached new actions use paid source partitions, unchanged workCap."
+    },
+    {
+      "id": "bootstrap_order",
+      "anchors": [
+        "legacy-adapter.h:493",
+        "legacy-adapter.h:500",
+        "window-query.h:536",
+        "window-query.h:573",
+        "native-observer.cpp:30"
+      ],
+      "conclusion": "Actual order is private compute/fact completeness, fixed kernel/control leaves, immutable region/page/byte matching, address-only dependency validation, qualified first snapshot/initial selection, then original Clock. matched_ is set only by the actual successful walk. Failed pre-match constructor paths leave restoring_ false, so destructor performs no unqualified getter/restoration. Matcher pre-baseline volatile status effects are permitted, not restored."
+    },
+    {
+      "id": "kernel_leaves",
+      "anchors": [
+        "native-profile.h:30",
+        "native-profile.h:59",
+        "native-observer.cpp:6",
+        "native-observer.cpp:40",
+        "native-observer.cpp:75",
+        "native-observer.cpp:92"
+      ],
+      "conclusion": "Five private fixed-source noinline leaves value-initialize all POD/native-struct results before API failure. C double log1p overload selected explicitly; getter address is taken without invoking it. FROM_ADDRESS|UNCHANGED_REFCOUNT borrows no OS owner; PSAPI_VERSION2/K32GetModuleInformation/Kernel32.lib selected explicitly. GetCurrentProcess is a pseudo-handle. No variable walk, getter/fenv/libm invocation, allocator/stdio/restore/load/free/cache in those leaves. Supported MSVC function-address conversion/native byte access remains an explicit native fact."
+    },
+    {
+      "id": "module_and_image_arithmetic",
+      "anchors": [
+        "window-query.h:348",
+        "window-query.h:360",
+        "window-query.h:370",
+        "window-query.h:375",
+        "window-query.h:378"
+      ],
+      "conclusion": "Profile M/L/D/A pointers and positive bounded extents/policy are guarded. Both anchor lookups must succeed with same nonnull module; actual image base agrees and guarded positive extent has representable end. Anchor subtraction follows lower-bound checks, then both guarded offsets must be in-image and equal private entry RVAs. Relevant enumerated code/table/dispatch association is the claim, not whole CRT identity."
+    },
+    {
+      "id": "immutable_walk",
+      "anchors": [
+        "window-query.h:386",
+        "window-query.h:398",
+        "window-query.h:403",
+        "window-query.h:415",
+        "window-query.h:423",
+        "window-query.h:432",
+        "window-query.h:441",
+        "window-query.h:460"
+      ],
+      "conclusion": "Each immutable region has accepted Code/Table role, positive in-image extent, exact sequential expected offset and bounded expected storage. Every page query must return complete selected representation, MEM_COMMIT/MEM_IMAGE/same AllocationBase, positive contained range and exact current EXECUTE_READ for Code or READONLY for table. Unknown/guard/write modifiers refuse. Guarded positive chunk bounds the literal one volatile uint8_t image read and private expected read. No bulk comparator/overread appears. Successful progress and sum checks establish <=L reached page bodies and <=L comparisons, with <=M region bodies."
+    },
+    {
+      "id": "address_only_walk",
+      "anchors": [
+        "window-query.h:470",
+        "window-query.h:484",
+        "window-query.h:489",
+        "window-query.h:499",
+        "window-query.h:506",
+        "window-query.h:512",
+        "window-query.h:519",
+        "window-query.h:523"
+      ],
+      "conclusion": "Separate D/A rows validate the complete actual getter footprint after immutable matching and before first getter. Current supported role has exact uint32_t length4 and aligned actual address. Each extent stays within actual image; each chunk rechecks complete page representation, MEM_COMMIT/MEM_IMAGE/same AllocationBase and exact READONLY/READWRITE/WRITECOPY data protection. No mutable value load/comparison exists. Positive progress gives <=A page bodies; successful private data necessarily A=4D. nativeAccessBytesCovered counts validated address extent, not byte observations."
+    },
+    {
+      "id": "selector_and_counters",
+      "anchors": [
+        "window-query.h:334",
+        "window-query.h:480",
+        "window-query.h:582",
+        "window-query.h:588",
+        "window-query.h:321"
+      ],
+      "conclusion": "Initial getter selection must be0/1 before shift; private allowed mask can permit both finite arms. Later comparisons use captured actual initial selection. All actual matcher loop/API/byte/address/refusal counters have reached paid sponsors. nativeMatches counts successful region/access validation, which can still be followed by snapshot/selector failure; it is not full native/forward-proof qualification. Identity/selector failures are distinct from matchRefused counter paths."
+    },
+    {
+      "id": "existing_query",
+      "anchors": [
+        "window-query.h:256",
+        "window-query.h:283",
+        "window-query.h:705",
+        "window-query.h:733",
+        "window-query.h:765",
+        "window-query.h:790",
+        "window-query.h:867",
+        "window-query.h:927",
+        "window-query.h:991"
+      ],
+      "conclusion": "Accepted concrete smaller-B algorithm remains: <=R-1 monotone full prefix replays, <=2 partial actual append calls and <=2 bounded selected searches. Partial endpoint result never overwrites cached-prefix scalar; B runs only after A success. Partial classifier computes old-order guard arithmetic then calls actual old append. Scalar refusal order, finite [0,2^63) floor cast and old packet compositions preserved. Exact old vector sum is protected in same-origin queryCallee_, unavailable to later bookkeeping; branchless debit is immediately followed by one guaranteed actual old call. 970+72B is a held ceiling, never fee."
+    },
+    {
+      "id": "three_fees_and_evidence",
+      "anchors": [
+        "legacy-adapter.h:160",
+        "legacy-adapter.h:213",
+        "legacy-adapter.h:228",
+        "legacy-adapter.h:309",
+        "legacy-adapter.h:382",
+        "window-query.h:971"
+      ],
+      "conclusion": "Exactly one actual callsite per Clock/Request/Plan; unchanged ADR0089 semantic fees1+6R,4096,1024+N*(8+16C), no fourth tariff/retry/new origin. Actual returned status is known only when actual invocation occurred. Successful cumulative is read/compared once without charging it again. Existing source-proved vs returned-owner vs unavailable failure observations remain correct. Query reconciliation compares public status/Window fields/get and control owner identity; hidden private doubles/cache/visits are not claimed observed."
+    },
+    {
+      "id": "ownership_and_lifetime",
+      "anchors": [
+        "formation-r8.h:662",
+        "formation-r8.h:817",
+        "formation-r8.h:1379",
+        "formation-r8.h:1443",
+        "formation-r8.h:1512",
+        "formation-r8.h:1764",
+        "worker-result.h:12",
+        "worker-result.h:65",
+        "worker-result.h:86",
+        "worker-result.h:133",
+        "worker-result.h:162"
+      ],
+      "conclusion": "State owns neither worker nor result. Worker-local staging owns physical old artifacts; explicit paid raw-storage destruction precedes physical T drop with completion afterward, no implicit second owning destruction. Staging completes before real terminal publication. Separate Result retains same origin with no reverse State edge and real acquire before take. Live max3 refs; sequential Result destruction then Retained/Reader is still permitted and must remain funded. Final destructor tails do not read freed State."
+    },
+    {
+      "id": "DMI_and_initialization",
+      "anchors": [
+        "legacy-adapter.h:14",
+        "legacy-adapter.h:19",
+        "legacy-adapter.h:239",
+        "legacy-adapter.h:342",
+        "legacy-adapter.h:424",
+        "legacy-adapter.h:493",
+        "legacy-adapter.h:530",
+        "formation-r8.h:1419",
+        "worker-result.h:173",
+        "native-observer.cpp:119"
+      ],
+      "conclusion": "New actual LegacyChainCaller payment precedes chain and Common/requested implicit construction and two limit DMIs, including cancellation paths. Each earlier Clock/Request/Plan Prepare caller sponsors its PreparedAttempt/limits two pre-body DMIs. ArmResult/TakeResult sponsor four nested status DMIs before result constructor bodies. Native session lifecycle flags initialized before early exits; snapshot and native POD/native API structs value-initialized before SDK failures. ReplayStatus/baseline members are never read before their respective successful writes."
+    },
+    {
+      "id": "replay_cleanup_scope",
+      "anchors": [
+        "window-query.h:603",
+        "window-query.h:611",
+        "window-query.h:634",
+        "window-query.h:996",
+        "native-observer.cpp:142"
+      ],
+      "conclusion": "Restoration target begins at actual post-Clock beginReplay; it covers only extra classifier/replay before actual resolve. Existing strict restore preserves represented five CRT flags, all six raw MXCSR status bits and errno, while current controls stay unchanged. Failed initial restore check can be repeated by destructor with zero physical restore calls; both attempts need funding. Once physical restore executes, restoring_ becomes false even if later verification rejects. No post-real-resolve restoration and no raw x87/all-native preservation claim."
+    },
+    {
+      "id": "conditional_data_boundary",
+      "anchors": [
+        "formation-r8.h:537",
+        "window-query.h:206",
+        "native-profile.h:77",
+        "native-profile.h:89",
+        "native-profile.h:131",
+        "source-correspondence.md:153",
+        "source-correspondence.md:288"
+      ],
+      "conclusion": "All algorithms are concrete, while ordinary private definitions Catalogue::reviewedData_, OldQueryCatalogue::data_ and NativeBinding::data_ remain absent. No public caller bool/token/price/array/module override or runtime loader/init/cache added. Nonzero17 fact digests establish completeness only. Actual profile/module-callsite/dependency/dispatch/control/handler/store/observer/native/library/codegen/lifetime and source/resource facts still must close before any binding or execution."
+    }
+  ],
+  "mandatory_census_and_proof_obligations": [
+    {
+      "id": "all_prices_sizes_root",
+      "anchors": [
+        "formation-r8.h:466",
+        "formation-r8.h:495",
+        "formation-r8.h:547",
+        "formation-r8.h:911",
+        "formation-r8.h:946"
+      ],
+      "required": "Independently rederive all420 complete Site prices, affected Raw/LegacyRaw/LegacyReadout/State/Control/App/Bounds sizes and aggregate copies/zero loops, complete first-root/role/fixed/cleanup schedules and changed caller/return work. Site-prefix identity transfers no literal or resource price. No874/3082 reuse."
+    },
+    {
+      "id": "native_leaf_census",
+      "anchors": [
+        "native-observer.cpp:30",
+        "native-observer.cpp:40",
+        "native-observer.cpp:59",
+        "native-observer.cpp:75",
+        "native-observer.cpp:92"
+      ],
+      "required": "Each actual caller Site must include full fixed leaf entry, explicit source operands/conversions, POD/HMODULE/MODULEINFO/MEMORY_BASIC_INFORMATION first writes, named locals, API invocation/return, aggregate result read/write and possible named-return copy. No recursive opaque SDK internals or invented CPU/allocation-zero credit. Kernel stack structs, simultaneous nested results and constant Data/Region/AccessRegion/expected storage need exact resource accounting."
+    },
+    {
+      "id": "matcher_complete_paths",
+      "anchors": [
+        "window-query.h:334",
+        "window-query.h:340",
+        "window-query.h:386",
+        "window-query.h:415",
+        "window-query.h:441",
+        "window-query.h:470",
+        "window-query.h:500"
+      ],
+      "required": "Cover every profile/control/module/image/anchor/region/page/byte/access-only guard and early refusal, all loop entry/test/continue/end/final-false paths, actual raw writes, matchRefused plus reject, initial selection/policy and scope destructor. PerRegion/PerPage must cover the larger complete immutable/access path and perByte actual one-byte path; include caller/admin/ledger expansion nonrecursively."
+    },
+    {
+      "id": "twelve_terms_and_origin_fit",
+      "anchors": [
+        "window-query.h:669",
+        "window-query.h:680",
+        "legacy-adapter.h:143"
+      ],
+      "required": "All twelve quote terms execute even after refusal under already-held legacyFixed; quote/admin/refused terms need fixed sponsor. Derive seven new coefficients and actual complete Q including fixed17x32 identity/native checks, replay restoration/cancellation/failure and protected callee bookkeeping. Prove same-origin actual+all reserved <=2^28 before work and resource caps unchanged, no posthoc credit."
+    },
+    {
+      "id": "prebody_initialization",
+      "anchors": [
+        "legacy-adapter.h:493",
+        "legacy-adapter.h:530",
+        "legacy-adapter.h:239",
+        "legacy-adapter.h:342",
+        "legacy-adapter.h:424",
+        "formation-r8.h:1419",
+        "worker-result.h:173",
+        "worker-result.h:18",
+        "worker-result.h:72"
+      ],
+      "required": "LegacyChainCaller must actually price Common/requested implicit construction and both limits DMIs before cancellation/common. Clock/Request/Plan Prepare callers price each PreparedAttempt/limits two DMIs before prepare body; ArmResult/TakeResult price four nested status DMIs. Count pre-body constructor pointer/member work and post-physical-drop return tails under actual earlier callers, separately from later body copies."
+    },
+    {
+      "id": "existing_vector_paths",
+      "anchors": [
+        "window-query.h:229",
+        "window-query.h:243",
+        "window-query.h:256",
+        "window-query.h:270",
+        "window-query.h:283"
+      ],
+      "required": "Retain full ten-cell vector/add/sum/record loops and actual checked arithmetic/argument/copy/caller work. Split/queryCallee init/protected debit/retirement source remains separate from old vector. Old internal visits stay Unavailable; new loop/source counters and callee SourceDerived amounts are not actual observations of old hidden operations."
+    },
+    {
+      "id": "failed_restoration",
+      "anchors": [
+        "window-query.h:595",
+        "window-query.h:611",
+        "window-query.h:634"
+      ],
+      "required": "Include explicit restore check failure and possible destructor retry. Two funded check attempts can produce zero physical restoreStatus calls; no unconditional restore-success certification. Include all postrestore read/compare and accepted_-false paths. Restoration scope excludes pre-baseline matcher and legitimate Clock/real resolve effects; unrepresented x87 remains pending."
+    },
+    {
+      "id": "sequential_result_retained",
+      "anchors": [
+        "formation-r8.h:1764",
+        "worker-result.h:97",
+        "worker-result.h:133"
+      ],
+      "required": "Finite source/resources/combined proof must include actual acquire+take Result, external Result destruction while Control survives, then Retained issuance, Control destruction and later Reader use on same origin. Simultaneous live exclusion does not make these sequential actions unreachable or free; all roles stay one-use/max3 live refs."
+    },
+    {
+      "id": "native_facts_binding",
+      "anchors": [
+        "native-profile.h:77",
+        "native-profile.h:108",
+        "native-profile.h:131",
+        "source-correspondence.md:153",
+        "source-correspondence.md:280",
+        "source-correspondence.md:288"
+      ],
+      "required": "Before any definitions: complete17 actual evidence facts, all-domain relevant code/table/direct-conditional-call/RIP/index dependency closure for both finite arms and getter; exact PE/RVA/relocation spans and separately mapped mutable dispatch address/length/aligned load footprint. No assumed candidate M9/L8284/D1/A4, profile bytes or digests bound by this review. Match relevant regions only; name separate fenv/errno/get_new_handler/classification/floor contracts where relied on."
+    },
+    {
+      "id": "actual_intervals_resources_wholeproof",
+      "anchors": [
+        "source-correspondence.md:280",
+        "source-correspondence.md:299",
+        "source-correspondence.md:459"
+      ],
+      "required": "Close actual main-image static import/no-unload/no-remap/no-code/protection writer/shutdown drain read lifetime; real dispatch/FMA/new_handler/control intervals, callsite/compile/strict-object/codegen/private-prefix/store/libm/classification/observer/restoration facts. Independently prove immutable ingress/get-owner/allocator/ABI/FP scratch/stack/read-only storage/retained overlaps and actual whole combined source/API proof before execution/public recipe/jobs/model/renderer/Ready."
+    }
+  ],
+  "architecture": "Ordinary private implementation under accepted ADR0085/88/89 and accepted A design. No new ADR required and no owner-settled contract replaced.",
+  "not_granted": [
+    "Any private ordinary const data definition or candidate profile/price binding",
+    "Any copied predecessor prices/root/ABI/layout/source-fit/proof credit",
+    "Actual native/module/dispatch/control/handler/observer/CRT/x87 qualification",
+    "All-input floating-point forward equivalence or actual source codegen proof",
+    "Resource/stack/storage/allocation/overlap/whole-cap fit",
+    "Compiler/linker/target execution or first GREEN",
+    "Independent actual whole combined source/API proof",
+    "Public recipe/producer/job/model/renderer/Ready/audio activation or Option A completion"
+  ],
+  "operations": {
+    "performed": [
+      "Ordinary current source/document/file reads",
+      "Raw-byte SHA256/length/line-ending and JSON/text/regex inventory",
+      "Python integer/table composition, guarded quote, positive chunk and finite mask arithmetic only",
+      "Created six new report/evidence files only inside this review directory"
+    ],
+    "target_parser_AST_import": false,
+    "PowerShell_target_parser_or_script": false,
+    "compiler_linker": false,
+    "target_helpers_programs_tests_stages": false,
+    "native_API_calls_or_layout_probe": false,
+    "GUI_audio_device": false,
+    "Git_CI": false,
+    "source_input_edits": false,
+    "memory": "Registry navigation only; current source/accepted review/design facts control. No memory fact is a binding input."
+  }
+}

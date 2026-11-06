@@ -1,0 +1,9 @@
+{
+  "scope": "Static independent certificate checker only",
+  "observed_shell_exit": 1,
+  "reason": "Checker regex assumed indexed rcx*8; actual six decoded table reads use rax*8. Assertion all6 indexed reads covered failed. Certificate unchanged; no target program execution.",
+  "actual_six_operand_forms": [
+    "[r9+rax*8]",
+    "[rdx+rax*8]"
+  ]
+}

@@ -50,8 +50,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Active: Musical audio tempo-follow. Window/channel planning and pure history foundations are pushed; audible
    tempo-follow is not enabled. The request-owner prototype now passes135,111 headless checks and eight biting
    mutants; the source/evidence archive is `docs/research/artifacts/2026-11-05-musical-origin-formation-r4/`.
-   The funded adapter's ownership/cleanup revision passed source review; its query classifier and complete
-   recipe/resource/renderer proof and model/job integration remain unfinished. A finite native timing probe
+   The combined funded adapter/native-guard R4 source passed whole review; all420 source Sites need the
+   independent census, immutable binding and whole combined proof. Recipe/resource/renderer and model/job
+   integration remain unfinished. A finite native timing probe
    passed both compiler profiles: each checked22,284 queries over96maps and six rates; archived source/results
    are `docs/research/artifacts/2026-11-05-musical-query-fp-profile-r1/`. This is not whole-equivalence proof.
    Current CI: metronome performance repair5785a3f passes490 local pure checks, GUI3 compile-only and Clang4.
@@ -61,7 +62,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Separate clock research remains unrun: corrected C++ censusR2 has conditional acceptance; R9 whole source
    is accepted. Independent R9 review conditionally accepts5,041,187,603 runner operations; the exact
    clone-capacity correction also passed review. Payload remains on hold, with no execution GO. R10 is
-   a separate unrun source successor for path-string reuse and byte-validated whitespace compaction.
+   a separate unrun source successor for path-string reuse and byte-validated whitespace compaction;
+   its whole functional review passed, while its new complete scalar/lifetime census remains active.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -82,6 +84,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Close the matcher source and candidate dependency reviews
+
+- Whole R4 adapter source passed independent review:78pins, preserved61 predecessor identities/363Site ordinals,420Sites total,190old packet IDs and78compositions exact. The concrete once-before-Clock guard checks module/entry/page extents, immutable bytes and separate mutable-dispatch access; all variable work is funded in the same origin. Source is uncompiled/unrun, with prices/profile data undefined.
+- The candidate-file dependency certificate covers both SSE/FMA paths, nine regions/8284bytes, complete257-double tables and the separate four-byte dispatch extent. All758 independent static checks passed, including complete control/RIP/table/relocation cross-checks; this is not runtime/combined qualification. The corrected checker and whole certificate froze at first green; its initial checker-only index assumption failure is retained.
+- Archived50 byte-exact source/review/certificate files under `docs/research/artifacts/2026-11-05-musical-funded-adapter-r4/`. All copy identities were mechanically verified. The earlier allocator/handler association closes only its stated default-runtime/source premise, with no forced OOM/setter execution.
+- Next: finish complete independent production420-Site and separate research R10 censuses; qualify selected CLR storage coefficients in a new small reviewed headless probe; then close actual immutable binding, combined native/whole proof and recipe/renderer/jobs/model. No app/window/device/input was launched, and Musical activation plus linked/folder/piano remain unfinished.
 
 ## 2026-11-05 - Preserve conditional resource review and actual module association
 

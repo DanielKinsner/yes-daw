@@ -1,0 +1,12 @@
+{
+  "site_old_count": 234,
+  "site_new_count": 363,
+  "site_prefix_preserved": true,
+  "old_packet_count": 190,
+  "old_packet_order_matches_catalogue": true,
+  "role_phase_ordinals_preserved": true,
+  "actual_callsite_counts": {
+    "append": 1,
+    "resolve": 1
+  }
+}

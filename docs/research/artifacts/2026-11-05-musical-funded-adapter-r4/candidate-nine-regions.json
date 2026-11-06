@@ -1,0 +1,120 @@
+{
+  "schema": "PROPOSED_NINE_NATIVE_MATH_REGION_FILE_IDENTITIES",
+  "scope": "Independent candidate-file extent/hash/relocation arithmetic only; dependency completeness separately reviewed; not profile definitions or NativeBinding/price/execution authority.",
+  "candidate_sha256": "DEDB7611E1ABC1FF3852DCAC3D4C93A048D729E25B061973B9969F22698F14CA",
+  "prior_complete_pe_relocation_record_sha256": "E693C8C6E74B1F7F57F1F3A0F8A28CE5823DB9F283F1E22FAA9E7FDDC9BD5655",
+  "regions": [
+    {
+      "role": "log1p-code",
+      "start_rva": "0x4f130",
+      "end_rva_exclusive": "0x4f21d",
+      "bytes": 237,
+      "double_lanes": null,
+      "raw_file_offset": 323888,
+      "sha256": "DA3DA7193238B5AA47299B35090879036E5E07703E60F62708C2A24081771FFB",
+      "section": ".text",
+      "section_characteristics": "0x60000020",
+      "base_relocation_intersections": []
+    },
+    {
+      "role": "log-both-arms-code",
+      "start_rva": "0xa8c60",
+      "end_rva_exclusive": "0xa918b",
+      "bytes": 1323,
+      "double_lanes": null,
+      "raw_file_offset": 691296,
+      "sha256": "8939C3DBA44B5C29FC1305AB46DA3B877331BCFE2DBFC86DE410524B7E76F37D",
+      "section": ".text",
+      "section_characteristics": "0x60000020",
+      "base_relocation_intersections": []
+    },
+    {
+      "role": "getter-code",
+      "start_rva": "0xcc390",
+      "end_rva_exclusive": "0xcc39c",
+      "bytes": 12,
+      "double_lanes": null,
+      "raw_file_offset": 836496,
+      "sha256": "D8B7156BB3C762487E5F800A5A167824F935CD36D7E0E7AB28288811554A2691",
+      "section": ".text",
+      "section_characteristics": "0x60000020",
+      "base_relocation_intersections": []
+    },
+    {
+      "role": "shared-constants",
+      "start_rva": "0x107400",
+      "end_rva_exclusive": "0x107610",
+      "bytes": 528,
+      "double_lanes": null,
+      "raw_file_offset": 1078272,
+      "sha256": "C40667044A4A853C433592119457E6016B4524B672EF13ADF0154A6DEF509175",
+      "section": ".rdata",
+      "section_characteristics": "0x40000040",
+      "base_relocation_intersections": []
+    },
+    {
+      "role": "high-table",
+      "start_rva": "0x109420",
+      "end_rva_exclusive": "0x109c28",
+      "bytes": 2056,
+      "double_lanes": 257,
+      "raw_file_offset": 1086496,
+      "sha256": "6559E5FE3D58ADC08589727E4BA0292C5F023079394A66BD93BE043B4D607A0E",
+      "section": ".rdata",
+      "section_characteristics": "0x40000040",
+      "base_relocation_intersections": []
+    },
+    {
+      "role": "low-table",
+      "start_rva": "0x109c30",
+      "end_rva_exclusive": "0x10a438",
+      "bytes": 2056,
+      "double_lanes": 257,
+      "raw_file_offset": 1088560,
+      "sha256": "8565D9011BDABCB30AC135C867E272E0EB8BDD1DED538456EF36F5785E744488",
+      "section": ".rdata",
+      "section_characteristics": "0x40000040",
+      "base_relocation_intersections": []
+    },
+    {
+      "role": "reciprocal-table",
+      "start_rva": "0x10a650",
+      "end_rva_exclusive": "0x10ae58",
+      "bytes": 2056,
+      "double_lanes": 257,
+      "raw_file_offset": 1091152,
+      "sha256": "229D2459BBB3CB9C459844B78A6ABDD8FDDF1BDAEFDB4057F4EA6679BF6CDE24",
+      "section": ".rdata",
+      "section_characteristics": "0x40000040",
+      "base_relocation_intersections": []
+    },
+    {
+      "role": "wrapper-plus-one",
+      "start_rva": "0x1020e8",
+      "end_rva_exclusive": "0x1020f0",
+      "bytes": 8,
+      "double_lanes": null,
+      "raw_file_offset": 1057000,
+      "sha256": "6C3C396ED6B5C36DCAE172271F462051B1266B851E92DF3DEEA8AC65478FD712",
+      "section": ".rdata",
+      "section_characteristics": "0x40000040",
+      "base_relocation_intersections": []
+    },
+    {
+      "role": "wrapper-minus-one",
+      "start_rva": "0x103e10",
+      "end_rva_exclusive": "0x103e18",
+      "bytes": 8,
+      "double_lanes": null,
+      "raw_file_offset": 1064464,
+      "sha256": "E77817B649821C634355A917817C1224A360514B1244FE09E832BAC4E8EA4440",
+      "section": ".rdata",
+      "section_characteristics": "0x40000040",
+      "base_relocation_intersections": []
+    }
+  ],
+  "regions_count": 9,
+  "total_region_bytes": 8284,
+  "each_table_lanes": 257,
+  "all_relocation_intersections_empty": true
+}

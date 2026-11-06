@@ -1,0 +1,42 @@
+{
+  "schema": "FUNDED_LEGACY_ADAPTER_R2_WHOLE_PARTIAL_SOURCE_REVIEW",
+  "verdict": "ACCEPT_WHOLE_PARTIAL_SOURCE_PENDING_QUERY_CENSUS",
+  "reviewer": "/root/musical_adapter_whole_source_review",
+  "seals": {
+    "formation-r6.h": "F5E4348ACBB7A4843C662269197B7A320C5E2000211DF8CDA6CCACFE33C47D1F",
+    "worker-result.h": "021461C164FF43D18576057B2D7BA0C2F9C9EA45A1259B2523EB875050F4A399",
+    "legacy-adapter.h": "1DBE42BAF8F4F87311A100D48E94DD44DB7FC001103FC3AB459A42002EF7966F",
+    "source-correspondence.md": "2B966471F1C9BA1D0BFB92E6E973CF5BFF363900A2D775AC49DAD74CF35FCBE6",
+    "README.md": "E43C214A9D621B28FF5F9CD88C4D0458C5FB8506263C99A93100AC1116BBA818",
+    "source-pins.json": "F3A117FF3BFA3CB15B6D41105CB505AE1A9017176EE904EFAF6D43B19297C901"
+  },
+  "whole_source_reviewed": true,
+  "closed_R1_blockers": [
+    "Allactualownerdestructionprepaidwithcompletionafterphysicaldrop/rawstoragenoimplicitseconddtor",
+    "Statenocomputedoutputs;Workerstagingseparate;Controlcell/externalresultownsPlanwithsameoriginretention"
+  ],
+  "coherent_paths": [
+    "failedcapture",
+    "neverarmed",
+    "unstartedabort",
+    "refusal/cancel/exception",
+    "completion/discard",
+    "retiringdrain",
+    "eitherexternalResult/Controldtororder",
+    "actualacquirebeforeledgermutation",
+    "Result/Retainedexclusivity/max3refs",
+    "threeactualfrozencalls/preparedargs/branchlesscommit/precisetariffs/cumulativeonce/unknowntruthful"
+  ],
+  "mandatory_census_clarification": "WorkerLegacyResultdirectLegacyReadouttwoMusicalAudioChannelResultDMImembers:4statuswrites+actualimplicitconstruction/call/returnBEFOREconstructorsbodies. Sponsorbyalready-enteredLegacyArmResult(formation1202-1204)andLegacyTakeResult(worker171-173),NOTlaterCellConstruct/CellMove;countsubsequentinit/copyseparately.",
+  "pins_independently_verified": {
+    "inputs": 29,
+    "protected": 4,
+    "outputs": 5,
+    "predecessor_direct": 31
+  },
+  "Sites": 234,
+  "preserved207and129prefix": true,
+  "additionalSites": 27,
+  "PendingWindowQuery": "UndefinedHOLD",
+  "no_query_or_native_equivalence_or_numeric_prices_or_fit_or_ABI_or_resources_or_execution_or_combinedproof_or_Ready_credit": true
+}

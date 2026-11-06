@@ -1,0 +1,170 @@
+{
+  "schema": "FINITE_GUARDED_DOMAIN_NATIVE_MATH_DEPENDENCY_CERTIFICATE_R1",
+  "status": "CANDIDATE_DEPENDENCY_CLOSURE_CONDITIONAL_ON_RUNTIME_MATCH_AND_SEPARATE_PREMISES_NO_BINDING_OR_GO",
+  "author": "/root/fp_profile_probe_source",
+  "candidate": {
+    "path": "C:/Windows/System32/ucrtbase.dll",
+    "sha256": "DEDB7611E1ABC1FF3852DCAC3D4C93A048D729E25B061973B9969F22698F14CA",
+    "image_base_in_file": "0x180000000",
+    "size_of_image": "0x14C000",
+    "loaded_image_observed_by_this_certificate": false
+  },
+  "input_records": [
+    { "path": "build-ci/20261105-musical-native-math-region-file-data-r1/data.json", "sha256": "E693C8C6E74B1F7F57F1F3A0F8A28CE5823DB9F283F1E22FAA9E7FDDC9BD5655", "scope": "Complete sections,66 raw constant lanes and complete base-relocation directory" },
+    { "path": "build-ci/20261105-musical-native-math-region-file-data-r2/regions.json", "sha256": "A9C5030C36FA3A7243A8401D0C285C88183D06D5C83D46A01C38F7FAE2313988", "scope": "Nine proposed extents/byte hashes and all relocation intersections" },
+    { "path": "build-ci/20261105-musical-native-math-region-instructions-r1/instructions.json", "sha256": "5EFBCA39CE206D5C4028CFA703C5E42375C98C307D1BA35B358111675464FF7D", "scope": "ALL296 decoded instruction rows in the three compared code spans; no execution counts" }
+  ],
+  "class_semantics": {
+    "CodeMatched": "Required exact runtime code-region match, not an already executed match",
+    "TableMatched": "Required exact complete immutable data-region match, not sampled entries",
+    "MutableFMASeparatelyProved": "Address-only mutable dependency plus real getter and separately proved stable interval; no immutable expected value",
+    "UnreachableByInputPredicate": "Proved impossible from the guarded domain and exact bound constants/instructions, not absent finite observations"
+  },
+  "domain": {
+    "x": "Every finite binary64 x>-1, including both signed zeros and all finite subnormals",
+    "source_guard": "Actual old append helper tests finite relativeChange and relativeChange<=-1 before log1p",
+    "controls_separate_premise": "Nearest; masked traps; FTZ/DAZ off; qualified actual caller/codegen",
+    "zero_path": "Absolute bits zero returns original x low bits directly; no log call",
+    "nonzero_y": "RN(1+x) is positive normal in[2^-53,DBL_MAX]",
+    "exponent_bits_y": "970..2046",
+    "unbiased_exponent_y": "-53..1023",
+    "subnormal_sentinel": "-1023, unequal throughout this domain"
+  },
+  "instruction_enumeration": {
+    "complete_rows_by_reference": "All296 rows of input instructions.json are part of this certificate; classify each by the following disjoint half-open ranges and default exclusion",
+    "ranges": [
+      { "start": "0x4F130", "end_exclusive": "0x4F1CE", "class": "CodeMatched", "role": "wrapper finite routing/call/correction/return" },
+      { "start": "0xA8C60", "end_exclusive": "0xA8DD5", "class": "CodeMatched", "role": "common dispatch and SSE general" },
+      { "start": "0xA8DE0", "end_exclusive": "0xA8E63", "class": "CodeMatched", "role": "SSE near one" },
+      { "start": "0xA8F20", "end_exclusive": "0xA9057", "class": "CodeMatched", "role": "FMA general" },
+      { "start": "0xA9060", "end_exclusive": "0xA90CE", "class": "CodeMatched", "role": "FMA near one" },
+      { "start": "0xCC390", "end_exclusive": "0xCC39C", "class": "CodeMatched", "role": "getter" }
+    ],
+    "default_class_within_compared_code_spans": "UnreachableByInputPredicate:error,nonfinite,subnormal renormalization,or alignment after terminal return",
+    "reachable_conditional_instruction_not_same_as_reachable_taken_edge": true,
+    "returns": ["0x4F1BC", "0xA8DD4", "0xA8E62", "0xA9056", "0xA90CD", "0xCC39B"],
+    "static_rows_are_runtime_or_source_work_counts": false
+  },
+  "reachable_branch_instruction_edges": [
+    { "at": "0x4F15F", "operation": "je", "taken": "0x4F1CE", "taken_class": "UnreachableByInputPredicate", "proof": "finite x exponent!=0x7ff", "otherwise": "0x4F161" },
+    { "at": "0x4F163", "operation": "je", "taken": "0x4F1BD", "taken_class": "CodeMatched", "proof": "zero/subnormal exponent; nonzero normal falls through", "otherwise": "0x4F165" },
+    { "at": "0x4F172", "operation": "ja", "taken": "0x4F1EE", "taken_class": "UnreachableByInputPredicate", "proof": "-1>x false", "otherwise": "0x4F174" },
+    { "at": "0x4F179", "operation": "jp", "taken": "0x4F181", "taken_class": "UnreachableByInputPredicate", "proof": "finite ordered compare; target independently reachable by other fallthrough", "otherwise": "0x4F17B" },
+    { "at": "0x4F17B", "operation": "je", "taken": "0x4F202", "taken_class": "UnreachableByInputPredicate", "proof": "x!=-1", "otherwise": "0x4F181" },
+    { "at": "0x4F190", "operation": "call", "taken": "0xA8C60", "taken_class": "CodeMatched", "proof": "sole reachable direct call with positive normal y", "return_site": "0x4F195" },
+    { "at": "0x4F1CA", "operation": "je", "taken": "0x4F1AD", "taken_class": "CodeMatched", "proof": "absolute bits zero", "otherwise": "0x4F1CC" },
+    { "at": "0x4F1CC", "operation": "jmp", "taken": "0x4F165", "taken_class": "CodeMatched", "proof": "nonzero finite subnormal common route" },
+    { "at": "0xA8C71", "operation": "jne", "taken": "0xA8F20", "taken_class": "CodeMatched", "proof": "mutable FMA selection nonzero", "otherwise": "0xA8C77" },
+    { "at": "0xA8CA0", "operation": "jae", "taken": "0xA8EF0", "taken_class": "UnreachableByInputPredicate", "proof": "positive finite y bits<+infinity", "otherwise": "0xA8CA6" },
+    { "at": "0xA8CC6", "operation": "je", "taken": "0xA8E70", "taken_class": "UnreachableByInputPredicate", "proof": "unbiased exponent never-1023", "otherwise": "0xA8CCC" },
+    { "at": "0xA8CF8", "operation": "jb", "taken": "0xA8DE0", "taken_class": "CodeMatched", "proof": "abs(y-1)<1/16; both outcomes supported", "otherwise": "0xA8CFE" },
+    { "at": "0xA8D21", "operation": "jbe", "taken": "0xA8EB0", "taken_class": "UnreachableByInputPredicate", "proof": "y>0", "otherwise": "0xA8D27" },
+    { "at": "0xA8F49", "operation": "je", "taken": "0xA9150", "taken_class": "UnreachableByInputPredicate", "proof": "finite exponent mask!=+infinity", "otherwise": "0xA8F4F" },
+    { "at": "0xA8F57", "operation": "jbe", "taken": "0xA9100", "taken_class": "UnreachableByInputPredicate", "proof": "y>0", "otherwise": "0xA8F5D" },
+    { "at": "0xA8F75", "operation": "je", "taken": "0xA90CE", "taken_class": "UnreachableByInputPredicate", "proof": "unbiased exponent never-1023", "otherwise": "0xA8F7B" },
+    { "at": "0xA8FA9", "operation": "jb", "taken": "0xA9060", "taken_class": "CodeMatched", "proof": "same near-one split; both outcomes supported", "otherwise": "0xA8FAF" }
+  ],
+  "unreachable_control_edges": [
+    ["0x4F1DB", "jne", "0x4F1AD"], ["0x4F1E7", "jae", "0x4F1AD"], ["0x4F1E9", "jmp", "0x4F165"],
+    ["0x4F1F3", "call", "0x55750"], ["0x4F200", "jmp", "0x4F1AD"], ["0x4F207", "call", "0x55750"], ["0x4F21B", "jmp", "0x4F1AD"],
+    ["0xA8EA2", "jmp", "0xA8CCC"], ["0xA8EB0", "jne", "0xA8ED0"], ["0xA8EC1", "call", "0x981B0"], ["0xA8EC6", "jmp", "0xA8F10"],
+    ["0xA8EDF", "call", "0x981B0"], ["0xA8EE4", "jmp", "0xA8F10"], ["0xA8EF7", "je", "0xA8F10"], ["0xA8F00", "je", "0xA8ED0"],
+    ["0xA90FB", "jmp", "0xA8F7B"], ["0xA9100", "jne", "0xA9130"], ["0xA9111", "call", "0x981B0"], ["0xA913F", "call", "0x981B0"],
+    ["0xA9157", "je", "0xA9180"], ["0xA9160", "je", "0xA9130"], ["0xA9175", "call", "0x981B0"]
+  ],
+  "index_proof": {
+    "mantissa_mask_A": "0x000FF00000000000",
+    "rounding_mask_B": "0x0000080000000000",
+    "expression": "((bits&A)+((bits&B)<<1))>>44",
+    "reduction": "top8MantissaBits+bit43",
+    "range": [0, 256],
+    "maximum_sum_before_shift": "2^52; no uint64 overflow",
+    "lanes_per_table": 257,
+    "bytes_per_lane": 8,
+    "bytes_per_table": 2056,
+    "register_lane_fact": "Only low64 index and low double output are used; mask upper lanes zero; no horizontal operation imports unspecified upper input lanes",
+    "read_sites": [
+      { "table": "high", "base": "0x109420", "sites": ["0xA8DA0", "0xA9029"] },
+      { "table": "low", "base": "0x109C30", "sites": ["0xA8DAD", "0xA9036"] },
+      { "table": "reciprocal", "base": "0x10A650", "sites": ["0xA8D2B", "0xA8FCE"] }
+    ]
+  },
+  "valid_readonly_references": [
+    { "rva": "0x1020E8", "maximum_width": 8, "sites": ["0x4F185", "0x4F198"], "role": "+1" },
+    { "rva": "0x103E10", "maximum_width": 8, "sites": ["0x4F165"], "role": "-1" },
+    { "rva": "0x107410", "maximum_width": 16, "sites": ["0xA8C99", "0xA8F39", "0xA8F41"], "role": "+infinity threshold/mask" },
+    { "rva": "0x107450", "maximum_width": 16, "sites": ["0xA8CAE", "0xA8F5D"], "role": "mantissa mask" },
+    { "rva": "0x107460", "maximum_width": 16, "sites": ["0xA8C89", "0xA8F2D"], "role": "exponent bias1023" },
+    { "rva": "0x107480", "maximum_width": 16, "sites": ["0xA8CD7", "0xA8F7B"], "role": "index mask A" },
+    { "rva": "0x107490", "maximum_width": 16, "sites": ["0xA8CDE", "0xA8F83"], "role": "index mask B" },
+    { "rva": "0x1074A0", "maximum_width": 8, "sites": ["0xA8DE0", "0xA9060"], "role": "2" },
+    { "rva": "0x1074B0", "maximum_width": 8, "sites": ["0xA8CB6", "0xA8DE8", "0xA8F65", "0xA9068"], "role": "1" },
+    { "rva": "0x1074E0", "maximum_width": 16, "sites": ["0xA8D02", "0xA8D0A", "0xA8FB3", "0xA8FBB"], "role": "mantissa OR0.5" },
+    { "rva": "0x107510", "maximum_width": 8, "sites": ["0xA8D68", "0xA8FF8"], "role": "general coefficient" },
+    { "rva": "0x107520", "maximum_width": 8, "sites": ["0xA8D48", "0xA8FE7"], "role": "general coefficient" },
+    { "rva": "0x107530", "maximum_width": 8, "sites": ["0xA8D7C", "0xA9005"], "role": "general coefficient" },
+    { "rva": "0x107540", "maximum_width": 8, "sites": ["0xA8D60", "0xA8FEF"], "role": "general coefficient" },
+    { "rva": "0x107550", "maximum_width": 8, "sites": ["0xA8D40", "0xA8FDF"], "role": "general coefficient" },
+    { "rva": "0x107560", "maximum_width": 8, "sites": ["0xA8CBE", "0xA8F6D"], "role": "-1023 sentinel" },
+    { "rva": "0x107580", "maximum_width": 8, "sites": ["0xA8CF0", "0xA8FA1"], "role": "near threshold1/16" },
+    { "rva": "0x107590", "maximum_width": 16, "sites": ["0xA8CCC", "0xA8F99"], "role": "absolute-value mask" },
+    { "rva": "0x1075A0", "maximum_width": 8, "sites": ["0xA8E28", "0xA9094"], "role": "near coefficient" },
+    { "rva": "0x1075B0", "maximum_width": 8, "sites": ["0xA8DFC", "0xA9078"], "role": "near coefficient" },
+    { "rva": "0x1075C0", "maximum_width": 8, "sites": ["0xA8E30", "0xA909D"], "role": "near coefficient" },
+    { "rva": "0x1075D0", "maximum_width": 8, "sites": ["0xA8E04", "0xA9080"], "role": "near coefficient" },
+    { "rva": "0x1075E0", "maximum_width": 8, "sites": ["0xA8DB6", "0xA903F"], "role": "log2 split high" },
+    { "rva": "0x1075F0", "maximum_width": 8, "sites": ["0xA8D90", "0xA901C"], "role": "log2 split low" }
+  ],
+  "shared_constant_superset": {
+    "span": ["0x107400", "0x107610"],
+    "bytes": 528,
+    "complete_raw_lanes_record": "66 exact8-byte lanes in pinned input data.json",
+    "unreachable_only_fields": ["0x107400", "0x107420", "0x107430", "0x107570", "0x107600", "0x107604", "0x107608"],
+    "other_lanes": "Valid operand bytes, zero upper lanes, padding or unreferenced immutable numerical superset bytes; full528-byte span compared",
+    "outside_wrapper_error_constants_excluded": ["0x105FB0", "0x102968", "0x103E00"]
+  },
+  "proposed_compared_regions": [
+    { "role": "log1p-code", "rva": "0x4F130", "end_exclusive": "0x4F21D", "bytes": 237, "file_offset": 323888, "class": "CodeMatched", "section": ".text", "sha256": "DA3DA7193238B5AA47299B35090879036E5E07703E60F62708C2A24081771FFB" },
+    { "role": "log-both-arms-code", "rva": "0xA8C60", "end_exclusive": "0xA918B", "bytes": 1323, "file_offset": 691296, "class": "CodeMatched", "section": ".text", "sha256": "8939C3DBA44B5C29FC1305AB46DA3B877331BCFE2DBFC86DE410524B7E76F37D" },
+    { "role": "getter-code", "rva": "0xCC390", "end_exclusive": "0xCC39C", "bytes": 12, "file_offset": 836496, "class": "CodeMatched", "section": ".text", "sha256": "D8B7156BB3C762487E5F800A5A167824F935CD36D7E0E7AB28288811554A2691" },
+    { "role": "shared-constants", "rva": "0x107400", "end_exclusive": "0x107610", "bytes": 528, "file_offset": 1078272, "class": "TableMatched", "section": ".rdata", "sha256": "C40667044A4A853C433592119457E6016B4524B672EF13ADF0154A6DEF509175" },
+    { "role": "high-table", "rva": "0x109420", "end_exclusive": "0x109C28", "bytes": 2056, "file_offset": 1086496, "class": "TableMatched", "section": ".rdata", "sha256": "6559E5FE3D58ADC08589727E4BA0292C5F023079394A66BD93BE043B4D607A0E" },
+    { "role": "low-table", "rva": "0x109C30", "end_exclusive": "0x10A438", "bytes": 2056, "file_offset": 1088560, "class": "TableMatched", "section": ".rdata", "sha256": "8565D9011BDABCB30AC135C867E272E0EB8BDD1DED538456EF36F5785E744488" },
+    { "role": "reciprocal-table", "rva": "0x10A650", "end_exclusive": "0x10AE58", "bytes": 2056, "file_offset": 1091152, "class": "TableMatched", "section": ".rdata", "sha256": "229D2459BBB3CB9C459844B78A6ABDD8FDDF1BDAEFDB4057F4EA6679BF6CDE24" },
+    { "role": "wrapper-plus-one", "rva": "0x1020E8", "end_exclusive": "0x1020F0", "bytes": 8, "file_offset": 1057000, "class": "TableMatched", "section": ".rdata", "sha256": "6C3C396ED6B5C36DCAE172271F462051B1266B851E92DF3DEEA8AC65478FD712" },
+    { "role": "wrapper-minus-one", "rva": "0x103E10", "end_exclusive": "0x103E18", "bytes": 8, "file_offset": 1064464, "class": "TableMatched", "section": ".rdata", "sha256": "E77817B649821C634355A917817C1224A360514B1244FE09E832BAC4E8EA4440" }
+  ],
+  "proposed_region_totals": { "compared_regions": 9, "compared_bytes": 8284, "code_bytes": 1572, "data_bytes": 6712, "each_table_lanes": 257, "no_silent_comparison_of_gaps": true },
+  "mutable_dependency": {
+    "class": "MutableFMASeparatelyProved",
+    "rva": "0x139E60", "end_exclusive": "0x139E64", "bytes": 4, "type": "DWORD",
+    "read_sites": ["0xA8C6A", "0xCC392"],
+    "section": ".data", "writable": true, "raw_expected_value": null,
+    "runtime_requirement": "Separate funded address-only committed/readable same-image extent/page/lifetime guard before getter; no byte match",
+    "required_module_extent_at_least": "0x139E64",
+    "interval": "Capture actual first getter0/1; independently prove no selection writer through original Clock/replay/query; no caller override",
+    "extra_source_guard_actions_covered_by_compared_bytes": false
+  },
+  "relocation_certificate": {
+    "directory_rva": "0x14B000", "directory_bytes": 2856,
+    "raw_sha256": "DFC1C5CEC6CF43B3D0C4DFBD5EF1FABB44D132C1D2C7CD4268A252C83DF7A90D",
+    "complete_entry_count": 1404, "entry_types": [0, 10],
+    "block_pages": ["0xF9000", "0xFA000", "0xFB000", "0xFC000", "0xFD000", "0x138000"],
+    "footprint_rule": "Type0 padding; type10 writes8 bytes at page+12-bit offset. Even full possible block footprints are disjoint from proposed regions.",
+    "actual_intersections_all_nine": 0,
+    "address_forms": "Same-image RIP-relative constants/LEAs/direct call/branches; bounded integer table index; stack/register locals",
+    "normalization_required_for_these_spans": false,
+    "excluded_raw_fields": ["IAT", "absolute pointers", "security cookies", "mutable FMA word"]
+  },
+  "separate_premises": [
+    "Actual runtime same-module anchors and safe exact full-region comparison before original Clock",
+    "Static import lifetime/no-unload/no-code-writer and request shutdown ordering",
+    "Actual original/replay/query codegen and binary64 prefix-store induction",
+    "Default controls and real stable initial FMA choice, with hardware/startup support for selected arm",
+    "Strict represented status restoration and same-origin source/resource funding",
+    "Every new matcher/address-only guard action and storage enters independent census before price/binding"
+  ],
+  "both_arms": { "sse_selection": 0, "fma_selection": 1, "candidate_dependency_graph_covers_both": true, "runtime_qualification_completed": false, "algorithms_claimed_bitwise_equal": false, "within_request_choice_must_be_invariant": true },
+  "actions": { "new_files_only": ["certificate.md", "certificate.json"], "profile_byte_initializers_or_binding_definitions": false, "native_or_compiler_program_execution": false, "setter_OOM_traps_GUI_Git": false, "prior_frozen_artifacts_edited": false },
+  "no_credit": ["No native PASS", "No complete CRT image/file identity", "No price or source-fit", "No actual dynamic branch counts", "No automatic NativeBinding authority", "No renderer/Ready/Musical activation"]
+}

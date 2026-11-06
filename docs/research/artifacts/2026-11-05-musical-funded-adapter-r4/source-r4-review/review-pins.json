@@ -1,0 +1,34 @@
+{
+  "schema": "YESDAW_R4_WHOLE_SOURCE_INDEPENDENT_REVIEW_PINS_V1",
+  "verdict": "ACCEPT_WHOLE_CONDITIONAL_SOURCE_FOR_INDEPENDENT_CENSUS",
+  "packet_manifest_sha256": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077",
+  "all78_source_pins_rechecked_before_seal": true,
+  "scope": "Source-only conditional ACCEPT for independent census; no binding, source-fit, native, resource, forward-proof or execution admission.",
+  "records": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-independent-review/pin-checks.json",
+      "bytes": 29101,
+      "sha256": "BDCC6D5A017EA2A6EAFB9F075C544A1A4568CAE1EECFF97A6DB3F649498C9B2C"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-independent-review/inventory-checks.json",
+      "bytes": 7220,
+      "sha256": "DFF3291156B54943B9EE6602EBF7A307D05B7C2ABA8A1657959A559DEAF3954E"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-independent-review/source-arithmetic-checks.json",
+      "bytes": 40526,
+      "sha256": "6F473618BCFF46D20B29A8EAA791281CEF0D2DE05919F19F8FFC3895ED4394A4"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-independent-review/review.json",
+      "bytes": 24028,
+      "sha256": "5ED50401AF5207DD32F5E9F854C76A72CF26D40CAFBDA0EC2597ACF7487C108D"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-independent-review/review.md",
+      "bytes": 4490,
+      "sha256": "4B418797F10F57C49969BD3B22E9F4E6EBCDCFD660C9F403241414F50B20F34D"
+    }
+  ]
+}

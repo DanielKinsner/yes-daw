@@ -1,0 +1,2198 @@
+{
+  "schema": "YESDAW_R4_SOURCE_ARITHMETIC_ONLY_V1",
+  "scope": "Python integer/table calculations and static source inventory only; not target parsing/compilation/execution, API calls, native observations, resource fit or full forward proof.",
+  "old_table_checks": [
+    {
+      "kind": "old_vector_sum",
+      "id": "E",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "Z",
+      "price": 1,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "R_C",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "MAX",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "MATH1",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "EXT",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "VI",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "POSDIFF",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "BOOL_HANDLE",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "ARROW_HANDLE",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "HCOPY",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "HDROP",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "HDEFAULT",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "HMOVEASSIGN",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "HCOPYASSIGN",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "F0",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "F1",
+      "price": 9,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "HF0",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "HF1",
+      "price": 6,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "SR_LOCAL",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "STATUS",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FB0",
+      "price": 9,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "N_ENTER",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "N_FIN",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "N_NEG",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "N_RANGE",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "N_STORE",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_ENTER",
+      "price": 7,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_SEG",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_DELTA",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_RANGE",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_BPM_CALL",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_ZERO",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_MATH",
+      "price": 8,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_CURVE",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_EQUAL",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_LINEAR",
+      "price": 8,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_FINAL",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_SLOPE",
+      "price": 7,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_SLOPE_ZERO",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_FIN_TEST",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_RELATIVE",
+      "price": 6,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_REL_RANGE",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_LOGADD",
+      "price": 11,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "UB_BASE",
+      "price": 20,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "UB_TEST",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "UB_BODY",
+      "price": 26,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "UB_TRUE",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "UB_FALSE",
+      "price": 8,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_ENTER",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_RATE",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_TICK",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_EMPTY",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_EMPTY_MATH",
+      "price": 10,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_SEARCH_LOCAL",
+      "price": 14,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FT_SEARCH_LOCAL",
+      "terms": [
+        "EXT",
+        "EXT",
+        "EXT",
+        "POSDIFF"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_SEARCH_ADMIN",
+      "price": 8,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_PREFIX",
+      "price": 8,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_SEGMENT",
+      "price": 10,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_HAVE",
+      "price": 8,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_NEXT_TRUE",
+      "price": 12,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_NEXT_FALSE",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_BPM_TRUE",
+      "price": 12,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_BPM_FALSE",
+      "price": 11,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_APPEND_CALLER",
+      "price": 40,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_STORE",
+      "price": 7,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_ENTER",
+      "price": 6,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_NEG",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_FRACTION_CALL",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_BUILT",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_FAILURE_VALUE",
+      "price": 1,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_EMPTY",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_VECEMPTY",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_VECEMPTY",
+      "terms": [
+        "EXT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_VECEMPTY_CALLER",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_FRAMELOCAL",
+      "price": 1,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_FT_CALLER",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_ZERO",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_NATIVE_CALLER",
+      "price": 1,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FP_RESET",
+      "price": 11,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_ENTER",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_WHOLE",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_DENOM",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_NUMERATOR",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_ELIGIBILITY",
+      "price": 13,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_FRACTION_LOCALS",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_FB_CALLER",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_TIMES",
+      "price": 10,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_HIGH_ONE",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_LOW_LOCAL",
+      "price": 1,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_TIME_CALLER",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_STATUS_TEST",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_STATUS_ARG",
+      "price": 1,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_HIGH_LOCAL",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_EQUAL",
+      "price": 9,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_ORDER",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_WIDTH",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_FLOOR",
+      "price": 6,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_FLOOR_EQ",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_OUTPUT_ARGS",
+      "price": 3,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "WINDOW_VALUE_CTOR",
+      "price": 14,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "WINDOW_PLAIN_CTOR",
+      "price": 9,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "WINDOW_MOVE_ASSIGN",
+      "price": 15,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "WINDOW_DTOR",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "WINDOW_RESET",
+      "price": 34,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "WINDOW_RESET",
+      "terms": [
+        "WINDOW_VALUE_CTOR",
+        "WINDOW_MOVE_ASSIGN",
+        "WINDOW_DTOR"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_ENTER",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_START",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_LENGTH",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_N",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_OVERFLOW",
+      "price": 6,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_ENDPOINT_LOCALS",
+      "price": 10,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_A_CALLER",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_A_CALLER",
+      "terms": [
+        "ARROW_HANDLE"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_A_ARGS",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_B_CALLER",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_B_CALLER",
+      "terms": [
+        "ARROW_HANDLE"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_B_ARGS",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_STATUS",
+      "price": 2,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_RETURN_STATUS",
+      "price": 1,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_COLLAPSE",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_SUCCESS_SCALARS",
+      "price": 18,
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "SR0",
+      "price": 8,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "SR0",
+      "terms": [
+        "SR_LOCAL",
+        "F0"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "SR1",
+      "price": 12,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "SR1",
+      "terms": [
+        "SR_LOCAL",
+        "F1"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "N_NONFINITE",
+      "price": 8,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "N_NONFINITE",
+      "terms": [
+        "N_ENTER",
+        "N_FIN",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "N_NEGATIVE",
+      "price": 10,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "N_NEGATIVE",
+      "terms": [
+        "N_ENTER",
+        "N_FIN",
+        "N_NEG",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "N_OVERFLOW",
+      "price": 12,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "N_OVERFLOW",
+      "terms": [
+        "N_ENTER",
+        "N_FIN",
+        "N_NEG",
+        "N_RANGE",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "N_OK",
+      "price": 14,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "N_OK",
+      "terms": [
+        "N_ENTER",
+        "N_FIN",
+        "N_NEG",
+        "N_RANGE",
+        "N_STORE",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_BAD_SEG",
+      "price": 10,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_BAD_SEG",
+      "terms": [
+        "AS_ENTER",
+        "AS_SEG",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_BAD_DELTA",
+      "price": 12,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_BAD_DELTA",
+      "terms": [
+        "AS_ENTER",
+        "AS_SEG",
+        "AS_DELTA",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_BAD_RANGE",
+      "price": 15,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_BAD_RANGE",
+      "terms": [
+        "AS_ENTER",
+        "AS_SEG",
+        "AS_DELTA",
+        "AS_RANGE",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_START0",
+      "price": 22,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_START0",
+      "terms": [
+        "AS_ENTER",
+        "AS_SEG",
+        "AS_DELTA",
+        "AS_RANGE",
+        "AS_BPM_CALL",
+        "F0",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_START1",
+      "price": 26,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_START1",
+      "terms": [
+        "AS_ENTER",
+        "AS_SEG",
+        "AS_DELTA",
+        "AS_RANGE",
+        "AS_BPM_CALL",
+        "F1",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_END0",
+      "price": 33,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_END0",
+      "terms": [
+        "AS_ENTER",
+        "AS_SEG",
+        "AS_DELTA",
+        "AS_RANGE",
+        "AS_BPM_CALL",
+        "F1",
+        "AS_BPM_CALL",
+        "F0",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_END1",
+      "price": 37,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_END1",
+      "terms": [
+        "AS_ENTER",
+        "AS_SEG",
+        "AS_DELTA",
+        "AS_RANGE",
+        "AS_BPM_CALL",
+        "F1",
+        "AS_BPM_CALL",
+        "F1",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_VALID_PREFIX",
+      "price": 38,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_VALID_PREFIX",
+      "terms": [
+        "AS_ENTER",
+        "AS_SEG",
+        "AS_DELTA",
+        "AS_RANGE",
+        "AS_BPM_CALL",
+        "F1",
+        "AS_BPM_CALL",
+        "F1",
+        "AS_ZERO"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_ZERO_OK",
+      "price": 39,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_ZERO_OK",
+      "terms": [
+        "AS_VALID_PREFIX",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_DISPATCH",
+      "price": 48,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_DISPATCH",
+      "terms": [
+        "AS_VALID_PREFIX",
+        "AS_MATH",
+        "AS_CURVE"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_JUMP",
+      "price": 61,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_JUMP",
+      "terms": [
+        "AS_DISPATCH",
+        "AS_LINEAR",
+        "AS_FINAL",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_FLAT_RAMP",
+      "price": 64,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_FLAT_RAMP",
+      "terms": [
+        "AS_DISPATCH",
+        "AS_EQUAL",
+        "AS_LINEAR",
+        "AS_FINAL",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_RAMP_BASE",
+      "price": 60,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_RAMP_BASE",
+      "terms": [
+        "AS_DISPATCH",
+        "AS_EQUAL",
+        "AS_SLOPE",
+        "AS_SLOPE_ZERO"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_SLOPE_ZERO_FAIL",
+      "price": 61,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_SLOPE_ZERO_FAIL",
+      "terms": [
+        "AS_RAMP_BASE",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_SLOPE_NONFINITE",
+      "price": 66,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_SLOPE_NONFINITE",
+      "terms": [
+        "AS_RAMP_BASE",
+        "AS_FIN_TEST",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_REL_BASE",
+      "price": 76,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_REL_BASE",
+      "terms": [
+        "AS_RAMP_BASE",
+        "AS_FIN_TEST",
+        "AS_RELATIVE",
+        "AS_FIN_TEST"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_REL_NONFINITE",
+      "price": 77,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_REL_NONFINITE",
+      "terms": [
+        "AS_REL_BASE",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_REL_RANGE_FAIL",
+      "price": 79,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_REL_RANGE_FAIL",
+      "terms": [
+        "AS_REL_BASE",
+        "AS_REL_RANGE",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "AS_RAMP",
+      "price": 94,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "AS_RAMP",
+      "terms": [
+        "AS_REL_BASE",
+        "AS_REL_RANGE",
+        "AS_LOGADD",
+        "AS_FINAL",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_RATE0_FAIL",
+      "price": 14,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FT_RATE0_FAIL",
+      "terms": [
+        "FT_ENTER",
+        "FT_RATE",
+        "SR0",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_RATE1_FAIL",
+      "price": 18,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FT_RATE1_FAIL",
+      "terms": [
+        "FT_ENTER",
+        "FT_RATE",
+        "SR1",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_VALID_RATE",
+      "price": 19,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FT_VALID_RATE",
+      "terms": [
+        "FT_ENTER",
+        "FT_RATE",
+        "SR1",
+        "FT_TICK"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_NEGATIVE",
+      "price": 20,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FT_NEGATIVE",
+      "terms": [
+        "FT_VALID_RATE",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_VALID_BASE",
+      "price": 21,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FT_VALID_BASE",
+      "terms": [
+        "FT_VALID_RATE",
+        "FT_EMPTY"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_EMPTY_CASE",
+      "price": 36,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FT_EMPTY_CASE",
+      "terms": [
+        "FT_VALID_BASE",
+        "FT_EMPTY_MATH",
+        "AS_FINAL",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_NONEMPTY_LOCAL",
+      "price": 61,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FT_NONEMPTY_LOCAL",
+      "terms": [
+        "FT_VALID_BASE",
+        "FT_SEARCH_LOCAL",
+        "FT_SEARCH_ADMIN",
+        "FT_PREFIX",
+        "FT_SEGMENT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_AT_ROW_LOCAL",
+      "price": 68,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FT_AT_ROW_LOCAL",
+      "terms": [
+        "FT_NONEMPTY_LOCAL",
+        "FT_STORE"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_PART_NEXT",
+      "price": 72,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FT_PART_NEXT",
+      "terms": [
+        "FT_HAVE",
+        "FT_NEXT_TRUE",
+        "FT_BPM_TRUE",
+        "FT_APPEND_CALLER"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FT_PART_LAST",
+      "price": 63,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FT_PART_LAST",
+      "terms": [
+        "FT_HAVE",
+        "FT_NEXT_FALSE",
+        "FT_BPM_FALSE",
+        "FT_APPEND_CALLER"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_NEGATIVE",
+      "price": 10,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_NEGATIVE",
+      "terms": [
+        "FF_ENTER",
+        "FF_NEG",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_FRAC0_INVALID",
+      "price": 16,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_FRAC0_INVALID",
+      "terms": [
+        "FF_ENTER",
+        "FF_NEG",
+        "FF_FRACTION_CALL",
+        "HF0",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_FRAC1_INVALID",
+      "price": 18,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_FRAC1_INVALID",
+      "terms": [
+        "FF_ENTER",
+        "FF_NEG",
+        "FF_FRACTION_CALL",
+        "HF1",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_VALID_TIME",
+      "price": 19,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_VALID_TIME",
+      "terms": [
+        "FF_ENTER",
+        "FF_NEG",
+        "FF_FRACTION_CALL",
+        "HF1",
+        "FF_BUILT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_UNBUILT",
+      "price": 21,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_UNBUILT",
+      "terms": [
+        "FF_VALID_TIME",
+        "FF_FAILURE_VALUE",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_BUILT_BASE",
+      "price": 21,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_BUILT_BASE",
+      "terms": [
+        "FF_VALID_TIME",
+        "FF_EMPTY"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_INVALID_MAP",
+      "price": 27,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_INVALID_MAP",
+      "terms": [
+        "FF_BUILT_BASE",
+        "FF_VECEMPTY",
+        "FF_VECEMPTY_CALLER",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_EMPTY_BEFORE_FT",
+      "price": 25,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_EMPTY_BEFORE_FT",
+      "terms": [
+        "FF_BUILT_BASE",
+        "FF_FRAMELOCAL",
+        "FF_FT_CALLER"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_MAP_BEFORE_FT",
+      "price": 30,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_MAP_BEFORE_FT",
+      "terms": [
+        "FF_BUILT_BASE",
+        "FF_VECEMPTY",
+        "FF_VECEMPTY_CALLER",
+        "FF_FRAMELOCAL",
+        "FF_FT_CALLER"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_AFTER_FT_OK",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_AFTER_FT_OK",
+      "terms": [
+        "FF_ZERO",
+        "FF_NATIVE_CALLER",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_BEFORE_WHOLE",
+      "price": 18,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FA_BEFORE_WHOLE",
+      "terms": [
+        "FA_ENTER",
+        "FP_RESET",
+        "FA_WHOLE"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_NEGATIVE",
+      "price": 19,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FA_NEGATIVE",
+      "terms": [
+        "FA_BEFORE_WHOLE",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_INPUTS",
+      "price": 26,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FA_INPUTS",
+      "terms": [
+        "FA_BEFORE_WHOLE",
+        "FA_DENOM",
+        "FA_NUMERATOR"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_RESOURCE_LIMIT",
+      "price": 40,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FA_RESOURCE_LIMIT",
+      "terms": [
+        "FA_INPUTS",
+        "FA_ELIGIBILITY",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_BEFORE_TIME",
+      "price": 73,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FA_BEFORE_TIME",
+      "terms": [
+        "FA_INPUTS",
+        "FA_ELIGIBILITY",
+        "FA_FRACTION_LOCALS",
+        "FA_FB_CALLER",
+        "FB0",
+        "FA_TIMES",
+        "FA_HIGH_ONE",
+        "FA_LOW_LOCAL",
+        "FA_TIME_CALLER",
+        "FA_STATUS_TEST"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_FAILURE_TAIL",
+      "price": 7,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FA_FAILURE_TAIL",
+      "terms": [
+        "FA_STATUS_ARG",
+        "STATUS",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_OK_TAIL",
+      "price": 49,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FA_OK_TAIL",
+      "terms": [
+        "FA_HIGH_LOCAL",
+        "FA_EQUAL",
+        "FA_ORDER",
+        "FA_WIDTH",
+        [
+          "FA_FLOOR",
+          2
+        ],
+        "FA_FLOOR_EQ",
+        "FA_OUTPUT_ARGS",
+        "FP_RESET",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_PRE_NULL",
+      "price": 45,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_PRE_NULL",
+      "terms": [
+        "RW_ENTER",
+        "HCOPY",
+        "WINDOW_RESET",
+        "BOOL_HANDLE"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_EXIT",
+      "price": 4,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_EXIT",
+      "terms": [
+        "HDROP",
+        "Z"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_NULL",
+      "price": 49,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_NULL",
+      "terms": [
+        "RW_PRE_NULL",
+        "RW_EXIT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_NEGATIVE",
+      "price": 51,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_NEGATIVE",
+      "terms": [
+        "RW_PRE_NULL",
+        "RW_START",
+        "RW_EXIT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_NONPOS_LENGTH",
+      "price": 53,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_NONPOS_LENGTH",
+      "terms": [
+        "RW_PRE_NULL",
+        "RW_START",
+        "RW_LENGTH",
+        "RW_EXIT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_ZERO_N",
+      "price": 55,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_ZERO_N",
+      "terms": [
+        "RW_PRE_NULL",
+        "RW_START",
+        "RW_LENGTH",
+        "RW_N",
+        "RW_EXIT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_OVERFLOW_CASE",
+      "price": 61,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_OVERFLOW_CASE",
+      "terms": [
+        "RW_PRE_NULL",
+        "RW_START",
+        "RW_LENGTH",
+        "RW_N",
+        "RW_OVERFLOW",
+        "RW_EXIT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_BEFORE_A",
+      "price": 75,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_BEFORE_A",
+      "terms": [
+        "RW_PRE_NULL",
+        "RW_START",
+        "RW_LENGTH",
+        "RW_N",
+        "RW_OVERFLOW",
+        "RW_ENDPOINT_LOCALS",
+        "RW_A_CALLER",
+        "RW_A_ARGS",
+        "RW_STATUS"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_A_FAIL_TAIL",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_A_FAIL_TAIL",
+      "terms": [
+        "RW_RETURN_STATUS",
+        "RW_EXIT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_B_LOCAL",
+      "price": 10,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_B_LOCAL",
+      "terms": [
+        "RW_B_CALLER",
+        "RW_B_ARGS",
+        "RW_STATUS"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_B_FAIL_TAIL",
+      "price": 5,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_B_FAIL_TAIL",
+      "terms": [
+        "RW_RETURN_STATUS",
+        "RW_EXIT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_COLLAPSED_TAIL",
+      "price": 9,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_COLLAPSED_TAIL",
+      "terms": [
+        "RW_COLLAPSE",
+        "RW_EXIT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_SUCCESS_TAIL",
+      "price": 31,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_SUCCESS_TAIL",
+      "terms": [
+        "RW_COLLAPSE",
+        "RW_SUCCESS_SCALARS",
+        "HCOPYASSIGN",
+        "RW_EXIT"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "UB_FIXED",
+      "price": 22,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "UB_FIXED",
+      "terms": [
+        "UB_BASE",
+        "UB_TEST"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "UB_T",
+      "price": 30,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "UB_T",
+      "terms": [
+        "UB_TEST",
+        "UB_BODY",
+        "UB_TRUE"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "UB_F",
+      "price": 36,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "UB_F",
+      "terms": [
+        "UB_TEST",
+        "UB_BODY",
+        "UB_FALSE"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_B_TOTAL",
+      "price": 10,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_B_TOTAL",
+      "terms": [
+        "RW_B_CALLER",
+        "RW_B_ARGS",
+        "RW_STATUS"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_EMPTY_OK_LOCAL",
+      "price": 44,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_EMPTY_OK_LOCAL",
+      "terms": [
+        "FF_EMPTY_BEFORE_FT",
+        "FF_AFTER_FT_OK",
+        "N_OK"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FF_MAP_OK_LOCAL",
+      "price": 49,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FF_MAP_OK_LOCAL",
+      "terms": [
+        "FF_MAP_BEFORE_FT",
+        "FF_AFTER_FT_OK",
+        "N_OK"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "FA_EMPTY_OK",
+      "price": 202,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "FA_EMPTY_OK",
+      "terms": [
+        "FA_BEFORE_TIME",
+        "FF_EMPTY_OK_LOCAL",
+        "FT_EMPTY_CASE",
+        "FA_OK_TAIL"
+      ],
+      "ok": true
+    },
+    {
+      "kind": "old_vector_sum",
+      "id": "RW_EMPTY_OK",
+      "price": 520,
+      "ok": true
+    },
+    {
+      "kind": "old_composition",
+      "id": "RW_EMPTY_OK",
+      "terms": [
+        "RW_BEFORE_A",
+        "FA_EMPTY_OK",
+        "RW_B_LOCAL",
+        "FA_EMPTY_OK",
+        "RW_SUCCESS_TAIL"
+      ],
+      "ok": true
+    }
+  ],
+  "old_rows": 190,
+  "old_compositions": 78,
+  "empty_examples": {
+    "endpoint": 202,
+    "resolve": 520
+  },
+  "checked_quote_edge_cases": {
+    "cases": 144,
+    "refused": 87,
+    "unsigned_product_correct_before_multiply": true
+  },
+  "positive_chunk_guard_examples": 11664,
+  "positive_integer_chunk_partitions": 16383,
+  "FMA_policy_domain_cases": [
+    {
+      "selection": -2147483648,
+      "mask": 0,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": -2147483648,
+      "mask": 1,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": -2147483648,
+      "mask": 2,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": -2147483648,
+      "mask": 3,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": -2147483648,
+      "mask": 4,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": -2147483648,
+      "mask": 4294967295,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": -1,
+      "mask": 0,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": -1,
+      "mask": 1,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": -1,
+      "mask": 2,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": -1,
+      "mask": 3,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": -1,
+      "mask": 4,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": -1,
+      "mask": 4294967295,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 0,
+      "mask": 0,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 0,
+      "mask": 1,
+      "accepted_by_domain_and_policy": true
+    },
+    {
+      "selection": 0,
+      "mask": 2,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 0,
+      "mask": 3,
+      "accepted_by_domain_and_policy": true
+    },
+    {
+      "selection": 0,
+      "mask": 4,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 0,
+      "mask": 4294967295,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 1,
+      "mask": 0,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 1,
+      "mask": 1,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 1,
+      "mask": 2,
+      "accepted_by_domain_and_policy": true
+    },
+    {
+      "selection": 1,
+      "mask": 3,
+      "accepted_by_domain_and_policy": true
+    },
+    {
+      "selection": 1,
+      "mask": 4,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 1,
+      "mask": 4294967295,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2,
+      "mask": 0,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2,
+      "mask": 1,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2,
+      "mask": 2,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2,
+      "mask": 3,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2,
+      "mask": 4,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2,
+      "mask": 4294967295,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2147483647,
+      "mask": 0,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2147483647,
+      "mask": 1,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2147483647,
+      "mask": 2,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2147483647,
+      "mask": 3,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2147483647,
+      "mask": 4,
+      "accepted_by_domain_and_policy": false
+    },
+    {
+      "selection": 2147483647,
+      "mask": 4294967295,
+      "accepted_by_domain_and_policy": false
+    }
+  ],
+  "inductive_bounds": {
+    "immutable_regions": "M rows; each complete expected span positive, sequential and <=L. Reached page bodies <=L, including a refused last body, since remaining>0 and each earlier completed body consumed >=1.",
+    "address_regions": "D rows; each accepted row length4, cumulative <=A and success exactly A. Reached page bodies <=A, no byte-value loads. Successful data therefore A=4D.",
+    "byte_comparisons": "Each accepted immutable chunk <=remaining; every read cursor+byte<moduleEnd and expectedOffset+byte<L. At most L reached comparisons.",
+    "source_counters": "Native counters are reached source events, not OS CPU/allocator observations or complete qualification assertions."
+  }
+}

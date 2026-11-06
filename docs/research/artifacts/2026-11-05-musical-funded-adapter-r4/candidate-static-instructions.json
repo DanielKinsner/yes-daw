@@ -1,0 +1,2442 @@
+{
+  "schema": "STATIC_CANDIDATE_INSTRUCTION_INVENTORY",
+  "scope": "Static DUMPBIN decode, guarded-domain range tags supplied for independent certificate proof. Not executed branch/path/CPU counts or actual target execution.",
+  "candidate_sha256": "DEDB7611E1ABC1FF3852DCAC3D4C93A048D729E25B061973B9969F22698F14CA",
+  "proposed_reachable_ranges": [
+    {
+      "name": "wrapper",
+      "start_rva": "0x4f130",
+      "end_rva_exclusive": "0x4f1ce"
+    },
+    {
+      "name": "common-sse-general",
+      "start_rva": "0xa8c60",
+      "end_rva_exclusive": "0xa8dd5"
+    },
+    {
+      "name": "sse-near",
+      "start_rva": "0xa8de0",
+      "end_rva_exclusive": "0xa8e63"
+    },
+    {
+      "name": "fma-general",
+      "start_rva": "0xa8f20",
+      "end_rva_exclusive": "0xa9057"
+    },
+    {
+      "name": "fma-near",
+      "start_rva": "0xa9060",
+      "end_rva_exclusive": "0xa90ce"
+    },
+    {
+      "name": "getter",
+      "start_rva": "0xcc390",
+      "end_rva_exclusive": "0xcc39c"
+    }
+  ],
+  "instructions": [
+    {
+      "rva": "0x4f130",
+      "virtual_address": "0x18004f130",
+      "assembly": "sub         rsp,48h",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F130: sub         rsp,48h"
+    },
+    {
+      "rva": "0x4f134",
+      "virtual_address": "0x18004f134",
+      "assembly": "mov         edx,7FFh",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F134: mov         edx,7FFh"
+    },
+    {
+      "rva": "0x4f139",
+      "virtual_address": "0x18004f139",
+      "assembly": "movaps      xmmword ptr [rsp+30h],xmm7",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F139: movaps      xmmword ptr [rsp+30h],xmm7"
+    },
+    {
+      "rva": "0x4f13e",
+      "virtual_address": "0x18004f13e",
+      "assembly": "xorps       xmm2,xmm2",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F13E: xorps       xmm2,xmm2"
+    },
+    {
+      "rva": "0x4f141",
+      "virtual_address": "0x18004f141",
+      "assembly": "movaps      xmmword ptr [rsp+20h],xmm8",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F141: movaps      xmmword ptr [rsp+20h],xmm8"
+    },
+    {
+      "rva": "0x4f147",
+      "virtual_address": "0x18004f147",
+      "assembly": "movsd       xmm2,xmm0",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F147: movsd       xmm2,xmm0"
+    },
+    {
+      "rva": "0x4f14b",
+      "virtual_address": "0x18004f14b",
+      "assembly": "movaps      xmm8,xmm0",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F14B: movaps      xmm8,xmm0"
+    },
+    {
+      "rva": "0x4f14f",
+      "virtual_address": "0x18004f14f",
+      "assembly": "movq        rcx,xmm2",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F14F: movq        rcx,xmm2"
+    },
+    {
+      "rva": "0x4f154",
+      "virtual_address": "0x18004f154",
+      "assembly": "mov         rax,rcx",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F154: mov         rax,rcx"
+    },
+    {
+      "rva": "0x4f157",
+      "virtual_address": "0x18004f157",
+      "assembly": "shr         rax,34h",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F157: shr         rax,34h"
+    },
+    {
+      "rva": "0x4f15b",
+      "virtual_address": "0x18004f15b",
+      "assembly": "and         eax,edx",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F15B: and         eax,edx"
+    },
+    {
+      "rva": "0x4f15d",
+      "virtual_address": "0x18004f15d",
+      "assembly": "cmp         eax,edx",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F15D: cmp         eax,edx"
+    },
+    {
+      "rva": "0x4f15f",
+      "virtual_address": "0x18004f15f",
+      "assembly": "je          000000018004F1CE",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F15F: je          000000018004F1CE"
+    },
+    {
+      "rva": "0x4f161",
+      "virtual_address": "0x18004f161",
+      "assembly": "test        eax,eax",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F161: test        eax,eax"
+    },
+    {
+      "rva": "0x4f163",
+      "virtual_address": "0x18004f163",
+      "assembly": "je          000000018004F1BD",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F163: je          000000018004F1BD"
+    },
+    {
+      "rva": "0x4f165",
+      "virtual_address": "0x18004f165",
+      "assembly": "movsd       xmm0,mmword ptr [0000000180103E10h]",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F165: movsd       xmm0,mmword ptr [0000000180103E10h]"
+    },
+    {
+      "rva": "0x4f16d",
+      "virtual_address": "0x18004f16d",
+      "assembly": "comisd      xmm0,xmm8",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F16D: comisd      xmm0,xmm8"
+    },
+    {
+      "rva": "0x4f172",
+      "virtual_address": "0x18004f172",
+      "assembly": "ja          000000018004F1EE",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F172: ja          000000018004F1EE"
+    },
+    {
+      "rva": "0x4f174",
+      "virtual_address": "0x18004f174",
+      "assembly": "ucomisd     xmm8,xmm0",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F174: ucomisd     xmm8,xmm0"
+    },
+    {
+      "rva": "0x4f179",
+      "virtual_address": "0x18004f179",
+      "assembly": "jp          000000018004F181",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F179: jp          000000018004F181"
+    },
+    {
+      "rva": "0x4f17b",
+      "virtual_address": "0x18004f17b",
+      "assembly": "je          000000018004F202",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F17B: je          000000018004F202"
+    },
+    {
+      "rva": "0x4f181",
+      "virtual_address": "0x18004f181",
+      "assembly": "movaps      xmm7,xmm8",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F181: movaps      xmm7,xmm8"
+    },
+    {
+      "rva": "0x4f185",
+      "virtual_address": "0x18004f185",
+      "assembly": "addsd       xmm7,mmword ptr [00000001801020E8h]",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F185: addsd       xmm7,mmword ptr [00000001801020E8h]"
+    },
+    {
+      "rva": "0x4f18d",
+      "virtual_address": "0x18004f18d",
+      "assembly": "movaps      xmm0,xmm7",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F18D: movaps      xmm0,xmm7"
+    },
+    {
+      "rva": "0x4f190",
+      "virtual_address": "0x18004f190",
+      "assembly": "call        00000001800A8C60",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F190: call        00000001800A8C60"
+    },
+    {
+      "rva": "0x4f195",
+      "virtual_address": "0x18004f195",
+      "assembly": "movaps      xmm1,xmm7",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F195: movaps      xmm1,xmm7"
+    },
+    {
+      "rva": "0x4f198",
+      "virtual_address": "0x18004f198",
+      "assembly": "subsd       xmm1,mmword ptr [00000001801020E8h]",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F198: subsd       xmm1,mmword ptr [00000001801020E8h]"
+    },
+    {
+      "rva": "0x4f1a0",
+      "virtual_address": "0x18004f1a0",
+      "assembly": "subsd       xmm1,xmm8",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F1A0: subsd       xmm1,xmm8"
+    },
+    {
+      "rva": "0x4f1a5",
+      "virtual_address": "0x18004f1a5",
+      "assembly": "divsd       xmm1,xmm7",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F1A5: divsd       xmm1,xmm7"
+    },
+    {
+      "rva": "0x4f1a9",
+      "virtual_address": "0x18004f1a9",
+      "assembly": "subsd       xmm0,xmm1",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F1A9: subsd       xmm0,xmm1"
+    },
+    {
+      "rva": "0x4f1ad",
+      "virtual_address": "0x18004f1ad",
+      "assembly": "movaps      xmm7,xmmword ptr [rsp+30h]",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F1AD: movaps      xmm7,xmmword ptr [rsp+30h]"
+    },
+    {
+      "rva": "0x4f1b2",
+      "virtual_address": "0x18004f1b2",
+      "assembly": "movaps      xmm8,xmmword ptr [rsp+20h]",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F1B2: movaps      xmm8,xmmword ptr [rsp+20h]"
+    },
+    {
+      "rva": "0x4f1b8",
+      "virtual_address": "0x18004f1b8",
+      "assembly": "add         rsp,48h",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F1B8: add         rsp,48h"
+    },
+    {
+      "rva": "0x4f1bc",
+      "virtual_address": "0x18004f1bc",
+      "assembly": "ret",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F1BC: ret"
+    },
+    {
+      "rva": "0x4f1bd",
+      "virtual_address": "0x18004f1bd",
+      "assembly": "mov         rax,7FFFFFFFFFFFFFFFh",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F1BD: mov         rax,7FFFFFFFFFFFFFFFh"
+    },
+    {
+      "rva": "0x4f1c7",
+      "virtual_address": "0x18004f1c7",
+      "assembly": "test        rax,rcx",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F1C7: test        rax,rcx"
+    },
+    {
+      "rva": "0x4f1ca",
+      "virtual_address": "0x18004f1ca",
+      "assembly": "je          000000018004F1AD",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F1CA: je          000000018004F1AD"
+    },
+    {
+      "rva": "0x4f1cc",
+      "virtual_address": "0x18004f1cc",
+      "assembly": "jmp         000000018004F165",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "wrapper",
+      "original_line": "  000000018004F1CC: jmp         000000018004F165"
+    },
+    {
+      "rva": "0x4f1ce",
+      "virtual_address": "0x18004f1ce",
+      "assembly": "mov         rax,0FFFFFFFFFFFFFh",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F1CE: mov         rax,0FFFFFFFFFFFFFh"
+    },
+    {
+      "rva": "0x4f1d8",
+      "virtual_address": "0x18004f1d8",
+      "assembly": "test        rax,rcx",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F1D8: test        rax,rcx"
+    },
+    {
+      "rva": "0x4f1db",
+      "virtual_address": "0x18004f1db",
+      "assembly": "jne         000000018004F1AD",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F1DB: jne         000000018004F1AD"
+    },
+    {
+      "rva": "0x4f1dd",
+      "virtual_address": "0x18004f1dd",
+      "assembly": "movq        rax,xmm8",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F1DD: movq        rax,xmm8"
+    },
+    {
+      "rva": "0x4f1e2",
+      "virtual_address": "0x18004f1e2",
+      "assembly": "bt          rax,3Fh",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F1E2: bt          rax,3Fh"
+    },
+    {
+      "rva": "0x4f1e7",
+      "virtual_address": "0x18004f1e7",
+      "assembly": "jae         000000018004F1AD",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F1E7: jae         000000018004F1AD"
+    },
+    {
+      "rva": "0x4f1e9",
+      "virtual_address": "0x18004f1e9",
+      "assembly": "jmp         000000018004F165",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F1E9: jmp         000000018004F165"
+    },
+    {
+      "rva": "0x4f1ee",
+      "virtual_address": "0x18004f1ee",
+      "assembly": "mov         ecx,1",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F1EE: mov         ecx,1"
+    },
+    {
+      "rva": "0x4f1f3",
+      "virtual_address": "0x18004f1f3",
+      "assembly": "call        0000000180055750",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F1F3: call        0000000180055750"
+    },
+    {
+      "rva": "0x4f1f8",
+      "virtual_address": "0x18004f1f8",
+      "assembly": "movsd       xmm0,mmword ptr [0000000180105FB0h]",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F1F8: movsd       xmm0,mmword ptr [0000000180105FB0h]"
+    },
+    {
+      "rva": "0x4f200",
+      "virtual_address": "0x18004f200",
+      "assembly": "jmp         000000018004F1AD",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F200: jmp         000000018004F1AD"
+    },
+    {
+      "rva": "0x4f202",
+      "virtual_address": "0x18004f202",
+      "assembly": "mov         ecx,4",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F202: mov         ecx,4"
+    },
+    {
+      "rva": "0x4f207",
+      "virtual_address": "0x18004f207",
+      "assembly": "call        0000000180055750",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F207: call        0000000180055750"
+    },
+    {
+      "rva": "0x4f20c",
+      "virtual_address": "0x18004f20c",
+      "assembly": "movsd       xmm0,mmword ptr [0000000180102968h]",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F20C: movsd       xmm0,mmword ptr [0000000180102968h]"
+    },
+    {
+      "rva": "0x4f214",
+      "virtual_address": "0x18004f214",
+      "assembly": "xorps       xmm0,xmmword ptr [0000000180103E00h]",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F214: xorps       xmm0,xmmword ptr [0000000180103E00h]"
+    },
+    {
+      "rva": "0x4f21b",
+      "virtual_address": "0x18004f21b",
+      "assembly": "jmp         000000018004F1AD",
+      "source_span": "wrapper",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  000000018004F21B: jmp         000000018004F1AD"
+    },
+    {
+      "rva": "0xa8c60",
+      "virtual_address": "0x1800a8c60",
+      "assembly": "sub         rsp,58h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C60: sub         rsp,58h"
+    },
+    {
+      "rva": "0xa8c64",
+      "virtual_address": "0x1800a8c64",
+      "assembly": "movdqa      xmmword ptr [rsp+20h],xmm6",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C64: movdqa      xmmword ptr [rsp+20h],xmm6"
+    },
+    {
+      "rva": "0xa8c6a",
+      "virtual_address": "0x1800a8c6a",
+      "assembly": "cmp         dword ptr [0000000180139E60h],0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C6A: cmp         dword ptr [0000000180139E60h],0"
+    },
+    {
+      "rva": "0xa8c71",
+      "virtual_address": "0x1800a8c71",
+      "assembly": "jne         00000001800A8F20",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C71: jne         00000001800A8F20"
+    },
+    {
+      "rva": "0xa8c77",
+      "virtual_address": "0x1800a8c77",
+      "assembly": "movdqa      xmm3,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C77: movdqa      xmm3,xmm0"
+    },
+    {
+      "rva": "0xa8c7b",
+      "virtual_address": "0x1800a8c7b",
+      "assembly": "movapd      xmm4,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C7B: movapd      xmm4,xmm0"
+    },
+    {
+      "rva": "0xa8c7f",
+      "virtual_address": "0x1800a8c7f",
+      "assembly": "psrlq       xmm3,34h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C7F: psrlq       xmm3,34h"
+    },
+    {
+      "rva": "0xa8c84",
+      "virtual_address": "0x1800a8c84",
+      "assembly": "movq        rax,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C84: movq        rax,xmm0"
+    },
+    {
+      "rva": "0xa8c89",
+      "virtual_address": "0x1800a8c89",
+      "assembly": "psubq       xmm3,xmmword ptr [0000000180107460h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C89: psubq       xmm3,xmmword ptr [0000000180107460h]"
+    },
+    {
+      "rva": "0xa8c91",
+      "virtual_address": "0x1800a8c91",
+      "assembly": "mov         rcx,rax",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C91: mov         rcx,rax"
+    },
+    {
+      "rva": "0xa8c94",
+      "virtual_address": "0x1800a8c94",
+      "assembly": "btr         rcx,3Fh",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C94: btr         rcx,3Fh"
+    },
+    {
+      "rva": "0xa8c99",
+      "virtual_address": "0x1800a8c99",
+      "assembly": "cmp         rcx,qword ptr [0000000180107410h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8C99: cmp         rcx,qword ptr [0000000180107410h]"
+    },
+    {
+      "rva": "0xa8ca0",
+      "virtual_address": "0x1800a8ca0",
+      "assembly": "jae         00000001800A8EF0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CA0: jae         00000001800A8EF0"
+    },
+    {
+      "rva": "0xa8ca6",
+      "virtual_address": "0x1800a8ca6",
+      "assembly": "movdqa      xmm2,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CA6: movdqa      xmm2,xmm0"
+    },
+    {
+      "rva": "0xa8caa",
+      "virtual_address": "0x1800a8caa",
+      "assembly": "cvtdq2pd    xmm6,xmm3",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CAA: cvtdq2pd    xmm6,xmm3"
+    },
+    {
+      "rva": "0xa8cae",
+      "virtual_address": "0x1800a8cae",
+      "assembly": "pand        xmm2,xmmword ptr [0000000180107450h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CAE: pand        xmm2,xmmword ptr [0000000180107450h]"
+    },
+    {
+      "rva": "0xa8cb6",
+      "virtual_address": "0x1800a8cb6",
+      "assembly": "subsd       xmm4,mmword ptr [00000001801074B0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CB6: subsd       xmm4,mmword ptr [00000001801074B0h]"
+    },
+    {
+      "rva": "0xa8cbe",
+      "virtual_address": "0x1800a8cbe",
+      "assembly": "comisd      xmm6,mmword ptr [0000000180107560h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CBE: comisd      xmm6,mmword ptr [0000000180107560h]"
+    },
+    {
+      "rva": "0xa8cc6",
+      "virtual_address": "0x1800a8cc6",
+      "assembly": "je          00000001800A8E70",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CC6: je          00000001800A8E70"
+    },
+    {
+      "rva": "0xa8ccc",
+      "virtual_address": "0x1800a8ccc",
+      "assembly": "andpd       xmm4,xmmword ptr [0000000180107590h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CCC: andpd       xmm4,xmmword ptr [0000000180107590h]"
+    },
+    {
+      "rva": "0xa8cd4",
+      "virtual_address": "0x1800a8cd4",
+      "assembly": "mov         r9,rax",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CD4: mov         r9,rax"
+    },
+    {
+      "rva": "0xa8cd7",
+      "virtual_address": "0x1800a8cd7",
+      "assembly": "and         rax,qword ptr [0000000180107480h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CD7: and         rax,qword ptr [0000000180107480h]"
+    },
+    {
+      "rva": "0xa8cde",
+      "virtual_address": "0x1800a8cde",
+      "assembly": "and         r9,qword ptr [0000000180107490h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CDE: and         r9,qword ptr [0000000180107490h]"
+    },
+    {
+      "rva": "0xa8ce5",
+      "virtual_address": "0x1800a8ce5",
+      "assembly": "shl         r9,1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CE5: shl         r9,1"
+    },
+    {
+      "rva": "0xa8ce8",
+      "virtual_address": "0x1800a8ce8",
+      "assembly": "add         rax,r9",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CE8: add         rax,r9"
+    },
+    {
+      "rva": "0xa8ceb",
+      "virtual_address": "0x1800a8ceb",
+      "assembly": "movq        xmm1,rax",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CEB: movq        xmm1,rax"
+    },
+    {
+      "rva": "0xa8cf0",
+      "virtual_address": "0x1800a8cf0",
+      "assembly": "comisd      xmm4,mmword ptr [0000000180107580h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CF0: comisd      xmm4,mmword ptr [0000000180107580h]"
+    },
+    {
+      "rva": "0xa8cf8",
+      "virtual_address": "0x1800a8cf8",
+      "assembly": "jb          00000001800A8DE0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CF8: jb          00000001800A8DE0"
+    },
+    {
+      "rva": "0xa8cfe",
+      "virtual_address": "0x1800a8cfe",
+      "assembly": "shr         rax,2Ch",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8CFE: shr         rax,2Ch"
+    },
+    {
+      "rva": "0xa8d02",
+      "virtual_address": "0x1800a8d02",
+      "assembly": "por         xmm2,xmmword ptr [00000001801074E0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D02: por         xmm2,xmmword ptr [00000001801074E0h]"
+    },
+    {
+      "rva": "0xa8d0a",
+      "virtual_address": "0x1800a8d0a",
+      "assembly": "por         xmm1,xmmword ptr [00000001801074E0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D0A: por         xmm1,xmmword ptr [00000001801074E0h]"
+    },
+    {
+      "rva": "0xa8d12",
+      "virtual_address": "0x1800a8d12",
+      "assembly": "lea         r9,[000000018010A650h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D12: lea         r9,[000000018010A650h]"
+    },
+    {
+      "rva": "0xa8d19",
+      "virtual_address": "0x1800a8d19",
+      "assembly": "xorpd       xmm5,xmm5",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D19: xorpd       xmm5,xmm5"
+    },
+    {
+      "rva": "0xa8d1d",
+      "virtual_address": "0x1800a8d1d",
+      "assembly": "comisd      xmm0,xmm5",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D1D: comisd      xmm0,xmm5"
+    },
+    {
+      "rva": "0xa8d21",
+      "virtual_address": "0x1800a8d21",
+      "assembly": "jbe         00000001800A8EB0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D21: jbe         00000001800A8EB0"
+    },
+    {
+      "rva": "0xa8d27",
+      "virtual_address": "0x1800a8d27",
+      "assembly": "subsd       xmm1,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D27: subsd       xmm1,xmm2"
+    },
+    {
+      "rva": "0xa8d2b",
+      "virtual_address": "0x1800a8d2b",
+      "assembly": "mulsd       xmm1,mmword ptr [r9+rax*8]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D2B: mulsd       xmm1,mmword ptr [r9+rax*8]"
+    },
+    {
+      "rva": "0xa8d31",
+      "virtual_address": "0x1800a8d31",
+      "assembly": "movapd      xmm2,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D31: movapd      xmm2,xmm1"
+    },
+    {
+      "rva": "0xa8d35",
+      "virtual_address": "0x1800a8d35",
+      "assembly": "movapd      xmm0,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D35: movapd      xmm0,xmm1"
+    },
+    {
+      "rva": "0xa8d39",
+      "virtual_address": "0x1800a8d39",
+      "assembly": "lea         r9,[0000000180109420h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D39: lea         r9,[0000000180109420h]"
+    },
+    {
+      "rva": "0xa8d40",
+      "virtual_address": "0x1800a8d40",
+      "assembly": "movsd       xmm3,mmword ptr [0000000180107550h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D40: movsd       xmm3,mmword ptr [0000000180107550h]"
+    },
+    {
+      "rva": "0xa8d48",
+      "virtual_address": "0x1800a8d48",
+      "assembly": "movsd       xmm1,mmword ptr [0000000180107520h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D48: movsd       xmm1,mmword ptr [0000000180107520h]"
+    },
+    {
+      "rva": "0xa8d50",
+      "virtual_address": "0x1800a8d50",
+      "assembly": "mulsd       xmm3,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D50: mulsd       xmm3,xmm2"
+    },
+    {
+      "rva": "0xa8d54",
+      "virtual_address": "0x1800a8d54",
+      "assembly": "mulsd       xmm1,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D54: mulsd       xmm1,xmm2"
+    },
+    {
+      "rva": "0xa8d58",
+      "virtual_address": "0x1800a8d58",
+      "assembly": "mulsd       xmm0,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D58: mulsd       xmm0,xmm2"
+    },
+    {
+      "rva": "0xa8d5c",
+      "virtual_address": "0x1800a8d5c",
+      "assembly": "movapd      xmm4,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D5C: movapd      xmm4,xmm0"
+    },
+    {
+      "rva": "0xa8d60",
+      "virtual_address": "0x1800a8d60",
+      "assembly": "addsd       xmm3,mmword ptr [0000000180107540h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D60: addsd       xmm3,mmword ptr [0000000180107540h]"
+    },
+    {
+      "rva": "0xa8d68",
+      "virtual_address": "0x1800a8d68",
+      "assembly": "addsd       xmm1,mmword ptr [0000000180107510h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D68: addsd       xmm1,mmword ptr [0000000180107510h]"
+    },
+    {
+      "rva": "0xa8d70",
+      "virtual_address": "0x1800a8d70",
+      "assembly": "mulsd       xmm4,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D70: mulsd       xmm4,xmm0"
+    },
+    {
+      "rva": "0xa8d74",
+      "virtual_address": "0x1800a8d74",
+      "assembly": "mulsd       xmm3,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D74: mulsd       xmm3,xmm2"
+    },
+    {
+      "rva": "0xa8d78",
+      "virtual_address": "0x1800a8d78",
+      "assembly": "mulsd       xmm1,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D78: mulsd       xmm1,xmm0"
+    },
+    {
+      "rva": "0xa8d7c",
+      "virtual_address": "0x1800a8d7c",
+      "assembly": "addsd       xmm3,mmword ptr [0000000180107530h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D7C: addsd       xmm3,mmword ptr [0000000180107530h]"
+    },
+    {
+      "rva": "0xa8d84",
+      "virtual_address": "0x1800a8d84",
+      "assembly": "addsd       xmm1,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D84: addsd       xmm1,xmm2"
+    },
+    {
+      "rva": "0xa8d88",
+      "virtual_address": "0x1800a8d88",
+      "assembly": "mulsd       xmm3,xmm4",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D88: mulsd       xmm3,xmm4"
+    },
+    {
+      "rva": "0xa8d8c",
+      "virtual_address": "0x1800a8d8c",
+      "assembly": "addsd       xmm1,xmm3",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D8C: addsd       xmm1,xmm3"
+    },
+    {
+      "rva": "0xa8d90",
+      "virtual_address": "0x1800a8d90",
+      "assembly": "movsd       xmm5,mmword ptr [00000001801075F0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D90: movsd       xmm5,mmword ptr [00000001801075F0h]"
+    },
+    {
+      "rva": "0xa8d98",
+      "virtual_address": "0x1800a8d98",
+      "assembly": "mulsd       xmm5,xmm6",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D98: mulsd       xmm5,xmm6"
+    },
+    {
+      "rva": "0xa8d9c",
+      "virtual_address": "0x1800a8d9c",
+      "assembly": "subsd       xmm5,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8D9C: subsd       xmm5,xmm1"
+    },
+    {
+      "rva": "0xa8da0",
+      "virtual_address": "0x1800a8da0",
+      "assembly": "movsd       xmm0,mmword ptr [r9+rax*8]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8DA0: movsd       xmm0,mmword ptr [r9+rax*8]"
+    },
+    {
+      "rva": "0xa8da6",
+      "virtual_address": "0x1800a8da6",
+      "assembly": "lea         rdx,[0000000180109C30h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8DA6: lea         rdx,[0000000180109C30h]"
+    },
+    {
+      "rva": "0xa8dad",
+      "virtual_address": "0x1800a8dad",
+      "assembly": "movsd       xmm2,mmword ptr [rdx+rax*8]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8DAD: movsd       xmm2,mmword ptr [rdx+rax*8]"
+    },
+    {
+      "rva": "0xa8db2",
+      "virtual_address": "0x1800a8db2",
+      "assembly": "addsd       xmm2,xmm5",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8DB2: addsd       xmm2,xmm5"
+    },
+    {
+      "rva": "0xa8db6",
+      "virtual_address": "0x1800a8db6",
+      "assembly": "movsd       xmm4,mmword ptr [00000001801075E0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8DB6: movsd       xmm4,mmword ptr [00000001801075E0h]"
+    },
+    {
+      "rva": "0xa8dbe",
+      "virtual_address": "0x1800a8dbe",
+      "assembly": "mulsd       xmm4,xmm6",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8DBE: mulsd       xmm4,xmm6"
+    },
+    {
+      "rva": "0xa8dc2",
+      "virtual_address": "0x1800a8dc2",
+      "assembly": "addsd       xmm0,xmm4",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8DC2: addsd       xmm0,xmm4"
+    },
+    {
+      "rva": "0xa8dc6",
+      "virtual_address": "0x1800a8dc6",
+      "assembly": "addsd       xmm0,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8DC6: addsd       xmm0,xmm2"
+    },
+    {
+      "rva": "0xa8dca",
+      "virtual_address": "0x1800a8dca",
+      "assembly": "movdqa      xmm6,xmmword ptr [rsp+20h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8DCA: movdqa      xmm6,xmmword ptr [rsp+20h]"
+    },
+    {
+      "rva": "0xa8dd0",
+      "virtual_address": "0x1800a8dd0",
+      "assembly": "add         rsp,58h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8DD0: add         rsp,58h"
+    },
+    {
+      "rva": "0xa8dd4",
+      "virtual_address": "0x1800a8dd4",
+      "assembly": "ret",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "common-sse-general",
+      "original_line": "  00000001800A8DD4: ret"
+    },
+    {
+      "rva": "0xa8dd5",
+      "virtual_address": "0x1800a8dd5",
+      "assembly": "nop         word ptr [rax+rax+0000000000000000h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8DD5: nop         word ptr [rax+rax+0000000000000000h]"
+    },
+    {
+      "rva": "0xa8de0",
+      "virtual_address": "0x1800a8de0",
+      "assembly": "movsd       xmm2,mmword ptr [00000001801074A0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8DE0: movsd       xmm2,mmword ptr [00000001801074A0h]"
+    },
+    {
+      "rva": "0xa8de8",
+      "virtual_address": "0x1800a8de8",
+      "assembly": "subsd       xmm0,mmword ptr [00000001801074B0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8DE8: subsd       xmm0,mmword ptr [00000001801074B0h]"
+    },
+    {
+      "rva": "0xa8df0",
+      "virtual_address": "0x1800a8df0",
+      "assembly": "addsd       xmm2,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8DF0: addsd       xmm2,xmm0"
+    },
+    {
+      "rva": "0xa8df4",
+      "virtual_address": "0x1800a8df4",
+      "assembly": "movsd       xmm1,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8DF4: movsd       xmm1,xmm0"
+    },
+    {
+      "rva": "0xa8df8",
+      "virtual_address": "0x1800a8df8",
+      "assembly": "divsd       xmm1,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8DF8: divsd       xmm1,xmm2"
+    },
+    {
+      "rva": "0xa8dfc",
+      "virtual_address": "0x1800a8dfc",
+      "assembly": "movsd       xmm4,mmword ptr [00000001801075B0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8DFC: movsd       xmm4,mmword ptr [00000001801075B0h]"
+    },
+    {
+      "rva": "0xa8e04",
+      "virtual_address": "0x1800a8e04",
+      "assembly": "movsd       xmm5,mmword ptr [00000001801075D0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E04: movsd       xmm5,mmword ptr [00000001801075D0h]"
+    },
+    {
+      "rva": "0xa8e0c",
+      "virtual_address": "0x1800a8e0c",
+      "assembly": "movsd       xmm6,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E0C: movsd       xmm6,xmm0"
+    },
+    {
+      "rva": "0xa8e10",
+      "virtual_address": "0x1800a8e10",
+      "assembly": "mulsd       xmm6,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E10: mulsd       xmm6,xmm1"
+    },
+    {
+      "rva": "0xa8e14",
+      "virtual_address": "0x1800a8e14",
+      "assembly": "addsd       xmm1,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E14: addsd       xmm1,xmm1"
+    },
+    {
+      "rva": "0xa8e18",
+      "virtual_address": "0x1800a8e18",
+      "assembly": "movsd       xmm2,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E18: movsd       xmm2,xmm1"
+    },
+    {
+      "rva": "0xa8e1c",
+      "virtual_address": "0x1800a8e1c",
+      "assembly": "mulsd       xmm2,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E1C: mulsd       xmm2,xmm1"
+    },
+    {
+      "rva": "0xa8e20",
+      "virtual_address": "0x1800a8e20",
+      "assembly": "mulsd       xmm4,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E20: mulsd       xmm4,xmm2"
+    },
+    {
+      "rva": "0xa8e24",
+      "virtual_address": "0x1800a8e24",
+      "assembly": "mulsd       xmm5,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E24: mulsd       xmm5,xmm2"
+    },
+    {
+      "rva": "0xa8e28",
+      "virtual_address": "0x1800a8e28",
+      "assembly": "addsd       xmm4,mmword ptr [00000001801075A0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E28: addsd       xmm4,mmword ptr [00000001801075A0h]"
+    },
+    {
+      "rva": "0xa8e30",
+      "virtual_address": "0x1800a8e30",
+      "assembly": "addsd       xmm5,mmword ptr [00000001801075C0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E30: addsd       xmm5,mmword ptr [00000001801075C0h]"
+    },
+    {
+      "rva": "0xa8e38",
+      "virtual_address": "0x1800a8e38",
+      "assembly": "mulsd       xmm2,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E38: mulsd       xmm2,xmm1"
+    },
+    {
+      "rva": "0xa8e3c",
+      "virtual_address": "0x1800a8e3c",
+      "assembly": "mulsd       xmm4,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E3C: mulsd       xmm4,xmm2"
+    },
+    {
+      "rva": "0xa8e40",
+      "virtual_address": "0x1800a8e40",
+      "assembly": "mulsd       xmm2,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E40: mulsd       xmm2,xmm2"
+    },
+    {
+      "rva": "0xa8e44",
+      "virtual_address": "0x1800a8e44",
+      "assembly": "mulsd       xmm2,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E44: mulsd       xmm2,xmm1"
+    },
+    {
+      "rva": "0xa8e48",
+      "virtual_address": "0x1800a8e48",
+      "assembly": "mulsd       xmm5,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E48: mulsd       xmm5,xmm2"
+    },
+    {
+      "rva": "0xa8e4c",
+      "virtual_address": "0x1800a8e4c",
+      "assembly": "addsd       xmm4,xmm5",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E4C: addsd       xmm4,xmm5"
+    },
+    {
+      "rva": "0xa8e50",
+      "virtual_address": "0x1800a8e50",
+      "assembly": "subsd       xmm4,xmm6",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E50: subsd       xmm4,xmm6"
+    },
+    {
+      "rva": "0xa8e54",
+      "virtual_address": "0x1800a8e54",
+      "assembly": "addsd       xmm0,xmm4",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E54: addsd       xmm0,xmm4"
+    },
+    {
+      "rva": "0xa8e58",
+      "virtual_address": "0x1800a8e58",
+      "assembly": "movdqa      xmm6,xmmword ptr [rsp+20h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E58: movdqa      xmm6,xmmword ptr [rsp+20h]"
+    },
+    {
+      "rva": "0xa8e5e",
+      "virtual_address": "0x1800a8e5e",
+      "assembly": "add         rsp,58h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E5E: add         rsp,58h"
+    },
+    {
+      "rva": "0xa8e62",
+      "virtual_address": "0x1800a8e62",
+      "assembly": "ret",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "sse-near",
+      "original_line": "  00000001800A8E62: ret"
+    },
+    {
+      "rva": "0xa8e63",
+      "virtual_address": "0x1800a8e63",
+      "assembly": "nop         word ptr [rax+rax+0000000000000000h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8E63: nop         word ptr [rax+rax+0000000000000000h]"
+    },
+    {
+      "rva": "0xa8e70",
+      "virtual_address": "0x1800a8e70",
+      "assembly": "por         xmm2,xmmword ptr [00000001801074B0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8E70: por         xmm2,xmmword ptr [00000001801074B0h]"
+    },
+    {
+      "rva": "0xa8e78",
+      "virtual_address": "0x1800a8e78",
+      "assembly": "subsd       xmm2,mmword ptr [00000001801074B0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8E78: subsd       xmm2,mmword ptr [00000001801074B0h]"
+    },
+    {
+      "rva": "0xa8e80",
+      "virtual_address": "0x1800a8e80",
+      "assembly": "movsd       xmm5,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8E80: movsd       xmm5,xmm2"
+    },
+    {
+      "rva": "0xa8e84",
+      "virtual_address": "0x1800a8e84",
+      "assembly": "pand        xmm2,xmmword ptr [0000000180107450h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8E84: pand        xmm2,xmmword ptr [0000000180107450h]"
+    },
+    {
+      "rva": "0xa8e8c",
+      "virtual_address": "0x1800a8e8c",
+      "assembly": "movq        rax,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8E8C: movq        rax,xmm2"
+    },
+    {
+      "rva": "0xa8e91",
+      "virtual_address": "0x1800a8e91",
+      "assembly": "psrlq       xmm5,34h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8E91: psrlq       xmm5,34h"
+    },
+    {
+      "rva": "0xa8e96",
+      "virtual_address": "0x1800a8e96",
+      "assembly": "psubd       xmm5,xmmword ptr [0000000180107570h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8E96: psubd       xmm5,xmmword ptr [0000000180107570h]"
+    },
+    {
+      "rva": "0xa8e9e",
+      "virtual_address": "0x1800a8e9e",
+      "assembly": "cvtdq2pd    xmm6,xmm5",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8E9E: cvtdq2pd    xmm6,xmm5"
+    },
+    {
+      "rva": "0xa8ea2",
+      "virtual_address": "0x1800a8ea2",
+      "assembly": "jmp         00000001800A8CCC",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EA2: jmp         00000001800A8CCC"
+    },
+    {
+      "rva": "0xa8ea7",
+      "virtual_address": "0x1800a8ea7",
+      "assembly": "nop         word ptr [rax+rax+0000000000000000h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EA7: nop         word ptr [rax+rax+0000000000000000h]"
+    },
+    {
+      "rva": "0xa8eb0",
+      "virtual_address": "0x1800a8eb0",
+      "assembly": "jne         00000001800A8ED0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EB0: jne         00000001800A8ED0"
+    },
+    {
+      "rva": "0xa8eb2",
+      "virtual_address": "0x1800a8eb2",
+      "assembly": "movsd       xmm1,mmword ptr [0000000180107400h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EB2: movsd       xmm1,mmword ptr [0000000180107400h]"
+    },
+    {
+      "rva": "0xa8eba",
+      "virtual_address": "0x1800a8eba",
+      "assembly": "mov         r8d,dword ptr [0000000180107600h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EBA: mov         r8d,dword ptr [0000000180107600h]"
+    },
+    {
+      "rva": "0xa8ec1",
+      "virtual_address": "0x1800a8ec1",
+      "assembly": "call        00000001800981B0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EC1: call        00000001800981B0"
+    },
+    {
+      "rva": "0xa8ec6",
+      "virtual_address": "0x1800a8ec6",
+      "assembly": "jmp         00000001800A8F10",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EC6: jmp         00000001800A8F10"
+    },
+    {
+      "rva": "0xa8ec8",
+      "virtual_address": "0x1800a8ec8",
+      "assembly": "nop         dword ptr [rax+rax+0000000000000000h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EC8: nop         dword ptr [rax+rax+0000000000000000h]"
+    },
+    {
+      "rva": "0xa8ed0",
+      "virtual_address": "0x1800a8ed0",
+      "assembly": "movsd       xmm1,mmword ptr [0000000180107420h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8ED0: movsd       xmm1,mmword ptr [0000000180107420h]"
+    },
+    {
+      "rva": "0xa8ed8",
+      "virtual_address": "0x1800a8ed8",
+      "assembly": "mov         r8d,dword ptr [0000000180107604h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8ED8: mov         r8d,dword ptr [0000000180107604h]"
+    },
+    {
+      "rva": "0xa8edf",
+      "virtual_address": "0x1800a8edf",
+      "assembly": "call        00000001800981B0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EDF: call        00000001800981B0"
+    },
+    {
+      "rva": "0xa8ee4",
+      "virtual_address": "0x1800a8ee4",
+      "assembly": "jmp         00000001800A8F10",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EE4: jmp         00000001800A8F10"
+    },
+    {
+      "rva": "0xa8ee6",
+      "virtual_address": "0x1800a8ee6",
+      "assembly": "nop         word ptr [rax+rax+0000000000000000h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EE6: nop         word ptr [rax+rax+0000000000000000h]"
+    },
+    {
+      "rva": "0xa8ef0",
+      "virtual_address": "0x1800a8ef0",
+      "assembly": "cmp         rax,qword ptr [0000000180107410h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EF0: cmp         rax,qword ptr [0000000180107410h]"
+    },
+    {
+      "rva": "0xa8ef7",
+      "virtual_address": "0x1800a8ef7",
+      "assembly": "je          00000001800A8F10",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EF7: je          00000001800A8F10"
+    },
+    {
+      "rva": "0xa8ef9",
+      "virtual_address": "0x1800a8ef9",
+      "assembly": "cmp         rax,qword ptr [0000000180107400h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8EF9: cmp         rax,qword ptr [0000000180107400h]"
+    },
+    {
+      "rva": "0xa8f00",
+      "virtual_address": "0x1800a8f00",
+      "assembly": "je          00000001800A8ED0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8F00: je          00000001800A8ED0"
+    },
+    {
+      "rva": "0xa8f02",
+      "virtual_address": "0x1800a8f02",
+      "assembly": "or          rax,qword ptr [0000000180107430h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8F02: or          rax,qword ptr [0000000180107430h]"
+    },
+    {
+      "rva": "0xa8f09",
+      "virtual_address": "0x1800a8f09",
+      "assembly": "movq        xmm0,rax",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8F09: movq        xmm0,rax"
+    },
+    {
+      "rva": "0xa8f0e",
+      "virtual_address": "0x1800a8f0e",
+      "assembly": "nop",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8F0E: nop"
+    },
+    {
+      "rva": "0xa8f10",
+      "virtual_address": "0x1800a8f10",
+      "assembly": "movdqa      xmm6,xmmword ptr [rsp+20h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8F10: movdqa      xmm6,xmmword ptr [rsp+20h]"
+    },
+    {
+      "rva": "0xa8f16",
+      "virtual_address": "0x1800a8f16",
+      "assembly": "add         rsp,58h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8F16: add         rsp,58h"
+    },
+    {
+      "rva": "0xa8f1a",
+      "virtual_address": "0x1800a8f1a",
+      "assembly": "ret",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8F1A: ret"
+    },
+    {
+      "rva": "0xa8f1b",
+      "virtual_address": "0x1800a8f1b",
+      "assembly": "nop         dword ptr [rax+rax]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A8F1B: nop         dword ptr [rax+rax]"
+    },
+    {
+      "rva": "0xa8f20",
+      "virtual_address": "0x1800a8f20",
+      "assembly": "xor         rax,rax",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F20: xor         rax,rax"
+    },
+    {
+      "rva": "0xa8f23",
+      "virtual_address": "0x1800a8f23",
+      "assembly": "vpsrlq      xmm3,xmm0,34h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F23: vpsrlq      xmm3,xmm0,34h"
+    },
+    {
+      "rva": "0xa8f28",
+      "virtual_address": "0x1800a8f28",
+      "assembly": "vmovq       rax,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F28: vmovq       rax,xmm0"
+    },
+    {
+      "rva": "0xa8f2d",
+      "virtual_address": "0x1800a8f2d",
+      "assembly": "vpsubq      xmm3,xmm3,xmmword ptr [0000000180107460h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F2D: vpsubq      xmm3,xmm3,xmmword ptr [0000000180107460h]"
+    },
+    {
+      "rva": "0xa8f35",
+      "virtual_address": "0x1800a8f35",
+      "assembly": "vcvtdq2pd   xmm6,xmm3",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F35: vcvtdq2pd   xmm6,xmm3"
+    },
+    {
+      "rva": "0xa8f39",
+      "virtual_address": "0x1800a8f39",
+      "assembly": "vpand       xmm5,xmm0,xmmword ptr [0000000180107410h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F39: vpand       xmm5,xmm0,xmmword ptr [0000000180107410h]"
+    },
+    {
+      "rva": "0xa8f41",
+      "virtual_address": "0x1800a8f41",
+      "assembly": "vcomisd     xmm5,mmword ptr [0000000180107410h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F41: vcomisd     xmm5,mmword ptr [0000000180107410h]"
+    },
+    {
+      "rva": "0xa8f49",
+      "virtual_address": "0x1800a8f49",
+      "assembly": "je          00000001800A9150",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F49: je          00000001800A9150"
+    },
+    {
+      "rva": "0xa8f4f",
+      "virtual_address": "0x1800a8f4f",
+      "assembly": "vpxor       xmm5,xmm5,xmm5",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F4F: vpxor       xmm5,xmm5,xmm5"
+    },
+    {
+      "rva": "0xa8f53",
+      "virtual_address": "0x1800a8f53",
+      "assembly": "vcomisd     xmm0,xmm5",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F53: vcomisd     xmm0,xmm5"
+    },
+    {
+      "rva": "0xa8f57",
+      "virtual_address": "0x1800a8f57",
+      "assembly": "jbe         00000001800A9100",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F57: jbe         00000001800A9100"
+    },
+    {
+      "rva": "0xa8f5d",
+      "virtual_address": "0x1800a8f5d",
+      "assembly": "vpand       xmm2,xmm0,xmmword ptr [0000000180107450h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F5D: vpand       xmm2,xmm0,xmmword ptr [0000000180107450h]"
+    },
+    {
+      "rva": "0xa8f65",
+      "virtual_address": "0x1800a8f65",
+      "assembly": "vsubsd      xmm4,xmm0,mmword ptr [00000001801074B0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F65: vsubsd      xmm4,xmm0,mmword ptr [00000001801074B0h]"
+    },
+    {
+      "rva": "0xa8f6d",
+      "virtual_address": "0x1800a8f6d",
+      "assembly": "vcomisd     xmm6,mmword ptr [0000000180107560h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F6D: vcomisd     xmm6,mmword ptr [0000000180107560h]"
+    },
+    {
+      "rva": "0xa8f75",
+      "virtual_address": "0x1800a8f75",
+      "assembly": "je          00000001800A90CE",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F75: je          00000001800A90CE"
+    },
+    {
+      "rva": "0xa8f7b",
+      "virtual_address": "0x1800a8f7b",
+      "assembly": "vpand       xmm1,xmm0,xmmword ptr [0000000180107480h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F7B: vpand       xmm1,xmm0,xmmword ptr [0000000180107480h]"
+    },
+    {
+      "rva": "0xa8f83",
+      "virtual_address": "0x1800a8f83",
+      "assembly": "vpand       xmm3,xmm0,xmmword ptr [0000000180107490h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F83: vpand       xmm3,xmm0,xmmword ptr [0000000180107490h]"
+    },
+    {
+      "rva": "0xa8f8b",
+      "virtual_address": "0x1800a8f8b",
+      "assembly": "vpsllq      xmm3,xmm3,1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F8B: vpsllq      xmm3,xmm3,1"
+    },
+    {
+      "rva": "0xa8f90",
+      "virtual_address": "0x1800a8f90",
+      "assembly": "vpaddq      xmm1,xmm3,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F90: vpaddq      xmm1,xmm3,xmm1"
+    },
+    {
+      "rva": "0xa8f94",
+      "virtual_address": "0x1800a8f94",
+      "assembly": "vmovq       rax,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F94: vmovq       rax,xmm1"
+    },
+    {
+      "rva": "0xa8f99",
+      "virtual_address": "0x1800a8f99",
+      "assembly": "vpand       xmm4,xmm4,xmmword ptr [0000000180107590h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8F99: vpand       xmm4,xmm4,xmmword ptr [0000000180107590h]"
+    },
+    {
+      "rva": "0xa8fa1",
+      "virtual_address": "0x1800a8fa1",
+      "assembly": "vcomisd     xmm4,mmword ptr [0000000180107580h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FA1: vcomisd     xmm4,mmword ptr [0000000180107580h]"
+    },
+    {
+      "rva": "0xa8fa9",
+      "virtual_address": "0x1800a8fa9",
+      "assembly": "jb          00000001800A9060",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FA9: jb          00000001800A9060"
+    },
+    {
+      "rva": "0xa8faf",
+      "virtual_address": "0x1800a8faf",
+      "assembly": "shr         rax,2Ch",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FAF: shr         rax,2Ch"
+    },
+    {
+      "rva": "0xa8fb3",
+      "virtual_address": "0x1800a8fb3",
+      "assembly": "vpor        xmm2,xmm2,xmmword ptr [00000001801074E0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FB3: vpor        xmm2,xmm2,xmmword ptr [00000001801074E0h]"
+    },
+    {
+      "rva": "0xa8fbb",
+      "virtual_address": "0x1800a8fbb",
+      "assembly": "vpor        xmm1,xmm1,xmmword ptr [00000001801074E0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FBB: vpor        xmm1,xmm1,xmmword ptr [00000001801074E0h]"
+    },
+    {
+      "rva": "0xa8fc3",
+      "virtual_address": "0x1800a8fc3",
+      "assembly": "lea         r9,[000000018010A650h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FC3: lea         r9,[000000018010A650h]"
+    },
+    {
+      "rva": "0xa8fca",
+      "virtual_address": "0x1800a8fca",
+      "assembly": "vsubsd      xmm1,xmm1,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FCA: vsubsd      xmm1,xmm1,xmm2"
+    },
+    {
+      "rva": "0xa8fce",
+      "virtual_address": "0x1800a8fce",
+      "assembly": "vmulsd      xmm1,xmm1,mmword ptr [r9+rax*8]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FCE: vmulsd      xmm1,xmm1,mmword ptr [r9+rax*8]"
+    },
+    {
+      "rva": "0xa8fd4",
+      "virtual_address": "0x1800a8fd4",
+      "assembly": "lea         r9,[0000000180109420h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FD4: lea         r9,[0000000180109420h]"
+    },
+    {
+      "rva": "0xa8fdb",
+      "virtual_address": "0x1800a8fdb",
+      "assembly": "vmulsd      xmm0,xmm1,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FDB: vmulsd      xmm0,xmm1,xmm1"
+    },
+    {
+      "rva": "0xa8fdf",
+      "virtual_address": "0x1800a8fdf",
+      "assembly": "vmovsd      xmm3,qword ptr [0000000180107550h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FDF: vmovsd      xmm3,qword ptr [0000000180107550h]"
+    },
+    {
+      "rva": "0xa8fe7",
+      "virtual_address": "0x1800a8fe7",
+      "assembly": "vmovsd      xmm5,qword ptr [0000000180107520h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FE7: vmovsd      xmm5,qword ptr [0000000180107520h]"
+    },
+    {
+      "rva": "0xa8fef",
+      "virtual_address": "0x1800a8fef",
+      "assembly": "vfmadd213sd xmm3,xmm1,mmword ptr [0000000180107540h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FEF: vfmadd213sd xmm3,xmm1,mmword ptr [0000000180107540h]"
+    },
+    {
+      "rva": "0xa8ff8",
+      "virtual_address": "0x1800a8ff8",
+      "assembly": "vfmadd213sd xmm5,xmm1,mmword ptr [0000000180107510h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A8FF8: vfmadd213sd xmm5,xmm1,mmword ptr [0000000180107510h]"
+    },
+    {
+      "rva": "0xa9001",
+      "virtual_address": "0x1800a9001",
+      "assembly": "vmovsd      xmm4,xmm0,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A9001: vmovsd      xmm4,xmm0,xmm0"
+    },
+    {
+      "rva": "0xa9005",
+      "virtual_address": "0x1800a9005",
+      "assembly": "vfmadd213sd xmm3,xmm1,mmword ptr [0000000180107530h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A9005: vfmadd213sd xmm3,xmm1,mmword ptr [0000000180107530h]"
+    },
+    {
+      "rva": "0xa900e",
+      "virtual_address": "0x1800a900e",
+      "assembly": "vmulsd      xmm4,xmm0,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A900E: vmulsd      xmm4,xmm0,xmm0"
+    },
+    {
+      "rva": "0xa9012",
+      "virtual_address": "0x1800a9012",
+      "assembly": "vfmadd231sd xmm1,xmm5,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A9012: vfmadd231sd xmm1,xmm5,xmm0"
+    },
+    {
+      "rva": "0xa9017",
+      "virtual_address": "0x1800a9017",
+      "assembly": "vfmadd231sd xmm1,xmm3,xmm4",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A9017: vfmadd231sd xmm1,xmm3,xmm4"
+    },
+    {
+      "rva": "0xa901c",
+      "virtual_address": "0x1800a901c",
+      "assembly": "vmovsd      xmm5,qword ptr [00000001801075F0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A901C: vmovsd      xmm5,qword ptr [00000001801075F0h]"
+    },
+    {
+      "rva": "0xa9024",
+      "virtual_address": "0x1800a9024",
+      "assembly": "vfmsub213sd xmm5,xmm6,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A9024: vfmsub213sd xmm5,xmm6,xmm1"
+    },
+    {
+      "rva": "0xa9029",
+      "virtual_address": "0x1800a9029",
+      "assembly": "vmovsd      xmm0,qword ptr [r9+rax*8]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A9029: vmovsd      xmm0,qword ptr [r9+rax*8]"
+    },
+    {
+      "rva": "0xa902f",
+      "virtual_address": "0x1800a902f",
+      "assembly": "lea         rdx,[0000000180109C30h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A902F: lea         rdx,[0000000180109C30h]"
+    },
+    {
+      "rva": "0xa9036",
+      "virtual_address": "0x1800a9036",
+      "assembly": "vmovsd      xmm1,qword ptr [rdx+rax*8]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A9036: vmovsd      xmm1,qword ptr [rdx+rax*8]"
+    },
+    {
+      "rva": "0xa903b",
+      "virtual_address": "0x1800a903b",
+      "assembly": "vaddsd      xmm1,xmm1,xmm5",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A903B: vaddsd      xmm1,xmm1,xmm5"
+    },
+    {
+      "rva": "0xa903f",
+      "virtual_address": "0x1800a903f",
+      "assembly": "vfmadd231sd xmm0,xmm6,mmword ptr [00000001801075E0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A903F: vfmadd231sd xmm0,xmm6,mmword ptr [00000001801075E0h]"
+    },
+    {
+      "rva": "0xa9048",
+      "virtual_address": "0x1800a9048",
+      "assembly": "vaddsd      xmm0,xmm0,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A9048: vaddsd      xmm0,xmm0,xmm1"
+    },
+    {
+      "rva": "0xa904c",
+      "virtual_address": "0x1800a904c",
+      "assembly": "vmovdqa     xmm6,xmmword ptr [rsp+20h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A904C: vmovdqa     xmm6,xmmword ptr [rsp+20h]"
+    },
+    {
+      "rva": "0xa9052",
+      "virtual_address": "0x1800a9052",
+      "assembly": "add         rsp,58h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A9052: add         rsp,58h"
+    },
+    {
+      "rva": "0xa9056",
+      "virtual_address": "0x1800a9056",
+      "assembly": "ret",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-general",
+      "original_line": "  00000001800A9056: ret"
+    },
+    {
+      "rva": "0xa9057",
+      "virtual_address": "0x1800a9057",
+      "assembly": "nop         word ptr [rax+rax+0000000000000000h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9057: nop         word ptr [rax+rax+0000000000000000h]"
+    },
+    {
+      "rva": "0xa9060",
+      "virtual_address": "0x1800a9060",
+      "assembly": "vmovsd      xmm3,qword ptr [00000001801074A0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A9060: vmovsd      xmm3,qword ptr [00000001801074A0h]"
+    },
+    {
+      "rva": "0xa9068",
+      "virtual_address": "0x1800a9068",
+      "assembly": "vsubsd      xmm0,xmm0,mmword ptr [00000001801074B0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A9068: vsubsd      xmm0,xmm0,mmword ptr [00000001801074B0h]"
+    },
+    {
+      "rva": "0xa9070",
+      "virtual_address": "0x1800a9070",
+      "assembly": "vaddsd      xmm3,xmm3,xmm0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A9070: vaddsd      xmm3,xmm3,xmm0"
+    },
+    {
+      "rva": "0xa9074",
+      "virtual_address": "0x1800a9074",
+      "assembly": "vdivsd      xmm1,xmm0,xmm3",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A9074: vdivsd      xmm1,xmm0,xmm3"
+    },
+    {
+      "rva": "0xa9078",
+      "virtual_address": "0x1800a9078",
+      "assembly": "vmovsd      xmm4,qword ptr [00000001801075B0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A9078: vmovsd      xmm4,qword ptr [00000001801075B0h]"
+    },
+    {
+      "rva": "0xa9080",
+      "virtual_address": "0x1800a9080",
+      "assembly": "vmovsd      xmm5,qword ptr [00000001801075D0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A9080: vmovsd      xmm5,qword ptr [00000001801075D0h]"
+    },
+    {
+      "rva": "0xa9088",
+      "virtual_address": "0x1800a9088",
+      "assembly": "vmulsd      xmm3,xmm0,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A9088: vmulsd      xmm3,xmm0,xmm1"
+    },
+    {
+      "rva": "0xa908c",
+      "virtual_address": "0x1800a908c",
+      "assembly": "vaddsd      xmm1,xmm1,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A908C: vaddsd      xmm1,xmm1,xmm1"
+    },
+    {
+      "rva": "0xa9090",
+      "virtual_address": "0x1800a9090",
+      "assembly": "vmulsd      xmm2,xmm1,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A9090: vmulsd      xmm2,xmm1,xmm1"
+    },
+    {
+      "rva": "0xa9094",
+      "virtual_address": "0x1800a9094",
+      "assembly": "vfmadd213sd xmm4,xmm2,mmword ptr [00000001801075A0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A9094: vfmadd213sd xmm4,xmm2,mmword ptr [00000001801075A0h]"
+    },
+    {
+      "rva": "0xa909d",
+      "virtual_address": "0x1800a909d",
+      "assembly": "vfmadd213sd xmm5,xmm2,mmword ptr [00000001801075C0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A909D: vfmadd213sd xmm5,xmm2,mmword ptr [00000001801075C0h]"
+    },
+    {
+      "rva": "0xa90a6",
+      "virtual_address": "0x1800a90a6",
+      "assembly": "vmulsd      xmm2,xmm2,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A90A6: vmulsd      xmm2,xmm2,xmm1"
+    },
+    {
+      "rva": "0xa90aa",
+      "virtual_address": "0x1800a90aa",
+      "assembly": "vmulsd      xmm4,xmm4,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A90AA: vmulsd      xmm4,xmm4,xmm2"
+    },
+    {
+      "rva": "0xa90ae",
+      "virtual_address": "0x1800a90ae",
+      "assembly": "vmulsd      xmm2,xmm2,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A90AE: vmulsd      xmm2,xmm2,xmm2"
+    },
+    {
+      "rva": "0xa90b2",
+      "virtual_address": "0x1800a90b2",
+      "assembly": "vmulsd      xmm2,xmm2,xmm1",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A90B2: vmulsd      xmm2,xmm2,xmm1"
+    },
+    {
+      "rva": "0xa90b6",
+      "virtual_address": "0x1800a90b6",
+      "assembly": "vfmadd231sd xmm4,xmm5,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A90B6: vfmadd231sd xmm4,xmm5,xmm2"
+    },
+    {
+      "rva": "0xa90bb",
+      "virtual_address": "0x1800a90bb",
+      "assembly": "vsubsd      xmm4,xmm4,xmm3",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A90BB: vsubsd      xmm4,xmm4,xmm3"
+    },
+    {
+      "rva": "0xa90bf",
+      "virtual_address": "0x1800a90bf",
+      "assembly": "vaddsd      xmm0,xmm0,xmm4",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A90BF: vaddsd      xmm0,xmm0,xmm4"
+    },
+    {
+      "rva": "0xa90c3",
+      "virtual_address": "0x1800a90c3",
+      "assembly": "vmovdqa     xmm6,xmmword ptr [rsp+20h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A90C3: vmovdqa     xmm6,xmmword ptr [rsp+20h]"
+    },
+    {
+      "rva": "0xa90c9",
+      "virtual_address": "0x1800a90c9",
+      "assembly": "add         rsp,58h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A90C9: add         rsp,58h"
+    },
+    {
+      "rva": "0xa90cd",
+      "virtual_address": "0x1800a90cd",
+      "assembly": "ret",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "fma-near",
+      "original_line": "  00000001800A90CD: ret"
+    },
+    {
+      "rva": "0xa90ce",
+      "virtual_address": "0x1800a90ce",
+      "assembly": "vpor        xmm2,xmm2,xmmword ptr [00000001801074B0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A90CE: vpor        xmm2,xmm2,xmmword ptr [00000001801074B0h]"
+    },
+    {
+      "rva": "0xa90d6",
+      "virtual_address": "0x1800a90d6",
+      "assembly": "vsubsd      xmm2,xmm2,mmword ptr [00000001801074B0h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A90D6: vsubsd      xmm2,xmm2,mmword ptr [00000001801074B0h]"
+    },
+    {
+      "rva": "0xa90de",
+      "virtual_address": "0x1800a90de",
+      "assembly": "vpsrlq      xmm5,xmm2,34h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A90DE: vpsrlq      xmm5,xmm2,34h"
+    },
+    {
+      "rva": "0xa90e3",
+      "virtual_address": "0x1800a90e3",
+      "assembly": "vpand       xmm2,xmm2,xmmword ptr [0000000180107450h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A90E3: vpand       xmm2,xmm2,xmmword ptr [0000000180107450h]"
+    },
+    {
+      "rva": "0xa90eb",
+      "virtual_address": "0x1800a90eb",
+      "assembly": "vmovapd     xmm0,xmm2",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A90EB: vmovapd     xmm0,xmm2"
+    },
+    {
+      "rva": "0xa90ef",
+      "virtual_address": "0x1800a90ef",
+      "assembly": "vpsubd      xmm5,xmm5,xmmword ptr [0000000180107570h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A90EF: vpsubd      xmm5,xmm5,xmmword ptr [0000000180107570h]"
+    },
+    {
+      "rva": "0xa90f7",
+      "virtual_address": "0x1800a90f7",
+      "assembly": "vcvtdq2pd   xmm6,xmm5",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A90F7: vcvtdq2pd   xmm6,xmm5"
+    },
+    {
+      "rva": "0xa90fb",
+      "virtual_address": "0x1800a90fb",
+      "assembly": "jmp         00000001800A8F7B",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A90FB: jmp         00000001800A8F7B"
+    },
+    {
+      "rva": "0xa9100",
+      "virtual_address": "0x1800a9100",
+      "assembly": "jne         00000001800A9130",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9100: jne         00000001800A9130"
+    },
+    {
+      "rva": "0xa9102",
+      "virtual_address": "0x1800a9102",
+      "assembly": "vmovsd      xmm1,qword ptr [0000000180107400h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9102: vmovsd      xmm1,qword ptr [0000000180107400h]"
+    },
+    {
+      "rva": "0xa910a",
+      "virtual_address": "0x1800a910a",
+      "assembly": "mov         r8d,dword ptr [0000000180107600h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A910A: mov         r8d,dword ptr [0000000180107600h]"
+    },
+    {
+      "rva": "0xa9111",
+      "virtual_address": "0x1800a9111",
+      "assembly": "call        00000001800981B0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9111: call        00000001800981B0"
+    },
+    {
+      "rva": "0xa9116",
+      "virtual_address": "0x1800a9116",
+      "assembly": "vmovdqa     xmm6,xmmword ptr [rsp+20h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9116: vmovdqa     xmm6,xmmword ptr [rsp+20h]"
+    },
+    {
+      "rva": "0xa911c",
+      "virtual_address": "0x1800a911c",
+      "assembly": "add         rsp,58h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A911C: add         rsp,58h"
+    },
+    {
+      "rva": "0xa9120",
+      "virtual_address": "0x1800a9120",
+      "assembly": "ret",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9120: ret"
+    },
+    {
+      "rva": "0xa9121",
+      "virtual_address": "0x1800a9121",
+      "assembly": "nop         word ptr [rax+rax+0000000000000000h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9121: nop         word ptr [rax+rax+0000000000000000h]"
+    },
+    {
+      "rva": "0xa9130",
+      "virtual_address": "0x1800a9130",
+      "assembly": "vmovsd      xmm1,qword ptr [0000000180107420h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9130: vmovsd      xmm1,qword ptr [0000000180107420h]"
+    },
+    {
+      "rva": "0xa9138",
+      "virtual_address": "0x1800a9138",
+      "assembly": "mov         r8d,dword ptr [0000000180107604h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9138: mov         r8d,dword ptr [0000000180107604h]"
+    },
+    {
+      "rva": "0xa913f",
+      "virtual_address": "0x1800a913f",
+      "assembly": "call        00000001800981B0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A913F: call        00000001800981B0"
+    },
+    {
+      "rva": "0xa9144",
+      "virtual_address": "0x1800a9144",
+      "assembly": "vmovdqa     xmm6,xmmword ptr [rsp+20h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9144: vmovdqa     xmm6,xmmword ptr [rsp+20h]"
+    },
+    {
+      "rva": "0xa914a",
+      "virtual_address": "0x1800a914a",
+      "assembly": "add         rsp,58h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A914A: add         rsp,58h"
+    },
+    {
+      "rva": "0xa914e",
+      "virtual_address": "0x1800a914e",
+      "assembly": "ret",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A914E: ret"
+    },
+    {
+      "rva": "0xa914f",
+      "virtual_address": "0x1800a914f",
+      "assembly": "nop",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A914F: nop"
+    },
+    {
+      "rva": "0xa9150",
+      "virtual_address": "0x1800a9150",
+      "assembly": "cmp         rax,qword ptr [0000000180107410h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9150: cmp         rax,qword ptr [0000000180107410h]"
+    },
+    {
+      "rva": "0xa9157",
+      "virtual_address": "0x1800a9157",
+      "assembly": "je          00000001800A9180",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9157: je          00000001800A9180"
+    },
+    {
+      "rva": "0xa9159",
+      "virtual_address": "0x1800a9159",
+      "assembly": "cmp         rax,qword ptr [0000000180107400h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9159: cmp         rax,qword ptr [0000000180107400h]"
+    },
+    {
+      "rva": "0xa9160",
+      "virtual_address": "0x1800a9160",
+      "assembly": "je          00000001800A9130",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9160: je          00000001800A9130"
+    },
+    {
+      "rva": "0xa9162",
+      "virtual_address": "0x1800a9162",
+      "assembly": "or          rax,qword ptr [0000000180107430h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9162: or          rax,qword ptr [0000000180107430h]"
+    },
+    {
+      "rva": "0xa9169",
+      "virtual_address": "0x1800a9169",
+      "assembly": "vmovq       xmm1,rax",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9169: vmovq       xmm1,rax"
+    },
+    {
+      "rva": "0xa916e",
+      "virtual_address": "0x1800a916e",
+      "assembly": "mov         r8d,dword ptr [0000000180107608h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A916E: mov         r8d,dword ptr [0000000180107608h]"
+    },
+    {
+      "rva": "0xa9175",
+      "virtual_address": "0x1800a9175",
+      "assembly": "call        00000001800981B0",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9175: call        00000001800981B0"
+    },
+    {
+      "rva": "0xa917a",
+      "virtual_address": "0x1800a917a",
+      "assembly": "nop         word ptr [rax+rax]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A917A: nop         word ptr [rax+rax]"
+    },
+    {
+      "rva": "0xa9180",
+      "virtual_address": "0x1800a9180",
+      "assembly": "vmovdqa     xmm6,xmmword ptr [rsp+20h]",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9180: vmovdqa     xmm6,xmmword ptr [rsp+20h]"
+    },
+    {
+      "rva": "0xa9186",
+      "virtual_address": "0x1800a9186",
+      "assembly": "add         rsp,58h",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A9186: add         rsp,58h"
+    },
+    {
+      "rva": "0xa918a",
+      "virtual_address": "0x1800a918a",
+      "assembly": "ret",
+      "source_span": "log-both-arms",
+      "proposed_guarded_domain_class": "domain-unreachable-error-renormalization-or-alignment",
+      "original_line": "  00000001800A918A: ret"
+    },
+    {
+      "rva": "0xcc390",
+      "virtual_address": "0x1800cc390",
+      "assembly": "xor         eax,eax",
+      "source_span": "getter",
+      "proposed_guarded_domain_class": "getter",
+      "original_line": "  00000001800CC390: xor         eax,eax"
+    },
+    {
+      "rva": "0xcc392",
+      "virtual_address": "0x1800cc392",
+      "assembly": "cmp         dword ptr [0000000180139E60h],eax",
+      "source_span": "getter",
+      "proposed_guarded_domain_class": "getter",
+      "original_line": "  00000001800CC392: cmp         dword ptr [0000000180139E60h],eax"
+    },
+    {
+      "rva": "0xcc398",
+      "virtual_address": "0x1800cc398",
+      "assembly": "setne       al",
+      "source_span": "getter",
+      "proposed_guarded_domain_class": "getter",
+      "original_line": "  00000001800CC398: setne       al"
+    },
+    {
+      "rva": "0xcc39b",
+      "virtual_address": "0x1800cc39b",
+      "assembly": "ret",
+      "source_span": "getter",
+      "proposed_guarded_domain_class": "getter",
+      "original_line": "  00000001800CC39B: ret"
+    }
+  ],
+  "commands": [
+    {
+      "name": "wrapper",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x18004f130,0x18004f21d",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0,
+      "stdout_sha256": "5F030262D0D919AE35653BA84E53FC5787F34516CBFBDF279E81B10303845576"
+    },
+    {
+      "name": "log-both-arms",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x1800a8c60,0x1800a918b",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0,
+      "stdout_sha256": "1B587179A258678CB1460973FB790862A7C2830817CB5A71318FA7341ED345D5"
+    },
+    {
+      "name": "getter",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/disasm:nobytes",
+        "/range:0x1800cc390,0x1800cc39c",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "raw_exit": 0,
+      "stdout_sha256": "A6A320E5749487525FBCC6A79E54CD4158FF5F1D60CFCA28138581B404D1BFE0"
+    }
+  ]
+}

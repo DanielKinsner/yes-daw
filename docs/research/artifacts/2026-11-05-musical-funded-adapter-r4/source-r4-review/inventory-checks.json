@@ -1,0 +1,337 @@
+{
+  "schema": "YESDAW_R4_WHOLE_INDEPENDENT_INVENTORY_V1",
+  "all_nine_namespace_and_format": [
+    {
+      "file": "formation-r8.h",
+      "UTF8_noBOM_LF": true
+    },
+    {
+      "file": "legacy-adapter.h",
+      "UTF8_noBOM_LF": true
+    },
+    {
+      "file": "native-observer.cpp",
+      "UTF8_noBOM_LF": true
+    },
+    {
+      "file": "native-profile.h",
+      "UTF8_noBOM_LF": true
+    },
+    {
+      "file": "README.md",
+      "UTF8_noBOM_LF": true
+    },
+    {
+      "file": "source-correspondence.md",
+      "UTF8_noBOM_LF": true
+    },
+    {
+      "file": "source-pins.json",
+      "UTF8_noBOM_LF": true
+    },
+    {
+      "file": "window-query.h",
+      "UTF8_noBOM_LF": true
+    },
+    {
+      "file": "worker-result.h",
+      "UTF8_noBOM_LF": true
+    }
+  ],
+  "Sites": 420,
+  "R3_prefix": 363,
+  "prefix_exact": true,
+  "added_Sites": [
+    {
+      "ordinal": 363,
+      "name": "NativeMatchEntry"
+    },
+    {
+      "ordinal": 364,
+      "name": "NativeMatchProfileGuard"
+    },
+    {
+      "ordinal": 365,
+      "name": "NativeMatchControlCall"
+    },
+    {
+      "ordinal": 366,
+      "name": "NativeMatchControlGuard"
+    },
+    {
+      "ordinal": 367,
+      "name": "NativeMatchLogModuleCall"
+    },
+    {
+      "ordinal": 368,
+      "name": "NativeMatchGetterModuleCall"
+    },
+    {
+      "ordinal": 369,
+      "name": "NativeMatchModuleGuard"
+    },
+    {
+      "ordinal": 370,
+      "name": "NativeMatchModuleInfoCall"
+    },
+    {
+      "ordinal": 371,
+      "name": "NativeMatchImageGuard"
+    },
+    {
+      "ordinal": 372,
+      "name": "NativeMatchAnchorGuard"
+    },
+    {
+      "ordinal": 373,
+      "name": "NativeMatchAnchorOffsets"
+    },
+    {
+      "ordinal": 374,
+      "name": "NativeMatchRegionEntry"
+    },
+    {
+      "ordinal": 375,
+      "name": "NativeMatchRegionTest"
+    },
+    {
+      "ordinal": 376,
+      "name": "NativeMatchRegionEnd"
+    },
+    {
+      "ordinal": 377,
+      "name": "NativeMatchRegionTotal"
+    },
+    {
+      "ordinal": 378,
+      "name": "NativeMatchRegionRow"
+    },
+    {
+      "ordinal": 379,
+      "name": "NativeMatchRegionRole"
+    },
+    {
+      "ordinal": 380,
+      "name": "NativeMatchRegionExtent"
+    },
+    {
+      "ordinal": 381,
+      "name": "NativeMatchRegionAddress"
+    },
+    {
+      "ordinal": 382,
+      "name": "NativeMatchPageEntry"
+    },
+    {
+      "ordinal": 383,
+      "name": "NativeMatchPageTest"
+    },
+    {
+      "ordinal": 384,
+      "name": "NativeMatchPageEnd"
+    },
+    {
+      "ordinal": 385,
+      "name": "NativeMatchPageCall"
+    },
+    {
+      "ordinal": 386,
+      "name": "NativeMatchPageGuard"
+    },
+    {
+      "ordinal": 387,
+      "name": "NativeMatchPageExtent"
+    },
+    {
+      "ordinal": 388,
+      "name": "NativeMatchPageChunk"
+    },
+    {
+      "ordinal": 389,
+      "name": "NativeMatchByteEntry"
+    },
+    {
+      "ordinal": 390,
+      "name": "NativeMatchByteTest"
+    },
+    {
+      "ordinal": 391,
+      "name": "NativeMatchByteEnd"
+    },
+    {
+      "ordinal": 392,
+      "name": "NativeMatchByteRead"
+    },
+    {
+      "ordinal": 393,
+      "name": "NativeMatchByteMismatch"
+    },
+    {
+      "ordinal": 394,
+      "name": "NativeMatchByteContinue"
+    },
+    {
+      "ordinal": 395,
+      "name": "NativeMatchPageContinue"
+    },
+    {
+      "ordinal": 396,
+      "name": "NativeMatchRegionContinue"
+    },
+    {
+      "ordinal": 397,
+      "name": "NativeMatchAccepted"
+    },
+    {
+      "ordinal": 398,
+      "name": "NativeMatchFailed"
+    },
+    {
+      "ordinal": 399,
+      "name": "NativeMatchSelection"
+    },
+    {
+      "ordinal": 400,
+      "name": "NativeMatchSelectionPolicy"
+    },
+    {
+      "ordinal": 401,
+      "name": "NativeMatchSelectionStore"
+    },
+    {
+      "ordinal": 402,
+      "name": "LegacyChainCaller"
+    },
+    {
+      "ordinal": 403,
+      "name": "NativeAccessRegionEntry"
+    },
+    {
+      "ordinal": 404,
+      "name": "NativeAccessRegionTest"
+    },
+    {
+      "ordinal": 405,
+      "name": "NativeAccessRegionEnd"
+    },
+    {
+      "ordinal": 406,
+      "name": "NativeAccessRegionTotal"
+    },
+    {
+      "ordinal": 407,
+      "name": "NativeAccessRegionRow"
+    },
+    {
+      "ordinal": 408,
+      "name": "NativeAccessRegionRole"
+    },
+    {
+      "ordinal": 409,
+      "name": "NativeAccessRegionExtent"
+    },
+    {
+      "ordinal": 410,
+      "name": "NativeAccessRegionAddress"
+    },
+    {
+      "ordinal": 411,
+      "name": "NativeAccessPageEntry"
+    },
+    {
+      "ordinal": 412,
+      "name": "NativeAccessPageTest"
+    },
+    {
+      "ordinal": 413,
+      "name": "NativeAccessPageEnd"
+    },
+    {
+      "ordinal": 414,
+      "name": "NativeAccessPageCall"
+    },
+    {
+      "ordinal": 415,
+      "name": "NativeAccessPageGuard"
+    },
+    {
+      "ordinal": 416,
+      "name": "NativeAccessPageExtent"
+    },
+    {
+      "ordinal": 417,
+      "name": "NativeAccessPageChunk"
+    },
+    {
+      "ordinal": 418,
+      "name": "NativeAccessPageContinue"
+    },
+    {
+      "ordinal": 419,
+      "name": "NativeAccessRegionContinue"
+    }
+  ],
+  "unchanged_Role_Phase_Context_Signal_LegacyEvidence": true,
+  "NativeFacts": 17,
+  "OldPackets": 190,
+  "matches_old_catalogue_order": true,
+  "worker_result_identical_after_namespace_include_normalization": true,
+  "actual_call_sites": {
+    "Clock": 1,
+    "Request": 1,
+    "Plan": 1,
+    "append": 1,
+    "resolve": 1
+  },
+  "quote_terms": 12,
+  "five_kernel_leaves_no_variable_loops_or_forbidden_calls": true,
+  "fixed_kernel_API_calls": {
+    "GetModuleHandleExW": 2,
+    "GetCurrentProcess": 1,
+    "K32GetModuleInformation": 1,
+    "VirtualQuery": 1
+  },
+  "private_data_definitions_absent": true,
+  "normalized_deltas": {
+    "formation-r8.h": {
+      "normalized_diff_lines": 140,
+      "new_lines": 1800,
+      "normalized_diff_sha256": "9549600A8FF9C2114A3DCA6A994A20FCFCFE3D554B93F3B508C5C67F4CD1D60C"
+    },
+    "worker-result.h": {
+      "normalized_diff_lines": 0,
+      "new_lines": 178,
+      "normalized_diff_sha256": "01BA4719C80B6FE911B091A7C05124B64EEECE964E09C058EF8F9805DACA546B"
+    },
+    "legacy-adapter.h": {
+      "normalized_diff_lines": 55,
+      "new_lines": 551,
+      "normalized_diff_sha256": "26E8561EFF774ABDFA68624471FCB2C835E78922057C25FF01019042799665C9"
+    },
+    "window-query.h": {
+      "normalized_diff_lines": 278,
+      "new_lines": 1030,
+      "normalized_diff_sha256": "03C91C49FDA20AA54F8163A6065AC59E71524E656C380F779620452C858720D7"
+    },
+    "native-profile.h": {
+      "normalized_diff_lines": 106,
+      "new_lines": 148,
+      "normalized_diff_sha256": "E7A33D40BB667133BF78CDBF0F4D7CBAAC8182158DCC10335FB67CC3F2E34E40"
+    },
+    "native-observer.cpp": {
+      "normalized_diff_lines": 115,
+      "new_lines": 164,
+      "normalized_diff_sha256": "C0DD1BE9E513DE879D7FA0094F92C85369FC36F4C3337318265A1C5092C813F0"
+    },
+    "source-correspondence.md": {
+      "normalized_diff_lines": 262,
+      "new_lines": 480,
+      "normalized_diff_sha256": "336834C34AB0A5B0D6FA1FE21A4018A5914DBD23AF2EB4E331526068BE759058"
+    },
+    "README.md": {
+      "normalized_diff_lines": 198,
+      "new_lines": 100,
+      "normalized_diff_sha256": "8BC0DE67AC5D9E4FFBB12166F4AF66755D4EED5A9A283B9F86773095728A9D0B"
+    }
+  }
+}

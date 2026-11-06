@@ -1,0 +1,37 @@
+{
+  "schema": "SEALED_WHOLE_R3_INDEPENDENT_REVIEW_PINS",
+  "verdict": "ACCEPT_WHOLE_CONDITIONAL_SOURCE_FOR_INDEPENDENT_CENSUS",
+  "subject_manifest": {
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-pins.json",
+    "sha256": "A42DEA7A4FBA5192E4F3208E086F5041163F1D519B8467F9AADE7C2AAAF9FD41"
+  },
+  "files": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/pin-checks.json",
+      "bytes": 7892,
+      "sha256": "BBF096FE9032EBCDA4292241A37E3EA5EB33AF516FC93D6A151B6490E597D8E6"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/inventory-checks.json",
+      "bytes": 269,
+      "sha256": "303FE99A1994E36A4A50FED53481F1DB7F167CC8575E0013FAF62152D28B793E"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/source-arithmetic-checks.json",
+      "bytes": 23895,
+      "sha256": "E1962CED06656C62FC142593C8042E33ADD41776254D5D1D8B6989322E76F5F4"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review.json",
+      "bytes": 11988,
+      "sha256": "E5069BA2A03F50BA5D4A954132BC89A65533B6A891EF77D17DFF25AE936CD871"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review.md",
+      "bytes": 3696,
+      "sha256": "C538873FEDA27ED4FFA152AADFA4EB0DA274DB7713AA78A927A24CFF95F3F784"
+    }
+  ],
+  "input_pin_postcheck_count": 61,
+  "no_target_execution": true
+}

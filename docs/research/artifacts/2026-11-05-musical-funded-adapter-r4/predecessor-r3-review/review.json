@@ -1,0 +1,199 @@
+{
+  "schema": "WHOLE_R3_INDEPENDENT_SOURCE_REVIEW_V1",
+  "reviewer": "/root/r3_whole_source_review",
+  "utc": "2026-11-06T04:17:10.023681+00:00",
+  "verdict": "ACCEPT_WHOLE_CONDITIONAL_SOURCE_FOR_INDEPENDENT_CENSUS",
+  "meaning": "The complete algorithm/ownership/funding-partition shape is accepted for independently deriving new literal costs. This is not data binding, numeric/source-fit/native/resource/combined-proof or execution admission.",
+  "source_manifest_sha256": "A42DEA7A4FBA5192E4F3208E086F5041163F1D519B8467F9AADE7C2AAAF9FD41",
+  "whole_files_reviewed": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/formation-r7.h",
+      "bytes": 77924,
+      "sha256": "0421820B725F97603C0ECB39FF78DC316B477DDE80355B97850A34E83C8B3336",
+      "lines": 1727
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/worker-result.h",
+      "bytes": 9148,
+      "sha256": "4818AD42D84C51F8A515E1742BCCE081B283A645986A601010B6678B878DB7BD",
+      "lines": 178
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/legacy-adapter.h",
+      "bytes": 27987,
+      "sha256": "6A5A0F3475BCCB05E44ED313EB75392274B730B1E49A1375D9BBC565FF3B0A4D",
+      "lines": 542
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/window-query.h",
+      "bytes": 33950,
+      "sha256": "F1C8E363F6AA404A778CD745AB46791C4BE35BDF22392DFF54C848256435EF4D",
+      "lines": 808
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-profile.h",
+      "bytes": 3311,
+      "sha256": "7362153745C630DFB3BC2B96FD6AADBF29CB46B4596943BB754B49E7498459D6",
+      "lines": 80
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-observer.cpp",
+      "bytes": 2948,
+      "sha256": "D4F4B982924543FD210FC462EC245960BA1F21E6162382DA835F5B6366403A1C",
+      "lines": 67
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-correspondence.md",
+      "bytes": 22907,
+      "sha256": "906C834D22448BD963BE90100902F0B81ACE7A25A9ADA193ED5012B9791A4A5D",
+      "lines": 341
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/README.md",
+      "bytes": 7211,
+      "sha256": "C06859C274D698BE3F1C2419BBDC809529447D89BD7C643F9C5D66B20EA490DB",
+      "lines": 116
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-pins.json",
+      "bytes": 32314,
+      "sha256": "A42DEA7A4FBA5192E4F3208E086F5041163F1D519B8467F9AADE7C2AAAF9FD41",
+      "lines": 524
+    }
+  ],
+  "pin_counts": {
+    "inputs": 43,
+    "protected_artifacts": 10,
+    "outputs": 8,
+    "all_verified": true,
+    "predecessor_direct38_unchanged": true
+  },
+  "inventory": {
+    "Sites": 363,
+    "preserved_predecessor_prefix": 234,
+    "old_packet_ids_exact_order": 190,
+    "original_builder_calls": {
+      "Clock": 1,
+      "Request": 1,
+      "Plan": 1
+    },
+    "actual_extra_append_call_sites": 1,
+    "actual_resolve_call_sites": 1,
+    "ordinary_private_data_definitions_absent": true
+  },
+  "source_arithmetic": {
+    "old_vectors_checked": 190,
+    "old_compositions_checked": 78,
+    "source_arithmetic_checks": 281,
+    "abstract_integer_recurrence_instances": 33422,
+    "not_target_execution_or_dynamic_old_visits": true
+  },
+  "blocking_findings": [],
+  "reviewed_properties": [
+    "One genuine nonrecursive origin: new fields/slices/materialization remain declaration-only priced, with no arbitrary caller Fund/Plan/profile or retry/reset API.",
+    "Captured-state map/result separation and paid raw-storage owner drop order are preserved. Local staging dies before terminal release; actual result acquire precedes Control mutation; Result retains State without a reverse State-to-result edge.",
+    "The variable quote executes six checked terms and reserves Q(R) before NativeSession/query locals. A monotone full-prefix walk needs at most R-1 extra full helpers; at most two endpoint partials; two selected searches use at most2*bit_width(R) bodies. R0 has no append/search.",
+    "Every old callee amount is an exact derived vector sum, moved to protected queryCallee_ in the same origin. Later checks cannot spend that slice; branchless actual transfer immediately precedes each guaranteed old invocation. A pre-entry rejection leaves that reservation unused/terminal, not actual/refunded.",
+    "The three ADR0089 tariffs remain1+6R,4096,1024+N*(8+16C), with one straight no-retry chain, exact successful cumulative comparison and no second inherited debit.",
+    "Old query compositions match the accepted190-row/13-template catalogue. Early scalar refusals preserve order; zero-fraction endpoints use one compiled lookup. Prefix state is not contaminated by partial endpoints, and native floor casts require finite nonnegative values below2^63.",
+    "Actual append bool/double results and old return statuses are distinguished from source-derived path vectors and unavailable internal visits. Query not-entered placeholders never become known old statuses. Reconciliation checks all public Window fields/control ownership, not hidden cache/intermediate bytes.",
+    "Snapshot fields including fexcept_t are value-initialized before possible getter failure. Session lifecycle fields are initialized before every early return. Native SDK restores represented flags/six MXCSR bits/errno before actual resolve; no pre-query target is applied after the actual call.",
+    "Private NativeBinding has no definition. Nonzero fact digests are completeness checks only; compiler/control/getter comparisons do not claim loaded-image or true-interval validation. All declared native/codegen/unrepresented-state obligations remain held."
+  ],
+  "mandatory_census_and_proof_obligations": [
+    "Re-derive all363 Sites and every affected first-write/copy/caller/root/role/cleanup envelope. Preserving234 ordinal names does not preserve old prices: Raw/LegacyRaw/LegacyReadout/State/Control/App sizes and copies changed.",
+    "Common::requested and PreparedAttempt::limits each perform two MusicalAudioLimits DMI writes/implicit construction before their first inner pay. An already-entered caller partition must sponsor these on every reached path, including early cancellation/refusal.",
+    "ArmResult and TakeResult must sponsor four nested ChannelResult status DMI writes/implicit construction before WorkerLegacyResult constructor bodies; later zero/copy actions remain separate.",
+    "Each FundedOwner/WorkerArtifacts/NativeSession constructor pre-body pointer/member work and each after-physical-return destruction tail needs its real caller/destructor sponsor, not a later body debit.",
+    "Include all fixed10-cell vector/add/sum/record loops,17*32 maximum fact/digest loops, every native read/restore/postcheck/reject/destructor branch and the extra queryCallee_ initial/split/commit/terminal-retire work. No old ceiling-as-actual or fourth tariff.",
+    "Live Result and Retained/Reader are exclusive, but after taking/destroying Result while Control remains, retainCurrentAfterTerminal can issue Retained/Reader later in the same request. The finite root/control/legacy schedule and combined proof must cover that permitted sequential case, not assume permanently disjoint issuance.",
+    "Restoration is conditional on the represented native checks succeeding: after rejection accepted_ is false, destructor can return from check without calling restoreStatus. No successful restoration on a qualification/SDK failure is inferred. Qualified native facts must close successful admitted behavior; failed attempts retain their named outcome and unused held callee amount.",
+    "Complete native/module/dispatch/control/new-handler/codegen/observer-effects and relevant x87-state arguments, actual owner ingress/allocator/ABI/stack/staging/result/retained overlap, literal binding and independent combined R4 proof must precede execution or production integration.",
+    "If explicit restore fails its initial check while restoring_ stays true, the destructor can attempt that check again. Include both funded attempts; this path can make zero physical restoreStatus calls. After the physical restore has run, restoring_ is false even if postverification rejects."
+  ],
+  "not_granted": [
+    "Any new site price, Q coefficient, root envelope or native layout",
+    "A current loaded-runtime/FMA3/control/handler interval qualification",
+    "Actual or universal numerical equivalence from finite outputs",
+    "Complete payload/control-block/retained-overlap fit",
+    "Source/data binding, compilation or target execution GO",
+    "Combined whole proof, public recipe, DSP/renderer/job/model/Ready or OptionA completion"
+  ],
+  "reference_anchors": {
+    "formation-r7.h": {
+      "struct Bounds final": 407,
+      "struct LegacyRaw final": 432,
+      "class MusicalPreparationRequestState final": 589,
+      "static void drop (": 744,
+      "void armWorker()": 1339,
+      "void acquireWorker()": 1370,
+      "class ApplicationRequests final": 1521
+    },
+    "worker-result.h": {
+      "template<class T": 12,
+      "inline WorkerLegacyResult::WorkerLegacyResult (Cell": 86,
+      "inline WorkerLegacyResult::WorkerLegacyResult (Take": 97,
+      "inline void WorkerLegacyResult::publish": 114,
+      "inline WorkerLegacyResult::~WorkerLegacyResult": 133,
+      "inline WorkerLegacyResult ApplicationRequests::take": 162
+    },
+    "legacy-adapter.h": {
+      "struct Common final": 14,
+      "struct PreparedAttempt final": 19,
+      "static bool prepare (": 160,
+      "static void commitPrepared": 213,
+      "static bool clock (": 228,
+      "static bool window (": 286,
+      "static bool request (": 307,
+      "static bool plan (": 378,
+      "static void chain (": 483,
+      "static LegacyReadout run (": 508
+    },
+    "window-query.h": {
+      "static U64 prepareOld": 256,
+      "static void record (": 270,
+      "static void commitOld": 283,
+      "class FundedNativeSession final": 294,
+      "bool restore()": 395,
+      "static bool quote (": 464,
+      "static Search search": 483,
+      "static OldPacket classifyAppend": 511,
+      "static bool append (": 543,
+      "static bool prefixTo": 568,
+      "static void finishEndpoint": 594,
+      "static bool endpoint (": 645,
+      "static bool predict (": 705,
+      "static bool reconcile (": 749,
+      "static QueryCallResult resolve": 769
+    },
+    "native-observer.cpp": {
+      "NativeSnapshot NativeObserver::read": 18,
+      "NativeSnapshot value {}": 22,
+      "bool NativeObserver::restoreStatus": 49
+    }
+  },
+  "additional_selected_header_reads": [
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals.h",
+      "sha256": "A186476441EAA158056BE01DA9A1473217E14A7CC33365CBD0B6C9115833E0DC",
+      "scope": "Declaration/macro/source-type inspection only; no binary or native qualification"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals_core.h",
+      "sha256": "5070449E37A1735ADF49204A12C7A7D5EFA145D6AA607720AEF5ADBD2C57EF83",
+      "scope": "Declaration/macro/source-type inspection only; no binary or native qualification"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/fenv.h",
+      "sha256": "12E9EE9809314CA1DB03E7FB0E36E20CB9052DF291C8367D580F600DEA7546E3",
+      "scope": "Declaration/macro/source-type inspection only; no binary or native qualification"
+    }
+  ],
+  "operations": {
+    "target_parser_AST_import_helper_compiler_program_test_stage": false,
+    "GUI_audio_device": false,
+    "Git_CI": false,
+    "input_edits": false,
+    "performed": "Ordinary source/artifact reads, hashes, text inventories, Python source-table and integer recurrence arithmetic, writes only within this new ignored review folder"
+  }
+}

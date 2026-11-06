@@ -1,0 +1,524 @@
+{
+  "schema": "YESDAW_FUNDED_LEGACY_ADAPTER_R3_CONDITIONAL_QUERY_SOURCE_PINS_V1",
+  "date": "2026-11-05",
+  "author_role": "/root/musical_legacy_adapter_source",
+  "workspace": "C:/Users/SM - Dan/Documents/GitHub/yes-daw",
+  "status": "CONDITIONAL_QUERY_SOURCE_NATIVE_FORWARD_PROOF_HOLD_UNBOUND_UNCOMPILED_NOT_ADMITTED",
+  "authority": "Root authorized actual smaller-B algorithm against accepted R2 ownership; all data/prices/native qualification unbound, execution held until independent complete proof",
+  "owned_files": [
+    "formation-r7.h",
+    "worker-result.h",
+    "legacy-adapter.h",
+    "window-query.h",
+    "native-profile.h",
+    "native-observer.cpp",
+    "source-correspondence.md",
+    "README.md",
+    "source-pins.json"
+  ],
+  "source_only_operations": [
+    "Owned successor source edits and source reads",
+    "Raw-byte hashes; metadata JSON and text/regex inventory arithmetic only",
+    "No target source parser/compiler/linker/helper/program/test/native/layout/GUI/audio/device/Git/CI execution"
+  ],
+  "navigation_not_functional_binding": [
+    "STATUS and earlier memory registry navigation",
+    "Root/current native-argument progress messages; no unsealed native argument admitted as proof"
+  ],
+  "inputs": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Live project instructions; read in this source task. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "CLAUDE.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Protected matching project rules; hash only. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "docs/adr/0085-owned-musical-call-recipes.md",
+      "bytes": 23414,
+      "sha256": "876FC9F16068603CB8D98799060B4FE8F8147502904DBE5C4EB3DA441729C1C9",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Accepted same-origin/public-recipe/source-action contract; read. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "docs/adr/0088-musical-origin-formation.md",
+      "bytes": 9440,
+      "sha256": "86EAB38B43415191C795632F2EE675C8A476F894B121B78B404E1CC6FB5FAF33",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Accepted genuine first-authority/ownership contract; read. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "docs/adr/0089-frozen-musical-builder-attempts.md",
+      "bytes": 8136,
+      "sha256": "5943166A5E27B3088783FE072D7FBF67D8AE9489C9432FEC68A7EA0B0A15C944",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Accepted three semantic tariffs and guaranteed invocation contract; read. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-production-operation-boundary-census-conventions.md",
+      "bytes": 2323,
+      "sha256": "404E214B31AA1F1FA273224DCF28355C1DB65E3798635416D802702E2458613A",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Adopted production literal-action/SDK/copy convention; read. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "src/engine/MusicalAudioWindow.h",
+      "bytes": 19572,
+      "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Whole actual frozen Clock/Window/key helper source read; unchanged. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "src/engine/MusicalAudioChannelPlan.h",
+      "bytes": 17081,
+      "sha256": "F47C6E49B02A69C16CD554A4C5520CC891146A434603F4E1BB73E9099EB97F16",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Whole actual frozen Request/Plan source read; unchanged. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Actual scalar types, append, compiled build and lookup source read; unchanged. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "src/engine/RateMatchedView.h",
+      "bytes": 5293,
+      "sha256": "9A0770E8690FBC60048BDF13FF1D1BD332B6D620A1985C52895E7FE916BB0571",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Actual ViewWindow declaration inspected; transitive old implementation unchanged. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "src/engine/Project.h",
+      "bytes": 181566,
+      "sha256": "0294E0B6592633B2601F09B45A9FC724EDD6921512A66B9AB7AD82FB8F817D97",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Unchanged fixed record/type dependency; hash rechecked, no new whole-file semantic review claimed. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "src/engine/ClipSchedule.h",
+      "bytes": 6706,
+      "sha256": "681ED77653AF195480FAA63FBB57D1804C1C3CBCA813310B18F0B058B7552D1A",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Unchanged AssetSamples dependency; hash rechecked, no new whole-file semantic review claimed. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/formation.h",
+      "bytes": 58543,
+      "sha256": "1673DFB9FEB370FFD8C3491E0EB2DE9AF2C006D0CCF25FA0BE7DB5CFFB391BF7",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Whole actual R4 source read; copied then changed ONLY in separately namespaced owned R5 file. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/formation-data.cpp",
+      "bytes": 6973,
+      "sha256": "50B44CEDADE31A1B9280E96CFCB308406522BE30D005B262FBAD4319A40AA35D",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Protected prior-component data; hash rechecked, not reused or linked for R5. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/proof-access.h",
+      "bytes": 13815,
+      "sha256": "099D46D2DDEBD03C803F3C0E95EEBC674E46A7C4B7004168099B721F20A04D60",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Protected prior-component observer; hash rechecked, not reused for R5. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/README.md",
+      "bytes": 16338,
+      "sha256": "575F576B3B1FB5DA6DB26C839178AB6E6BE440753ED53E57EE9BEF2DD5A9C805",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Prior component source/data/qualification protocol read. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/source-pins.json",
+      "bytes": 16142,
+      "sha256": "0AB5C6C6E95C7FE50E0912A8F9C62BAF1B492963A94A767008003C32F4292128",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Exact prior transitive input lineage; identity only, no new audit of every transitive input claimed. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-origin-formation-r4-census-r2/census.md",
+      "bytes": 29625,
+      "sha256": "300714170387FF05302A5B4D0429275DBA403A73A4A1674478A810A26C51D4E9",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Prior exact production convention/helper derivation inspected; not a new full numeric review or R5 census. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-formation-whole-proof-r3/first-green-freeze.json",
+      "bytes": 936,
+      "sha256": "56BE0598727F92B5B2A57CB806E86C6C3EC300D719E18C1D223A40EDBB6C7FA8",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Root measured prior-component first-GREEN/freeze receipt read; not R5 credit. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-formation-native-layout-r1/execution-r1/receipt.json",
+      "bytes": 889,
+      "sha256": "6BCF6BAC24ECFF8D887385463BFAE60FD14E7472B6340562B31F427D0C40F7F1",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Root measured R4 native layout receipt read; not an R5 ABI assumption. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/receipt.json",
+      "bytes": 1936,
+      "sha256": "BA4A68F979E184BA5DC1D7AE76532B858FEC745BB1B53DAB7E03CF5E68643C18",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Root actual eight-mutant receipt read; not R5 mutation evidence. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-legacy-entry-boundary-prep/proposal.md",
+      "bytes": 8571,
+      "sha256": "D1B27BA961B138791E24AF3A7D400A2A13FEF7CC6F2B67CA56B152E90E8A58FD",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Historical proposed correspondence read; no current acceptance substituted. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-legacy-attempt-adr-prep/implementation-steps.md",
+      "bytes": 956,
+      "sha256": "6D0B66788CFFF336F0FE85E29F84DF8BB041B0635D8EBCD38D2345F0A7651092",
+      "scope": "Preserved lineage; current bytes re-read. Preserved lineage input; current byte identity re-read. R1 semantic-read scope: Previously proposed source order read; ADR0089 controls. No old price/layout/proof is imported into R6.. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/formation-r5.h",
+      "bytes": 68776,
+      "sha256": "FCB149FBD6023BBE462C6E7BB8CE6055CA6A8D92679C9C64F4B61C5813C86C4D",
+      "scope": "Preserved lineage; current bytes re-read. Sealed R1 predecessor; preserved whole and read for this separately named source successor; not source/proof acceptance for R6. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/legacy-adapter.h",
+      "bytes": 27367,
+      "sha256": "C7FA6ECD713077C41ED1FB9AECBCA8E67A957AF1C92106CE6011B4F120610C8F",
+      "scope": "Preserved lineage; current bytes re-read. Sealed R1 predecessor; preserved whole and read for this separately named source successor; not source/proof acceptance for R6. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-correspondence.md",
+      "bytes": 27569,
+      "sha256": "6786B358196DB826C04C38F84C819AEC5419C811C0235DF65978554271D412D8",
+      "scope": "Preserved lineage; current bytes re-read. Sealed R1 predecessor; preserved whole and read for this separately named source successor; not source/proof acceptance for R6. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/README.md",
+      "bytes": 6753,
+      "sha256": "7A9B5F5F5C62AF714DC563B2F15FAC64B77327A10D1834E66502188909C55E02",
+      "scope": "Preserved lineage; current bytes re-read. Sealed R1 predecessor; preserved whole and read for this separately named source successor; not source/proof acceptance for R6. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-pins.json",
+      "bytes": 12121,
+      "sha256": "FC7E2E937EC7CF74C8B0DE65BB6E50C7B24D6BFF14B35F6CA8726C2C88773615",
+      "scope": "Preserved lineage; current bytes re-read. Sealed R1 predecessor; preserved whole and read for this separately named source successor; not source/proof acceptance for R6. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r1-independent-review.json",
+      "bytes": 1802,
+      "sha256": "066F14BBE1D38CD4306A9CD6DF3B5CDFCDDC55D0B31C70AEBC0328E5C3537267",
+      "scope": "Preserved lineage; current bytes re-read. R1 whole independent REVISE_WHOLE_PARTIAL review; two ownership blockers define this authorized successor; no R6 acceptance. No old source-fit/native/proof credit is transferred to R7."
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/formation-r6.h",
+      "bytes": 72615,
+      "sha256": "F5E4348ACBB7A4843C662269197B7A320C5E2000211DF8CDA6CCACFE33C47D1F",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/worker-result.h",
+      "bytes": 8988,
+      "sha256": "021461C164FF43D18576057B2D7BA0C2F9C9EA45A1259B2523EB875050F4A399",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/legacy-adapter.h",
+      "bytes": 27466,
+      "sha256": "1DBE42BAF8F4F87311A100D48E94DD44DB7FC001103FC3AB459A42002EF7966F",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-correspondence.md",
+      "bytes": 25170,
+      "sha256": "2B966471F1C9BA1D0BFB92E6E973CF5BFF363900A2D775AC49DAD74CF35FCBE6",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/README.md",
+      "bytes": 6824,
+      "sha256": "E43C214A9D621B28FF5F9CD88C4D0458C5FB8506263C99A93100AC1116BBA818",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-pins.json",
+      "bytes": 19785,
+      "sha256": "F3A117FF3BFA3CB15B6D41105CB505AE1A9017176EE904EFAF6D43B19297C901",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r2-independent-review.json",
+      "bytes": 2168,
+      "sha256": "641D15EFC955731B01528E36593C24EFDEC0DF065A363F4B38BE6F1056CE9736",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "build-ci/20261105-musical-window-query-path-census-r1/census.md",
+      "bytes": 47955,
+      "sha256": "DF380C088132FFA61FCFB468C21657B527CEE3A2D40B8AF23B79A01FBBEFF969",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "build-ci/20261105-musical-window-query-path-census-r1/census.json",
+      "bytes": 83199,
+      "sha256": "8D2B8B0EBDF4DA4903528636BD6323DE9712593F614A6D4608B738C62C8F93FC",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "build-ci/20261105-musical-window-query-path-census-r1/source-pins.json",
+      "bytes": 12150,
+      "sha256": "34FD81EFF0F1C5261C90FA4D99E3F6C6413FD5B2BA56B404B64F1AA1B1817C1F",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "build-ci/20261105-musical-window-query-path-census-r1-independent-review.json",
+      "bytes": 1887,
+      "sha256": "FC5B35A715B25FB03A2C00ADAF569309B4472AD7A431FBEEDBD2E6464C347189",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "build-ci/20261105-production-query-sdk-boundary-clarification.md",
+      "bytes": 2484,
+      "sha256": "709B8A438D258531E33B87266DC9980FB0B356E19BDA2A1DF74714298C17ACA4",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/fenv.h",
+      "bytes": 5947,
+      "sha256": "12E9EE9809314CA1DB03E7FB0E36E20CB9052DF291C8367D580F600DEA7546E3",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals.h",
+      "bytes": 17704,
+      "sha256": "A186476441EAA158056BE01DA9A1473217E14A7CC33365CBD0B6C9115833E0DC",
+      "scope": "Direct preserved source/contract/catalogue/SDK input; source read or exact prior identity, not R3 price/native/forward-proof certification"
+    }
+  ],
+  "protected_artifacts": [
+    {
+      "path": "tests/musical_audio_call_recipe_tests.cpp",
+      "bytes": 112736,
+      "sha256": "97B2A2ABE0BE0CDDFCE173A20E6A6264E837DB751FE204E93B4B094E8E22619C",
+      "scope": "Protected original; byte identity only, no edit/move/copy-to-change/run"
+    },
+    {
+      "path": "build-ci/20261105-musical-formation-whole-proof-r3/proof.cpp",
+      "bytes": 84278,
+      "sha256": "D5F041F751D7B482C6C63C251CA52B2BE30160592E7A542DDC413F2EAFFC8D85",
+      "scope": "Protected original; byte identity only, no edit/move/copy-to-change/run"
+    },
+    {
+      "path": "src/engine/MusicalAudioCutPlan.h",
+      "bytes": 28956,
+      "sha256": "17A84770B9B4904162008492ADC393EB183678ECD00113C0658EFE355413B390",
+      "scope": "Protected original; byte identity only, no edit/move/copy-to-change/run"
+    },
+    {
+      "path": "src/engine/MusicalAudioChannelMaterialization.h",
+      "bytes": 11960,
+      "sha256": "6C96FC13BCBDD21040DCD53E990F35F336A6C6E8436CE404BA28B6240E2B7EC7",
+      "scope": "Protected original; byte identity only, no edit/move/copy-to-change/run"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/probe-types.h",
+      "bytes": 985,
+      "sha256": "973089A20C88E5994E4058B1CD7AB565BDBECF23E1356AD8DE8B34E0766B3101",
+      "scope": "Whole frozen finite native probe; preserved unchanged; observer/header were design references, never R3 execution or all-input/source-fit qualification"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/build-and-query.cpp",
+      "bytes": 480,
+      "sha256": "A1CC6F579D8A787D77EBDE55383A37FA642C3D9AB8B9B7DFDF0DA50CC914D63E",
+      "scope": "Whole frozen finite native probe; preserved unchanged; observer/header were design references, never R3 execution or all-input/source-fit qualification"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/replay-probe.cpp",
+      "bytes": 15632,
+      "sha256": "C4B32519266A32BF2352EB64146481EF82967EB38755643199FFA3E47642158B",
+      "scope": "Whole frozen finite native probe; preserved unchanged; observer/header were design references, never R3 execution or all-input/source-fit qualification"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/fp-observer.cpp",
+      "bytes": 2101,
+      "sha256": "ED9CFF7130C71DACA68BBF00481941367EC13480DE090BCDCA89A2884B8BDB5D",
+      "scope": "Whole frozen finite native probe; preserved unchanged; observer/header were design references, never R3 execution or all-input/source-fit qualification"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/README.md",
+      "bytes": 8880,
+      "sha256": "17B034CF73360D3940487609723DCD179653008670279A977BEDD93F0F850138",
+      "scope": "Whole frozen finite native probe; preserved unchanged; observer/header were design references, never R3 execution or all-input/source-fit qualification"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/source-pins.json",
+      "bytes": 4049,
+      "sha256": "DA5DDDA7E4613B0A26A682F169049F8E384AE2AC1CC85F8CCBFCA4B575B0DFEB",
+      "scope": "Whole frozen finite native probe; preserved unchanged; observer/header were design references, never R3 execution or all-input/source-fit qualification"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/formation-r7.h",
+      "bytes": 77924,
+      "lines": 1727,
+      "sha256": "0421820B725F97603C0ECB39FF78DC316B477DDE80355B97850A34E83C8B3336",
+      "UTF8_without_BOM_LF": true
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/worker-result.h",
+      "bytes": 9148,
+      "lines": 178,
+      "sha256": "4818AD42D84C51F8A515E1742BCCE081B283A645986A601010B6678B878DB7BD",
+      "UTF8_without_BOM_LF": true
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/legacy-adapter.h",
+      "bytes": 27987,
+      "lines": 542,
+      "sha256": "6A5A0F3475BCCB05E44ED313EB75392274B730B1E49A1375D9BBC565FF3B0A4D",
+      "UTF8_without_BOM_LF": true
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/window-query.h",
+      "bytes": 33950,
+      "lines": 808,
+      "sha256": "F1C8E363F6AA404A778CD745AB46791C4BE35BDF22392DFF54C848256435EF4D",
+      "UTF8_without_BOM_LF": true
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-profile.h",
+      "bytes": 3311,
+      "lines": 80,
+      "sha256": "7362153745C630DFB3BC2B96FD6AADBF29CB46B4596943BB754B49E7498459D6",
+      "UTF8_without_BOM_LF": true
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-observer.cpp",
+      "bytes": 2948,
+      "lines": 67,
+      "sha256": "D4F4B982924543FD210FC462EC245960BA1F21E6162382DA835F5B6366403A1C",
+      "UTF8_without_BOM_LF": true
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-correspondence.md",
+      "bytes": 22907,
+      "lines": 341,
+      "sha256": "906C834D22448BD963BE90100902F0B81ACE7A25A9ADA193ED5012B9791A4A5D",
+      "UTF8_without_BOM_LF": true
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/README.md",
+      "bytes": 7211,
+      "lines": 116,
+      "sha256": "C06859C274D698BE3F1C2419BBDC809529447D89BD7C643F9C5D66B20EA490DB",
+      "UTF8_without_BOM_LF": true
+    }
+  ],
+  "actual_text_inventory_not_runtime": {
+    "Sites": 363,
+    "preserved_R2_234_prefix": true,
+    "added_R7_Sites": 129,
+    "original129_and207_prefix_preserved": true,
+    "ordered_old_packet_names": 190,
+    "all190_names_equal_pinned_catalogue_order": true,
+    "original_builder_calls": 3,
+    "actual_extra_append_call_sites": 1,
+    "actual_resolve_call_sites": 1,
+    "classifier_storage": "Constant size; one scalar prefix; no R-sized row array/second Clock/allocation/N scan",
+    "query_algorithm_undefined": false,
+    "private_ordinary_const_data_definitions_absent": [
+      "Catalogue::reviewedData_",
+      "OldQueryCatalogue::data_",
+      "NativeBinding::data_"
+    ],
+    "actual_price_or_native_binding": false
+  },
+  "predecessor": {
+    "R2_review": "ACCEPT_WHOLE_PARTIAL_SOURCE_PENDING_QUERY_CENSUS",
+    "R2_review_sha256": "641D15EFC955731B01528E36593C24EFDEC0DF065A363F4B38BE6F1056CE9736",
+    "R2_manifest_sha256": "F3A117FF3BFA3CB15B6D41105CB505AE1A9017176EE904EFAF6D43B19297C901",
+    "current_direct38_identity_differences": 0,
+    "all_R1_R2_seals_preserved": true,
+    "R2_census_clarification": "Four nested LegacyReadout status DMI writes and implicit constructors BEFORE bodies sponsored by actual ArmResult/TakeResult callers; later init/copy separate",
+    "R3_whole_review_passed": false
+  },
+  "old_catalogue": {
+    "verdict": "ACCEPT_CONDITIONAL_QUERY_PATH_CATALOGUE",
+    "review_sha256": "FC5B35A715B25FB03A2C00ADAF569309B4472AD7A431FBEEDBD2E6464C347189",
+    "rows": 190,
+    "compositions": 78,
+    "templates": 13,
+    "prices_bound_here": false,
+    "observed_internal_visits": false,
+    "ceiling_970_plus72_bitwidth_is_actual_fee": false
+  },
+  "funding": {
+    "origin": "ONE genuine captured request; complete new fixed root held before first physical source",
+    "Q": "newFixed+newPerPrefix*max(R-1,0)+newPerSearch*2bit_width(R)+oldAppendMax*(R?R+1:0)+oldQueryFixed+oldQueryPerBit*bit_width(R)",
+    "quote": "Checked finite six terms under already-held fixed source; variable admission before native/classifier locals",
+    "old_callee": "Exact vector sum split into protected same-origin queryCallee_ slice; immediate branchless debit then guaranteed actual invocation",
+    "no_future_destruction_consumed_in_Prepare": true,
+    "no_old874_or3082_reuse": true,
+    "no_caller_Fund_prices_profile_Plan_or_retry_origin": true,
+    "no_fourth_semantic_tariff": true,
+    "old_three_semantic_tariffs_unchanged": true,
+    "success_cumulative_checked_not_added_again": true,
+    "all_new_coefficients_prices_layouts_root_envelopes": "UNBOUND; complete fresh independent census required"
+  },
+  "evidence": {
+    "actual_calls": "New source invocation counters increment after real returned old append/resolve",
+    "old_callee_work": "SourceDerived scalar units and complete ten-component totals, never observed internal visits",
+    "old_internal_visit_evidence": "Unavailable",
+    "helper_outputs": "Actual public Boolean/double local outputs",
+    "resolve_reconciliation": "Exact returned status and all PUBLIC Window integer/owner fields; hidden intermediate doubles/cache NOT claimed observed",
+    "output_agreement_is_forward_proof": false
+  },
+  "native": {
+    "initial_scope": "Conditional Windows MSVC x64; actual debug0/vector-hardening0; other platforms Unsupported",
+    "immutable_required_fact_identities": 17,
+    "NativeBinding_definition_present": false,
+    "public_verified_bool_or_profile_token": false,
+    "live_checks": [
+      "Compiler/language/STL/debug/hardening identity",
+      "Strict observer compiler identity",
+      "Raw MXCSR controls; CRT word/error (not raw x87)",
+      "CRT rounding/flags/getter errors",
+      "new_handler identity",
+      "_get_FMA3_enable current selection"
+    ],
+    "status_restoration": "Concrete CRT FE_ALL_EXCEPT plus all SIX raw MXCSR status bits and errno; current controls preserved; postchecks; no restoration after actual resolve",
+    "snapshot_error_safety": "Value-initialize all fields/flags before SDK getters",
+    "raw_x87_preservation_qualified": false,
+    "loaded_CRT_association_checked_by_current_code": false,
+    "native_admission_complete": false,
+    "MUST_KEEP_DATA_ABSENT_UNTIL": [
+      "Actual loaded math image/call/dispatch association mechanism or exact applicable proof",
+      "FMA3/new-handler/control true interval stability, including original Clock allocations/callbacks",
+      "All-input private prefix/store and callsite/codegen equivalence",
+      "Full supported libm/classification/observer/restoration/unrepresented-state qualification",
+      "Complete independent NEW source funding and actual combined caller proof"
+    ],
+    "finite_probe_credit": "Separate protected finite evidence only; no R3 execution/universal native/current-image admission/source-fit credit"
+  },
+  "ownership": {
+    "State_owns_worker_or_result": false,
+    "worker_local_intermediates": true,
+    "actual_separate_unique_result_retains_same_origin": true,
+    "actual_acquire_before_ledger_mutation": true,
+    "maximum_finite_references": 3,
+    "Result_and_Retained_Reader_exclusive": true,
+    "destructor_debit_before_physical_drop_completion_after": true
+  },
+  "execution": {
+    "target_parser": false,
+    "compiler": false,
+    "linker": false,
+    "helper_program": false,
+    "tests": false,
+    "native": false,
+    "GUI_audio_device": false,
+    "Git_CI": false,
+    "R3_first_GREEN": false,
+    "producer_or_production_or_Ready": false
+  },
+  "remaining": [
+    "Fresh WHOLE R3 functional/source/native-validation review",
+    "Complete independent NEW literal census/root and R-dependent quote source fit",
+    "Complete all-input forward proof and applicable native/runtime/module/dispatch/interval qualification",
+    "Actual immutable ingress/allocator/caller/staging/result/FP scratch/retained resource proof",
+    "Reviewed source/data binding only after all applicable gates",
+    "Actual independent whole combined R4 source/API proof",
+    "Public recipe/producer/renderer/job/model/Ready integration"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "scope": "Whole candidate certificate and independent static checker source freeze, all helpers/comments preserved. Static checks only, no native/program or source binding/price/Ready claim.",
+  "utc": "2026-11-06T04:42:06.391330+00:00",
+  "checks": 758,
+  "files": [
+    {
+      "path": "build-ci/20261105-musical-native-math-region-certificate-r1/certificate.md",
+      "sha256": "94849D30728C0F5B9B4745D7603E04F526E04CBB3B77FBD7A3BE69D6D9917EA8"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-math-region-certificate-r1/certificate.json",
+      "sha256": "37FA48B23872587064FAF9F1AAA3A30BC5737DAF2697FFC192BF77DA93DDAE41"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-math-region-certificate-independent-review-r1/check.py",
+      "sha256": "8ED5BD80557DFA0429AAA51E581FD909ACFA98F24D400FC566DC6DA583D50EB2"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-math-region-certificate-independent-review-r1/review.json",
+      "sha256": "A6A37B9B8368DA09E9C03680B1AE34924EA15F56494848373398B781F12065EE"
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "schema": "INDEPENDENT_PRIVATE_NATIVE_REGION_QUALIFICATION_DESIGN_CRITIC_R1",
+  "reviewer": "/root/fp_profile_probe_source",
+  "verdict": "ACCEPT_A_FOR_UNBOUND_SOURCE_AUTHORING_WITH_CONCRETE_REQUIREMENTS",
+  "scope": "Private per-request relevant native code/table matcher design only; no implementation or binding admission",
+  "critic": {
+    "path": "critic.md",
+    "bytes": 15286,
+    "sha256": "5E25CEE9BB03B20F8412E0793BB9EF1519CBC8503927EDF649004E9980787AF3",
+    "encoding": "UTF-8 without BOM; LF"
+  },
+  "inputs": [
+    {
+      "path": "docs/adr/0085-owned-musical-call-recipes.md",
+      "bytes": 23414,
+      "sha256": "876FC9F16068603CB8D98799060B4FE8F8147502904DBE5C4EB3DA441729C1C9"
+    },
+    {
+      "path": "docs/adr/0088-musical-origin-formation.md",
+      "bytes": 9440,
+      "sha256": "86EAB38B43415191C795632F2EE675C8A476F894B121B78B404E1CC6FB5FAF33"
+    },
+    {
+      "path": "docs/adr/0089-frozen-musical-builder-attempts.md",
+      "bytes": 8136,
+      "sha256": "5943166A5E27B3088783FE072D7FBF67D8AE9489C9432FEC68A7EA0B0A15C944"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-profile.h",
+      "bytes": 3311,
+      "sha256": "7362153745C630DFB3BC2B96FD6AADBF29CB46B4596943BB754B49E7498459D6"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-observer.cpp",
+      "bytes": 2948,
+      "sha256": "D4F4B982924543FD210FC462EC245960BA1F21E6162382DA835F5B6366403A1C"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-pins.json",
+      "bytes": 32314,
+      "sha256": "A42DEA7A4FBA5192E4F3208E086F5041163F1D519B8467F9AADE7C2AAAF9FD41"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-msvc-native-argument-r1/argument.md",
+      "bytes": 22079,
+      "sha256": "00FCE8FB4F2E545318D0E421540DD49D00C7F910B5B8B3D22CC842BE6CA6CF9E"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-msvc-native-argument-r1/evidence.json",
+      "bytes": 12659,
+      "sha256": "B531CFACA5658678690D398E446EC1F64D2EFE52BDC5EFFD2900BD8DF5DE7D9C"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma3-closed-application-source-r1/argument.md",
+      "bytes": 11027,
+      "sha256": "09E6EC32E72A1183302126F8BAD95C1825C3E332DCC5DDB16F1479E40FD017F2"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma3-closed-application-source-r1/evidence.json",
+      "bytes": 11680,
+      "sha256": "32467B65E56F78227A3F6D7379F51E8EEBC2AF0DD260E46EEBDDD1C20BA3C676"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-association-r1/report.md",
+      "bytes": 10949,
+      "sha256": "DC6D68C577E832E683FBEE2ACD612DDFC092AD1562A3A0348AC7D5430D062B52"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-association-r1/evidence.json",
+      "bytes": 11128,
+      "sha256": "C46A84F27DA6F4E42089FC715CC54CD3E153E180366039A9D13A44B1E69A7B6D"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-module-association-source-r2/execution-r1/receipt.json",
+      "bytes": 1891,
+      "sha256": "B14928550C412B963288F1DB97DF07689F0D3D2F7B0A495D17BDD41A9EB989D8"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r4/log1p.stdout.log",
+      "bytes": 12133,
+      "sha256": "ED3A43355D038A9550D060B1DF04BE2770764702EC5DF6B84F8C384DED2C369C"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r5/log.stdout.log",
+      "bytes": 10051,
+      "sha256": "F821BA0F8C81C719831A598C70A2A686B5C53B1BCDD030589876441527CFED76"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r6/log-continuation.stdout.log",
+      "bytes": 4318,
+      "sha256": "5BAA5710BDD97EB01B6AC5A02F7C000D749576126D6CEEFC13C303725C3F0DD7"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r6/fma-get-set.stdout.log",
+      "bytes": 4743,
+      "sha256": "AB2E4E83012F24CE2EB207EF62F46EDE4646C06D22FF946D803668358751D015"
+    }
+  ],
+  "rootDesignReviewed": "Once before Clock in NativeSession identity; exact imported double log1p/getter anchors, unchanged-refcount module lookup, module/page guards, exact reviewed PIC code/immutable table bytes, separate FMA true interval, same-origin source funding, no global cache/loader owner",
+  "requirements": [
+    "Exact function overload selection, same loaded module and qualified anchor RVAs; containing-module versus thunk distinction",
+    "Checked module extents and uintptr arithmetic before pointer formation",
+    "Every accessed chunk has complete VirtualQuery result, committed image ownership, current readable non-guard protection and positive in-range extent",
+    "Static main-image import dependency plus no relevant unload/remap/code/protection writer and worker shutdown/drain ordering supplies lifetime; API snapshots are not locks",
+    "Complete valid-domain instruction/call/branch/RIP/indexed-table closure; exact immutable table extents and relocation/PIC certificate; no blind IAT/pointer/mutable-state byte match",
+    "Getter mutable dispatch word remains a separate role with real getter observation and closed-source interval proof; byte equality is not a whole DLL file identity",
+    "Before baseline matcher invokes only compile identity/integer/intrinsic control reads and private fixed Win32 kernel leaves; no unqualified getter/fenv/libm/stdio/allocator/restoration/callback",
+    "Pre-Clock qualification need not preserve errno/volatile FP status under actual ADR scope; no invented bootstrap preservation contract",
+    "Existing represented status restoration remains post-Clock beginReplay through immediately before real resolve, including replay early exits",
+    "Region/page/byte loops and all failures remain in funded NativeSession/window-query with per-reached Site debit and raw counters BEFORE bodies; strict native TU has only private fixed-source POD-return kernel leaves sponsored by caller Sites",
+    "Private M/L region-byte data produce reserved maxima only; no maximum-as-actual, arbitrary bulk SDK tariff, post-hoc reimbursement, extra Clock, N scan, retry or new origin",
+    "All first writes, arguments, APIs, copies, loops, status/result/cleanup, stack structs and profile storage need actual source census and unchanged-cap fit",
+    "No caller bool/factory/override; static profile is constant-initialized private data; all17 NativeFacts and both price definitions remain absent until actual complete proof"
+  ],
+  "bootstrapResolution": {
+    "actualAdrsRequirePreClockErrnoOrVolatileStatusPreservation": false,
+    "noExtraPreClockPreservationInvented": true,
+    "qualificationBeforeNativeObserverRead": true,
+    "firstFmaGetterAfterItsRequiredMatch": true,
+    "preservesOnlyPromisedPostClockExtraReplayScope": true,
+    "takingImportedAddressDoesNotInvokeFunction": true
+  },
+  "structuralBounds": {
+    "profile": "M positive-length regions, L total compared bytes",
+    "pageLoopBound": "at most L with positive chunk progress; actual source must establish it",
+    "byteComparisonBound": "at most L",
+    "finiteRegionOverhead": "source-derived M term",
+    "numericQuoteOrFit": null,
+    "heldMaximumIsActualWork": false
+  },
+  "architecture": {
+    "newADRNeededForThisPrivateDirection": false,
+    "rationale": "Existing origin, NativeBinding, ownership and numeric contracts retained; no saved-data/global module-cache/new owner mechanism",
+    "alternativeBNotNeeded": "An app-global module owner/cache adds avoided boot/ownership scope",
+    "HOLDRemainsForDefinitionsAndExecution": true
+  },
+  "attainableNext": [
+    "Author separate unbound R4 matcher and exact pre-baseline ordering",
+    "Derive selected code/table/index/relocation certificate from exact candidate files",
+    "Whole engine/resource review, independent complete census/envelopes and cap proof",
+    "New whole mechanical proof and separately authorized headless module/guard/refusal qualification; no unsafe dereference/trap/OOM tests"
+  ],
+  "primarySources": [
+    "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandleexw",
+    "https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-getmoduleinformation",
+    "https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-moduleinfo",
+    "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualquery",
+    "https://learn.microsoft.com/en-us/windows/win32/memory/memory-protection-constants",
+    "https://learn.microsoft.com/en-us/windows/win32/debug/pe-format"
+  ],
+  "actions": {
+    "sourceAndPrimaryDocumentationReads": true,
+    "metadataByteHashes": true,
+    "targetImplementationWritten": false,
+    "compilerTargetProgramPowerShellParserStageTestExecution": false,
+    "GUIAudioDeviceGit": false,
+    "frozenArtifactEdits": false,
+    "outputsOnly": [
+      "critic.md",
+      "evidence.json"
+    ]
+  },
+  "noCredit": [
+    "No NativeBinding or price definition",
+    "No actual module/PIC/table closure certificate",
+    "No memory access or native PASS",
+    "No whole CRT file identity",
+    "No all-input equivalence from finite measurements",
+    "No resource fit, renderer, Ready or Musical activation"
+  ]
+}

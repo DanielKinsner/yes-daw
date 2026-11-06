@@ -1,0 +1,228 @@
+{
+  "schema": "SOURCE_AND_EMITTED_BODY_DEFAULT_ALLOCATOR_ASSOCIATION_R1",
+  "status": "NARROW_STOCK_RUNTIME_BODY_PREMISE_CONDITIONALLY_CLOSED_COMBINED_R3_BINDING_PENDING",
+  "author": "/root/fp_profile_probe_source",
+  "report": {
+    "path": "report.md",
+    "bytes": 10949,
+    "sha256": "DC6D68C577E832E683FBEE2ACD612DDFC092AD1562A3A0348AC7D5430D062B52",
+    "encoding": "UTF-8 without BOM; LF"
+  },
+  "inputs": [
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/crt/src/vcruntime/new_scalar.cpp",
+      "bytes": 1406,
+      "sha256": "FB7F0D8CD2233D10467AC7E39C7AFC2CDB6B194249C5F56B7602794529FA1192"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/crt/src/stl/stdhndlr.cpp",
+      "bytes": 942,
+      "sha256": "DE0F276140E870D4A44DCE6E5DDB86F0102138E64B5EF287FFA2861DDA71A2AA"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Source/10.0.26100.0/ucrt/heap/new_handler.cpp",
+      "bytes": 2262,
+      "sha256": "ED7BCD6A7E5E29213A5464D2E79CAB69BDCD2C52E63E50D965A7106C325C18BE"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Source/10.0.26100.0/ucrt/heap/malloc_base.cpp",
+      "bytes": 1635,
+      "sha256": "5E8799CCA0BF2BB47E14F77F11FC1275DB51D27C34C013FF1D929E2F1793D62B"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma3-closed-application-source-r1/argument.md",
+      "bytes": 11027,
+      "sha256": "09E6EC32E72A1183302126F8BAD95C1825C3E332DCC5DDB16F1479E40FD017F2"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma3-closed-application-source-r1/source-corpus.json",
+      "bytes": 725737,
+      "sha256": "6849E04FD380B16E600AC3C7890AEDE62A2C072F84018A3D7613D0C02E0ED194"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma3-closed-application-source-r1/evidence.json",
+      "bytes": 11680,
+      "sha256": "32467B65E56F78227A3F6D7379F51E8EEBC2AF0DD260E46EEBDDD1C20BA3C676"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r1/receipt.json",
+      "bytes": 4323,
+      "sha256": "7C5BF8768055C872A146A6DB8C29BA7ECC0D7F4F3CAD18F4B9B87FEA589D01D8"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r1/msvcrt.lib-members.stdout.log",
+      "bytes": 80459,
+      "sha256": "0F85F0DA9A796D399FFC7D0FB2F1C83E2BDCCA840AD1579B798768A9EA1944A6"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r1/libvcruntime.lib-members.stdout.log",
+      "bytes": 53544,
+      "sha256": "1E8232C19DBB99F301C408EDEF2821FEFC10C36A107FAA02506D3EDC7957DEC4"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r1/vcruntime.lib-members.stdout.log",
+      "bytes": 17091,
+      "sha256": "80B95F4E847EDC51FEB483A6EF62AC3C88A9C1A4063EC3044822E297AEFAF3E2"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r1/msvcprt.lib-members.stdout.log",
+      "bytes": 308535,
+      "sha256": "6EBD961050C81C84B079B37483DC5E14F9C862DDA797E2AA21F2D447AE9183C0"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r1/msvcp140-exports.stdout.log",
+      "bytes": 147741,
+      "sha256": "CC6D686D11B03C6A8BDDB0E1DBADA46B3E160F6418BF000A1C0031D0E2B7ECB9"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r1/msvcp140-headers.stdout.log",
+      "bytes": 6098,
+      "sha256": "0B8A5433D7F96E15F435011B600086B1D65DB0386C2258EF9E510FB3DDBE69FE"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r1/ucrt-new-handler.stdout.log",
+      "bytes": 8964,
+      "sha256": "6B904399D31FA63E2DB01D6329D868BD41FA555BA12A1C5DC99E835CD7C0E2B5"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r2/receipt.json",
+      "bytes": 2684,
+      "sha256": "DEBA18E52BDDD99DF384959D9C4BE6E8EAAB15AC1A9F5627BC949DCE317D1B0C"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r2/msvcp-handlers.stdout.log",
+      "bytes": 3634,
+      "sha256": "2C32157B32F56110F9D51971A26D21532F0DF9A25C7E6B53EE25434B4A46E5AF"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r2/new-scalar-from-msvcrt.obj",
+      "bytes": 36729,
+      "sha256": "DBAE8F8F2A692E8A055287CCA764F7742FA2BAC185BD6129B0B62ADD22A68EA4"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r2/scalar-new-symbols.stdout.log",
+      "bytes": 2683,
+      "sha256": "8976B85D21D273C95E088177C3AE8A2C99A8DDDC045AC4A11FAB434E7A1C1DCE"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r2/scalar-new-relocations.stdout.log",
+      "bytes": 3349,
+      "sha256": "0019375EE00292844F4507D7E9BC257637D576F78468F82FAB66A34429246484"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r2/scalar-new-disasm-nobytes.stdout.log",
+      "bytes": 1469,
+      "sha256": "A57A9F96B1CB4B8B951F524795DF9B46A4C2475CCB3928A9D48460EAEF04C810"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r3/receipt.json",
+      "bytes": 927,
+      "sha256": "C769C40113853FEAA776D16800A088FBBED5A4DEEA463F1B7E581769A405372D"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r3/new-handler-bridge.stdout.log",
+      "bytes": 693,
+      "sha256": "90652B3903A238C9A2F7B37B18C4CB174D9F6BC638324AA74E8CFD4AD46E4F38"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-file-association-r3/new-handler-setter-import-thunk.stdout.log",
+      "bytes": 467,
+      "sha256": "0240AC244BAB2AB095BDA1DD779D2979BA24E9B47082278294A63F104D2CBAE1"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma-runtime-import-association-r1/system32-MSVCP140.dll-imports.stdout.log",
+      "bytes": 11820,
+      "sha256": "DA166B51B0371B03B1BD8BE23C69D20351488AFF2E6A22D69B4260A4CB144C49"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma-app-binary-association-r1/imports.stdout.log",
+      "bytes": 40666,
+      "sha256": "A160D1EFE7378D8C7FD1B0F08473B67DF179DE42BB68F2B4FE5E5FC3B1ACA4DB"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-pins.json",
+      "bytes": 32314,
+      "sha256": "A42DEA7A4FBA5192E4F3208E086F5041163F1D519B8467F9AADE7C2AAAF9FD41"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-observer.cpp",
+      "bytes": 2948,
+      "sha256": "D4F4B982924543FD210FC462EC245960BA1F21E6162382DA835F5B6366403A1C"
+    }
+  ],
+  "exactScalarProvider": {
+    "library": "MSVC14.44.35207/lib/x64/msvcrt.lib",
+    "symbol": "??2@YAPEAX_K@Z",
+    "archiveMemberIndex": "0x511",
+    "archiveHeaderOffset": "0x6BFAF6",
+    "resolvedMemberName": "D:/a/_work/1/s/Intermediate/crt/vcstartup/build/md/msvcrt_md_kernel32.vcxproj/objr/amd64/new_scalar.obj",
+    "memberBytes": 36729,
+    "memberSha256": "DBAE8F8F2A692E8A055287CCA764F7742FA2BAC185BD6129B0B62ADD22A68EA4",
+    "functionOffsets": "0x0..0x3B",
+    "mallocCallOffset": "0x1A",
+    "callnewhCallOffset": "0xE",
+    "throwBadAllocOffset": "0x30",
+    "throwBadArrayLengthOffset": "0x36",
+    "calleesIdentifiedByRelocations": true,
+    "otherThreeInspectedArchivesDefineScalarSymbol": false
+  },
+  "msvcpCandidate": {
+    "sha256": "7C26614E1D733892C2DEAC7E245CE115504B1D80592DD0A01B08E3E5A55F89CA",
+    "getRva": "0x172A0",
+    "setRva": "0x17300",
+    "handlerWordRva": "0x94678",
+    "bridgeRva": "0x17280",
+    "setterThunkRva": "0x609CE",
+    "setterIatSlotRva": "0x63468",
+    "setterIatName": "_set_new_handler",
+    "lockRva": "0x17D50",
+    "unlockRva": "0x17E90",
+    "lockFailureHelperRva": "0x188C0",
+    "readStoreAndBridgeSourceCorrespondence": true,
+    "setterImportProvesInvocation": false
+  },
+  "ucrtCandidate": {
+    "sha256": "DEDB7611E1ABC1FF3852DCAC3D4C93A048D729E25B061973B9969F22698F14CA",
+    "queryRva": "0x5130",
+    "twoSlotInitializerRva": "0x5190",
+    "cSetterRva": "0x51B0",
+    "callnewhRva": "0x5240",
+    "encodedHandlerSlotsRva": "0x1398A0",
+    "nullCheckBeforeIndirectCallback": true,
+    "selectionWordSeparateRva": "0x139E60",
+    "inspectedBodiesFmaOrControlWrites": false
+  },
+  "sourceFacts": [
+    "Default scalar-new malloc-success returns; null return calls current handler and retries only on handler success",
+    "Default release malloc source may additionally check current handler when new-mode is nonzero; null handler still invokes no callback",
+    "C and C++ handler states are distinct; C++ getter-null alone is not proof of C-handler null",
+    "Installed initial states are null/encoded null; the earlier closed app corpus has no C/C++ setter caller or FMA writer and hooks/plugins are excluded",
+    "Ordinary returning allocator calls preserve agreed Windows x64 controls; ABI control preservation does not preserve unrelated global FMA state"
+  ],
+  "conditionalClosure": "Under the associated ordinary stock-runtime contracts, completed startup and pinned closed admitted source, neither handler is changed from null; scalar-new/malloc failure checks cannot invoke an application handler, so original Clock allocation adds no application FMA-writer callback before prefix arithmetic. No OOM/setter execution is needed to establish this source/body premise.",
+  "actualTraceLimits": [
+    "Successful Clock alone does not reveal historical allocation failures/retries/sites",
+    "No actual allocator/new-handler/setter call was performed or measured in this review",
+    "Archive/candidate bodies are not retrospective loaded-module or historical linked-address observations",
+    "Bridge nonnull indirect dispatch is outside the null-handler path; no callback body execution claimed",
+    "Mutex/count error and throw-helper padding are visible branches, not deliberately reached PASS evidence"
+  ],
+  "remainingCombinedFacts": [
+    "Actual reviewed combined R3 default-library/member selection and emitted caller/helper/query identity under its real flags",
+    "Actual combined binary loaded math/MSVCP/UCRT module associations",
+    "Strict bridge restoration and true native interval/source evidence with the same identities",
+    "Independent same-origin literal census/reservations, prices and remaining integration/resource gates"
+  ],
+  "attainableNextHeadlessStep": "Use the reviewed combined R3 build/link/object receipt to match these existing provider/body pins, then its separately authorized console module/restoration qualification; no broader vendor catalogue, OOM or setter test is required",
+  "frozenBoundary": "All prior source/report/probe inputs unchanged; no NativeBinding/price definitions, cap/ADR/source changes or execution authority",
+  "actions": {
+    "sourceFileMetadataAndHashReads": true,
+    "compilerLinkerTargetParserProgramHelperTestRunByThisAgent": false,
+    "allocatorSetterTrapInvocation": false,
+    "GUIAudioDeviceGitCI": false,
+    "outputsOnly": [
+      "report.md",
+      "evidence.json"
+    ]
+  }
+}
