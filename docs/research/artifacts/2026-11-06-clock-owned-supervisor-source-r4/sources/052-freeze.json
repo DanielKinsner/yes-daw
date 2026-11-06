@@ -1,0 +1,16 @@
+{
+  "status": "FIRST_COMPLETE_OWN_SOURCE_PASS_FROZEN_UNRUN_FRESH_WHOLE_CRITIC_REQUIRED",
+  "checks": 1671,
+  "failed": 0,
+  "source_pins": {
+    "path": "build-ci/20261106-clock-owned-supervisor-source-r4/source-pins.json",
+    "bytes": 438671,
+    "sha256": "7EA98CE0C1C794542A350C0D8FD1F97525672045C817552A34303FAE9C38D2B7"
+  },
+  "files": 66,
+  "failed_invocations": 1,
+  "Data": "UNDEFINED_BOTH",
+  "source_prices": false,
+  "source_native_resources_ABI_binding_fit_GO": false,
+  "postgreen_edits_authorized": false
+}

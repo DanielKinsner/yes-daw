@@ -1,0 +1,145 @@
+{
+  "CI_run": 42146047209,
+  "source_commit": "d3ec66137088b491acec4bdd614809105bed8c8f",
+  "CI_conclusion": "success",
+  "all_ten_CI_jobs_success": true,
+  "archive_sha256": "25979B30102EDADCFD5D7DEA6AA7D9DF6C7A7AC9D9398B753FA02548840FE1BE",
+  "downloaded_artifact_id": 13469969010,
+  "app_launched": false,
+  "files": [
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/package-manifest.json",
+      "bytes": 1591,
+      "sha256": "72BEB2FB43508F94E2A728DC578FA2776F2C93A03E2A12E562198C207E5FF662"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/README-alpha.md",
+      "bytes": 3211,
+      "sha256": "265B492028CE39ECF034C6D1906BFE80995BB2195C62365C4B3DE14599BFD64A"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-hardware.ps1",
+      "bytes": 40229,
+      "sha256": "C32EFEEE2F70B343F2D15DC454F70AD2066DC7A51758ECE58EF46AB7D246C870"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/version.txt",
+      "bytes": 9,
+      "sha256": "982699CF7798CA595B8A7402B74FE0472AD244EEE2A9D3D0905724CDD5B5B03D"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/YesDaw.exe",
+      "bytes": 9020416,
+      "sha256": "44FDFDFF00505C9A1CD0E19B32AC80A06FEC0C5512254A8821ADD3D16F8CF0A6"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/YesDawFrameCheck.exe",
+      "bytes": 1906176,
+      "sha256": "EAEB6FE47B15257194F14F847240A6D769B8372A8C0E3BE6C1E5E6AF02F064C7"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/YesDawHardwarePlaybackCheck.exe",
+      "bytes": 795136,
+      "sha256": "9B0D0EBF02B66C4FA99CE8F862B0EBA06F958150D5E2C898227D912E16A16398"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/YesDawHardwareRecordingCheck.exe",
+      "bytes": 1724416,
+      "sha256": "8D64B76B96EAEFBCAA332D4B54CF72F89851EE9C87CF31A9EDE2E7536A7F1353"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/YesDawSelfCheck.exe",
+      "bytes": 3103744,
+      "sha256": "850A47DFD54488FC135F943365A57A9E649B4BCB7190CB4254C829183D4E4CD6"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/capture-only-pass.json",
+      "bytes": 2178,
+      "sha256": "94420FDA4A025C620410A8AA0E45096C6B811FC773DA12BF096CD6A4D121C75E"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/child-crash.json",
+      "bytes": 1533,
+      "sha256": "FC4533407E7179EE8432ABFA9DCA1F51804D2B72A7C0D00FF99FF90F8C3B6DA1"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/child-invalid-result.json",
+      "bytes": 2047,
+      "sha256": "C6CDC644266E9D7F4E5DED8667E398AE6A0202E44D126A6B8C17ABC680A995A5"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/child-missing-result.json",
+      "bytes": 1657,
+      "sha256": "989000509B648ADE1D0E68E44FD37104D009C41078B455B8EFD42EFA65F943F3"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/child-version-mismatch.json",
+      "bytes": 2200,
+      "sha256": "2E07D79B5B1E8C94C0564B11A8C596093365248F3D32BB21AC18B9FE61E662A4"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/child-wrong-run-id.json",
+      "bytes": 2168,
+      "sha256": "C0F5B687E1022A4AF508C0F0DB97C48F316F102FF4E69B34738A6EDBB2E63FC4"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/child-wrong-schema.json",
+      "bytes": 2166,
+      "sha256": "FE5A159BAA58C08937A515AFA13E6F6CB708B9C11B0B4C87341AFC835138CE32"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/child-wrong-stage.json",
+      "bytes": 2225,
+      "sha256": "8A123006F597482735A73E9D7591AEA147A1D08F2428FFD8EC7B6C96FB6E2ECD"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/clean-pass.json",
+      "bytes": 2447,
+      "sha256": "BE5EBAC4BF245E6E0D3CAAD97DAFFB1D20803BF8D750EDBE400CC2661E84AE44"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/frame-claim-mismatch.json",
+      "bytes": 2182,
+      "sha256": "888011F3F2F9CD0D38EBC60DCDD109277A8627904EF32C905220EA973FF716A6"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/invented-alignment-rejected.json",
+      "bytes": 2202,
+      "sha256": "12E0CE56C05929BC9FCECCE95E49CA0A1DE6A18CC425F13DCD3BCD7992D74C20"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/measured-fail-retains-timeout.json",
+      "bytes": 1713,
+      "sha256": "C876BFDAAE02373AC01EDA1AFAB721598CF441734F8EDA05258A9F617BD0A3FD"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/mixed-fail-and-setup.json",
+      "bytes": 2204,
+      "sha256": "8B9A5821F16E94CDC2BC0D148E7B2D85CFAA713D44802468529D9B18AA85C2D9"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/pass-contradicts-measurement.json",
+      "bytes": 2305,
+      "sha256": "331B0899E7302EDFFFC076A43D59C11ACD1418858A7D042BC91BE89B45A59DE6"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/setup-incomplete.json",
+      "bytes": 2077,
+      "sha256": "F6FBDB607B1D18420B9E2157F44FACB6568A03B1D9FC33190B737889C0A39F14"
+    },
+    {
+      "path": "ready/YesDaw-d3ec661-win64-portable/verify-fixtures/stage-skipped.json",
+      "bytes": 1526,
+      "sha256": "0747592AB025E4CCE286829F088EF8194247C790343D7FE1E472FBFA5EAFA40B"
+    }
+  ],
+  "app_absolute_path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261106-user-test-ci42146047209\\ready\\YesDaw-d3ec661-win64-portable\\YesDaw.exe",
+  "app_sha256": "44FDFDFF00505C9A1CD0E19B32AC80A06FEC0C5512254A8821ADD3D16F8CF0A6",
+  "app_bytes": 9020416,
+  "PE_AMD64_confirmed": true,
+  "all_five_package_manifest_entries_verified": true,
+  "manifest_does_not_claim_app_hash": true,
+  "source_code_changed_since_this_CI": false,
+  "latest_app_code": "d3ec66137088b491acec4bdd614809105bed8c8f",
+  "user_requested_stop": true
+}

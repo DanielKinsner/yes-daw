@@ -1,0 +1,7 @@
+{
+  "kind": "OWN_MATCHER_SCOPE_ERROR_NOT_CANDIDATE_FAILURE",
+  "finding": "The assertion counted every StageExtent+break statement in the full stage_scan and expected only the two new repeat guards. The preserved predecessor already has a MAX_PATH StageExtent+break statement, so the full scan contains three.",
+  "correction": "Match each actual if(seen_dot)/if(seen_dotdot) repeat-refusal statement exactly once. Retain the existing MAX_PATH statement and all candidate implementation bytes unchanged.",
+  "preservation": "Exact attempted scripts, shared immutable input hashes, changed source outputs, stdout/stderr and exit1 remain in this attempt directory.",
+  "target_execution_or_source_change_for_correction": false
+}

@@ -1,0 +1,1958 @@
+{
+  "kind": "FINITE_INTEGER_BOOLEAN_CATEGORY_MODEL_ONLY_NOT_RUNTIME_FIXTURE",
+  "states": [
+    [
+      0,
+      false,
+      false
+    ],
+    [
+      0,
+      false,
+      true
+    ],
+    [
+      0,
+      true,
+      false
+    ],
+    [
+      0,
+      true,
+      true
+    ],
+    [
+      1,
+      false,
+      false
+    ],
+    [
+      1,
+      false,
+      true
+    ],
+    [
+      1,
+      true,
+      false
+    ],
+    [
+      1,
+      true,
+      true
+    ],
+    [
+      2,
+      false,
+      false
+    ],
+    [
+      2,
+      false,
+      true
+    ],
+    [
+      2,
+      true,
+      false
+    ],
+    [
+      2,
+      true,
+      true
+    ],
+    [
+      3,
+      false,
+      false
+    ],
+    [
+      3,
+      false,
+      true
+    ],
+    [
+      3,
+      true,
+      false
+    ],
+    [
+      3,
+      true,
+      true
+    ],
+    [
+      4,
+      false,
+      false
+    ],
+    [
+      4,
+      false,
+      true
+    ],
+    [
+      4,
+      true,
+      false
+    ],
+    [
+      4,
+      true,
+      true
+    ],
+    [
+      5,
+      false,
+      false
+    ],
+    [
+      5,
+      false,
+      true
+    ],
+    [
+      5,
+      true,
+      false
+    ],
+    [
+      5,
+      true,
+      true
+    ],
+    [
+      6,
+      false,
+      false
+    ],
+    [
+      6,
+      false,
+      true
+    ],
+    [
+      6,
+      true,
+      false
+    ],
+    [
+      6,
+      true,
+      true
+    ],
+    [
+      7,
+      false,
+      false
+    ],
+    [
+      7,
+      false,
+      true
+    ],
+    [
+      7,
+      true,
+      false
+    ],
+    [
+      7,
+      true,
+      true
+    ]
+  ],
+  "edges": [
+    {
+      "state": [
+        0,
+        false,
+        false
+      ],
+      "category": "dot",
+      "next": [
+        0,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        0,
+        false,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        0,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        0,
+        false,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        1,
+        false,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        0,
+        false,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 1
+    },
+    {
+      "state": [
+        0,
+        true,
+        false
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 0
+    },
+    {
+      "state": [
+        0,
+        true,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        0,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        0,
+        true,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        1,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        0,
+        true,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 1
+    },
+    {
+      "state": [
+        0,
+        false,
+        true
+      ],
+      "category": "dot",
+      "next": [
+        0,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        0,
+        false,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 0
+    },
+    {
+      "state": [
+        0,
+        false,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        1,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        0,
+        false,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 1
+    },
+    {
+      "state": [
+        1,
+        false,
+        false
+      ],
+      "category": "dot",
+      "next": [
+        1,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        1,
+        false,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        1,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        1,
+        false,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        2,
+        false,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        1,
+        false,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 2
+    },
+    {
+      "state": [
+        0,
+        true,
+        true
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 0
+    },
+    {
+      "state": [
+        0,
+        true,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 0
+    },
+    {
+      "state": [
+        0,
+        true,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        1,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        0,
+        true,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 1
+    },
+    {
+      "state": [
+        1,
+        true,
+        false
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 1
+    },
+    {
+      "state": [
+        1,
+        true,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        1,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        1,
+        true,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        2,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        1,
+        true,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 2
+    },
+    {
+      "state": [
+        1,
+        false,
+        true
+      ],
+      "category": "dot",
+      "next": [
+        1,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        1,
+        false,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 1
+    },
+    {
+      "state": [
+        1,
+        false,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        2,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        1,
+        false,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 2
+    },
+    {
+      "state": [
+        2,
+        false,
+        false
+      ],
+      "category": "dot",
+      "next": [
+        2,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        2,
+        false,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        2,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        2,
+        false,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        3,
+        false,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        2,
+        false,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 3
+    },
+    {
+      "state": [
+        1,
+        true,
+        true
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 1
+    },
+    {
+      "state": [
+        1,
+        true,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 1
+    },
+    {
+      "state": [
+        1,
+        true,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        2,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        1,
+        true,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 2
+    },
+    {
+      "state": [
+        2,
+        true,
+        false
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 2
+    },
+    {
+      "state": [
+        2,
+        true,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        2,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        2,
+        true,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        3,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        2,
+        true,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 3
+    },
+    {
+      "state": [
+        2,
+        false,
+        true
+      ],
+      "category": "dot",
+      "next": [
+        2,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        2,
+        false,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 2
+    },
+    {
+      "state": [
+        2,
+        false,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        3,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        2,
+        false,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 3
+    },
+    {
+      "state": [
+        3,
+        false,
+        false
+      ],
+      "category": "dot",
+      "next": [
+        3,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        3,
+        false,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        3,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        3,
+        false,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        4,
+        false,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        3,
+        false,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 4
+    },
+    {
+      "state": [
+        2,
+        true,
+        true
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 2
+    },
+    {
+      "state": [
+        2,
+        true,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 2
+    },
+    {
+      "state": [
+        2,
+        true,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        3,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        2,
+        true,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 3
+    },
+    {
+      "state": [
+        3,
+        true,
+        false
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 3
+    },
+    {
+      "state": [
+        3,
+        true,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        3,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        3,
+        true,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        4,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        3,
+        true,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 4
+    },
+    {
+      "state": [
+        3,
+        false,
+        true
+      ],
+      "category": "dot",
+      "next": [
+        3,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        3,
+        false,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 3
+    },
+    {
+      "state": [
+        3,
+        false,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        4,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        3,
+        false,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 4
+    },
+    {
+      "state": [
+        4,
+        false,
+        false
+      ],
+      "category": "dot",
+      "next": [
+        4,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        4,
+        false,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        4,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        4,
+        false,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        5,
+        false,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        4,
+        false,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 5
+    },
+    {
+      "state": [
+        3,
+        true,
+        true
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 3
+    },
+    {
+      "state": [
+        3,
+        true,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 3
+    },
+    {
+      "state": [
+        3,
+        true,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        4,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        3,
+        true,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 4
+    },
+    {
+      "state": [
+        4,
+        true,
+        false
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 4
+    },
+    {
+      "state": [
+        4,
+        true,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        4,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        4,
+        true,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        5,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        4,
+        true,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 5
+    },
+    {
+      "state": [
+        4,
+        false,
+        true
+      ],
+      "category": "dot",
+      "next": [
+        4,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        4,
+        false,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 4
+    },
+    {
+      "state": [
+        4,
+        false,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        5,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        4,
+        false,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 5
+    },
+    {
+      "state": [
+        5,
+        false,
+        false
+      ],
+      "category": "dot",
+      "next": [
+        5,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        5,
+        false,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        5,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        5,
+        false,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        6,
+        false,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        5,
+        false,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 6
+    },
+    {
+      "state": [
+        4,
+        true,
+        true
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 4
+    },
+    {
+      "state": [
+        4,
+        true,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 4
+    },
+    {
+      "state": [
+        4,
+        true,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        5,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        4,
+        true,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 5
+    },
+    {
+      "state": [
+        5,
+        true,
+        false
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 5
+    },
+    {
+      "state": [
+        5,
+        true,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        5,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        5,
+        true,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        6,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        5,
+        true,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 6
+    },
+    {
+      "state": [
+        5,
+        false,
+        true
+      ],
+      "category": "dot",
+      "next": [
+        5,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        5,
+        false,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 5
+    },
+    {
+      "state": [
+        5,
+        false,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        6,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        5,
+        false,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 6
+    },
+    {
+      "state": [
+        6,
+        false,
+        false
+      ],
+      "category": "dot",
+      "next": [
+        6,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        6,
+        false,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        6,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        6,
+        false,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        7,
+        false,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        6,
+        false,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 7
+    },
+    {
+      "state": [
+        5,
+        true,
+        true
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 5
+    },
+    {
+      "state": [
+        5,
+        true,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 5
+    },
+    {
+      "state": [
+        5,
+        true,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        6,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        5,
+        true,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 6
+    },
+    {
+      "state": [
+        6,
+        true,
+        false
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 6
+    },
+    {
+      "state": [
+        6,
+        true,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        6,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        6,
+        true,
+        false
+      ],
+      "category": "legal",
+      "next": [
+        7,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        6,
+        true,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 7
+    },
+    {
+      "state": [
+        6,
+        false,
+        true
+      ],
+      "category": "dot",
+      "next": [
+        6,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        6,
+        false,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 6
+    },
+    {
+      "state": [
+        6,
+        false,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        7,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        6,
+        false,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 7
+    },
+    {
+      "state": [
+        7,
+        false,
+        false
+      ],
+      "category": "dot",
+      "next": [
+        7,
+        true,
+        false
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        7,
+        false,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        7,
+        false,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        7,
+        false,
+        false
+      ],
+      "category": "legal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 8
+    },
+    {
+      "state": [
+        7,
+        false,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 8
+    },
+    {
+      "state": [
+        6,
+        true,
+        true
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 6
+    },
+    {
+      "state": [
+        6,
+        true,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 6
+    },
+    {
+      "state": [
+        6,
+        true,
+        true
+      ],
+      "category": "legal",
+      "next": [
+        7,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        6,
+        true,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 7
+    },
+    {
+      "state": [
+        7,
+        true,
+        false
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 7
+    },
+    {
+      "state": [
+        7,
+        true,
+        false
+      ],
+      "category": "dotdot",
+      "next": [
+        7,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        7,
+        true,
+        false
+      ],
+      "category": "legal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 8
+    },
+    {
+      "state": [
+        7,
+        true,
+        false
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 8
+    },
+    {
+      "state": [
+        7,
+        false,
+        true
+      ],
+      "category": "dot",
+      "next": [
+        7,
+        true,
+        true
+      ],
+      "reason": null,
+      "noncap": true,
+      "terminal_local_ordinary_count": null
+    },
+    {
+      "state": [
+        7,
+        false,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 7
+    },
+    {
+      "state": [
+        7,
+        false,
+        true
+      ],
+      "category": "legal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 8
+    },
+    {
+      "state": [
+        7,
+        false,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 8
+    },
+    {
+      "state": [
+        7,
+        true,
+        true
+      ],
+      "category": "dot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 7
+    },
+    {
+      "state": [
+        7,
+        true,
+        true
+      ],
+      "category": "dotdot",
+      "next": null,
+      "reason": "StageExtent",
+      "noncap": true,
+      "terminal_local_ordinary_count": 7
+    },
+    {
+      "state": [
+        7,
+        true,
+        true
+      ],
+      "category": "legal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 8
+    },
+    {
+      "state": [
+        7,
+        true,
+        true
+      ],
+      "category": "illegal",
+      "next": null,
+      "reason": "StageUnknownName",
+      "noncap": true,
+      "terminal_local_ordinary_count": 8
+    }
+  ],
+  "ranking": "(7-ordinary_count)+(!seen_dot)+(!seen_dotdot), initially9, decreases1 on every continuation",
+  "upper": {
+    "loop_bodies": 10,
+    "FindFirst": 1,
+    "FindNext": 9
+  },
+  "all_abstract_categories_complete": true,
+  "interruption_prefixes": [
+    "StageEntry spend refusal before category -> break",
+    "FindNext EOF/error -> existing break",
+    "FindClose true -> existing owner clear",
+    "FindClose false -> retained owner blocks later FindFirst"
+  ],
+  "no_native_sequence_observed": true,
+  "old_unbounded_abstract_stutter": "R16 did not source-count dot records; no actual repeated-dot API failure is claimed"
+}

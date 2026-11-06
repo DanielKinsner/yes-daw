@@ -1,0 +1,27 @@
+[
+  {
+    "path": "build-ci/20261106-clock-owned-supervisor-source-r4/build.py",
+    "bytes": 27264,
+    "sha256": "2EEEB2FF990B297FFC6A5BFDEB073F765B27A6E780A6267C6FA184B39D26586B"
+  },
+  {
+    "path": "build-ci/20261106-clock-owned-supervisor-source-r4/candidate-readme.md",
+    "bytes": 1615,
+    "sha256": "3C3BC22126DF710913F912278993483558A4423105B4647602703B30AEB282CA"
+  },
+  {
+    "path": "build-ci/20261106-clock-owned-supervisor-source-r4/invoke.py",
+    "bytes": 3763,
+    "sha256": "51807EDFDDAD92522C08AFE46479480B67C988E1140F00B4C0B0E1EF5D9E0FF8"
+  },
+  {
+    "path": "build-ci/20261106-clock-owned-supervisor-source-r4/regressions.json",
+    "bytes": 32731,
+    "sha256": "202248FEFEA1FB582887D9832A3ED3FF253B4C4A3D512DAF302B41B1F64A8090"
+  },
+  {
+    "path": "build-ci/20261106-clock-owned-supervisor-source-r4/WORKING.md",
+    "bytes": 1361,
+    "sha256": "F6560D9C82575781E9B6C8CA85A03042184B330EFB64DFC799CC4D275C496462"
+  }
+]

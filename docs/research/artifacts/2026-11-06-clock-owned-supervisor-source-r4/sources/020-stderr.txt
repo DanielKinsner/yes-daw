@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261106-clock-owned-supervisor-source-r4\invoke.py", line 27, in <module>
+    sys.dont_write_bytecode=True;runpy.run_path(str(HERE/'build.py'),run_name='__main__')
+                                 ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261106-clock-owned-supervisor-source-r4\build.py", line 200, in <module>
+    check('both_repeat_refusals_exact',scan.count('ok=path_failure(state,Site::StageAdmission,Reason::StageExtent); break;')==2)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261106-clock-owned-supervisor-source-r4\build.py", line 18, in check
+    if not condition:raise AssertionError(name)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: both_repeat_refusals_exact

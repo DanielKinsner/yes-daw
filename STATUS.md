@@ -8,6 +8,25 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## Paused at Dan's request - 2026-11-06
+
+Dan asked to stop safely so he can try the app after almost72 hours. All agents are stopped.
+**Resume implementation only when Dan asks.** The [safe-stop handoff](docs/research/checkpoints/2026-11-06-user-test-stop/README.md)
+preserves unfinished work and the exact downloaded test-build receipt.
+
+- Open `outputs/YesDaw-test-d3ec661/YesDaw.exe`; portable ZIP: `outputs/YesDaw-test-d3ec661.zip`.
+  This is exact app commitd3ec661 from full ten-job successful CI42146047209; downloaded, extracted and
+  file-verified, never launched by the agent. Tracked app source/CMake still match that exact CI commit.
+  Later commits add research/evidence, not shipped features. Delivery hashes are in the checkpoint.
+- Try continuous MIDI editing, background import/stretch, reverse/cross-rate fixes, and complete Tempo-map
+  MIDI/grid/quantize/metronome/count-in behavior. Musical MIDI defaults and persistence/recovery are included.
+- Audio tempo-follow, linked editing/folders and piano ghost/used-pitches views remain unfinished.
+  R17's source is frozen after1,671 own checks, but its fresh whole review is unsealed and reported stale
+  current R16 provenance fields. No R17 whole acceptance or compiler/helper/Clock execution is certified.
+- All unfinished current review/census/layout-purpose files and the unrun recipe test are preserved exactly
+  in the checkpoint. On resume: correct current runner provenance in a new successor, finish exact-layout
+  purpose/review and whole work/resource/native/binding proof, then continue Musical audio in the active plan.
+
 ## Scoreboard - where the app stands (kept current; last updated 2026-11-06)
 
 **Make a song today** (evidence: the real-app drives on packaged build 7a1b0ad, 2026-10-13)
