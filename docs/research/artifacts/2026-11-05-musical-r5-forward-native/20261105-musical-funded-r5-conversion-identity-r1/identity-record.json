@@ -1,0 +1,13 @@
+{
+  "scope": "Actual compile-only fundamental-type identity constant; no target execution, Data, price or fit",
+  "source_sha256": "D7BC4BF2370653E32B07C35E3AB5A5FFF03B6BDE9EE5D20E18AE06EFC1FDEAC2",
+  "object_sha256": "23D37F717E962DD599864074771290E531B6B258C4EE6CEE6D99C1B0F15AE516",
+  "compile_raw_exit": 0,
+  "target_executed": false,
+  "table_symbol": "yesdaw_conversion_identity",
+  "readonly_section": ".rdata",
+  "relocations": 0,
+  "no_initializer_sections": true,
+  "emitted_instruction_bytes": 0,
+  "uint64_size_t_nonidentity_conversion_d": 0
+}

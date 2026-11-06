@@ -1,0 +1,243 @@
+# clock-frameAt; COFF section1DC; source listing lines11924..12164
+# ?frameAt@MusicalAudioClock@engine@yesdaw@@QEBA?AW4MusicalAudioStatus@23@UMusicalAudioPosition@23@AEAUMusicalAudioFramePosition@23@@Z
+  0000000000000000: 48 89 74 24 18     mov         qword ptr [rsp+18h],rsi
+  0000000000000005: 48 89 7C 24 20     mov         qword ptr [rsp+20h],rdi
+  000000000000000A: 41 56              push        r14
+  000000000000000C: 48 83 EC 70        sub         rsp,70h
+  0000000000000010: 33 C0              xor         eax,eax
+  0000000000000012: 4D 8B F0           mov         r14,r8
+  0000000000000015: 49 89 00           mov         qword ptr [r8],rax
+  0000000000000018: 48 8B F9           mov         rdi,rcx
+  000000000000001B: 49 89 40 08        mov         qword ptr [r8+8],rax
+  000000000000001F: 49 89 40 10        mov         qword ptr [r8+10h],rax
+  0000000000000023: 48 8B 32           mov         rsi,qword ptr [rdx]
+  0000000000000026: 48 85 F6           test        rsi,rsi
+  0000000000000029: 0F 88 D4 02 00 00  js          0000000000000303
+  000000000000002F: 4C 8B 4A 10        mov         r9,qword ptr [rdx+10h]
+  0000000000000033: 4D 85 C9           test        r9,r9
+  0000000000000036: 0F 84 C7 02 00 00  je          0000000000000303
+  000000000000003C: 4C 8B 42 08        mov         r8,qword ptr [rdx+8]
+  0000000000000040: 4D 3B C1           cmp         r8,r9
+  0000000000000043: 0F 83 BA 02 00 00  jae         0000000000000303
+  0000000000000049: 48 8B 49 20        mov         rcx,qword ptr [rcx+20h]
+  000000000000004D: 48 B8 AB AA AA AA  mov         rax,2AAAAAAAAAAAAAABh
+                    AA AA AA 2A
+  0000000000000057: 48 2B 4F 18        sub         rcx,qword ptr [rdi+18h]
+  000000000000005B: 48 F7 E9           imul        rcx
+  000000000000005E: B9 40 00 00 00     mov         ecx,40h
+  0000000000000063: 48 C1 FA 02        sar         rdx,2
+  0000000000000067: 48 8B C2           mov         rax,rdx
+  000000000000006A: 48 C1 E8 3F        shr         rax,3Fh
+  000000000000006E: 48 03 D0           add         rdx,rax
+  0000000000000071: 83 3D 00 00 00 00  cmp         dword ptr [__isa_available],5
+                    05
+  0000000000000078: 7C 07              jl          0000000000000081
+  000000000000007A: F3 48 0F BD C2     lzcnt       rax,rdx
+  000000000000007F: EB 12              jmp         0000000000000093
+  0000000000000081: 4C 0F BD D2        bsr         r10,rdx
+  0000000000000085: 75 04              jne         000000000000008B
+  0000000000000087: 8B C1              mov         eax,ecx
+  0000000000000089: EB 08              jmp         0000000000000093
+  000000000000008B: B8 3F 00 00 00     mov         eax,3Fh
+  0000000000000090: 41 2B C2           sub         eax,r10d
+  0000000000000093: 2B C8              sub         ecx,eax
+  0000000000000095: 48 63 C1           movsxd      rax,ecx
+  0000000000000098: 48 8D 04 45 00 02  lea         rax,[rax*2+200h]
+                    00 00
+  00000000000000A0: 48 39 47 10        cmp         qword ptr [rdi+10h],rax
+  00000000000000A4: 73 15              jae         00000000000000BB
+  00000000000000A6: B0 08              mov         al,8
+  00000000000000A8: 4C 8D 5C 24 70     lea         r11,[rsp+70h]
+  00000000000000AD: 49 8B 73 20        mov         rsi,qword ptr [r11+20h]
+  00000000000000B1: 49 8B 7B 28        mov         rdi,qword ptr [r11+28h]
+  00000000000000B5: 49 8B E3           mov         rsp,r11
+  00000000000000B8: 41 5E              pop         r14
+  00000000000000BA: C3                 ret
+  00000000000000BB: 48 89 9C 24 80 00  mov         qword ptr [rsp+80h],rbx
+                    00 00
+  00000000000000C3: 0F 29 74 24 60     movaps      xmmword ptr [rsp+60h],xmm6
+  00000000000000C8: 0F 57 F6           xorps       xmm6,xmm6
+  00000000000000CB: 0F 29 7C 24 50     movaps      xmmword ptr [rsp+50h],xmm7
+  00000000000000D0: 44 0F 29 4C 24 30  movaps      xmmword ptr [rsp+30h],xmm9
+  00000000000000D6: 4D 85 C0           test        r8,r8
+  00000000000000D9: 75 0C              jne         00000000000000E7
+  00000000000000DB: 0F 57 FF           xorps       xmm7,xmm7
+  00000000000000DE: 45 0F 57 C9        xorps       xmm9,xmm9
+  00000000000000E2: E9 A3 00 00 00     jmp         000000000000018A
+  00000000000000E7: 41 BB FF FF FF FF  mov         r11d,0FFFFFFFFh
+  00000000000000ED: 0F 1F 00           nop         dword ptr [rax]
+  00000000000000F0: 49 8B C1           mov         rax,r9
+  00000000000000F3: 4B 8D 1C 00        lea         rbx,[r8+r8]
+  00000000000000F7: 49 2B C0           sub         rax,r8
+  00000000000000FA: 4C 3B C0           cmp         r8,rax
+  00000000000000FD: 73 08              jae         0000000000000107
+  00000000000000FF: 4C 8B C3           mov         r8,rbx
+  0000000000000102: 41 FF CB           dec         r11d
+  0000000000000105: EB E9              jmp         00000000000000F0
+  0000000000000107: BA 33 00 00 00     mov         edx,33h
+  000000000000010C: 49 2B D9           sub         rbx,r9
+  000000000000010F: 44 8B C2           mov         r8d,edx
+  0000000000000112: 48 B9 00 00 00 00  mov         rcx,10000000000000h
+                    00 00 10 00
+  000000000000011C: 0F 1F 40 00        nop         dword ptr [rax]
+  0000000000000120: 49 8B C1           mov         rax,r9
+  0000000000000123: 4C 8D 14 1B        lea         r10,[rbx+rbx]
+  0000000000000127: 48 2B C3           sub         rax,rbx
+  000000000000012A: 48 3B D8           cmp         rbx,rax
+  000000000000012D: 49 8B DA           mov         rbx,r10
+  0000000000000130: 72 07              jb          0000000000000139
+  0000000000000132: 49 2B D9           sub         rbx,r9
+  0000000000000135: 4C 0F AB C1        bts         rcx,r8
+  0000000000000139: 49 FF C8           dec         r8
+  000000000000013C: 83 EA 01           sub         edx,1
+  000000000000013F: 79 DF              jns         0000000000000120
+  0000000000000141: 41 8D 53 CC        lea         edx,[r11-34h]
+  0000000000000145: 0F 57 C0           xorps       xmm0,xmm0
+  0000000000000148: 48 85 C9           test        rcx,rcx
+  000000000000014B: 78 07              js          0000000000000154
+  000000000000014D: F2 48 0F 2A C1     cvtsi2sd    xmm0,rcx
+  0000000000000152: EB 15              jmp         0000000000000169
+  0000000000000154: 48 8B C1           mov         rax,rcx
+  0000000000000157: 83 E1 01           and         ecx,1
+  000000000000015A: 48 D1 E8           shr         rax,1
+  000000000000015D: 48 0B C1           or          rax,rcx
+  0000000000000160: F2 48 0F 2A C0     cvtsi2sd    xmm0,rax
+  0000000000000165: F2 0F 58 C0        addsd       xmm0,xmm0
+  0000000000000169: FF 15 00 00 00 00  call        qword ptr [__imp_ldexp]
+  000000000000016F: 44 0F 28 C8        movaps      xmm9,xmm0
+  0000000000000173: 48 85 DB           test        rbx,rbx
+  0000000000000176: 75 05              jne         000000000000017D
+  0000000000000178: 0F 28 F8           movaps      xmm7,xmm0
+  000000000000017B: EB 0D              jmp         000000000000018A
+  000000000000017D: 66 48 0F 7E C0     movq        rax,xmm0
+  0000000000000182: 48 FF C0           inc         rax
+  0000000000000185: 66 48 0F 6E F8     movq        xmm7,rax
+  000000000000018A: 66 0F 2E 3D 00 00  ucomisd     xmm7,mmword ptr [__real@3ff0000000000000]
+                    00 00
+  0000000000000192: 48 8B DE           mov         rbx,rsi
+  0000000000000195: 7A 1F              jp          00000000000001B6
+  0000000000000197: 75 1D              jne         00000000000001B6
+  0000000000000199: 48 B8 FF FF FF FF  mov         rax,7FFFFFFFFFFFFFFFh
+                    FF FF FF 7F
+  00000000000001A3: 48 3B F0           cmp         rsi,rax
+  00000000000001A6: 75 07              jne         00000000000001AF
+  00000000000001A8: B0 04              mov         al,4
+  00000000000001AA: E9 BE 00 00 00     jmp         000000000000026D
+  00000000000001AF: 48 8D 5E 01        lea         rbx,[rsi+1]
+  00000000000001B3: 0F 28 FE           movaps      xmm7,xmm6
+  00000000000001B6: 4C 8D 84 24 88 00  lea         r8,[rsp+88h]
+                    00 00
+  00000000000001BE: F2 0F 11 B4 24 88  movsd       mmword ptr [rsp+88h],xmm6
+                    00 00 00
+  00000000000001C7: 48 8D 54 24 20     lea         rdx,[rsp+20h]
+  00000000000001CC: F2 44 0F 11 4C 24  movsd       mmword ptr [rsp+28h],xmm9
+                    28
+  00000000000001D3: 48 8D 4F 30        lea         rcx,[rdi+30h]
+  00000000000001D7: 48 89 74 24 20     mov         qword ptr [rsp+20h],rsi
+  00000000000001DC: E8 00 00 00 00     call        ?frameForMusicalTime@CompiledTempoMap@engine@yesdaw@@QEBA?AW4TimeLookupStatus@23@UMusicalTime@23@AEAN@Z
+  00000000000001E1: 84 C0              test        al,al
+  00000000000001E3: 74 1E              je          0000000000000203
+  00000000000001E5: 0F B6 C8           movzx       ecx,al
+  00000000000001E8: 83 E9 01           sub         ecx,1
+  00000000000001EB: 74 12              je          00000000000001FF
+  00000000000001ED: 83 E9 01           sub         ecx,1
+  00000000000001F0: 74 09              je          00000000000001FB
+  00000000000001F2: 83 E9 01           sub         ecx,1
+  00000000000001F5: 74 B1              je          00000000000001A8
+  00000000000001F7: B0 03              mov         al,3
+  00000000000001F9: EB 72              jmp         000000000000026D
+  00000000000001FB: B0 02              mov         al,2
+  00000000000001FD: EB 6E              jmp         000000000000026D
+  00000000000001FF: B0 01              mov         al,1
+  0000000000000201: EB 6A              jmp         000000000000026D
+  0000000000000203: 44 0F 29 44 24 40  movaps      xmmword ptr [rsp+40h],xmm8
+  0000000000000209: F2 44 0F 10 84 24  movsd       xmm8,mmword ptr [rsp+88h]
+                    88 00 00 00
+  0000000000000213: 41 0F 28 F0        movaps      xmm6,xmm8
+  0000000000000217: F2 0F 11 B4 24 88  movsd       mmword ptr [rsp+88h],xmm6
+                    00 00 00
+  0000000000000220: 48 3B DE           cmp         rbx,rsi
+  0000000000000223: 75 09              jne         000000000000022E
+  0000000000000225: 66 41 0F 2E F9     ucomisd     xmm7,xmm9
+  000000000000022A: 7A 02              jp          000000000000022E
+  000000000000022C: 74 7F              je          00000000000002AD
+  000000000000022E: 4C 8D 84 24 88 00  lea         r8,[rsp+88h]
+                    00 00
+  0000000000000236: F2 0F 11 7C 24 28  movsd       mmword ptr [rsp+28h],xmm7
+  000000000000023C: 48 8D 54 24 20     lea         rdx,[rsp+20h]
+  0000000000000241: 48 89 5C 24 20     mov         qword ptr [rsp+20h],rbx
+  0000000000000246: 48 8D 4F 30        lea         rcx,[rdi+30h]
+  000000000000024A: E8 00 00 00 00     call        ?frameForMusicalTime@CompiledTempoMap@engine@yesdaw@@QEBA?AW4TimeLookupStatus@23@UMusicalTime@23@AEAN@Z
+  000000000000024F: 84 C0              test        al,al
+  0000000000000251: 74 51              je          00000000000002A4
+  0000000000000253: 0F B6 C8           movzx       ecx,al
+  0000000000000256: 83 E9 01           sub         ecx,1
+  0000000000000259: 74 45              je          00000000000002A0
+  000000000000025B: 83 E9 01           sub         ecx,1
+  000000000000025E: 74 3C              je          000000000000029C
+  0000000000000260: 83 E9 01           sub         ecx,1
+  0000000000000263: 74 33              je          0000000000000298
+  0000000000000265: B0 03              mov         al,3
+  0000000000000267: 44 0F 28 44 24 40  movaps      xmm8,xmmword ptr [rsp+40h]
+  000000000000026D: 0F 28 7C 24 50     movaps      xmm7,xmmword ptr [rsp+50h]
+  0000000000000272: 0F 28 74 24 60     movaps      xmm6,xmmword ptr [rsp+60h]
+  0000000000000277: 48 8B 9C 24 80 00  mov         rbx,qword ptr [rsp+80h]
+                    00 00
+  000000000000027F: 44 0F 28 4C 24 30  movaps      xmm9,xmmword ptr [rsp+30h]
+  0000000000000285: 4C 8D 5C 24 70     lea         r11,[rsp+70h]
+  000000000000028A: 49 8B 73 20        mov         rsi,qword ptr [r11+20h]
+  000000000000028E: 49 8B 7B 28        mov         rdi,qword ptr [r11+28h]
+  0000000000000292: 49 8B E3           mov         rsp,r11
+  0000000000000295: 41 5E              pop         r14
+  0000000000000297: C3                 ret
+  0000000000000298: B0 04              mov         al,4
+  000000000000029A: EB CB              jmp         0000000000000267
+  000000000000029C: B0 02              mov         al,2
+  000000000000029E: EB C7              jmp         0000000000000267
+  00000000000002A0: B0 01              mov         al,1
+  00000000000002A2: EB C3              jmp         0000000000000267
+  00000000000002A4: F2 0F 10 B4 24 88  movsd       xmm6,mmword ptr [rsp+88h]
+                    00 00 00
+  00000000000002AD: 66 44 0F 2F C6     comisd      xmm8,xmm6
+  00000000000002B2: 77 48              ja          00000000000002FC
+  00000000000002B4: 0F 28 C6           movaps      xmm0,xmm6
+  00000000000002B7: F2 41 0F 5C C0     subsd       xmm0,xmm8
+  00000000000002BC: 66 0F 2F 05 00 00  comisd      xmm0,mmword ptr [__real@3f50000000000000]
+                    00 00
+  00000000000002C4: 77 36              ja          00000000000002FC
+  00000000000002C6: 41 0F 28 C0        movaps      xmm0,xmm8
+  00000000000002CA: E8 00 00 00 00     call        floor
+  00000000000002CF: F2 48 0F 2C D8     cvttsd2si   rbx,xmm0
+  00000000000002D4: 0F 28 C6           movaps      xmm0,xmm6
+  00000000000002D7: E8 00 00 00 00     call        floor
+  00000000000002DC: F2 48 0F 2C C0     cvttsd2si   rax,xmm0
+  00000000000002E1: 48 3B D8           cmp         rbx,rax
+  00000000000002E4: 75 16              jne         00000000000002FC
+  00000000000002E6: F2 45 0F 11 06     movsd       mmword ptr [r14],xmm8
+  00000000000002EB: 32 C0              xor         al,al
+  00000000000002ED: F2 41 0F 11 76 08  movsd       mmword ptr [r14+8],xmm6
+  00000000000002F3: 49 89 5E 10        mov         qword ptr [r14+10h],rbx
+  00000000000002F7: E9 6B FF FF FF     jmp         0000000000000267
+  00000000000002FC: B0 05              mov         al,5
+  00000000000002FE: E9 64 FF FF FF     jmp         0000000000000267
+  0000000000000303: 4C 8D 5C 24 70     lea         r11,[rsp+70h]
+  0000000000000308: B0 01              mov         al,1
+  000000000000030A: 49 8B 73 20        mov         rsi,qword ptr [r11+20h]
+  000000000000030E: 49 8B 7B 28        mov         rdi,qword ptr [r11+28h]
+  0000000000000312: 49 8B E3           mov         rsp,r11
+  0000000000000315: 41 5E              pop         r14
+  0000000000000317: C3                 ret
+
+RELOCATIONS #1DC
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000073  REL32_1                    00000000      1308  __isa_available
+ 0000016B  REL32                      00000000       4E4  __imp_ldexp
+ 0000018E  REL32                      00000000      138F  __real@3ff0000000000000
+ 000001DD  REL32                      00000000       51A  ?frameForMusicalTime@CompiledTempoMap@engine@yesdaw@@QEBA?AW4TimeLookupStatus@23@UMusicalTime@23@AEAN@Z (public: enum yesdaw::engine::TimeLookupStatus __cdecl yesdaw::engine::CompiledTempoMap::frameForMusicalTime(struct yesdaw::engine::MusicalTime,double &)const )
+ 0000024B  REL32                      00000000       51A  ?frameForMusicalTime@CompiledTempoMap@engine@yesdaw@@QEBA?AW4TimeLookupStatus@23@UMusicalTime@23@AEAN@Z (public: enum yesdaw::engine::TimeLookupStatus __cdecl yesdaw::engine::CompiledTempoMap::frameForMusicalTime(struct yesdaw::engine::MusicalTime,double &)const )
+ 000002C0  REL32                      00000000      1389  __real@3f50000000000000
+ 000002CB  REL32                      00000000       769  floor
+ 000002D8  REL32                      00000000       769  floor
+

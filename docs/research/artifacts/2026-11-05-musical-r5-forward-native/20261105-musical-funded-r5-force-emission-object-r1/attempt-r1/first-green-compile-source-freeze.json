@@ -1,0 +1,29 @@
+{
+  "scope": "Whole force source/header context and root compile profile/launcher frozen at first compile success; no API execution or proof success",
+  "files": [
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-source-r1/force-emission.cpp",
+      "sha256": "CCFF9248C53BA4C1EB105A7C66BFF831476EA35FF754FC8D3BAD531F66AC1A70"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-source-r1/README.md",
+      "sha256": "1EC0FD74490D23F13F678575218BB3D040F138D0E2E388C35FA41ABCFC1A7AEF"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-source-r1/source-pins.json",
+      "sha256": "40241F8CEBBE3FDA43807E9845F4AEB29011900C2075536F2B4921937B8FFE68"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-object-r1/profile.json",
+      "sha256": "2D1A978C40BBEC2FAD84D1E2210975B4FF0590900B275D9E7F2B5EDA8B4176A2"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-object-r1/root-source-review.json",
+      "sha256": "CDCBAAAF3A5485DC95FB65900A31E3B311AF23A6F4350FD0BA6255332F8D6485"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-object-r1/compile-only.ps1",
+      "sha256": "C7C62EA1907D85E5D90F3F357DA0A9EB5322ADE545060A32E3F9AFF62D458AEF"
+    }
+  ]
+}

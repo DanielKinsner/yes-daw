@@ -1,0 +1,277 @@
+# finish-endpoint; COFF section1D7; source listing lines11538..11812
+# ?finishEndpoint@FundedWindowQuery@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUEndpoint@1234@_N2@Z
+  0000000000000000: 40 53              push        rbx
+  0000000000000002: 55                 push        rbp
+  0000000000000003: 56                 push        rsi
+  0000000000000004: 57                 push        rdi
+  0000000000000005: 41 56              push        r14
+  0000000000000007: 48 81 EC 80 00 00  sub         rsp,80h
+                    00
+  000000000000000E: 48 8B 05 00 00 00  mov         rax,qword ptr [__security_cookie]
+                    00
+  0000000000000015: 48 33 C4           xor         rax,rsp
+  0000000000000018: 48 89 44 24 70     mov         qword ptr [rsp+70h],rax
+  000000000000001D: 48 8D A9 08 12 00  lea         rbp,[rcx+1208h]
+                    00
+  0000000000000024: 41 0F B6 D8        movzx       ebx,r8b
+  0000000000000028: 4C 8B F2           mov         r14,rdx
+  000000000000002B: 41 B8 52 01 00 00  mov         r8d,152h
+  0000000000000031: 48 8B D5           mov         rdx,rbp
+  0000000000000034: 41 0F B6 F9        movzx       edi,r9b
+  0000000000000038: 48 8B F1           mov         rsi,rcx
+  000000000000003B: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  0000000000000040: 0F 57 C0           xorps       xmm0,xmm0
+  0000000000000043: 41 B8 4B 01 00 00  mov         r8d,14Bh
+  0000000000000049: 48 8B D5           mov         rdx,rbp
+  000000000000004C: 48 8B CE           mov         rcx,rsi
+  000000000000004F: 0F 11 44 24 20     movups      xmmword ptr [rsp+20h],xmm0
+  0000000000000054: 0F 11 44 24 30     movups      xmmword ptr [rsp+30h],xmm0
+  0000000000000059: 0F 11 44 24 40     movups      xmmword ptr [rsp+40h],xmm0
+  000000000000005E: 0F 11 44 24 50     movups      xmmword ptr [rsp+50h],xmm0
+  0000000000000063: 0F 11 44 24 60     movups      xmmword ptr [rsp+60h],xmm0
+  0000000000000068: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  000000000000006D: 8B C3              mov         eax,ebx
+  000000000000006F: 48 8D 54 24 20     lea         rdx,[rsp+20h]
+  0000000000000074: 48 83 F0 01        xor         rax,1
+  0000000000000078: 41 B9 01 00 00 00  mov         r9d,1
+  000000000000007E: 48 8B CE           mov         rcx,rsi
+  0000000000000081: 4C 8D 04 80        lea         r8,[rax+rax*4]
+  0000000000000085: 49 C1 E0 04        shl         r8,4
+  0000000000000089: 48 8D 05 B0 31 00  lea         rax,[?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B+31B0h]
+                    00
+  0000000000000090: 4C 03 C0           add         r8,rax
+  0000000000000093: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  0000000000000098: 41 B9 01 00 00 00  mov         r9d,1
+  000000000000009E: 4D 8D 46 18        lea         r8,[r14+18h]
+  00000000000000A2: 48 8D 54 24 20     lea         rdx,[rsp+20h]
+  00000000000000A7: 48 8B CE           mov         rcx,rsi
+  00000000000000AA: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  00000000000000AF: 48 8B D5           mov         rdx,rbp
+  00000000000000B2: 48 8B CE           mov         rcx,rsi
+  00000000000000B5: 40 84 FF           test        dil,dil
+  00000000000000B8: 0F 85 A3 00 00 00  jne         0000000000000161
+  00000000000000BE: 41 B8 37 01 00 00  mov         r8d,137h
+  00000000000000C4: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  00000000000000C9: 41 B8 4B 01 00 00  mov         r8d,14Bh
+  00000000000000CF: 48 8B D5           mov         rdx,rbp
+  00000000000000D2: 48 8B CE           mov         rcx,rsi
+  00000000000000D5: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  00000000000000DA: 41 B9 01 00 00 00  mov         r9d,1
+  00000000000000E0: 4C 8D 05 50 00 00  lea         r8,[?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B+50h]
+                    00
+  00000000000000E7: 48 8D 54 24 20     lea         rdx,[rsp+20h]
+  00000000000000EC: 48 8B CE           mov         rcx,rsi
+  00000000000000EF: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  00000000000000F4: 0F 57 C0           xorps       xmm0,xmm0
+  00000000000000F7: 41 C6 06 03        mov         byte ptr [r14],3
+  00000000000000FB: 41 0F 11 46 18     movups      xmmword ptr [r14+18h],xmm0
+  0000000000000100: 41 B8 4B 01 00 00  mov         r8d,14Bh
+  0000000000000106: 48 8B D5           mov         rdx,rbp
+  0000000000000109: 41 0F 11 46 28     movups      xmmword ptr [r14+28h],xmm0
+  000000000000010E: 48 8B CE           mov         rcx,rsi
+  0000000000000111: 41 0F 11 46 38     movups      xmmword ptr [r14+38h],xmm0
+  0000000000000116: 41 0F 11 46 48     movups      xmmword ptr [r14+48h],xmm0
+  000000000000011B: 41 0F 11 46 58     movups      xmmword ptr [r14+58h],xmm0
+  0000000000000120: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  0000000000000125: 41 B9 01 00 00 00  mov         r9d,1
+  000000000000012B: 4C 8D 05 E0 33 00  lea         r8,[?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B+33E0h]
+                    00
+  0000000000000132: 49 8D 56 18        lea         rdx,[r14+18h]
+  0000000000000136: 48 8B CE           mov         rcx,rsi
+  0000000000000139: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  000000000000013E: 41 B9 01 00 00 00  mov         r9d,1
+  0000000000000144: 4C 8D 44 24 20     lea         r8,[rsp+20h]
+  0000000000000149: 49 8D 56 18        lea         rdx,[r14+18h]
+  000000000000014D: 48 8B CE           mov         rcx,rsi
+  0000000000000150: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  0000000000000155: 48 8D 3D 30 34 00  lea         rdi,[?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B+3430h]
+                    00
+  000000000000015C: E9 EF 01 00 00     jmp         0000000000000350
+  0000000000000161: 41 B8 38 01 00 00  mov         r8d,138h
+  0000000000000167: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  000000000000016C: 41 B8 4B 01 00 00  mov         r8d,14Bh
+  0000000000000172: 48 8B D5           mov         rdx,rbp
+  0000000000000175: 48 8B CE           mov         rcx,rsi
+  0000000000000178: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  000000000000017D: 41 B9 01 00 00 00  mov         r9d,1
+  0000000000000183: 4C 8D 05 50 32 00  lea         r8,[?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B+3250h]
+                    00
+  000000000000018A: 48 8D 54 24 20     lea         rdx,[rsp+20h]
+  000000000000018F: 48 8B CE           mov         rcx,rsi
+  0000000000000192: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  0000000000000197: F2 41 0F 10 46 08  movsd       xmm0,mmword ptr [r14+8]
+  000000000000019D: E8 00 00 00 00     call        _dclass
+  00000000000001A2: 48 8B D5           mov         rdx,rbp
+  00000000000001A5: 48 8B CE           mov         rcx,rsi
+  00000000000001A8: 66 85 C0           test        ax,ax
+  00000000000001AB: 7E 25              jle         00000000000001D2
+  00000000000001AD: 41 B8 39 01 00 00  mov         r8d,139h
+  00000000000001B3: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  00000000000001B8: 41 B8 4B 01 00 00  mov         r8d,14Bh
+  00000000000001BE: 48 8B D5           mov         rdx,rbp
+  00000000000001C1: 48 8B CE           mov         rcx,rsi
+  00000000000001C4: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  00000000000001C9: 4C 8D 05 30 25 00  lea         r8,[?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B+2530h]
+                    00
+  00000000000001D0: EB 3F              jmp         0000000000000211
+  00000000000001D2: 41 B8 5F 01 00 00  mov         r8d,15Fh
+  00000000000001D8: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  00000000000001DD: 0F 57 C0           xorps       xmm0,xmm0
+  00000000000001E0: 48 8B D5           mov         rdx,rbp
+  00000000000001E3: 66 41 0F 2F 46 08  comisd      xmm0,mmword ptr [r14+8]
+  00000000000001E9: 48 8B CE           mov         rcx,rsi
+  00000000000001EC: 76 3F              jbe         000000000000022D
+  00000000000001EE: 41 B8 3A 01 00 00  mov         r8d,13Ah
+  00000000000001F4: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  00000000000001F9: 41 B8 4B 01 00 00  mov         r8d,14Bh
+  00000000000001FF: 48 8B D5           mov         rdx,rbp
+  0000000000000202: 48 8B CE           mov         rcx,rsi
+  0000000000000205: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  000000000000020A: 4C 8D 05 80 25 00  lea         r8,[?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B+2580h]
+                    00
+  0000000000000211: 41 B9 01 00 00 00  mov         r9d,1
+  0000000000000217: 48 8D 54 24 20     lea         rdx,[rsp+20h]
+  000000000000021C: 48 8B CE           mov         rcx,rsi
+  000000000000021F: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  0000000000000224: 41 C6 06 03        mov         byte ptr [r14],3
+  0000000000000228: E9 AB 00 00 00     jmp         00000000000002D8
+  000000000000022D: 41 B8 60 01 00 00  mov         r8d,160h
+  0000000000000233: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  0000000000000238: F2 41 0F 10 46 08  movsd       xmm0,mmword ptr [r14+8]
+  000000000000023E: 48 8B D5           mov         rdx,rbp
+  0000000000000241: 66 0F 2F 05 00 00  comisd      xmm0,mmword ptr [__real@43e0000000000000]
+                    00 00
+  0000000000000249: 48 8B CE           mov         rcx,rsi
+  000000000000024C: 72 3C              jb          000000000000028A
+  000000000000024E: 41 B8 3B 01 00 00  mov         r8d,13Bh
+  0000000000000254: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  0000000000000259: 41 B8 4B 01 00 00  mov         r8d,14Bh
+  000000000000025F: 48 8B D5           mov         rdx,rbp
+  0000000000000262: 48 8B CE           mov         rcx,rsi
+  0000000000000265: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  000000000000026A: 41 B9 01 00 00 00  mov         r9d,1
+  0000000000000270: 4C 8D 05 D0 25 00  lea         r8,[?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B+25D0h]
+                    00
+  0000000000000277: 48 8D 54 24 20     lea         rdx,[rsp+20h]
+  000000000000027C: 48 8B CE           mov         rcx,rsi
+  000000000000027F: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  0000000000000284: 41 C6 06 04        mov         byte ptr [r14],4
+  0000000000000288: EB 4E              jmp         00000000000002D8
+  000000000000028A: 41 B8 3C 01 00 00  mov         r8d,13Ch
+  0000000000000290: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  0000000000000295: 41 B8 4B 01 00 00  mov         r8d,14Bh
+  000000000000029B: 48 8B D5           mov         rdx,rbp
+  000000000000029E: 48 8B CE           mov         rcx,rsi
+  00000000000002A1: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  00000000000002A6: 41 B9 01 00 00 00  mov         r9d,1
+  00000000000002AC: 4C 8D 05 20 26 00  lea         r8,[?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B+2620h]
+                    00
+  00000000000002B3: 48 8D 54 24 20     lea         rdx,[rsp+20h]
+  00000000000002B8: 48 8B CE           mov         rcx,rsi
+  00000000000002BB: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  00000000000002C0: F2 41 0F 10 46 08  movsd       xmm0,mmword ptr [r14+8]
+  00000000000002C6: 41 C6 06 00        mov         byte ptr [r14],0
+  00000000000002CA: E8 00 00 00 00     call        floor
+  00000000000002CF: F2 48 0F 2C C0     cvttsd2si   rax,xmm0
+  00000000000002D4: 49 89 46 10        mov         qword ptr [r14+10h],rax
+  00000000000002D8: 0F 57 C0           xorps       xmm0,xmm0
+  00000000000002DB: 41 B8 4B 01 00 00  mov         r8d,14Bh
+  00000000000002E1: 41 0F 11 46 18     movups      xmmword ptr [r14+18h],xmm0
+  00000000000002E6: 48 8B D5           mov         rdx,rbp
+  00000000000002E9: 48 8B CE           mov         rcx,rsi
+  00000000000002EC: 41 0F 11 46 28     movups      xmmword ptr [r14+28h],xmm0
+  00000000000002F1: 41 0F 11 46 38     movups      xmmword ptr [r14+38h],xmm0
+  00000000000002F6: 41 0F 11 46 48     movups      xmmword ptr [r14+48h],xmm0
+  00000000000002FB: 41 0F 11 46 58     movups      xmmword ptr [r14+58h],xmm0
+  0000000000000300: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  0000000000000305: 41 B9 01 00 00 00  mov         r9d,1
+  000000000000030B: 4C 8D 05 E0 33 00  lea         r8,[?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B+33E0h]
+                    00
+  0000000000000312: 49 8D 56 18        lea         rdx,[r14+18h]
+  0000000000000316: 48 8B CE           mov         rcx,rsi
+  0000000000000319: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  000000000000031E: 41 B9 01 00 00 00  mov         r9d,1
+  0000000000000324: 4C 8D 44 24 20     lea         r8,[rsp+20h]
+  0000000000000329: 49 8D 56 18        lea         rdx,[r14+18h]
+  000000000000032D: 48 8B CE           mov         rcx,rsi
+  0000000000000330: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  0000000000000335: 41 80 3E 00        cmp         byte ptr [r14],0
+  0000000000000339: B8 80 34 00 00     mov         eax,3480h
+  000000000000033E: BF 30 34 00 00     mov         edi,3430h
+  0000000000000343: 0F 44 F8           cmove       edi,eax
+  0000000000000346: 48 8D 05 00 00 00  lea         rax,[?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B]
+                    00
+  000000000000034D: 48 03 F8           add         rdi,rax
+  0000000000000350: 41 B8 4B 01 00 00  mov         r8d,14Bh
+  0000000000000356: 48 8B D5           mov         rdx,rbp
+  0000000000000359: 48 8B CE           mov         rcx,rsi
+  000000000000035C: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  0000000000000361: 41 B9 01 00 00 00  mov         r9d,1
+  0000000000000367: 49 8D 56 18        lea         rdx,[r14+18h]
+  000000000000036B: 4C 8B C7           mov         r8,rdi
+  000000000000036E: 48 8B CE           mov         rcx,rsi
+  0000000000000371: E8 00 00 00 00     call        ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z
+  0000000000000376: 48 8B 4C 24 70     mov         rcx,qword ptr [rsp+70h]
+  000000000000037B: 48 33 CC           xor         rcx,rsp
+  000000000000037E: E8 00 00 00 00     call        __security_check_cookie
+  0000000000000383: 48 81 C4 80 00 00  add         rsp,80h
+                    00
+  000000000000038A: 41 5E              pop         r14
+  000000000000038C: 5F                 pop         rdi
+  000000000000038D: 5E                 pop         rsi
+  000000000000038E: 5D                 pop         rbp
+  000000000000038F: 5B                 pop         rbx
+  0000000000000390: C3                 ret
+
+RELOCATIONS #1D7
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000011  REL32                      00000000      13A8  __security_cookie
+ 0000003C  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 00000069  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 0000008C  REL32                      000031B0      130B  ?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B (private: static struct yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::Data const yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::data_)
+ 00000094  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 000000AB  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 000000C5  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 000000D6  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 000000E3  REL32                      00000050      130B  ?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B (private: static struct yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::Data const yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::data_)
+ 000000F0  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 00000121  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 0000012E  REL32                      000033E0      130B  ?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B (private: static struct yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::Data const yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::data_)
+ 0000013A  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 00000151  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 00000158  REL32                      00003430      130B  ?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B (private: static struct yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::Data const yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::data_)
+ 00000168  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 00000179  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 00000186  REL32                      00003250      130B  ?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B (private: static struct yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::Data const yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::data_)
+ 00000193  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 0000019E  REL32                      00000000       767  _dclass
+ 000001B4  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 000001C5  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 000001CC  REL32                      00002530      130B  ?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B (private: static struct yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::Data const yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::data_)
+ 000001D9  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 000001F5  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 00000206  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 0000020D  REL32                      00002580      130B  ?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B (private: static struct yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::Data const yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::data_)
+ 00000220  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 00000234  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 00000245  REL32                      00000000      13A1  __real@43e0000000000000
+ 00000255  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 00000266  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 00000273  REL32                      000025D0      130B  ?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B (private: static struct yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::Data const yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::data_)
+ 00000280  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 00000291  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 000002A2  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 000002AF  REL32                      00002620      130B  ?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B (private: static struct yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::Data const yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::data_)
+ 000002BC  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 000002CB  REL32                      00000000       769  floor
+ 00000301  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 0000030E  REL32                      000033E0      130B  ?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B (private: static struct yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::Data const yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::data_)
+ 0000031A  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 00000331  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 00000349  REL32                      00000000      130B  ?data_@OldQueryCatalogue@musical_origin_source_r8@app@yesdaw@@0UData@1234@B (private: static struct yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::Data const yesdaw::app::musical_origin_source_r8::OldQueryCatalogue::data_)
+ 0000035D  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 00000372  REL32                      00000000       66A  ?add@QueryAccounting@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUActionVector@234@AEBU6234@_K@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::QueryAccounting::add(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::ActionVector &,struct yesdaw::app::musical_origin_source_r8::ActionVector const &,unsigned __int64))
+ 0000037F  REL32                      00000000       766  __security_check_cookie
+

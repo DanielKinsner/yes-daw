@@ -1,0 +1,331 @@
+{
+  "schema": "R5_FORWARD_NATIVE_OBLIGATION_ARGUMENT_SOURCE_PINS_R1",
+  "status": "SEALED_CONDITIONAL_ARGUMENT_REQUIRES_INDEPENDENT_REVIEW_NOT_BINDING",
+  "inputs": [
+    {
+      "path": "docs/adr/0085-owned-musical-call-recipes.md",
+      "bytes": 23414,
+      "sha256": "876FC9F16068603CB8D98799060B4FE8F8147502904DBE5C4EB3DA441729C1C9"
+    },
+    {
+      "path": "docs/adr/0088-musical-origin-formation.md",
+      "bytes": 9440,
+      "sha256": "86EAB38B43415191C795632F2EE675C8A476F894B121B78B404E1CC6FB5FAF33"
+    },
+    {
+      "path": "docs/adr/0089-frozen-musical-builder-attempts.md",
+      "bytes": 8136,
+      "sha256": "5943166A5E27B3088783FE072D7FBF67D8AE9489C9432FEC68A7EA0B0A15C944"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/formation-r8.h",
+      "bytes": 81190,
+      "sha256": "DCCF77D0F7F7B781D3E7731B721C7CBA5D377489780B68516C8B931D950542B2"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/worker-result.h",
+      "bytes": 9148,
+      "sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/legacy-adapter.h",
+      "bytes": 28646,
+      "sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/window-query.h",
+      "bytes": 48648,
+      "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-profile.h",
+      "bytes": 6189,
+      "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-observer.cpp",
+      "bytes": 7067,
+      "sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/source-correspondence.md",
+      "bytes": 33681,
+      "sha256": "84F32C8BA9EA4A4F3AE093090FA87AD968DFD132542387B66BE06002CB148893"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/README.md",
+      "bytes": 7116,
+      "sha256": "5D1976DE0D8C8A9FE25DB2570CA2FA0CA71659502B044B88E82F7AB614AC1C2F"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/source-pins.json",
+      "bytes": 56208,
+      "sha256": "F55E268E0D24859E3305C8C75CB6EF2D0948C719C4B63AD665BCC02B0A11CC84"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r5-source-correspondence-independent-review/review.json",
+      "bytes": 148082,
+      "sha256": "D9D042B906EBF51645BA5B7F6A559F70E42D5DE69A8FE824244F4A32A0C0AFEB"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    {
+      "path": "src/engine/MusicalAudioWindow.h",
+      "bytes": 19572,
+      "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D"
+    },
+    {
+      "path": "src/engine/MusicalAudioChannelPlan.h",
+      "bytes": 17081,
+      "sha256": "F47C6E49B02A69C16CD554A4C5520CC891146A434603F4E1BB73E9099EB97F16"
+    },
+    {
+      "path": "build-ci/20261105-musical-window-query-path-census-r1/census.json",
+      "bytes": 83199,
+      "sha256": "8D2B8B0EBDF4DA4903528636BD6323DE9712593F614A6D4608B738C62C8F93FC"
+    },
+    {
+      "path": "build-ci/20261105-musical-window-query-path-census-r1-independent-review.json",
+      "bytes": 1887,
+      "sha256": "FC5B35A715B25FB03A2C00ADAF569309B4472AD7A431FBEEDBD2E6464C347189"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-math-region-certificate-r1/certificate.json",
+      "bytes": 16589,
+      "sha256": "37FA48B23872587064FAF9F1AAA3A30BC5737DAF2697FFC192BF77DA93DDAE41"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-math-region-certificate-r1/certificate.md",
+      "bytes": 12491,
+      "sha256": "94849D30728C0F5B9B4745D7603E04F526E04CBB3B77FBD7A3BE69D6D9917EA8"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-math-region-certificate-independent-review-r1/review.json",
+      "bytes": 21540,
+      "sha256": "A6A37B9B8368DA09E9C03680B1AE34924EA15F56494848373398B781F12065EE"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma3-closed-application-source-r1/evidence.json",
+      "bytes": 11680,
+      "sha256": "32467B65E56F78227A3F6D7379F51E8EEBC2AF0DD260E46EEBDDD1C20BA3C676"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma3-closed-application-source-r1/source-corpus.json",
+      "bytes": 725737,
+      "sha256": "6849E04FD380B16E600AC3C7890AEDE62A2C072F84018A3D7613D0C02E0ED194"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma3-closed-application-source-r1/argument.md",
+      "bytes": 11027,
+      "sha256": "09E6EC32E72A1183302126F8BAD95C1825C3E332DCC5DDB16F1479E40FD017F2"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-association-r1/evidence.json",
+      "bytes": 11128,
+      "sha256": "C46A84F27DA6F4E42089FC715CC54CD3E153E180366039A9D13A44B1E69A7B6D"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-allocator-association-r1/report.md",
+      "bytes": 10949,
+      "sha256": "DC6D68C577E832E683FBEE2ACD612DDFC092AD1562A3A0348AC7D5430D062B52"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r4-native-object-r1/inspection.json",
+      "bytes": 3568,
+      "sha256": "5F8B9F4463039B107E00549FDFF14AEB3346EC24CDF6B5887D4D4A6659080F2D"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/layout-record.json",
+      "bytes": 4007,
+      "sha256": "659C9A8420D93C3517D2D997403BC6BF0347A5DD428BBCBA51D6F9657CA55338"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1-independent-review.json",
+      "bytes": 6596,
+      "sha256": "4546EB0AE075E26B6601799F571A504B8371BE64CBC495193021A143AC8B90FE"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/receipt.json",
+      "bytes": 8133,
+      "sha256": "314C1B5287193451D0A1F0228E88762C40EBA53BD8F150F87BBB247F95629F56"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-msvc-native-argument-r1/argument.md",
+      "bytes": 22079,
+      "sha256": "00FCE8FB4F2E545318D0E421540DD49D00C7F910B5B8B3D22CC842BE6CA6CF9E"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r1/ucrtbase.dll-exports.stdout.log",
+      "bytes": 97351,
+      "sha256": "5C558592D9CCC3B9551A47B5491EA4D60E57648E608E79318A4602B00A80CD20"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-source-r1/source-pins.json",
+      "bytes": 2764,
+      "sha256": "40241F8CEBBE3FDA43807E9845F4AEB29011900C2075536F2B4921937B8FFE68"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-object-r1/profile.json",
+      "bytes": 4970,
+      "sha256": "2D1A978C40BBEC2FAD84D1E2210975B4FF0590900B275D9E7F2B5EDA8B4176A2"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-object-r1/root-source-review.json",
+      "bytes": 1075,
+      "sha256": "CDCBAAAF3A5485DC95FB65900A31E3B311AF23A6F4350FD0BA6255332F8D6485"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-object-r1/attempt-r1/receipt.json",
+      "bytes": 3091,
+      "sha256": "051C898AF75548C018CB7EDDF96B3580D75C018FAF398DC3CEDC2F170EF57BE6"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-object-r1/attempt-r1/disassembly-receipt.json",
+      "bytes": 804,
+      "sha256": "24687E52101C486767F659F0D15580B979D9A412C39383B288F136BA8ECE83C9"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-object-r1/attempt-r1/first-green-compile-source-freeze.json",
+      "bytes": 1313,
+      "sha256": "3ED6E6829C245DC3D4AD8D3449B3854B41F7A042C3E472F8D397D00FB56B8E19"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-object-r1/attempt-r1/app-compute.obj",
+      "bytes": 454651,
+      "sha256": "C67B2485B533A967E17337F0A8BFE0B1593EE018F2463E478E96E02705D2638B"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-object-r1/attempt-r1/app-compute-disassembly.txt",
+      "bytes": 2645209,
+      "sha256": "C6F605A312741FD56FD73A445EEAD68EB1A90FD5F317881253738958B97B9C48"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_math.h",
+      "bytes": 39299,
+      "sha256": "CA2F0F25B2E07B3613984EFD1135DD9F1D0786FABAA56DA2BA3C83B1A23EB918"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cmath",
+      "bytes": 71762,
+      "sha256": "3F10507B4BCA07CD07B7B4AE1403377634A37E91459305094E9F8CBA34DD8CA5"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/argument.md",
+      "bytes": 24041,
+      "sha256": "83C2CAFA74EFD5E823C5E00664BF3AD3202FED15CBD5556CF3EC1E97E9F2A492"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/argument.json",
+      "bytes": 26897,
+      "sha256": "CA015D05E23553BFF1C61D9223E86C0E548057E87DBB76890EC3DE83340F11A5"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/object-sections.json",
+      "bytes": 58245,
+      "sha256": "9502DCCFF11F1DB3CDBACF32609BD5BE23446AA5C7686D058A4E8925ECF3EBD7"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/append-new.txt",
+      "bytes": 12899,
+      "sha256": "AE1E2A176250645329FEAD526CC8F5EC8CC7EC8154022044B80BFCC6B3371365"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/classify.txt",
+      "bytes": 17310,
+      "sha256": "22DE85F11E25BB2EA8FD58352CC290A86D6C0BBFDEB80D9E6B507D83649DCE8D"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/clock-build.txt",
+      "bytes": 23745,
+      "sha256": "5401392E71094ED95016100433BAEE557945F32A9B5758CAFDA2DDD808EA79C1"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/clock-frameAt.txt",
+      "bytes": 15729,
+      "sha256": "31427675827994980A4B826C712AFCDB1C196C2B6887FD389037A255F213ECF7"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/compiled-build.txt",
+      "bytes": 18727,
+      "sha256": "23A6FF8AF33FDD647DD3F2AE1F409E148FF2DEF86B97C28F63A6BD36CA8B68B5"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/compiled-musical-time.txt",
+      "bytes": 24003,
+      "sha256": "7FF09E6EC20620447F013213E4B2ECE458201D2214D99CBFD0230611A84D5EB0"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/compiled-tick.txt",
+      "bytes": 8695,
+      "sha256": "73E661CB0051366E0639EEC0D5599E7D65B8C3A85B6CD866301DE7326B03F217"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/endpoint.txt",
+      "bytes": 42575,
+      "sha256": "0334A205C71D8E79083BBB0A538BD4C8A5D5633FA0FFFB8EDF5BBE38594F227B"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/finish-endpoint.txt",
+      "bytes": 36132,
+      "sha256": "002B92C548DF13D403BA74A9885FBD56E0BF261F2F073934B213AC0C6FAC2F7F"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/native-restore.txt",
+      "bytes": 13937,
+      "sha256": "36191BC4F20FAD2DF3A72E4030C16B9CB2E43BD677060EFF5A3FFA82E03D0376"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/object-sections.py",
+      "bytes": 5124,
+      "sha256": "ED9863A0F7A678DB8EA2F20DA4AB3520AF7AA67D6376E35063F702046D787049"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/old-append.txt",
+      "bytes": 6659,
+      "sha256": "117AB1CBED58FB4560BE9554B2D1A18455FF92D6A11E505D310FFA76C9997AF9"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/predict.txt",
+      "bytes": 39146,
+      "sha256": "F36BFFC4F6F49CF2A2B93F5D776CDD7E9C3E7A9EA079E75F3FF542A34A04F4E6"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/prefix.txt",
+      "bytes": 21897,
+      "sha256": "8A65FEFC308E1DA26540B7465BBC3134B1A80B6679297877BD68FF178B717EFE"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/resolve-new.txt",
+      "bytes": 30784,
+      "sha256": "6D48445CA7226135C769969496456CFC4E245E590AF29F58669C6476105783D8"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/resolve-old.txt",
+      "bytes": 17874,
+      "sha256": "33C45B1F661E9FA1FBB292A8ED9022A99EA5FEE51DD689E19BDE9DC3CF8F057C"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/seal.py",
+      "bytes": 23118,
+      "sha256": "935192BD30A6EE330A84FCEFBA8EAE913CDEB23029A1A1515832F2485457A8B2"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/worker-wrapper.txt",
+      "bytes": 13149,
+      "sha256": "10EFA19837B7E6DC4F547AF3BA0F662E17768C83068467EFB19713536ADF740F"
+    }
+  ],
+  "self_checks": {
+    "NativeFact_enum17_exact_order": true,
+    "whole16_displayed_sections_equal_raw": true,
+    "named_object_text_assertions": 19,
+    "author_target_execution": false
+  }
+}

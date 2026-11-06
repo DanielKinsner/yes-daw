@@ -1,0 +1,34 @@
+{
+  "exit": 0,
+  "scope": "Actual historical app compute flags/macros/includes, with only TU/object/PDB paths changed. Compile-only candidate, not future linked app/caller qualification.",
+  "stages": {
+    "environment": {
+      "raw_exit": 0,
+      "seconds": 1.20593
+    },
+    "compile": {
+      "seconds": 1.3650421,
+      "timeout": false,
+      "raw_exit": 0
+    }
+  },
+  "commands": {
+    "compile": {
+      "file": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "working_directory": "C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci",
+      "target_run": false,
+      "native_argument_string": "/nologo /TP -DJUCE_APPLICATION_NAME_STRING=\\\"YesDaw\\\" -DJUCE_APPLICATION_VERSION_STRING=\\\"0.1.0\\\" -DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 -DJUCE_MODAL_LOOPS_PERMITTED=0 -DJUCE_MODULE_AVAILABLE_juce_audio_basics=1 -DJUCE_MODULE_AVAILABLE_juce_audio_devices=1 -DJUCE_MODULE_AVAILABLE_juce_audio_formats=1 -DJUCE_MODULE_AVAILABLE_juce_core=1 -DJUCE_MODULE_AVAILABLE_juce_data_structures=1 -DJUCE_MODULE_AVAILABLE_juce_events=1 -DJUCE_MODULE_AVAILABLE_juce_graphics=1 -DJUCE_MODULE_AVAILABLE_juce_gui_basics=1 -DJUCE_MODULE_AVAILABLE_juce_gui_extra=1 -DJUCE_STANDALONE_APPLICATION=1 -DJUCE_USE_CURL=0 -DJUCE_USE_MP3AUDIOFORMAT=1 -DJUCE_WEB_BROWSER=0 -DNDEBUG=1 -DYESDAW_VERSION_STRING=\\\"alpha-latest-86-g5785a3f-dirty\\\" -D_NDEBUG=1 -I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\YesDaw_artefacts\\JuceLibraryCode\" -I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\src\" -external:I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\signalsmith_stretch-src\" -external:I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\choc-src\" -external:I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\sqlite3-src\" -external:I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\juce-src\\modules\" -external:I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\libebur128-src\\ebur128\" -external:W0 /DWIN32 /D_WINDOWS /EHsc /O2 /Ob2 /DNDEBUG -std:c++20 -MD /W4 /WX /bigobj /Ox /MP /EHsc /Fo\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-r5-force-emission-object-r1\\attempt-r1\\app-compute.obj\" /Fd\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-r5-force-emission-object-r1\\attempt-r1\\app-compute.pdb\" /FS -c \"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-r5-force-emission-source-r1\\force-emission.cpp\"",
+      "via_shell": false,
+      "link": false
+    }
+  },
+  "source_manifest": "40241F8CEBBE3FDA43807E9845F4AEB29011900C2075536F2B4921937B8FFE68",
+  "profile_sha256": "2D1A978C40BBEC2FAD84D1E2210975B4FF0590900B275D9E7F2B5EDA8B4176A2",
+  "target_executed": false,
+  "target_linked": false,
+  "desktop_input": false,
+  "native_windows": false,
+  "audio_device": false,
+  "object_sha256": "C67B2485B533A967E17337F0A8BFE0B1593EE018F2463E478E96E02705D2638B",
+  "object_bytes": 454651
+}

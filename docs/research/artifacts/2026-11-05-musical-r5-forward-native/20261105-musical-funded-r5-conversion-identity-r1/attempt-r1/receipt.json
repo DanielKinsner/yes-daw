@@ -1,0 +1,45 @@
+{
+  "exit": 0,
+  "scope": "Compile uint64_t/size_t fundamental-type identity to readonly constant object data only; no link, target execution, bound price, cap fit or whole qualification",
+  "stages": {
+    "environment": {
+      "raw_exit": 0,
+      "seconds": 1.2521961
+    },
+    "compile": {
+      "raw_exit": 0,
+      "seconds": 0.2232796
+    }
+  },
+  "commands": {
+    "compile": {
+      "file": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "args": [
+        "/nologo",
+        "/DWIN32",
+        "/D_WINDOWS",
+        "/EHsc",
+        "/O2",
+        "/Ob2",
+        "/DNDEBUG",
+        "/std:c++20",
+        "/MD",
+        "/W4",
+        "/WX",
+        "/fp:strict",
+        "/Isrc",
+        "/c",
+        "/FoC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-r5-conversion-identity-r1\\attempt-r1\\identity.obj",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-r5-conversion-identity-r1\\identity.cpp"
+      ]
+    }
+  },
+  "desktop_input": false,
+  "native_windows": false,
+  "audio_device": false,
+  "target_executed": false,
+  "source_manifest": "F55E268E0D24859E3305C8C75CB6EF2D0948C719C4B63AD665BCC02B0A11CC84",
+  "whole_review": "5ED50401AF5207DD32F5E9F854C76A72CF26D40CAFBDA0EC2597ACF7487C108D",
+  "compiler_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "object_sha256": "23D37F717E962DD599864074771290E531B6B258C4EE6CEE6D99C1B0F15AE516"
+}

@@ -1,0 +1,107 @@
+# old-append; COFF section1A9; source listing lines6700..6804
+# ?appendTempoSegmentFrames@detail@engine@yesdaw@@YA_NN_J0NNW4TempoCurve@23@AEAN@Z
+  0000000000000000: 40 53              push        rbx
+  0000000000000002: 48 83 EC 60        sub         rsp,60h
+  0000000000000006: 0F 29 74 24 50     movaps      xmmword ptr [rsp+50h],xmm6
+  000000000000000B: 49 8B D8           mov         rbx,r8
+  000000000000000E: 0F 29 7C 24 40     movaps      xmmword ptr [rsp+40h],xmm7
+  0000000000000013: 44 0F 29 44 24 30  movaps      xmmword ptr [rsp+30h],xmm8
+  0000000000000019: 44 0F 28 C3        movaps      xmm8,xmm3
+  000000000000001D: 44 0F 29 4C 24 20  movaps      xmmword ptr [rsp+20h],xmm9
+  0000000000000023: 44 0F 28 C8        movaps      xmm9,xmm0
+  0000000000000027: 48 85 D2           test        rdx,rdx
+  000000000000002A: 0F 8E 24 01 00 00  jle         0000000000000154
+  0000000000000030: 48 85 DB           test        rbx,rbx
+  0000000000000033: 0F 88 1B 01 00 00  js          0000000000000154
+  0000000000000039: 48 3B DA           cmp         rbx,rdx
+  000000000000003C: 0F 8F 12 01 00 00  jg          0000000000000154
+  0000000000000042: 0F 57 C9           xorps       xmm1,xmm1
+  0000000000000045: 66 0F 2F D9        comisd      xmm3,xmm1
+  0000000000000049: 0F 86 05 01 00 00  jbe         0000000000000154
+  000000000000004F: F2 0F 10 05 00 00  movsd       xmm0,mmword ptr [__real@7fefffffffffffff]
+                    00 00
+  0000000000000057: 66 0F 2F C3        comisd      xmm0,xmm3
+  000000000000005B: 0F 82 F3 00 00 00  jb          0000000000000154
+  0000000000000061: F2 0F 10 B4 24 90  movsd       xmm6,mmword ptr [rsp+90h]
+                    00 00 00
+  000000000000006A: 66 0F 2F F1        comisd      xmm6,xmm1
+  000000000000006E: 0F 86 E0 00 00 00  jbe         0000000000000154
+  0000000000000074: 66 0F 2F C6        comisd      xmm0,xmm6
+  0000000000000078: 0F 82 D6 00 00 00  jb          0000000000000154
+  000000000000007E: 48 85 DB           test        rbx,rbx
+  0000000000000081: 75 07              jne         000000000000008A
+  0000000000000083: B0 01              mov         al,1
+  0000000000000085: E9 CC 00 00 00     jmp         0000000000000156
+  000000000000008A: 80 BC 24 98 00 00  cmp         byte ptr [rsp+98h],1
+                    00 01
+  0000000000000092: F2 44 0F 59 0D 00  mulsd       xmm9,mmword ptr [__real@404e000000000000]
+                    00 00 00
+  000000000000009B: F2 44 0F 5E 0D 00  divsd       xmm9,mmword ptr [__real@40ce000000000000]
+                    00 00 00
+  00000000000000A4: 75 74              jne         000000000000011A
+  00000000000000A6: 66 44 0F 2E C6     ucomisd     xmm8,xmm6
+  00000000000000AB: 7A 02              jp          00000000000000AF
+  00000000000000AD: 74 6B              je          000000000000011A
+  00000000000000AF: 0F 57 C0           xorps       xmm0,xmm0
+  00000000000000B2: F2 41 0F 5C F0     subsd       xmm6,xmm8
+  00000000000000B7: F2 48 0F 2A C2     cvtsi2sd    xmm0,rdx
+  00000000000000BC: F2 0F 5E F0        divsd       xmm6,xmm0
+  00000000000000C0: 66 0F 2E F1        ucomisd     xmm6,xmm1
+  00000000000000C4: 7A 06              jp          00000000000000CC
+  00000000000000C6: 0F 84 88 00 00 00  je          0000000000000154
+  00000000000000CC: 0F 28 C6           movaps      xmm0,xmm6
+  00000000000000CF: E8 00 00 00 00     call        _dclass
+  00000000000000D4: 66 85 C0           test        ax,ax
+  00000000000000D7: 7F 7B              jg          0000000000000154
+  00000000000000D9: 0F 57 FF           xorps       xmm7,xmm7
+  00000000000000DC: F2 48 0F 2A FB     cvtsi2sd    xmm7,rbx
+  00000000000000E1: F2 0F 59 FE        mulsd       xmm7,xmm6
+  00000000000000E5: F2 41 0F 5E F8     divsd       xmm7,xmm8
+  00000000000000EA: 0F 28 C7           movaps      xmm0,xmm7
+  00000000000000ED: E8 00 00 00 00     call        _dclass
+  00000000000000F2: 66 85 C0           test        ax,ax
+  00000000000000F5: 7F 5D              jg          0000000000000154
+  00000000000000F7: F2 0F 10 0D 00 00  movsd       xmm1,mmword ptr [__real@bff0000000000000]
+                    00 00
+  00000000000000FF: 66 0F 2F CF        comisd      xmm1,xmm7
+  0000000000000103: 73 4F              jae         0000000000000154
+  0000000000000105: 0F 28 C7           movaps      xmm0,xmm7
+  0000000000000108: FF 15 00 00 00 00  call        qword ptr [__imp_log1p]
+  000000000000010E: F2 44 0F 5E CE     divsd       xmm9,xmm6
+  0000000000000113: F2 41 0F 59 C1     mulsd       xmm0,xmm9
+  0000000000000118: EB 12              jmp         000000000000012C
+  000000000000011A: 0F 57 C0           xorps       xmm0,xmm0
+  000000000000011D: F2 48 0F 2A C3     cvtsi2sd    xmm0,rbx
+  0000000000000122: F2 41 0F 59 C1     mulsd       xmm0,xmm9
+  0000000000000127: F2 41 0F 5E C0     divsd       xmm0,xmm8
+  000000000000012C: 48 8B 84 24 A0 00  mov         rax,qword ptr [rsp+0A0h]
+                    00 00
+  0000000000000134: F2 0F 58 00        addsd       xmm0,mmword ptr [rax]
+  0000000000000138: F2 0F 11 00        movsd       mmword ptr [rax],xmm0
+  000000000000013C: 66 48 0F 7E C0     movq        rax,xmm0
+  0000000000000141: 48 C1 E8 34        shr         rax,34h
+  0000000000000145: 25 FF 07 00 00     and         eax,7FFh
+  000000000000014A: 3D FF 07 00 00     cmp         eax,7FFh
+  000000000000014F: 0F 95 C0           setne       al
+  0000000000000152: EB 02              jmp         0000000000000156
+  0000000000000154: 32 C0              xor         al,al
+  0000000000000156: 0F 28 74 24 50     movaps      xmm6,xmmword ptr [rsp+50h]
+  000000000000015B: 0F 28 7C 24 40     movaps      xmm7,xmmword ptr [rsp+40h]
+  0000000000000160: 44 0F 28 44 24 30  movaps      xmm8,xmmword ptr [rsp+30h]
+  0000000000000166: 44 0F 28 4C 24 20  movaps      xmm9,xmmword ptr [rsp+20h]
+  000000000000016C: 48 83 C4 60        add         rsp,60h
+  0000000000000170: 5B                 pop         rbx
+  0000000000000171: C3                 ret
+
+RELOCATIONS #1A9
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000053  REL32                      00000000      13A4  __real@7fefffffffffffff
+ 00000097  REL32                      00000000      1392  __real@404e000000000000
+ 000000A0  REL32                      00000000      1398  __real@40ce000000000000
+ 000000D0  REL32                      00000000       767  _dclass
+ 000000EE  REL32                      00000000       767  _dclass
+ 000000FB  REL32                      00000000      13A7  __real@bff0000000000000
+ 0000010A  REL32                      00000000       4E6  __imp_log1p
+

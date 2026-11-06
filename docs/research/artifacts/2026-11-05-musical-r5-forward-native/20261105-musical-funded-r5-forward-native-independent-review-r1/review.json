@@ -1,0 +1,253 @@
+{
+  "schema": "R5_FORWARD_NATIVE_AND_CLASSIFICATION_INDEPENDENT_WHOLE_REVIEW_R1",
+  "reviewer": "/root/clock_r9_numeric_review",
+  "status": "ACCEPT_SCOPED_WHOLE_CONDITIONAL_SOURCE_OBJECT_IMPLICATION_AND_CANDIDATE_CLASSIFICATION",
+  "actual_native_binding": "HOLD",
+  "execution_GO": false,
+  "scope": "Complete sealed argument and classification supplement; source/data/object-file inference only; no fresh vendor-graph or new fenv supplement review.",
+  "subjects": {
+    "forward_manifest_sha256": "979197851BB047D2F3296CF77214175B5227BECEC720AC58B5C08092F455FAF1",
+    "classification_manifest_sha256": "D59E86A21ECC0FB679C9855B40CD25DFDC759C5930E72F6E313F52644A79CC90",
+    "R5_source_manifest_sha256": "F55E268E0D24859E3305C8C75CB6EF2D0948C719C4B63AD665BCC02B0A11CC84"
+  },
+  "facts": [
+    {
+      "ordinal": 0,
+      "name": "FrozenSourceAndCatalogue",
+      "independent_disposition": "CONDITIONAL_SOURCE_IDENTITY_ACCEPT",
+      "independent_basis": "Exact R5 source/old catalogue pins correspond; immutable definitions and independent numerical acceptance absent.",
+      "unestablished_premise_retained": "Actual selected immutable Catalogue/OldQueryCatalogue/NativeBinding definitions, no runtime initializer, exact typed literal identities and all source/link pins. Complete numerical review is separate."
+    },
+    {
+      "ordinal": 1,
+      "name": "SelectedSdkTopologyAndConfiguration",
+      "independent_disposition": "CONDITIONAL_SDK_TOPOLOGY_ACCEPT",
+      "independent_basis": "Search recurrence and selected SDK configuration source match; final integrated topology association remains.",
+      "unestablished_premise_retained": "Future linked caller must preserve selected SDK/macros/flags and ABI; flags/identity fields alone do not assert functional equivalence. No alternate linear walk or complexity ceiling substitutes for actual t/f."
+    },
+    {
+      "ordinal": 2,
+      "name": "ActualPreciseComputeFlagsNoContract",
+      "independent_disposition": "ACTUAL_SELECTED_CORE_OBJECT_ACCEPT_FINAL_CALLER_HOLD",
+      "independent_basis": "All16 whole bodies share actual app-option arithmetic; strict/LTO or eventual integration not inferred.",
+      "unestablished_premise_retained": "Actual final integration/link selection and any later flags/source changes. This object is not proof of future application version/caller; unresolved leaves retain native contracts."
+    },
+    {
+      "ordinal": 3,
+      "name": "ObserverStrictObject",
+      "independent_disposition": "SEPARATE_STRICT_OBJECT_SOURCE_ACCEPT_LINK_BEHAVIOR_HOLD",
+      "independent_basis": "R5 observer/profile byte identity and separate strict object retained; native leaf behavior and real linkage remain.",
+      "unestablished_premise_retained": "Final strict-object link/import/module identity, selected observation/fenv semantics and true interval. No raw x87 promise. Kernel API return behavior/capacity separate."
+    },
+    {
+      "ordinal": 4,
+      "name": "PrivatePrefixInitialAndStoreInduction",
+      "independent_disposition": "ARBITRARY_INPUT_PREFIX_INDUCTION_ACCEPT_CONDITIONAL",
+      "independent_basis": "Positive-zero base, identical prior cache/full operands/shared H/stores prove finite induction under named native/control/lifetime premises.",
+      "unestablished_premise_retained": "Conjunction of actual native math/classification/control/dispatch/immutable-input premises. No private cache inspection or successful numeric-range assumption supplies it."
+    },
+    {
+      "ordinal": 5,
+      "name": "BuildReplayQueryCodegenEquivalence",
+      "independent_disposition": "SELECTED_CORE_CODEGEN_CORRESPONDENCE_ACCEPT",
+      "independent_basis": "Five actual REL32 callers select same H; classifier operands/stores match; unresolved SDK/callees/final image remain.",
+      "unestablished_premise_retained": "Final symbol resolution/COMDAT selection, all required external leaf contracts and any future different compiled source. Core16 is not a claim about all object code/callees."
+    },
+    {
+      "ordinal": 6,
+      "name": "FullDomainLibmAndClassification",
+      "independent_disposition": "GUARDED_GRAPH_AND_CANDIDATE_CLASSIFICATION_ACCEPT_CONDITIONAL",
+      "independent_basis": "Previously accepted whole guarded log certificate retained;92B classification purity accepted candidate-only; floor and actual all-caller provider/state association pending.",
+      "unestablished_premise_retained": "Actual linked `_dclass` direct-relocation provider and status/control independence, selected floor contract/identity, loaded log region association. Nine log spans do not silently qualify these separate SDK leaves."
+    },
+    {
+      "ordinal": 7,
+      "name": "RelevantLoadedMathRegionsAndDispatchAssociation",
+      "independent_disposition": "REGION_SOURCE_AND_PROSPECTIVE_CLASSIFICATION_SCOPE_ACCEPT_HOLD",
+      "independent_basis": "Nine log spans unchanged; mutable dispatch address-only and all module/code/page/lifetime/target association requirements retained.",
+      "unestablished_premise_retained": "Private immutable region/expected arrays/capacities and actual module/anchor/code/table/lifetime association, not present yet; own page checks are not module lifetime/no-writer proof. `_dclass` and floor actual provider association remains named."
+    },
+    {
+      "ordinal": 8,
+      "name": "Fma3GetterAndTrueIntervalStability",
+      "independent_disposition": "CLOSED_SOURCE_INTERVAL_LEMMA_ACCEPT_CONDITIONAL",
+      "independent_basis": "Whole-source admitted closure and completed startup/stock bodies are premises; equal getter snapshots do not prove true interval or ABA absence.",
+      "unestablished_premise_retained": "Final combined source/runtime/provider/module identity and startup ordering; address-only readable same-image4-byte footprint through interval. Future admitted writer/callback changes invalidate the premise."
+    },
+    {
+      "ordinal": 9,
+      "name": "OriginalClockAllocationCallbackInterval",
+      "independent_disposition": "STOCK_ALLOCATION_CALLBACK_LEMMA_ACCEPT_CONDITIONAL",
+      "independent_basis": "Distinct C/C++ initially null handler states and absent setters require exact final stock-provider/caller association; no OOM trace inferred.",
+      "unestablished_premise_retained": "Final default-library/archive member selection and actual loaded stock runtime correspondence; no hidden request-count/failed-allocation trace or complete physical-resource bound follows."
+    },
+    {
+      "ordinal": 10,
+      "name": "NewHandlerIdentityAndInterval",
+      "independent_disposition": "DISTINCT_HANDLER_INTERVAL_ACCEPT_CONDITIONAL",
+      "independent_basis": "Separate C/C++ initial states retained; current C++ null snapshot alone is not C-handler identity or callback exclusion.",
+      "unestablished_premise_retained": "Final closed caller/runtime association and expected handler binding; any admitted nonnull callback needs its actual source proof, not an ABI/FMA inference."
+    },
+    {
+      "ordinal": 11,
+      "name": "RelevantControlInterval",
+      "independent_disposition": "CONTROL_INTERVAL_REQUIREMENTS_ACCEPT_HOLD",
+      "independent_basis": "Owned selected core has no mode writes; worker actual entry/SDK/callback/thread controls and source interval not qualified by endpoints.",
+      "unestablished_premise_retained": "Actual worker-entry accepted controls, true interval across every selected external call/allowed callback, observer neutrality and actual caller/thread integration. Snapshot equality alone cannot exclude an intermediate mode change."
+    },
+    {
+      "ordinal": 12,
+      "name": "ExceptionFlagAndErrnoRestoration",
+      "independent_disposition": "RESTORATION_SOURCE_SCOPE_ACCEPT_LINK_BEHAVIOR_HOLD",
+      "independent_basis": "Five flags plus six MXCSR bits/errno-last;two failed prechecks but at most one physical restore; post-read/fenv/errno behavior unqualified.",
+      "unestablished_premise_retained": "Selected linked fenv/errno/getter observation/restoration behavior, ordering/neutrality including post-restore read and error handling. Failure remains named refusal, not claimed successful preservation. No raw x87 theorem."
+    },
+    {
+      "ordinal": 13,
+      "name": "ImmutableInputLifetimeNoAlias",
+      "independent_disposition": "OWNERSHIP_SOURCE_ARGUMENT_ACCEPT_INTEGRATION_HOLD",
+      "independent_basis": "Captured immutability/private ownership/acquire/cleanup-release retain startup/task/join/cancel/TSan/public recipe premises and sequential later roles.",
+      "unestablished_premise_retained": "Actual genuine input/source/control owners, no concurrent mutable alias, cancellation borrowed lifetime, real worker/model handoff/TSan and final integrated caller. Private protocol guards cannot manufacture provenance."
+    },
+    {
+      "ordinal": 14,
+      "name": "CompleteNewSourceFunding",
+      "independent_disposition": "HOLD_INDEPENDENT_NUMERIC_REVIEW_REVISE",
+      "independent_basis": "Complete production census R2 independently REVISE; no accepted full prices, immutable definitions or fit supplied by this inference review.",
+      "unestablished_premise_retained": "Fresh complete420-row numeric acceptance/correction, all bounds/root/Q/cleanup/lifetime inequalities, exact typed immutable price definitions and same-Origin cap binding. Current sealed proposal is not accepted funding; no oldWorker slack."
+    },
+    {
+      "ordinal": 15,
+      "name": "ActualCombinedCallerIdentity",
+      "independent_disposition": "HOLD_GENUINE_COMBINED_CALLER_ABSENT",
+      "independent_basis": "External force wrapper and historical Main.cpp options are not final actual integrated application/caller/link/runtime identity.",
+      "unestablished_premise_retained": "No final genuine application caller/link/module/task integration exists. Historical versiondefine, pure probe,37layout table and unlinked wrapper cannot identify future combined app."
+    },
+    {
+      "ordinal": 16,
+      "name": "IndependentAllInputForwardProof",
+      "independent_disposition": "WHOLE_CONDITIONAL_SOURCE_IMPLICATION_ACCEPT_ACTUAL_PROOF_HOLD",
+      "independent_basis": "Arbitrary-input recurrence/search/classifier/integer endpoint/resolve implication accepted as conjunction; other facts/resources and genuine integration still required.",
+      "unestablished_premise_retained": "Independent review of this whole argument and establishment of all16 other NativeFacts plus physical resource/whole publicAPI obligations. Nonzero digests and finite green points are not proof validation."
+    }
+  ],
+  "proof_coverage": [
+    "arbitrary admitted R positive-zero prefix induction",
+    "identical signed64 conversions above2^53 and binary64 stores",
+    "shared cursor and no partial-prefix update",
+    "exact upper_bound true/false topology and bit_width bound",
+    "jump/equal/full/partial slope/relative/final Boolean branches",
+    "empty expression exact parenthesization",
+    "ordered scalar refusals and safe sum",
+    "fraction zero/high==low single musical-time call",
+    "finite native interval/floor/int64 representability",
+    "entire old ordered vectors and A/B/collapse paths",
+    "prepared protected callee debit and no late branch between commit/entry",
+    "post-call reconciliation is diagnostic only",
+    "Clock-status capture/five fenv/six MXCSR/errno-last scope",
+    "two failed prechecks/one physical restoration bound",
+    "true intervals versus endpoint snapshots",
+    "stock allocations/separate handler states/callback premises",
+    "owner phases/sequential Result then RetainedReader/resource limits"
+  ],
+  "file_verification": {
+    "passed": 18197,
+    "unique_input_files_before_extra_pins": 71,
+    "main_pin_records": 63,
+    "supplement_pin_records": 7,
+    "whole_selected_object_sections": 16,
+    "whole_section_bytes": 13335,
+    "whole_decoded_instruction_rows": 3238,
+    "selected_relocations": 273,
+    "named_text_assertions": 19,
+    "classification": {
+      "image_base": 6442450944,
+      "exports": {
+        "_dclass": {
+          "ordinal": 210,
+          "rva": 428272,
+          "forwarded": false
+        },
+        "_o__dclass": {
+          "ordinal": 789,
+          "rva": 541344,
+          "forwarded": false
+        }
+      },
+      "leaf_rva": [
+        428272,
+        428364
+      ],
+      "bytes": 92,
+      "sha256": "C5C7BDBE5777424B3013A5E0A7E15CCD39B4D54AF7875F76E8C7F319EE1DC8C5",
+      "instruction_rows": 26,
+      "returns_rva": [
+        428312,
+        428330,
+        428336,
+        428357,
+        428363
+      ],
+      "relocation_block_pages": [
+        1019904,
+        1024000,
+        1028096,
+        1032192,
+        1036288,
+        1277952
+      ],
+      "relocation_footprints_checked": 1403,
+      "binary64_partition_counts": {
+        "normal": 18428729675200069632,
+        "subnormal": 9007199254740990,
+        "zero": 2,
+        "infinity": 2,
+        "nan": 9007199254740990
+      }
+    }
+  },
+  "nonblocking_notes": [
+    {
+      "severity": "NONBLOCKING_DIAGNOSTIC_CAVEAT",
+      "source": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/evidence/object-sections.py:77",
+      "affected": "object-sections.json targets.*.mnemonics",
+      "finding": "Operandless rows are omitted:20 ret,10 nop,1 cqo. Map is not complete instruction inventory. All raw/extracted bytes nevertheless match. Independent full decoder confirms absence claim without relying on that map.",
+      "correction_if_inventory_reused": "Use complete actual_mnemonics in independent evidence, or separately version the author diagnostic extractor; preserve sealed subjects. No proof/price or source change is required."
+    },
+    {
+      "severity": "INTERPRETATION",
+      "source": "build-ci/20261105-musical-funded-r5-classification-obligation-supplement-r1/argument.md:98",
+      "finding": "Fact7/8/16/17 are one-based prose references to NativeFact enum ordinals6/7/15/16. Count is17, not a further fact."
+    }
+  ],
+  "open_gates": [
+    "complete corrected production census and independent review",
+    "exact immutable typed Catalogue/OldQueryCatalogue/NativeBinding storage and source identity",
+    "final genuine combined caller and compute/strict/object/default-library/link/thunk/import/provider/runtime association",
+    "all relevant classification uses including common/capture before session, floor and observer/errno",
+    "worker control/trap policy and true thread/global dispatch/handler/input/module/no-writer intervals",
+    "linked observation/restoration and post-read behavior including errno TLS/lazy paths",
+    "complete physical payload/resources/allocator/control blocks/stack/stage/error/owner overlap under unchanged caps",
+    "genuine task lifecycle/TSan/model/job/public recipe integration and remaining mechanical gates"
+  ],
+  "not_claimed": [
+    "unconditional all-input proof",
+    "final NativeBinding",
+    "production prices acceptance",
+    "resource fit",
+    "private Data definition",
+    "loaded module observation",
+    "new native test or execution",
+    "audio activation",
+    "execution GO"
+  ],
+  "actions": {
+    "subject_execution": false,
+    "compiler": false,
+    "linker": false,
+    "GUI": false,
+    "native_API": false,
+    "author_scripts_executed": false,
+    "Python_file_hash_integer_data_only": true
+  }
+}

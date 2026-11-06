@@ -1,0 +1,17 @@
+{
+  "scope": "Exact actual-app-profile candidate object, static file disassembly only; no target link or run",
+  "command": [
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+    "/nologo",
+    "/symbols",
+    "/relocations",
+    "/disasm",
+    "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-r5-force-emission-object-r1\\attempt-r1\\app-compute.obj"
+  ],
+  "tool_sha256": "12A1CD87238BD66DFDB788B4FCDCB91CE4B3F81236AAB12A7A29E5AE1D85AF50",
+  "raw_exit": 0,
+  "stdout_bytes": 2645209,
+  "stdout_sha256": "C6F605A312741FD56FD73A445EEAD68EB1A90FD5F317881253738958B97B9C48",
+  "stderr_bytes": 0,
+  "object_sha256": "C67B2485B533A967E17337F0A8BFE0B1593EE018F2463E478E96E02705D2638B"
+}

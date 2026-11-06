@@ -1,0 +1,44 @@
+{
+  "schema": "R5_CLASSIFICATION_SUPPLEMENT_PINS_R1",
+  "status": "SEALED_SOURCE_ONLY_CONDITIONAL_SUPPLEMENT",
+  "inputs": [
+    {
+      "path": "build-ci/20261105-musical-native-classification-leaf-file-r1/candidate-leaf-disassembly.txt",
+      "bytes": 5608,
+      "sha256": "AD5F1A1B77D4780BB6C3A446FC5E8A040E513224E8C600ED92F8614596E5D913"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-classification-leaf-file-r1/receipt.json",
+      "bytes": 765,
+      "sha256": "664F3573D85BA53F918544D58564F9A232A6B8A8880AA759169B10C9C918A823"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-forward-native-obligations-r1/source-pins.json",
+      "bytes": 13887,
+      "sha256": "979197851BB047D2F3296CF77214175B5227BECEC720AC58B5C08092F455FAF1"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-native-association-r1/precise-default-imports.stdout.log",
+      "bytes": 5538,
+      "sha256": "4DB3A37EEE7074EB2A07ED7FF3B8C8A6B2E5326CC7509F09B90665508FB5438E"
+    },
+    {
+      "path": "build-ci/20261105-musical-native-math-region-certificate-r1/certificate.json",
+      "bytes": 16589,
+      "sha256": "37FA48B23872587064FAF9F1AAA3A30BC5737DAF2697FFC192BF77DA93DDAE41"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261105-musical-funded-r5-classification-obligation-supplement-r1/argument.md",
+      "bytes": 6190,
+      "sha256": "839345CE75B260BED7371CC7296D601F795165A45F6FAEB04212948FE57DDE5C"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-classification-obligation-supplement-r1/argument.json",
+      "bytes": 1070,
+      "sha256": "05DA89E3AA2BED1CD510F83AD386686685466618F99D44AF66FFA92AE4F1EE1F"
+    }
+  ],
+  "previous_argument_preserved": true
+}

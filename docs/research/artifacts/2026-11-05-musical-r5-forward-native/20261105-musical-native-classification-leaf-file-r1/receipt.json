@@ -1,0 +1,17 @@
+{
+  "scope": "Bounded static read of candidate _dclass export leaf; no math/function/program invocation or runtime association",
+  "command": [
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+    "/nologo",
+    "/disasm",
+    "/range:0x1800688F0,0x1800689D0",
+    "C:\\Windows\\System32\\ucrtbase.dll"
+  ],
+  "tool_sha256": "12A1CD87238BD66DFDB788B4FCDCB91CE4B3F81236AAB12A7A29E5AE1D85AF50",
+  "candidate_ucrt_sha256": "DEDB7611E1ABC1FF3852DCAC3D4C93A048D729E25B061973B9969F22698F14CA",
+  "raw_exit": 0,
+  "stdout_bytes": 5608,
+  "stdout_sha256": "AD5F1A1B77D4780BB6C3A446FC5E8A040E513224E8C600ED92F8614596E5D913",
+  "stderr_bytes": 0,
+  "range_is_not_function_extent": true
+}

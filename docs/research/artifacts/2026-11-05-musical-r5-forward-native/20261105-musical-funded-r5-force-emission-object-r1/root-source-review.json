@@ -1,0 +1,12 @@
+{
+  "verdict": "ACCEPT_FOR_ONE_OBJECT_ONLY_APP_PROFILE_COMPILE_AND_FILE_INSPECTION",
+  "reviewer": "root, not force-TU author",
+  "whole_force_source_reviewed": true,
+  "scope": "617-byte single noinline C++ external wrapper to genuine public static worker entry; no Data, main, fixture, callback, global object or initializer. No source/library or future caller qualification claimed.",
+  "source_manifest_sha256": "40241F8CEBBE3FDA43807E9845F4AEB29011900C2075536F2B4921937B8FFE68",
+  "profile_sha256": "2D1A978C40BBEC2FAD84D1E2210975B4FF0590900B275D9E7F2B5EDA8B4176A2",
+  "all12_source_pins_verified": true,
+  "selected_command_change": "Only actual TU/object/PDB paths change from current generated Main.cpp command. Preserve actual macro/include/FP/optimization/warning settings; do not shell-evaluate the raw argument string.",
+  "required": "Pinned AMD64 console compiler; fresh output folder; hidden/no-window/redirected/timeout; preserve raw diagnostics and exits; pre/post source hashes; no link or target execution.",
+  "numerical_or_payload_fit_accepted": false
+}

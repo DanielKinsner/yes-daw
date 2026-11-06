@@ -1,0 +1,169 @@
+# worker-wrapper; COFF section1CF; source listing lines10715..10881
+# ?emitWorker@r5_codegen_evidence@yesdaw@@YA?AULegacyReadout@musical_origin_source_r8@app@2@AEAVControlRequestOwner@452@AEBU?$atomic@_N@std@@@Z
+  0000000000000000: 48 89 5C 24 08     mov         qword ptr [rsp+8],rbx
+  0000000000000005: 48 89 6C 24 10     mov         qword ptr [rsp+10h],rbp
+  000000000000000A: 48 89 74 24 18     mov         qword ptr [rsp+18h],rsi
+  000000000000000F: 57                 push        rdi
+  0000000000000010: 48 81 EC 00 07 00  sub         rsp,700h
+                    00
+  0000000000000017: 48 8B 1A           mov         rbx,qword ptr [rdx]
+  000000000000001A: 48 8D B2 78 25 00  lea         rsi,[rdx+2578h]
+                    00
+  0000000000000021: 0F B6 06           movzx       eax,byte ptr [rsi]
+  0000000000000024: 48 8B FA           mov         rdi,rdx
+  0000000000000027: 48 89 5C 24 20     mov         qword ptr [rsp+20h],rbx
+  000000000000002C: 48 8B E9           mov         rbp,rcx
+  000000000000002F: 48 89 74 24 28     mov         qword ptr [rsp+28h],rsi
+  0000000000000034: 90                 nop
+  0000000000000035: 4C 89 44 24 30     mov         qword ptr [rsp+30h],r8
+  000000000000003A: 66 C7 44 24 38 00  mov         word ptr [rsp+38h],0
+                    00
+  0000000000000041: 3C 01              cmp         al,1
+  0000000000000043: 0F 85 F1 01 00 00  jne         000000000000023A
+  0000000000000049: 41 B8 64 00 00 00  mov         r8d,64h
+  000000000000004F: 48 8D 93 98 11 00  lea         rdx,[rbx+1198h]
+                    00
+  0000000000000056: 48 8B CB           mov         rcx,rbx
+  0000000000000059: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  000000000000005E: 80 BB 5C 12 00 00  cmp         byte ptr [rbx+125Ch],1
+                    01
+  0000000000000065: 0F 85 CF 01 00 00  jne         000000000000023A
+  000000000000006B: C6 83 5C 12 00 00  mov         byte ptr [rbx+125Ch],2
+                    02
+  0000000000000072: 48 8D 93 D8 11 00  lea         rdx,[rbx+11D8h]
+                    00
+  0000000000000079: 90                 nop
+  000000000000007A: 41 B8 BD 00 00 00  mov         r8d,0BDh
+  0000000000000080: 48 8B CB           mov         rcx,rbx
+  0000000000000083: C6 06 02           mov         byte ptr [rsi],2
+  0000000000000086: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  000000000000008B: 80 BF 7B 25 00 00  cmp         byte ptr [rdi+257Bh],0
+                    00
+  0000000000000092: 0F 84 A2 01 00 00  je          000000000000023A
+  0000000000000098: 4C 8D 87 00 22 00  lea         r8,[rdi+2200h]
+                    00
+  000000000000009F: 48 8D 54 24 20     lea         rdx,[rsp+20h]
+  00000000000000A4: 48 8D 8C 24 A0 03  lea         rcx,[rsp+3A0h]
+                    00 00
+  00000000000000AC: E8 00 00 00 00     call        ?run@FundedLegacyStageAdapter@musical_origin_source_r8@app@yesdaw@@CA?AULegacyReadout@234@AEAV?$ContextScope@$0A@@234@AEAVWorkerLegacyResult@234@@Z
+  00000000000000B1: BA 06 00 00 00     mov         edx,6
+  00000000000000B6: 48 8D 4C 24 40     lea         rcx,[rsp+40h]
+  00000000000000BB: 44 8B C2           mov         r8d,edx
+  00000000000000BE: 66 90              nop
+  00000000000000C0: 48 8D 89 80 00 00  lea         rcx,[rcx+80h]
+                    00
+  00000000000000C7: 0F 10 00           movups      xmm0,xmmword ptr [rax]
+  00000000000000CA: 0F 10 48 10        movups      xmm1,xmmword ptr [rax+10h]
+  00000000000000CE: 48 8D 80 80 00 00  lea         rax,[rax+80h]
+                    00
+  00000000000000D5: 0F 11 41 80        movups      xmmword ptr [rcx-80h],xmm0
+  00000000000000D9: 0F 10 40 A0        movups      xmm0,xmmword ptr [rax-60h]
+  00000000000000DD: 0F 11 49 90        movups      xmmword ptr [rcx-70h],xmm1
+  00000000000000E1: 0F 10 48 B0        movups      xmm1,xmmword ptr [rax-50h]
+  00000000000000E5: 0F 11 41 A0        movups      xmmword ptr [rcx-60h],xmm0
+  00000000000000E9: 0F 10 40 C0        movups      xmm0,xmmword ptr [rax-40h]
+  00000000000000ED: 0F 11 49 B0        movups      xmmword ptr [rcx-50h],xmm1
+  00000000000000F1: 0F 10 48 D0        movups      xmm1,xmmword ptr [rax-30h]
+  00000000000000F5: 0F 11 41 C0        movups      xmmword ptr [rcx-40h],xmm0
+  00000000000000F9: 0F 10 40 E0        movups      xmm0,xmmword ptr [rax-20h]
+  00000000000000FD: 0F 11 49 D0        movups      xmmword ptr [rcx-30h],xmm1
+  0000000000000101: 0F 10 48 F0        movups      xmm1,xmmword ptr [rax-10h]
+  0000000000000105: 0F 11 41 E0        movups      xmmword ptr [rcx-20h],xmm0
+  0000000000000109: 0F 11 49 F0        movups      xmmword ptr [rcx-10h],xmm1
+  000000000000010D: 49 83 E8 01        sub         r8,1
+  0000000000000111: 75 AD              jne         00000000000000C0
+  0000000000000113: 0F 10 00           movups      xmm0,xmmword ptr [rax]
+  0000000000000116: 0F 10 48 10        movups      xmm1,xmmword ptr [rax+10h]
+  000000000000011A: 0F 11 01           movups      xmmword ptr [rcx],xmm0
+  000000000000011D: 0F 10 40 20        movups      xmm0,xmmword ptr [rax+20h]
+  0000000000000121: 0F 11 49 10        movups      xmmword ptr [rcx+10h],xmm1
+  0000000000000125: 0F 10 48 30        movups      xmm1,xmmword ptr [rax+30h]
+  0000000000000129: 0F 11 41 20        movups      xmmword ptr [rcx+20h],xmm0
+  000000000000012D: 0F 10 40 40        movups      xmm0,xmmword ptr [rax+40h]
+  0000000000000131: 48 8B 40 50        mov         rax,qword ptr [rax+50h]
+  0000000000000135: 0F 11 49 30        movups      xmmword ptr [rcx+30h],xmm1
+  0000000000000139: 0F 11 41 40        movups      xmmword ptr [rcx+40h],xmm0
+  000000000000013D: 48 89 41 50        mov         qword ptr [rcx+50h],rax
+  0000000000000141: 48 8B CD           mov         rcx,rbp
+  0000000000000144: 48 8D 44 24 40     lea         rax,[rsp+40h]
+  0000000000000149: 0F 1F 80 00 00 00  nop         dword ptr [rax]
+                    00
+  0000000000000150: 48 8D 89 80 00 00  lea         rcx,[rcx+80h]
+                    00
+  0000000000000157: 0F 10 00           movups      xmm0,xmmword ptr [rax]
+  000000000000015A: 0F 10 48 10        movups      xmm1,xmmword ptr [rax+10h]
+  000000000000015E: 48 8D 80 80 00 00  lea         rax,[rax+80h]
+                    00
+  0000000000000165: 0F 11 41 80        movups      xmmword ptr [rcx-80h],xmm0
+  0000000000000169: 0F 10 40 A0        movups      xmm0,xmmword ptr [rax-60h]
+  000000000000016D: 0F 11 49 90        movups      xmmword ptr [rcx-70h],xmm1
+  0000000000000171: 0F 10 48 B0        movups      xmm1,xmmword ptr [rax-50h]
+  0000000000000175: 0F 11 41 A0        movups      xmmword ptr [rcx-60h],xmm0
+  0000000000000179: 0F 10 40 C0        movups      xmm0,xmmword ptr [rax-40h]
+  000000000000017D: 0F 11 49 B0        movups      xmmword ptr [rcx-50h],xmm1
+  0000000000000181: 0F 10 48 D0        movups      xmm1,xmmword ptr [rax-30h]
+  0000000000000185: 0F 11 41 C0        movups      xmmword ptr [rcx-40h],xmm0
+  0000000000000189: 0F 10 40 E0        movups      xmm0,xmmword ptr [rax-20h]
+  000000000000018D: 0F 11 49 D0        movups      xmmword ptr [rcx-30h],xmm1
+  0000000000000191: 0F 10 48 F0        movups      xmm1,xmmword ptr [rax-10h]
+  0000000000000195: 0F 11 41 E0        movups      xmmword ptr [rcx-20h],xmm0
+  0000000000000199: 0F 11 49 F0        movups      xmmword ptr [rcx-10h],xmm1
+  000000000000019D: 48 83 EA 01        sub         rdx,1
+  00000000000001A1: 75 AD              jne         0000000000000150
+  00000000000001A3: 0F 10 00           movups      xmm0,xmmword ptr [rax]
+  00000000000001A6: 48 8B 5C 24 20     mov         rbx,qword ptr [rsp+20h]
+  00000000000001AB: 41 B8 69 00 00 00  mov         r8d,69h
+  00000000000001B1: 0F 10 48 10        movups      xmm1,xmmword ptr [rax+10h]
+  00000000000001B5: 0F 11 01           movups      xmmword ptr [rcx],xmm0
+  00000000000001B8: 48 8D 93 98 11 00  lea         rdx,[rbx+1198h]
+                    00
+  00000000000001BF: 0F 10 40 20        movups      xmm0,xmmword ptr [rax+20h]
+  00000000000001C3: 0F 11 49 10        movups      xmmword ptr [rcx+10h],xmm1
+  00000000000001C7: 0F 10 48 30        movups      xmm1,xmmword ptr [rax+30h]
+  00000000000001CB: 0F 11 41 20        movups      xmmword ptr [rcx+20h],xmm0
+  00000000000001CF: 0F 10 40 40        movups      xmm0,xmmword ptr [rax+40h]
+  00000000000001D3: 48 8B 40 50        mov         rax,qword ptr [rax+50h]
+  00000000000001D7: 0F 11 49 30        movups      xmmword ptr [rcx+30h],xmm1
+  00000000000001DB: 0F 11 41 40        movups      xmmword ptr [rcx+40h],xmm0
+  00000000000001DF: 48 89 41 50        mov         qword ptr [rcx+50h],rax
+  00000000000001E3: 48 8B CB           mov         rcx,rbx
+  00000000000001E6: E8 00 00 00 00     call        ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z
+  00000000000001EB: 83 BB 58 12 00 00  cmp         dword ptr [rbx+1258h],2
+                    02
+  00000000000001F2: 73 07              jae         00000000000001FB
+  00000000000001F4: FF 15 00 00 00 00  call        qword ptr [__imp_terminate]
+  00000000000001FA: CC                 int         3
+  00000000000001FB: 48 FF 83 48 0E 00  inc         qword ptr [rbx+0E48h]
+                    00
+  0000000000000202: 48 8D 4C 24 20     lea         rcx,[rsp+20h]
+  0000000000000207: B2 01              mov         dl,1
+  0000000000000209: C6 83 5C 12 00 00  mov         byte ptr [rbx+125Ch],3
+                    03
+  0000000000000210: E8 00 00 00 00     call        ?drop@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAPEAVMusicalPreparationRequestState@234@W4Role@234@@Z
+  0000000000000215: 48 8B 44 24 28     mov         rax,qword ptr [rsp+28h]
+  000000000000021A: 4C 8D 9C 24 00 07  lea         r11,[rsp+700h]
+                    00 00
+  0000000000000222: 49 8B 5B 10        mov         rbx,qword ptr [r11+10h]
+  0000000000000226: 90                 nop
+  0000000000000227: 49 8B 73 20        mov         rsi,qword ptr [r11+20h]
+  000000000000022B: C6 00 03           mov         byte ptr [rax],3
+  000000000000022E: 48 8B C5           mov         rax,rbp
+  0000000000000231: 49 8B 6B 18        mov         rbp,qword ptr [r11+18h]
+  0000000000000235: 49 8B E3           mov         rsp,r11
+  0000000000000238: 5F                 pop         rdi
+  0000000000000239: C3                 ret
+  000000000000023A: FF 15 00 00 00 00  call        qword ptr [__imp_terminate]
+  0000000000000240: CC                 int         3
+
+RELOCATIONS #1CF
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 0000005A  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 00000087  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 000000AD  REL32                      00000000       69B  ?run@FundedLegacyStageAdapter@musical_origin_source_r8@app@yesdaw@@CA?AULegacyReadout@234@AEAV?$ContextScope@$0A@@234@AEAVWorkerLegacyResult@234@@Z (private: static struct yesdaw::app::musical_origin_source_r8::LegacyReadout __cdecl yesdaw::app::musical_origin_source_r8::FundedLegacyStageAdapter::run(class yesdaw::app::musical_origin_source_r8::ContextScope<0> &,class yesdaw::app::musical_origin_source_r8::WorkerLegacyResult &))
+ 000001E7  REL32                      00000000       642  ?pay@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAVMusicalPreparationRequestState@234@AEAUSlice@234@W4Site@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::pay(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState &,struct yesdaw::app::musical_origin_source_r8::Slice &,enum yesdaw::app::musical_origin_source_r8::Site))
+ 000001F6  REL32                      00000000       4EF  __imp_terminate
+ 00000211  REL32                      00000000       646  ?drop@Ledger@musical_origin_source_r8@app@yesdaw@@CAXAEAPEAVMusicalPreparationRequestState@234@W4Role@234@@Z (private: static void __cdecl yesdaw::app::musical_origin_source_r8::Ledger::drop(class yesdaw::app::musical_origin_source_r8::MusicalPreparationRequestState * &,enum yesdaw::app::musical_origin_source_r8::Role))
+ 0000023C  REL32                      00000000       4EF  __imp_terminate
+

@@ -76,6 +76,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    provisional input set; final union, new census/lifetime proof, binding and execution remain held.
    The separate metadata successor also passed25 types/110 declared fields, including the discovered
    JObject iterator and three CoreLib enumerators. Complete payload equations remain in progress.
+   R5's conditional all-input/source-object argument passed18,197 independent checks; actual native
+   binding/funding/resources/integration remain held. Production census R3 is rebuilt and in whole review.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -96,6 +98,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Preserve the conditional planner forward/native proof
+
+- Independent review passed18,197 file/data checks and accepts the complete conditional source/object implication plus the92-byte candidate classification lemma. All16 selected sections/13,335 bytes/3,238 instruction rows/273 relocations were independently matched; all17 NativeFacts retain explicit missing premises.
+- The genuine worker entry force wrapper compiled0 under the recorded historical application command, without Data/main/synthetic owner/link/run. Separate readonly compile-only constants establish selected conversion d=0, with no code/initializers/relocations; this supplies no R4/R5 layout equality, price or fit.
+- Archived56 source/evidence files under `docs/research/artifacts/2026-11-05-musical-r5-forward-native/`. Preserve the original auxiliary mnemonic-map omissions; the independent complete decoder includes those31 operandless rows. Actual final linkage/provider/observer/errno/floor/interval, numerical funding, resources and whole API integration remain unqualified.
+- Production census R3 regenerated all420 rows from the23-body operand correction and is in fresh whole review. The six-phase research payload packet is a conditional join with13 explicit residual families, not a global upper or32MiB fit; independent review is active. Metadata checkpointd6793b1 passed CI42178017372. No target, GUI, input or device ran; continue recipe/renderer/jobs/model, then linked/folder/piano.
 
 ## 2026-11-05 - Close the requested iterator file-metadata inventory
 

@@ -1,0 +1,25 @@
+{
+  "scope": "Whole first-green constant compile and extraction sources only",
+  "files": [
+    {
+      "path": "source-plan.json",
+      "bytes": 653,
+      "sha256": "73F98B568CFBB605A51E8616DE04DEE3C3F9DEE3ECF9E52DD5DB845748B3EEE1"
+    },
+    {
+      "path": "identity.cpp",
+      "bytes": 319,
+      "sha256": "D7BC4BF2370653E32B07C35E3AB5A5FFF03B6BDE9EE5D20E18AE06EFC1FDEAC2"
+    },
+    {
+      "path": "compile-only.ps1",
+      "bytes": 3655,
+      "sha256": "6A970EEF5339A5C712155C8546329FD5CB11CE491EC5929C1B7F04263828AA4E"
+    },
+    {
+      "path": "extract-identity.py",
+      "bytes": 4218,
+      "sha256": "F3B2B389608A2F9AD2600ECF83043C2B81644869F74BEFD2FF469AB7FD5B1902"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "R5_DCLASS_CANDIDATE_PURITY_ACTUAL_ASSOCIATION_SUPPLEMENT_R1",
+  "status": "CANDIDATE_PURITY_CLOSED_ACTUAL_COMBINED_CALL_ASSOCIATION_HOLD",
+  "candidate_rva_start": "0x688F0",
+  "candidate_rva_end_exclusive": "0x6894C",
+  "candidate_bytes": 92,
+  "reachable_returns": [
+    "0x68918",
+    "0x6892a",
+    "0x68930",
+    "0x68945",
+    "0x6894b"
+  ],
+  "decoded_instruction_rows": 26,
+  "all_binary64_bit_patterns_partitioned": true,
+  "profile_extension_only_if_selected": {
+    "M": 10,
+    "L": 8376,
+    "not_defined_or_bound": true
+  },
+  "recommended_route": "Exact final object/link/thunk/IAT/provider/ordinary loader and closed-source association; generic extra Code span optional and insufficient without call association",
+  "SDK_contract_alone": "value predicate only; selected emitted call/native-state association remains",
+  "new_anchor": "Fallback only after exact unsupported static association step is identified; no source successor authored",
+  "facts_affected": [
+    7,
+    8,
+    16,
+    17
+  ],
+  "target_execution_by_author": false
+}

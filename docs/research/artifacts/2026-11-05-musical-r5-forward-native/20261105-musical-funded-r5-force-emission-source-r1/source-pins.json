@@ -1,0 +1,70 @@
+{
+  "schema": "R5_PUBLIC_ENTRY_COMPILE_ONLY_SOURCE_PINS_V1",
+  "status": "SOURCE_SEALED_REQUIRES_ROOT_REVIEW_NO_TARGET_EXECUTION",
+  "inputs": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/source-pins.json",
+      "bytes": 56208,
+      "sha256": "F55E268E0D24859E3305C8C75CB6EF2D0948C719C4B63AD665BCC02B0A11CC84"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/formation-r8.h",
+      "bytes": 81190,
+      "sha256": "DCCF77D0F7F7B781D3E7731B721C7CBA5D377489780B68516C8B931D950542B2"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/worker-result.h",
+      "bytes": 9148,
+      "sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/legacy-adapter.h",
+      "bytes": 28646,
+      "sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/window-query.h",
+      "bytes": 48648,
+      "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-profile.h",
+      "bytes": 6189,
+      "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-observer.cpp",
+      "bytes": 7067,
+      "sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r5-source-correspondence-independent-review/review.json",
+      "bytes": 148082,
+      "sha256": "D9D042B906EBF51645BA5B7F6A559F70E42D5DE69A8FE824244F4A32A0C0AFEB"
+    },
+    {
+      "path": "build-ci/20261105-musical-fma3-closed-application-source-r1/source-corpus.json",
+      "bytes": 725737,
+      "sha256": "6849E04FD380B16E600AC3C7890AEDE62A2C072F84018A3D7613D0C02E0ED194"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r4-native-object-r1/inspection.json",
+      "bytes": 3568,
+      "sha256": "5F8B9F4463039B107E00549FDFF14AEB3346EC24CDF6B5887D4D4A6659080F2D"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-source-r1/force-emission.cpp",
+      "bytes": 617,
+      "sha256": "CCFF9248C53BA4C1EB105A7C66BFF831476EA35FF754FC8D3BAD531F66AC1A70"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-force-emission-source-r1/README.md",
+      "bytes": 3322,
+      "sha256": "1EC0FD74490D23F13F678575218BB3D040F138D0E2E388C35FA41ABCFC1A7AEF"
+    }
+  ],
+  "target_execution": false,
+  "Data_defined": false
+}

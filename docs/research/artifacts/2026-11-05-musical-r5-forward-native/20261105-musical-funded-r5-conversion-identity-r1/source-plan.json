@@ -1,0 +1,11 @@
+{
+  "scope": "Root-reviewed compile-only constant-type identity, using identical selected R5 MSVC x64 flags and all89 frozen source pins. No R4/R5 layout equality or Data/GO claim.",
+  "source_sha256": "D7BC4BF2370653E32B07C35E3AB5A5FFF03B6BDE9EE5D20E18AE06EFC1FDEAC2",
+  "source_bytes": 319,
+  "table_symbol": "yesdaw_conversion_identity",
+  "expected_tag": 6432639195387741233,
+  "value_count": 1,
+  "value_meaning": "0 when selected uint64_t and size_t fundamental types are the same;1 otherwise. No expected outcome selected.",
+  "compiler_wrapper_sha256": "6A970EEF5339A5C712155C8546329FD5CB11CE491EC5929C1B7F04263828AA4E",
+  "target_run": false
+}
