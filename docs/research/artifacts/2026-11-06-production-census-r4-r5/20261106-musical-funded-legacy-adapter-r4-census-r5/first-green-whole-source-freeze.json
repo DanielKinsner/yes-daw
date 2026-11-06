@@ -1,0 +1,118 @@
+{
+  "schema": "WHOLE_CENSUS_R5_FIRST_GREEN_SOURCE_FREEZE",
+  "scope": "Only new Python file/JSON/integer source proposal;not source-price acceptance,Data,native,resources,fit or GO.",
+  "actual_generation_exit": 0,
+  "tool_wall_time_seconds": 2.7622145,
+  "stderr_bytes": 0,
+  "whole_frozen_files": [
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/prepare-r5.py",
+      "bytes": 16880,
+      "sha256": "E18098AD1A445961A0EBFC39088CF95264F0E76124EEE524A7A586B414A33A68"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/build-census.py",
+      "bytes": 59563,
+      "sha256": "58B33D5D8513FD9058B3858211D2DD55F8AFAE3EC60DA2F32177383B8C69CC28"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/body-ledgers.json",
+      "bytes": 384009,
+      "sha256": "5D2DA95EFB200047C8A5D1FFCFAE64EF4C1B6C1C7806B1002A25B73F5967965A"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/helper-ledgers.json",
+      "bytes": 62036,
+      "sha256": "5E2A092329A35F7A7A45E5A7E9B396EB46A4C766C88794C27C6236932604C6F5"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/source-boundaries.json",
+      "bytes": 9146,
+      "sha256": "2BA154C90E0B0E6DD760AF00BB03556A66E1E3BDEB3CA7ED5C5E85B5B3E1F769"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/corrections.json",
+      "bytes": 7457,
+      "sha256": "73B967B2AA1C1D41AF5F6076E0B091A8F41368D798FEAA8829CDE8B05F2627CE"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/census.json",
+      "bytes": 1627387,
+      "sha256": "E50F8ACCCBD222F78992FA0797C474B863B3122653D8C77C8C8765A5D8E7D33E"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/census.md",
+      "bytes": 31868,
+      "sha256": "D17908488D90F537B9235F0D4C10924B66D2BD0FC4B647C91E44F8B78A9AD554"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/source-inventory.json",
+      "bytes": 246673,
+      "sha256": "9BE65D4CEC9E048D6567AAF929769897944AF883E8546035F1D63C80D6EF5BD1"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/all-420-factorizations.json",
+      "bytes": 1434397,
+      "sha256": "363C5C8BBE95E39E73E013C150166494AB5F5D733BF17DFE331959554DD80211"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/source-pins.json",
+      "bytes": 13738,
+      "sha256": "EB0EFB963D5B13587DBA9B0A3B1B7C390BB153781D9DFC3510209659690BEC5A"
+    }
+  ],
+  "attempt_raw_files": [
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/generation-attempt-r1/body-ledgers.json",
+      "bytes": 384009,
+      "sha256": "5D2DA95EFB200047C8A5D1FFCFAE64EF4C1B6C1C7806B1002A25B73F5967965A"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/generation-attempt-r1/build-census.py",
+      "bytes": 59563,
+      "sha256": "58B33D5D8513FD9058B3858211D2DD55F8AFAE3EC60DA2F32177383B8C69CC28"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/generation-attempt-r1/corrections.json",
+      "bytes": 7457,
+      "sha256": "73B967B2AA1C1D41AF5F6076E0B091A8F41368D798FEAA8829CDE8B05F2627CE"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/generation-attempt-r1/helper-ledgers.json",
+      "bytes": 62036,
+      "sha256": "5E2A092329A35F7A7A45E5A7E9B396EB46A4C766C88794C27C6236932604C6F5"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/generation-attempt-r1/prepare-r5.py",
+      "bytes": 16880,
+      "sha256": "E18098AD1A445961A0EBFC39088CF95264F0E76124EEE524A7A586B414A33A68"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/generation-attempt-r1/source-boundaries.json",
+      "bytes": 9146,
+      "sha256": "2BA154C90E0B0E6DD760AF00BB03556A66E1E3BDEB3CA7ED5C5E85B5B3E1F769"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/generation-attempt-r1/stderr.txt",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "build-ci/20261106-musical-funded-legacy-adapter-r4-census-r5/generation-attempt-r1/stdout.txt",
+      "bytes": 523,
+      "sha256": "7296247413EA352F7E5BE5DD14130F23418D52B64CB87BD0D6BBD38B4933AF3B"
+    }
+  ],
+  "counts_generated_from_model": {
+    "events": 420,
+    "helpers": 51,
+    "schedules": 38,
+    "old_rows": 190,
+    "old_compositions": 78,
+    "old_templates": 13,
+    "changed_event_factorizations": 9
+  },
+  "unaccepted_all411_remaining_prices": true,
+  "frozen_old_python_executed_or_imported": false,
+  "target_execution": false
+}

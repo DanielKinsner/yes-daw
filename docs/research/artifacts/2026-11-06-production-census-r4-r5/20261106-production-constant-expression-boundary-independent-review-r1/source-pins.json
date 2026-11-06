@@ -1,0 +1,41 @@
+{
+  "inputs": [
+    {
+      "path": "docs/adr/0085-owned-musical-call-recipes.md",
+      "bytes": 23414,
+      "sha256": "876FC9F16068603CB8D98799060B4FE8F8147502904DBE5C4EB3DA441729C1C9"
+    },
+    {
+      "path": "build-ci/20261105-production-operation-boundary-prep/proposal.md",
+      "bytes": 4235,
+      "sha256": "95DF3ADCF99C6080CEB6709513E69BB5EBEFFB9F64A5C9D19882D9D19F1669A2"
+    },
+    {
+      "path": "build-ci/20261105-production-operation-boundary-independent-review.json",
+      "bytes": 2676,
+      "sha256": "6781D647426C059D8BB884A77FCE9711E69A355AF68C4A7735E6D391864CEFC5"
+    },
+    {
+      "path": "build-ci/20261105-production-operation-boundary-census-conventions.md",
+      "bytes": 2323,
+      "sha256": "404E214B31AA1F1FA273224DCF28355C1DB65E3798635416D802702E2458613A"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/formation-r8.h",
+      "bytes": 81190,
+      "sha256": "DCCF77D0F7F7B781D3E7731B721C7CBA5D377489780B68516C8B931D950542B2"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261106-production-constant-expression-boundary-independent-review-r1/review.md",
+      "bytes": 3527,
+      "sha256": "59B700715F99D9422A287FA65F1AA81FE8DD321EE08E23358833154C95588E0C"
+    },
+    {
+      "path": "build-ci/20261106-production-constant-expression-boundary-independent-review-r1/review.json",
+      "bytes": 1731,
+      "sha256": "7F25D5ED288E8B60EE74DEF6A1E1DE4C06FEED28C0C7D65E44B8AA79938A13A6"
+    }
+  ]
+}

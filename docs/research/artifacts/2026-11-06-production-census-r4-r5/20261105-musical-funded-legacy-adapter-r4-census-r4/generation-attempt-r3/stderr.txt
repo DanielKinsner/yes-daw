@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261105-musical-funded-legacy-adapter-r4-census-r4\build-census.py", line 436, in <module>
+    'Conditional illustration only with separately selected R5 B4264/d0,R1,clip+asset2,and unbound candidate M9/L8284/D1/A4:root '+str(rr)+',needed '+str(nn)+',Q '+str(qq)+',before-N total '+str(before)+'. C1/N1 gives'+str(before+24)+';the sufficient N ceilings are'+str((268435456-before)//24)+'(C1) and'+str((268435456-before)//40)+'(C2). This is neither measured R4 layout nor physical/native/full fit. Generic B/d remains.','',
+                                                                                                                                                                                                                               ~~~~~~^~~
+TypeError: can only concatenate str (not "int") to str

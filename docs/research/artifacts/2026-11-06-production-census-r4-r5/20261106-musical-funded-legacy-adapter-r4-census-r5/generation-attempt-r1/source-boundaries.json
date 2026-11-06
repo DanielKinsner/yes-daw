@@ -1,0 +1,238 @@
+{
+  "schema": "WHOLE_R5_READER_VECTOR_SCALAR_SDK_SOURCE_BOUNDARY_INVENTORY",
+  "Reader_conditionals": [
+    {
+      "sponsor": "ReceiveWorker/Reader",
+      "reached_ordinary_conditional_count": 4,
+      "Reader_scalar_R": 0,
+      "source_occurrences": [
+        {
+          "line": 1528,
+          "text": "Ledger::pay (s, s.roleLife_[Ledger::ix (Reader ? Role::Reader : Role::Worker)],"
+        },
+        {
+          "line": 1529,
+          "text": "Reader ? Site::ReceiveReader : Site::ReceiveWorker);"
+        },
+        {
+          "line": 1530,
+          "text": "if (s.context_ != (Reader ? Context::ReaderArmed : Context::WorkerArmed)) std::terminate();"
+        },
+        {
+          "line": 1531,
+          "text": "s.context_ = Reader ? Context::ReaderRunning : Context::WorkerRunning;"
+        }
+      ],
+      "scope": "Body C includes these conditional selections,not helperL/I or a caller double charge."
+    },
+    {
+      "sponsor": "ContextReturn",
+      "reached_ordinary_conditional_count": 3,
+      "Reader_scalar_R": 0,
+      "source_occurrences": [
+        {
+          "line": 1540,
+          "text": "auto& life = s.roleLife_[Ledger::ix (Reader ? Role::Reader : Role::Worker)];"
+        },
+        {
+          "line": 1543,
+          "text": "s.context_ = Reader ? Context::DetachedReturn : Context::ControlReturn;"
+        },
+        {
+          "line": 1545,
+          "text": "Ledger::drop (state_, Reader ? Role::Reader : Role::Worker);"
+        }
+      ],
+      "scope": "Body C includes these conditional selections,not helperL/I or a caller double charge."
+    },
+    {
+      "sponsor": "ContextCancel",
+      "reached_ordinary_conditional_count": 1,
+      "Reader_scalar_R": 0,
+      "source_occurrences": [
+        {
+          "line": 1553,
+          "text": "Ledger::pay (s, s.roleLife_[Ledger::ix (Reader ? Role::Reader : Role::Worker)], Site::ContextCancel);"
+        }
+      ],
+      "scope": "Body C includes these conditional selections,not helperL/I or a caller double charge."
+    },
+    {
+      "sponsor": "ContextInspect",
+      "reached_ordinary_conditional_count": 1,
+      "Reader_scalar_R": 0,
+      "source_occurrences": [
+        {
+          "line": 1561,
+          "text": "Ledger::pay (s, s.roleLife_[Ledger::ix (Reader ? Role::Reader : Role::Worker)], Site::ContextInspect);"
+        }
+      ],
+      "scope": "Body C includes these conditional selections,not helperL/I or a caller double charge."
+    },
+    {
+      "sponsor": "ContextDecision",
+      "reached_ordinary_conditional_count": 1,
+      "Reader_scalar_R": 0,
+      "source_occurrences": [
+        {
+          "line": 1576,
+          "text": "Ledger::pay (s, s.roleLife_[Ledger::ix (Reader ? Role::Reader : Role::Worker)], Site::ContextDecision);"
+        }
+      ],
+      "scope": "Body C includes these conditional selections,not helperL/I or a caller double charge."
+    }
+  ],
+  "capture_vector_indices": [
+    {
+      "site": "ClipRow",
+      "line": 1049,
+      "expression": "in.project_.clips[static_cast<std::size_t> (ci)].id",
+      "visible_SDK_boundary": {
+        "stored_base_R": 1,
+        "index_parameter_W": 1,
+        "subscript_X": 1,
+        "H": 1,
+        "Z": 1
+      },
+      "user_field_or_address": "Actual explicit field/address/index and any scalar element use remain in the body or named ID helper. No referent copy or recursive SDK field walk."
+    },
+    {
+      "site": "ClipFound",
+      "line": 1054,
+      "expression": "&in.project_.clips[static_cast<std::size_t> (ci)]",
+      "visible_SDK_boundary": {
+        "stored_base_R": 1,
+        "index_parameter_W": 1,
+        "subscript_X": 1,
+        "H": 1,
+        "Z": 1
+      },
+      "user_field_or_address": "Actual explicit field/address/index and any scalar element use remain in the body or named ID helper. No referent copy or recursive SDK field walk."
+    },
+    {
+      "site": "AssetRow",
+      "line": 1085,
+      "expression": "in.project_.assets[static_cast<std::size_t> (ai)].id",
+      "visible_SDK_boundary": {
+        "stored_base_R": 1,
+        "index_parameter_W": 1,
+        "subscript_X": 1,
+        "H": 1,
+        "Z": 1
+      },
+      "user_field_or_address": "Actual explicit field/address/index and any scalar element use remain in the body or named ID helper. No referent copy or recursive SDK field walk."
+    },
+    {
+      "site": "AssetFound",
+      "line": 1090,
+      "expression": "&in.project_.assets[static_cast<std::size_t> (ai)]",
+      "visible_SDK_boundary": {
+        "stored_base_R": 1,
+        "index_parameter_W": 1,
+        "subscript_X": 1,
+        "H": 1,
+        "Z": 1
+      },
+      "user_field_or_address": "Actual explicit field/address/index and any scalar element use remain in the body or named ID helper. No referent copy or recursive SDK field walk."
+    },
+    {
+      "site": "MapRow",
+      "line": 1175,
+      "expression": "in.project_.tempoMap[static_cast<std::size_t> (mi)]",
+      "visible_SDK_boundary": {
+        "stored_base_R": 1,
+        "index_parameter_W": 1,
+        "subscript_X": 1,
+        "H": 1,
+        "Z": 1
+      },
+      "user_field_or_address": "Actual explicit field/address/index and any scalar element use remain in the body or named ID helper. No referent copy or recursive SDK field walk."
+    }
+  ],
+  "scalar_SDK_leaf_cases": [
+    {
+      "leaf": "std::bit_width(size_t)",
+      "parameter": "one selected unsigned size_t scalar destination W",
+      "result": "int from pinned bit:130",
+      "callers": [
+        {
+          "file": "legacy-adapter.h",
+          "line": 197,
+          "text": "* static_cast<U64> (std::bit_width (static_cast<std::size_t> (c.rows)));"
+        },
+        {
+          "file": "window-query.h",
+          "line": 684,
+          "text": "const auto bits = static_cast<U64> (std::bit_width (static_cast<std::size_t> (rows)));"
+        },
+        {
+          "file": "window-query.h",
+          "line": 949,
+          "text": "const auto threshold = U64 { 512 } + U64 { 2 } * static_cast<U64> (std::bit_width (clock->rows().size()));"
+        }
+      ],
+      "result_conversion": "Ordinary int-to-U64 is fixed X1 at all three callers. Only first two have U64-to-size_t input d;span.size already size_t at the third.",
+      "inherited_CPU": "Math1 remains W1/H1/Z1;selected implementation CPU is opaque,not zero or a new tariff."
+    },
+    {
+      "leaf": "std::isfinite(double)",
+      "parameter": "double scalar W1;caller read/field/expression separate",
+      "result": "bool returned predicate",
+      "source": "All new classifier/replay uses have explicitly double operands;C predicate belongs reached caller.",
+      "scope": "No recursive classification implementation or result-copy fee."
+    },
+    {
+      "leaf": "std::floor(double)",
+      "parameter": "double scalar W1",
+      "result": "double;explicit int64 caller conversion is X1",
+      "source": "QueryEndpointOk retains frame field/read and floor destination;Math1 W/H/Z separate."
+    },
+    {
+      "leaf": "::log1p(double)",
+      "parameter": "double scalar W1",
+      "result": "double",
+      "source": "Actual old append is protected190 work. Native taking of double(__cdecl*)(double) address is not invocation.",
+      "scope": "No new libm CPU or equivalence qualification."
+    }
+  ],
+  "fixed_array_and_span_distinction": "std::array[] has no stored-base R;builtin arrays have no SDK H/Z. ReturnSpanValue owns base+extent2R/2W and selected conversion H/Z;no vector copy.",
+  "input_pins": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/formation-r8.h",
+      "bytes": 81190,
+      "sha256": "1308DC2CAA05644FF2AD72FE5EF10EE620A636E2EEC1D1747C8C154769FADEBA"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/legacy-adapter.h",
+      "bytes": 28646,
+      "sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/window-query.h",
+      "bytes": 48648,
+      "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/bit",
+      "bytes": 8838,
+      "sha256": "F08C873229E5C11B6E89A0D47C5CA5E2555947321AA382BF52224D041648D483"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vector",
+      "bytes": 161282,
+      "sha256": "351604D91A2CEAC79F9BD9448C0553CCCC22711E22955B5938EAF41DE98334A6"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cmath",
+      "bytes": 71762,
+      "sha256": "3F10507B4BCA07CD07B7B4AE1403377634A37E91459305094E9F8CBA34DD8CA5"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_math.h",
+      "bytes": 39299,
+      "sha256": "CA2F0F25B2E07B3613984EFD1135DD9F1D0786FABAA56DA2BA3C83B1A23EB918"
+    }
+  ],
+  "not_source_price_acceptance": true,
+  "no_new_source_or_cap_or_contract": true
+}

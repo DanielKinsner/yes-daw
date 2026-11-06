@@ -1,0 +1,4 @@
+  File "C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261105-musical-funded-legacy-adapter-r4-census-r4\build-census.py", line 348
+    dict(source='native-observer.cpp/native-profile.h',sites='leaf helper cases,actualComputeIdentity',ownership='All fixed POD/native stack writes/parameters/possible named returns and selected public logical SDK leaves;no variable walks hidden in opaque SDK fees.'}],
+                                                                                                                                                                                                                                                                          ^
+SyntaxError: closing parenthesis '}' does not match opening parenthesis '('

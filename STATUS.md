@@ -50,8 +50,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Active: Musical audio tempo-follow. Window/channel planning and pure history foundations are pushed; audible
    tempo-follow is not enabled. The request-owner prototype now passes135,111 headless checks and eight biting
    mutants; the source/evidence archive is `docs/research/artifacts/2026-11-05-musical-origin-formation-r4/`.
-   The combined funded adapter/native-guard R5 source passed whole correspondence review; all420 source Sites need the
-   independent census, immutable binding and whole combined proof. Recipe/resource/renderer and model/job
+   The combined funded adapter/native-guard R5 source passed whole correspondence review; all420 source Sites now have
+   an accepted conditional census. Immutable binding and whole combined proof, recipe/resource/renderer and model/job
    integration remain unfinished. A finite native timing probe
    passed both compiler profiles: each checked22,284 queries over96maps and six rates; archived source/results
    are `docs/research/artifacts/2026-11-05-musical-query-fp-profile-r1/`. This is not whole-equivalence proof.
@@ -70,8 +70,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    declaration reorder repairs the full-header C4324 failure without suppression;37 selected public
    type layouts were independently checked from compiler constants. No combined adapter was executed.
    A separate fixed-file metadata reader passed for21 types/99 declared fields; this supplies no runtime
-   layout or payload-fit credit. Fresh whole numeric review rejected23 production Site packets;
-   the complete census is being rebuilt from operand ledgers before another independent review.
+   layout or payload-fit credit. The complete production census R5 passed fresh whole independent source review;
+   actual native/resource qualification, immutable binding and public recipe remain held.
    R11's tuple metadata replacement passed5,331 independent functional source checks against its
    provisional input set; final union, new census/lifetime proof, binding and execution remain held.
    The separate metadata successor also passed26 types/112 declared fields, including Tuple2, the
@@ -83,8 +83,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Corrected writer component R3 passed198 independent checks, including cleanup retry arrays and diagnostic
    owners; complete cold/runtime/profile/phase joins and the32MiB resource gate remain held.
    R5's conditional all-input/source-object argument passed18,197 independent checks; actual native
-   binding/funding/resources/integration remain held. Whole production census R4 review is REVISE;
-   its complete R5 successor is under fresh independent review, including all420 bodies/51 helpers.
+   binding/funding/resources/integration remain held. Whole production census R4 review remains REVISE;
+   its complete R5 successor passed5,713 independent checks over420 bodies/51 helpers/38 schedules/12 query terms.
    R13 is a separate unrun source successor for typed preflight counters and streamed dependency parsing;
    its whole functional review is in progress and all target execution guards remain false.
    The narrow candidate observation/restoration lemma passed13,368 independent checks; actual errno,
@@ -109,6 +109,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Accept the complete conditional production source census
+
+- Archived78 author/failed-attempt/boundary/review records. Fresh whole R5 review passed5,713 checks/65 seals over420 bodies,51 helpers,38 schedules and12 query terms; old190/78/13 remain exact.
+- R4's missing conditional, result-type conversions and vector-base reads were corrected in a full successor. All other411 rows were independently reviewed; no unflagged row or rounding slack was accepted by default.
+- Conditional source-work upper only: actual trace, selected ABI/native/allocator/lifetime resources, immutable Data/binding/public recipe and execution remain held. Continue the complete R13 census/resource proof headlessly.
 
 ## 2026-11-06 - Preserve bounded integer and FileInfo ownership
 

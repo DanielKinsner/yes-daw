@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261105-musical-funded-legacy-adapter-r4-census-r4\build-census.py", line 31, in <module>
+    source_pins=[pin(SOURCE/n) for n in source_names]
+                 ~~~^^^^^^^^^^
+  File "C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261105-musical-funded-legacy-adapter-r4-census-r4\build-census.py", line 24, in pin
+    def pin(p):return dict(path=p.relative_to(ROOT).as_posix(),bytes=p.stat().st_size,sha256=digest(p))
+                                                                     ~~~~~~^^
+  File "C:\Users\SM - Dan\AppData\Local\Programs\Python\Python313\Lib\pathlib\_local.py", line 515, in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified: 'C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-legacy-adapter-source-r4\\correspondence.json'

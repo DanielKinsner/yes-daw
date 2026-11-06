@@ -1,0 +1,65 @@
+{
+  "schema": "PRODUCTION_QUALIFIED_ID_BOUNDARY_INDEPENDENT_REVIEW_PINS_R1",
+  "inputs": [
+    {
+      "path": "build-ci/20261105-production-operation-boundary-prep/proposal.md",
+      "bytes": 4235,
+      "sha256": "95DF3ADCF99C6080CEB6709513E69BB5EBEFFB9F64A5C9D19882D9D19F1669A2"
+    },
+    {
+      "path": "build-ci/20261105-production-operation-boundary-independent-review.json",
+      "bytes": 2676,
+      "sha256": "6781D647426C059D8BB884A77FCE9711E69A355AF68C4A7735E6D391864CEFC5"
+    },
+    {
+      "path": "build-ci/20261105-production-operation-boundary-census-conventions.md",
+      "bytes": 2323,
+      "sha256": "404E214B31AA1F1FA273224DCF28355C1DB65E3798635416D802702E2458613A"
+    },
+    {
+      "path": "build-ci/20261105-production-query-sdk-boundary-clarification.md",
+      "bytes": 2484,
+      "sha256": "709B8A438D258531E33B87266DC9980FB0B356E19BDA2A1DF74714298C17ACA4"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/formation-r8.h",
+      "bytes": 81190,
+      "sha256": "DCCF77D0F7F7B781D3E7731B721C7CBA5D377489780B68516C8B931D950542B2"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/window-query.h",
+      "bytes": 48648,
+      "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-profile.h",
+      "bytes": 6189,
+      "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-census-r3/census.json",
+      "bytes": 910543,
+      "sha256": "3867588D746FD95D1445CF07A24D4C099777B248B195B85D48960B75097C2D5D"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-numeric-independent-review-r3/review.json",
+      "bytes": 9257,
+      "sha256": "D17D9F7A991AC706B1523C1E5E38D6D844CA6BEA23C6949D3BDD7EC950E67DB2"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-numeric-independent-review-r3/evidence/source-ledgers.json",
+      "bytes": 44926,
+      "sha256": "CB0C8E65DCA33B835B3E020E73D5322E05604E9D3F729158E2AD83226D56395B"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261106-production-qualified-id-boundary-independent-review-r1/review.json",
+      "bytes": 7493,
+      "sha256": "8DF90E047134D1508BB22C1E5AF1E6209756DDBDC111D3BE73F6077A1E7F0815"
+    }
+  ],
+  "all_input_hashes_rechecked": true,
+  "old_seals_preserved": true,
+  "no_finalprices_or_sourcechange": true
+}

@@ -1,0 +1,3213 @@
+{
+  "schema": "UNACCEPTED_EXPLICIT_ALL51_HELPER_OPERANDS_R5",
+  "predecessor_sha256": "BF7EBAD202388F7DB5B6BBAE98D10901C3F923C4822600710E6EEE9C1375468D",
+  "helpers": {
+    "I": {
+      "tuple": [
+        1,
+        1,
+        0,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 5,
+      "source": "formation-r8.h:723-725",
+      "ordered_parts": [
+        {
+          "source_operation": "enum parameter destination,body read,explicit nonidentity enum cast,own return",
+          "vector": [
+            1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "D": {
+      "tuple": [
+        4,
+        2,
+        1,
+        2,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 13,
+      "source": "formation-r8.h:727-731",
+      "ordered_parts": [
+        {
+          "source_operation": "two incoming scalar destinations",
+          "vector": [
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "b>max()-a: two body reads,subtraction,comparison,visible max H/Z",
+          "vector": [
+            2,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "return a+b and owned function entry/return",
+          "vector": [
+            2,
+            0,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "M": {
+      "tuple": [
+        6,
+        3,
+        2,
+        4,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 19,
+      "source": "formation-r8.h:732-738",
+      "ordered_parts": [
+        {
+          "source_operation": "two incoming scalar destinations",
+          "vector": [
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "divisor=a|static_cast<U64>(a==0)",
+          "vector": [
+            2,
+            1,
+            1,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "b>max()/divisor",
+          "vector": [
+            2,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "return a*b and owned entry/return",
+          "vector": [
+            2,
+            0,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "E": {
+      "tuple": [
+        1,
+        3,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 6,
+      "source": "formation-r8.h:740",
+      "ordered_parts": [
+        {
+          "source_operation": "phase scalar parameter and direct two-field aggregate result,own H/Z",
+          "vector": [
+            1,
+            3,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "Bounds": {
+      "tuple": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 4,
+      "source": "formation-r8.h:561-565,726",
+      "ordered_parts": [
+        {
+          "source_operation": "Ledger.bounds and Catalogue.reviewed visible owned calls,reference result only",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "reviewedData_ is a bare static data identifier. No written& or selector; no referred443-cell copy."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "P": {
+      "tuple": [
+        25,
+        11,
+        3,
+        30,
+        0,
+        8,
+        8,
+        0,
+        0,
+        0
+      ],
+      "price": 85,
+      "source": "formation-r8.h:739,741-753",
+      "ordered_parts": [
+        {
+          "source_operation": "cost(site): two site reads,returned .sites[] scalar read plus caller site read; two parameter destinations;.sites/subscript/enumcast;cost/ix/Bounds HZ",
+          "vector": [
+            4,
+            2,
+            0,
+            3,
+            0,
+            4,
+            4,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "amount local first destination",
+          "vector": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "fund.phase->ix->p: actual field/body reads,two destinations,field/cast",
+          "vector": [
+            2,
+            2,
+            0,
+            2,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "three complete admitted guards,including max",
+          "vector": [
+            8,
+            0,
+            3,
+            10,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "remaining/reserved/actual updates: actual target/index/amount reads,destinations and written operators",
+          "vector": [
+            8,
+            3,
+            0,
+            10,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "raw.sites[ix(site)]+=1,including ix body/parameter",
+          "vector": [
+            3,
+            2,
+            0,
+            5,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "pay Site parameter and own entry/return",
+          "vector": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "No implicit selector in Bounds.reviewedData_;P has explicit fund/s field paths."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "R": {
+      "tuple": [
+        18,
+        10,
+        3,
+        17,
+        0,
+        8,
+        8,
+        0,
+        0,
+        0
+      ],
+      "price": 64,
+      "source": "formation-r8.h:903-911",
+      "ordered_parts": [
+        {
+          "source_operation": "cost(site): two site reads,returned .sites[] scalar read plus caller site read; two parameter destinations;.sites/subscript/enumcast;cost/ix/Bounds HZ",
+          "vector": [
+            4,
+            2,
+            0,
+            3,
+            0,
+            4,
+            4,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "amount local and incoming Site destination,own entry/return",
+          "vector": [
+            0,
+            2,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "trace.handedOff|(amount>trace.unused)",
+          "vector": [
+            3,
+            0,
+            2,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "trace.actual=add(trace.actual,amount),all caller/body/destination operations",
+          "vector": [
+            6,
+            3,
+            1,
+            4,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "trace.unused-=amount",
+          "vector": [
+            2,
+            1,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "trace.raw.sites[ix(site)]+=1,including ix body/parameter",
+          "vector": [
+            3,
+            2,
+            0,
+            5,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "S": {
+      "tuple": [
+        26,
+        15,
+        3,
+        25,
+        0,
+        8,
+        8,
+        0,
+        0,
+        0
+      ],
+      "price": 85,
+      "source": "formation-r8.h:754-762",
+      "ordered_parts": [
+        {
+          "source_operation": "phase/amount incoming destinations and own entry/return",
+          "vector": [
+            0,
+            2,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "two admitted guards,including actual phase/ix transfer",
+          "vector": [
+            6,
+            1,
+            2,
+            7,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "from.remaining-=amount",
+          "vector": [
+            2,
+            1,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "reserved[from.phase]-=amount with own ix",
+          "vector": [
+            4,
+            2,
+            0,
+            6,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "reserved[phase] destination ix and explicit designators",
+          "vector": [
+            2,
+            2,
+            0,
+            4,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "reserved[phase] RHS and checked add",
+          "vector": [
+            8,
+            3,
+            1,
+            6,
+            0,
+            3,
+            3,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "into={amount,phase}:actual two temporary destinations and memberwise assignment",
+          "vector": [
+            4,
+            4,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "T": {
+      "tuple": [
+        10,
+        6,
+        1,
+        14,
+        0,
+        5,
+        5,
+        0,
+        0,
+        0
+      ],
+      "price": 41,
+      "source": "formation-r8.h:763-767",
+      "ordered_parts": [
+        {
+          "source_operation": "terminal phase/index destination subtree",
+          "vector": [
+            2,
+            2,
+            0,
+            5,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "terminal RHS,remaining and checked add subtree",
+          "vector": [
+            8,
+            3,
+            1,
+            8,
+            0,
+            3,
+            3,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "fund.remaining=0 and own entry/return",
+          "vector": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "Q": {
+      "tuple": [
+        1,
+        2,
+        0,
+        4,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 11,
+      "source": "formation-r8.h:1601-1602",
+      "ordered_parts": [
+        {
+          "source_operation": "index parameter/body read,launder pointer parameter,subscript/.bytes/cast/deref,own and SDK HZ",
+          "vector": [
+            1,
+            2,
+            0,
+            4,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "slots_ unqualified base is not a selector."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "V": {
+      "tuple": [
+        133,
+        101,
+        18,
+        166,
+        1,
+        17,
+        17,
+        0,
+        0,
+        0
+      ],
+      "price": 453,
+      "source": "formation-r8.h:922-933",
+      "ordered_parts": [
+        {
+          "source_operation": "sixteen reached id.bytes SDK-array rows,mask,three diagnostics,index increment",
+          "vector": [
+            112,
+            96,
+            0,
+            160,
+            0,
+            16,
+            16,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "17 loop tests,initial bits/i/entry,post-loop diagnostics and bits predicate,own HZ",
+          "vector": [
+            21,
+            5,
+            18,
+            6,
+            1,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "J": {
+      "tuple": [
+        165,
+        117,
+        33,
+        198,
+        1,
+        33,
+        33,
+        0,
+        0,
+        0
+      ],
+      "price": 580,
+      "source": "formation-r8.h:934-945",
+      "ordered_parts": [
+        {
+          "source_operation": "sixteen complete paired SDK-array rows,compare/eager mask,diagnostics/increment",
+          "vector": [
+            144,
+            112,
+            16,
+            192,
+            0,
+            32,
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "17 loop tests,initial equal/i/entry,post-loop diagnostics and named return,own HZ",
+          "vector": [
+            21,
+            5,
+            17,
+            6,
+            1,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "C": {
+      "tuple": [
+        1092,
+        1099,
+        0,
+        6,
+        0,
+        5,
+        5,
+        0,
+        0,
+        0
+      ],
+      "price": 2207,
+      "source": "formation-r8.h:1303,1348-1352",
+      "ordered_parts": [
+        {
+          "source_operation": "formed.receipt553-cell member copy and its written RHS selector",
+          "vector": [
+            553,
+            553,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "formed.failureTail538-cell member copy and written RHS selector",
+          "vector": [
+            538,
+            538,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "formed.state pointer read/destination and RHS selector",
+          "vector": [
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "three flag initializations",
+          "vector": [
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "Exchange default and actual atomic Signal destination/parameter",
+          "vector": [
+            0,
+            2,
+            0,
+            0,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "formed.state=null;formed.failureTail.handedOff=true",
+          "vector": [
+            0,
+            2,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "owned Control constructor entry/return",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "state_,receipt_,failureTail_,armed_,terminalAcquired_,resultLive_ initializer labels:0X",
+        "Exchange.signal DMI is real initialization,not an implicit member selector."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "U": {
+      "tuple": [
+        554,
+        555,
+        0,
+        0,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 1113,
+      "source": "formation-r8.h:574-575",
+      "ordered_parts": [
+        {
+          "source_operation": "receipt553-cell copy and selected copy HZ",
+          "vector": [
+            553,
+            553,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "disposition incoming scalar destination/body read/member destination",
+          "vector": [
+            1,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "owned Readout constructor entry/return",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "receipt_,disposition_ are initializer labels,not written selectors."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "L": {
+      "tuple": [
+        26,
+        12,
+        3,
+        33,
+        0,
+        9,
+        9,
+        0,
+        0,
+        0
+      ],
+      "price": 92,
+      "source": "Actual typed role-life pay caller",
+      "ordered_parts": [
+        {
+          "source_operation": "written s.roleLife_ plus builtin subscript",
+          "vector": [
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {
+        "P": 1,
+        "I": 1
+      },
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "Ophys": {
+      "tuple": [
+        30,
+        14,
+        4,
+        35,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "price": 103,
+      "source": "formation-r8.h:1355-1362,actual outside .ownerEvent caller",
+      "ordered_parts": [
+        {
+          "source_operation": "two Site destinations,own HZ,state guard,actual pointer/physical reads and written caller/deref/arrow/subscript",
+          "vector": [
+            4,
+            2,
+            1,
+            4,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {
+        "P": 1,
+        "I": 1
+      },
+      "bare_own_identifiers": [
+        "Three state_ bare bases in guard/pay arguments add no selector."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "Ofail": {
+      "tuple": [
+        20,
+        12,
+        4,
+        18,
+        0,
+        9,
+        9,
+        0,
+        0,
+        0
+      ],
+      "price": 72,
+      "source": "formation-r8.h:1355-1365,actual outside .ownerEvent caller",
+      "ordered_parts": [
+        {
+          "source_operation": "two Site destinations,own HZ,state/failed reads,guard,and outside written selector",
+          "vector": [
+            2,
+            2,
+            1,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {
+        "R": 1
+      },
+      "bare_own_identifiers": [
+        "state_ and failureTail_ are bare bases,not selectors."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "Pdirect": {
+      "tuple": [
+        25,
+        11,
+        3,
+        31,
+        0,
+        8,
+        8,
+        0,
+        0,
+        0
+      ],
+      "price": 86,
+      "source": "Actual direct non-role typed slice caller",
+      "ordered_parts": [
+        {
+          "source_operation": "actual s.slice selector",
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {
+        "P": 1
+      },
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "Fixed": {
+      "tuple": [
+        26,
+        12,
+        3,
+        31,
+        0,
+        9,
+        9,
+        0,
+        0,
+        0
+      ],
+      "price": 90,
+      "source": "legacy-adapter.h:26-27/window-query.h:227-228",
+      "ordered_parts": [
+        {
+          "source_operation": "wrapper Site destination/body read,actual typed slice selector,own HZ",
+          "vector": [
+            1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {
+        "P": 1
+      },
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "NativePay": {
+      "tuple": [
+        27,
+        13,
+        3,
+        31,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "price": 94,
+      "source": "window-query.h:303-304",
+      "ordered_parts": [
+        {
+          "source_operation": "NativeSession static wrapper Site destination/body read,own HZ;no unqualified method selector",
+          "vector": [
+            1,
+            1,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {
+        "Fixed": 1
+      },
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "Access": {
+      "tuple": [
+        0,
+        1,
+        0,
+        2,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 7,
+      "source": "worker-result.h:24;formation-r8.h:696-700,1323,1347",
+      "ordered_parts": [
+        {
+          "source_operation": "launder pointer destination,actual cast/deref,owned and SDK HZ",
+          "vector": [
+            0,
+            1,
+            0,
+            2,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "bytes_,parentBytes_,metadataBytes_,legacyOptionsBytes_,planBytes_,resultBytes_ bare array bases:0X."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "Minimum": {
+      "tuple": [
+        3,
+        2,
+        1,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 8,
+      "source": "legacy-adapter.h:25",
+      "ordered_parts": [
+        {
+          "source_operation": "two parameter destinations,two comparison reads,selected return read,own HZ",
+          "vector": [
+            3,
+            2,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "RestorePrefix": {
+      "tuple": [
+        1,
+        0,
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 5,
+      "source": "window-query.h:611-616",
+      "ordered_parts": [
+        {
+          "source_operation": "state_ pointer body read,*state_,check returned guard,actual restore entry/return",
+          "vector": [
+            1,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "state_ is unqualified;each explicit/destructor restore call sponsors this prefix even on check refusal."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "NativeControlLeaf": {
+      "tuple": [
+        3,
+        9,
+        0,
+        6,
+        0,
+        3,
+        3,
+        0,
+        0,
+        0
+      ],
+      "price": 24,
+      "source": "native-observer.cpp:30-38",
+      "ordered_parts": [
+        {
+          "source_operation": "NativeControl whole zero3,explicit stores3,named return3/3;three dots,cast,and,ordinary complement;SDK/own/copy HZ",
+          "vector": [
+            3,
+            9,
+            0,
+            6,
+            0,
+            3,
+            3,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "NativeModuleLeaf": {
+      "tuple": [
+        7,
+        15,
+        1,
+        9,
+        0,
+        3,
+        3,
+        0,
+        0,
+        0
+      ],
+      "price": 38,
+      "source": "native-observer.cpp:40-73 both exact anchor leaves",
+      "ordered_parts": [
+        {
+          "source_operation": "PODzero3,entry/module locals,three API params/ok local,three result stores,named return;written flags OR retained",
+          "vector": [
+            7,
+            15,
+            1,
+            9,
+            0,
+            3,
+            3,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "NativeImageLeaf": {
+      "tuple": [
+        8,
+        19,
+        1,
+        10,
+        0,
+        4,
+        4,
+        0,
+        0,
+        0
+      ],
+      "price": 46,
+      "source": "native-observer.cpp:75-90",
+      "ordered_parts": [
+        {
+          "source_operation": "incoming module,POD3/nativeInfo3 zeroing,process/API/ok locals/params,result stores,named return;ordinary nonidentity DWORD sizeof cast retained",
+          "vector": [
+            8,
+            19,
+            1,
+            10,
+            0,
+            4,
+            4,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "NativePageLeaf": {
+      "tuple": [
+        16,
+        37,
+        0,
+        18,
+        0,
+        3,
+        3,
+        0,
+        0,
+        0
+      ],
+      "price": 77,
+      "source": "native-observer.cpp:92-112",
+      "ordered_parts": [
+        {
+          "source_operation": "incoming address,POD8/MBI8 zeroing,three API params/return,all result stores/named return;three size_t-to-U64 casts conditional d including expected sizeof",
+          "vector": [
+            16,
+            37,
+            0,
+            18,
+            0,
+            3,
+            3,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "NativeReadLeaf": {
+      "tuple": [
+        17,
+        46,
+        0,
+        21,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0
+      ],
+      "price": 104,
+      "source": "native-observer.cpp:117-148",
+      "ordered_parts": [
+        {
+          "source_operation": "snapshot13zero,12direct stores,two locals,six API parameter cells,named13-cell return;written ordinary complement retained",
+          "vector": [
+            17,
+            46,
+            0,
+            21,
+            0,
+            10,
+            10,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "NativeRestoreLeaf": {
+      "tuple": [
+        7,
+        9,
+        3,
+        14,
+        0,
+        7,
+        7,
+        0,
+        0,
+        0
+      ],
+      "price": 47,
+      "source": "native-observer.cpp:155-175",
+      "ordered_parts": [
+        {
+          "source_operation": "four locals/four SDK scalar-pointer parameters/errno store;seven body values;all written status ops including ordinary complement",
+          "vector": [
+            7,
+            9,
+            3,
+            14,
+            0,
+            7,
+            7,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "OldRow": {
+      "tuple": [
+        1,
+        1,
+        0,
+        3,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 7,
+      "source": "window-query.h:217-219",
+      "ordered_parts": [
+        {
+          "source_operation": "id parameter/body read,.rows/native subscript/enum cast,own HZ",
+          "vector": [
+            1,
+            1,
+            0,
+            3,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "data_ bare static base:0X;reference return does not copy10 cells."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "Math1": {
+      "tuple": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 3,
+      "source": "Actual selected bit_width/isfinite/floor/log1p leaf caller",
+      "ordered_parts": [
+        {
+          "source_operation": "one actual scalar parameter destination and visible SDK HZ;caller read/expressions separate",
+          "vector": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "CommitOld": {
+      "tuple": [
+        10,
+        6,
+        0,
+        14,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 34,
+      "source": "window-query.h:283-291",
+      "ordered_parts": [
+        {
+          "source_operation": "amount parameter",
+          "vector": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "phase field/ix/local",
+          "vector": [
+            2,
+            2,
+            0,
+            3,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "query remaining update",
+          "vector": [
+            2,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "reserved and actual updates",
+          "vector": [
+            6,
+            2,
+            0,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "owned entry/return",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "CommitPrepared": {
+      "tuple": [
+        17,
+        8,
+        0,
+        33,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 62,
+      "source": "legacy-adapter.h:212-225",
+      "ordered_parts": [
+        {
+          "source_operation": "phase ix/context local,owned entry/return",
+          "vector": [
+            1,
+            2,
+            0,
+            1,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "prepared-index attempt remaining",
+          "vector": [
+            3,
+            1,
+            0,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "reserved/actual",
+          "vector": [
+            6,
+            2,
+            0,
+            10,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "legacy contribution",
+          "vector": [
+            2,
+            1,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "raw actual attempt charge",
+          "vector": [
+            3,
+            1,
+            0,
+            7,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "raw actual invocation count",
+          "vector": [
+            2,
+            1,
+            0,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "AppendPrefix": {
+      "tuple": [
+        3,
+        4,
+        2,
+        5,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 18,
+      "source": "window-query.h:765-773",
+      "ordered_parts": [
+        {
+          "source_operation": "full incoming destination,selected and amount first destinations,full/selected caller reads",
+          "vector": [
+            2,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "source_operation": "two written native.check selectors/two returned predicates,owned append HZ",
+          "vector": [
+            0,
+            0,
+            2,
+            2,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {
+        "OldRow": 1
+      },
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "BOOL_HANDLE": {
+      "tuple": [
+        1,
+        0,
+        1,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 4,
+      "source": "Actual shared-owner bool/null predicate",
+      "ordered_parts": [
+        {
+          "source_operation": "one logical stored owner read,comparison,SDK HZ",
+          "vector": [
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "ARROW_HANDLE": {
+      "tuple": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 4,
+      "source": "Actual written shared-owner arrow",
+      "ordered_parts": [
+        {
+          "source_operation": "logical stored pointer read,written arrow,SDK HZ",
+          "vector": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "HDEFAULT": {
+      "tuple": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 2,
+      "source": "Actual SDK empty or move construction case,explicit selected caller recorded per Site",
+      "ordered_parts": [
+        {
+          "source_operation": "visible SDK construction HZ;neither empty nor move construction introduces O",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "HDROP": {
+      "tuple": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+      ],
+      "price": 3,
+      "source": "Actual SDK owner destruction,including empty/moved-from",
+      "ordered_parts": [
+        {
+          "source_operation": "visible SDK destruction HZ and one adopted drop O",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "HMOVEASSIGN": {
+      "tuple": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+      ],
+      "price": 3,
+      "source": "Actual SDK owner move assignment",
+      "ordered_parts": [
+        {
+          "source_operation": "visible assignment HZ and destination-drop O,even empty",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "WINDOW_CTOR": {
+      "tuple": [
+        0,
+        5,
+        0,
+        0,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 9,
+      "source": "src/engine/MusicalAudioWindow.h plain default initialization",
+      "ordered_parts": [
+        {
+          "source_operation": "five scalar DMIs and own/member constructor HZ",
+          "vector": [
+            0,
+            5,
+            0,
+            0,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "WINDOW_DTOR": {
+      "tuple": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        2,
+        1,
+        0,
+        0
+      ],
+      "price": 5,
+      "source": "src/engine/MusicalAudioWindow.h actual destruction",
+      "ordered_parts": [
+        {
+          "source_operation": "own/member destructor HZ and one SDK drop O",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            2,
+            1,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "MAX2": {
+      "tuple": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 2,
+      "source": "Actual selected numeric_limits/max_size visible call",
+      "ordered_parts": [
+        {
+          "source_operation": "visible constant-valued SDK HZ,no literal R",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "EXT3": {
+      "tuple": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 3,
+      "source": "Actual SDK size/empty/begin/end logical extent/address",
+      "ordered_parts": [
+        {
+          "source_operation": "one logical stored extent/address read and SDK HZ,caller selector outside",
+          "vector": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "MoveRef": {
+      "tuple": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 3,
+      "source": "Actual selected std::move call",
+      "ordered_parts": [
+        {
+          "source_operation": "explicit reference cast and visible SDK HZ,no referent copy",
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "ReadoutPrebodyDMI": {
+      "tuple": [
+        0,
+        4,
+        0,
+        0,
+        0,
+        3,
+        3,
+        0,
+        0,
+        0
+      ],
+      "price": 10,
+      "source": "Actual default-init LegacyReadout before WorkerLegacyResult Cell/Take bodies",
+      "ordered_parts": [
+        {
+          "source_operation": "four nested status DMIs and three actual implicit ctor HZ,before later body pay",
+          "vector": [
+            0,
+            4,
+            0,
+            0,
+            0,
+            3,
+            3,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "GetterScalar": {
+      "tuple": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 3,
+      "source": "Actual selected engine scalar getter",
+      "ordered_parts": [
+        {
+          "source_operation": "one scalar body read,owned getter HZ",
+          "vector": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "Returned bare member is a real R,not selectorX."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "GetterReference": {
+      "tuple": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 2,
+      "source": "Actual selected engine reference getter",
+      "ordered_parts": [
+        {
+          "source_operation": "owned getter HZ,no scalar referent read/copy",
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "Returned bare member has no invented address/selectorX."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "GetterTwo": {
+      "tuple": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 8,
+      "source": "Actual selected engine two-cell lvalue value getter",
+      "ordered_parts": [
+        {
+          "source_operation": "two source/destination cells,getter and selected copy HZ",
+          "vector": [
+            2,
+            2,
+            0,
+            0,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "Bare member lvalue is copied;no generated per-field designator."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "WindowValid": {
+      "tuple": [
+        1,
+        0,
+        1,
+        0,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 6,
+      "source": "src/engine/MusicalAudioWindow.h:223",
+      "ordered_parts": [
+        {
+          "source_operation": "bare clock owner bool read/predicate,getter and SDK comparison HZ",
+          "vector": [
+            1,
+            0,
+            1,
+            0,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "clock_ bare base is not X."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "OwnerBefore": {
+      "tuple": [
+        2,
+        0,
+        1,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "price": 5,
+      "source": "Actual selected shared-owner ordering boundary",
+      "ordered_parts": [
+        {
+          "source_operation": "two logical owner reads/comparison,one SDK HZ",
+          "vector": [
+            2,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    },
+    "ReturnSpanValue": {
+      "tuple": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "price": 8,
+      "source": "src/engine/MusicalAudioWindow.h:162",
+      "ordered_parts": [
+        {
+          "source_operation": "vector base/extent2R2W,getter and selected span range-construction HZ",
+          "vector": [
+            2,
+            2,
+            0,
+            0,
+            0,
+            2,
+            2,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "helper_coefficients": {},
+      "bare_own_identifiers": [
+        "rows_ is bare;no .rows traversal,vector copy,O,extra destination or prezero."
+      ],
+      "bare_identifier_selector_X": 0,
+      "d_vector": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scope": "Complete proposed helper/source case, not an accepted tariff or SDK CPU/native/resource proof."
+    }
+  },
+  "scope": "All51 source cases re-expanded/reviewable;no positive acceptance transferred. No executable helper is imported."
+}

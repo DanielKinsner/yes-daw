@@ -1,0 +1,142 @@
+{
+  "schema": "PRODUCTION_QUALIFIED_ID_BOUNDARY_INDEPENDENT_REVIEW_R1",
+  "reviewer": "/root/clock_r9_numeric_review",
+  "verdict": "ACCEPT_B_QUALIFICATION_ALONE_X0_CLASS_STATIC_AND_NAMESPACE_UNCHANGED_LOGICAL_BOUNDARY",
+  "options": {
+    "A": "REJECT:class-static qualified-idX1 butnamespace qualified-idX0 addsa scope-category tariffwithoutanactual runtimeobject-memberstep.",
+    "B": "RECOMMENDED:bothqualified-id namingsX0;actualwrittenaddress/member/subscript/dereference/nontrivialconversionandrealR/W/copy/callactionsremain."
+  },
+  "contract_lineage": {
+    "proposal": "95DF3ADCF99C6080CEB6709513E69BB5EBEFFB9F64A5C9D19882D9D19F1669A2",
+    "adoption_review": "6781D647426C059D8BB884A77FCE9711E69A355AF68C4A7735E6D391864CEFC5",
+    "conventions": "404E214B31AA1F1FA273224DCF28355C1DB65E3798635416D802702E2458613A",
+    "interpretation": "Existinglogicalsourceboundary:actualaddressstepsandexplicitmemberselectioncount,notlexicalscopequalifiers. Nodeclarationofnewnamespace/class tariff;AcceptedADRsunchanged."
+  },
+  "reasoning": [
+    "The :: nested-name-specifier chooseswhichdeclarationanid-expressiondenotes;itdoesnottraversearuntimeobjectbase.",
+    "Class::staticData isqualifiednamingofstaticstorage,notobj.memberpostfixaccess;std::nothrownamespacequalificationhasthesameabsenceofanobject-memberstep.",
+    "Actualscalarstoredvaluereads/writesremainR/W,andactualaggregatecopies/constructors/assignment/calleeH/Z/ownership/allocationprimitivesremain. Aconst-referenceoperanddoesnotcopyitsreferent.",
+    "Actualwritten . / -> / & / [] / explicitdereference /nontrivialcastsremainunder404E;donotcountanadditionalimplicitaddressmaterializationorrewrittenoperatorstep.",
+    "Thislogicalclassificationdoesnotclaimzeromachineinstructions/relocations/TLS/dynamicinitialization/SDKCPUorresources.Staticdatadefinition/constinit/lifetime/bindingobligationsremain."
+  ],
+  "concrete_cases": [
+    {
+      "source": "formation-r8.h:588",
+      "expression": "::operator new(n,std::nothrow)",
+      "qualification_X": 0,
+      "effect": "NoXfor::operatorneworstd::nothrownaming;retainactualntransfer,call/return/allocationattemptandotherrealbodywork.Noaddedreferentcopyfortagreference."
+    },
+    {
+      "source": "window-query.h:324",
+      "expression": "const auto& binding = NativeBinding::data_;",
+      "qualification_X": 0,
+      "effect": "Neither::namingnorreferencebindingaddsaselectororaggregatecopy."
+    },
+    {
+      "expression": "NativeBinding::data_.compute",
+      "qualification_X": 0,
+      "written_member_selection_X": 1,
+      "effect": "Onlywritten .compute addsoneX;actualscalar/copyuseelsewherestays."
+    },
+    {
+      "expression": "&Class::staticData",
+      "qualification_X": 0,
+      "written_address_X": 1,
+      "effect": "Chargeactualwritten&once,notasecondscopequalificationfee."
+    },
+    {
+      "expression": "obj.staticData / ptr->staticData",
+      "qualification_X": 0,
+      "written_member_selection_X": 1,
+      "effect": "Retainwrittenselectorandactualobjectexpressionsideeffects;staticdesignationdoesnoterasewrittenaccess."
+    },
+    {
+      "source": "formation-r8.h:545 and726",
+      "expression": "return reviewedData_; / return Catalogue::reviewed();",
+      "qualification_X": 0,
+      "effect": "RetainactualowncalleeH/Z;barestaticidentifier/staticmethodqualificationdoesnotaddX."
+    }
+  ],
+  "earlier_partial_lineage_correction": {
+    "sealed_R3_whole_verdict_stays": "REVISE_COMPLETE_SOURCE_BOUNDARY_CENSUS",
+    "earlier_retained_component": "MyR3partialQueryNativeCompareX24 retainedoneXforNativeBinding::data_.Thatretentionwasunsupportedundertheunchangedexplicitselectionrule.",
+    "necessary_body_X_retaining_other_components": 23,
+    "derivation": "14writtenvalue/bindingfieldselections +8eager& +1written*state_ =23;noimplicitstate_/initialFma3Selection_selectorandno::data_selector.",
+    "not_new_full_price_acceptance": true,
+    "old_reports_and_subjects_preserved": true,
+    "propagation": "FP/newwholecensusauthor mustinventorythisfamilyacrossall420bodies/51helpers(includingBounds/OldRow/callers)andrecomputeall dependents;do notapplypartialslackorchange190protectedoldrows."
+  },
+  "primary_source_semantics": [
+    {
+      "url": "https://eel.is/c++draft/expr.prim.id.qual",
+      "claim": "qualified-id is nested-name-specifier plusunqualified-id;nestedname designates scopeandqualifiedname denotesentity.Noobjectbaseevaluationisintroducedbyclass/namespacequalificationalone."
+    },
+    {
+      "url": "https://eel.is/c++draft/expr.ref",
+      "claim": "Classmemberaccess syntaxusesanobjectexpression followedby . or ->. Actualobjectexpression evaluationremains,includingwrittenaccess tostaticdata;qualified-idaloneisdifferent."
+    },
+    {
+      "url": "https://eel.is/c++draft/class.static.data",
+      "claim": "Classstaticdatamemberisnotapartofclassobjectsubobjects andcanexistevenwithoutanyclassobject. Staticstorage/sourceinitialization obligationsremainseparate."
+    }
+  ],
+  "verified_files": [
+    {
+      "path": "build-ci/20261105-production-operation-boundary-prep/proposal.md",
+      "bytes": 4235,
+      "sha256": "95DF3ADCF99C6080CEB6709513E69BB5EBEFFB9F64A5C9D19882D9D19F1669A2"
+    },
+    {
+      "path": "build-ci/20261105-production-operation-boundary-independent-review.json",
+      "bytes": 2676,
+      "sha256": "6781D647426C059D8BB884A77FCE9711E69A355AF68C4A7735E6D391864CEFC5"
+    },
+    {
+      "path": "build-ci/20261105-production-operation-boundary-census-conventions.md",
+      "bytes": 2323,
+      "sha256": "404E214B31AA1F1FA273224DCF28355C1DB65E3798635416D802702E2458613A"
+    },
+    {
+      "path": "build-ci/20261105-production-query-sdk-boundary-clarification.md",
+      "bytes": 2484,
+      "sha256": "709B8A438D258531E33B87266DC9980FB0B356E19BDA2A1DF74714298C17ACA4"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/formation-r8.h",
+      "bytes": 81190,
+      "sha256": "DCCF77D0F7F7B781D3E7731B721C7CBA5D377489780B68516C8B931D950542B2"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/window-query.h",
+      "bytes": 48648,
+      "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-profile.h",
+      "bytes": 6189,
+      "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-census-r3/census.json",
+      "bytes": 910543,
+      "sha256": "3867588D746FD95D1445CF07A24D4C099777B248B195B85D48960B75097C2D5D"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-numeric-independent-review-r3/review.json",
+      "bytes": 9257,
+      "sha256": "D17D9F7A991AC706B1523C1E5E38D6D844CA6BEA23C6949D3BDD7EC950E67DB2"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-numeric-independent-review-r3/evidence/source-ledgers.json",
+      "bytes": 44926,
+      "sha256": "CB0C8E65DCA33B835B3E020E73D5322E05604E9D3F729158E2AD83226D56395B"
+    }
+  ],
+  "scope": "Narrowindependent source-semanticinterpretationandlineageonly.Notnewnumericalcensus,ABI/storage,fit,bindingornativequalification.",
+  "execution": {
+    "ordinaryfiletext/hash/JSONchecksandprimarydraftread": true,
+    "compiler_AST_parser_target_native_program_test_stage_GUI_Git": false
+  },
+  "no_subject_or_accepted_ADR_edit": true,
+  "price_Data_fit_GO": "HOLD"
+}
