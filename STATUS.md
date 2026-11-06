@@ -81,6 +81,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-06 - Preserve bounded native-child source owners
+
+- Archived14 complete source/helper/input records after67 author checks. Conditional pieces are405,320 bytes for logical Stream/Text/cache overlap,9,864/10,104 vector payload and78,888/81,064 string payload for produce/verify.
+- The existing2MiB assertion is a source constraint, not a complete physical-frame/CRT/allocator/native or joint32MiB proof. Explicit remaining ownership/profile leaves stay HOLD; no target was compiled or run.
+- The original contract boundary is being checked without new exclusions, while R13 censusR2 and exact supervisor-protocolR2 are authored independently. Scalar evidence ca8369e passed docs-only CI42211228968; no new app behavior is enabled.
+
 ## 2026-11-06 - Preserve the whole rejected R13 source-count proposal
 
 - Archived44 complete proposal/helper/subject/critic/boundary records. Fresh independent review passed2,123 checks over74 bodies,54 families/six schedules and330 actual calls, but returned REVISE; the proposed5,536,151,256 is not accepted.

@@ -1,0 +1,134 @@
+{
+  "schema": "PINNED_SOURCE_PACKET_LOSSLESS_DELIVERY_V1",
+  "original_pins_sha256": "D665AF77E103BDFE8F2D12D81D04F9E90C3C95A430343E673AC0D8F3597C8E4A",
+  "original_verdict": "SEE_ORIGINAL_SOURCE_PACKET",
+  "scope": "Preservation of the named packet only. No new independent source/numeric/resource acceptance, fit, NOFIT, native binding, target execution or feature completion follows.",
+  "files": [
+    {
+      "file": "sources/001-contract.md",
+      "original_path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "original_bytes": 7998,
+      "original_sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-argument.md",
+      "original_path": "build-ci/20261106-clock-native-child-source-owners-r1/argument.md",
+      "original_bytes": 12341,
+      "original_sha256": "800AD9E0F558A7B8B27D0235533642F0925BA60F207A39E1FC586C871C5532D1",
+      "bytes": 12341,
+      "sha256": "800AD9E0F558A7B8B27D0235533642F0925BA60F207A39E1FC586C871C5532D1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-derive.py",
+      "original_path": "build-ci/20261106-clock-native-child-source-owners-r1/derive.py",
+      "original_bytes": 17132,
+      "original_sha256": "972FED59EC971485B2E3FABE100485B7C703E1995089B903E21B2F56DA1698EA",
+      "bytes": 17132,
+      "sha256": "972FED59EC971485B2E3FABE100485B7C703E1995089B903E21B2F56DA1698EA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-first-green-freeze.json",
+      "original_path": "build-ci/20261106-clock-native-child-source-owners-r1/first-green-freeze.json",
+      "original_bytes": 1029,
+      "original_sha256": "AF60891D04E89790C8E3178482738518C5C174F5F886CC30D798C933B4945ECC",
+      "bytes": 1029,
+      "sha256": "AF60891D04E89790C8E3178482738518C5C174F5F886CC30D798C933B4945ECC",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-own-check-receipt.json",
+      "original_path": "build-ci/20261106-clock-native-child-source-owners-r1/own-check-receipt.json",
+      "original_bytes": 492,
+      "original_sha256": "4F71D625D2F44D6DCFD95D86D336DA562FB29AF64F7C9E7FCE59E0076E4D6FDE",
+      "bytes": 492,
+      "sha256": "4F71D625D2F44D6DCFD95D86D336DA562FB29AF64F7C9E7FCE59E0076E4D6FDE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-owners.json",
+      "original_path": "build-ci/20261106-clock-native-child-source-owners-r1/owners.json",
+      "original_bytes": 33532,
+      "original_sha256": "73B9A2C4F0BACC420EA86E87F1BB7EC46098E9CB5806DD2D4B53EC97C514FDBE",
+      "bytes": 33532,
+      "sha256": "73B9A2C4F0BACC420EA86E87F1BB7EC46098E9CB5806DD2D4B53EC97C514FDBE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/007-source-pins.json",
+      "original_path": "build-ci/20261106-clock-native-child-source-owners-r1/source-pins.json",
+      "original_bytes": 4342,
+      "original_sha256": "D665AF77E103BDFE8F2D12D81D04F9E90C3C95A430343E673AC0D8F3597C8E4A",
+      "bytes": 4342,
+      "sha256": "D665AF77E103BDFE8F2D12D81D04F9E90C3C95A430343E673AC0D8F3597C8E4A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/008-clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/009-source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/010-clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/011-source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/012-source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+      "original_bytes": 503610,
+      "original_sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3",
+      "bytes": 503610,
+      "sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/013-independent_clock.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "original_bytes": 9187,
+      "original_sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/014-Time.h",
+      "original_path": "src/engine/Time.h",
+      "original_bytes": 49489,
+      "original_sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}
