@@ -1,0 +1,32 @@
+{
+  "schema": "R12_WRITER_JOIN_R2_PROPOSAL_PINS",
+  "status": "PRESERVED_PENDING_CRITIC_ORPHAN_RETRY_ARRAY_OBLIGATION_NOT_COMPLETE_FIT_OR_GO",
+  "no_target_execution": true,
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r2/argument.md",
+      "bytes": 2466,
+      "sha256": "8BB2D7F8CB4E9229215403E2BD9DE92D999AD78A3EF2075AC80FBC67534AAE07"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r2/phase-graph-input-snapshot.json",
+      "bytes": 16060,
+      "sha256": "872E24B3B7A11476AAE4949E6B0D43B54D6DD19B266FF0FA52D66A26691E5C4F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r2/seal.py",
+      "bytes": 1202,
+      "sha256": "5A19698E8F5E50ED71AEB6AE31769417B8162EFC8D04422B2F865553300F96FA"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r2/writer-join.json",
+      "bytes": 7581,
+      "sha256": "25C4167F94C8DE538861F391F2DF940D345ABD4139CD219E2ACA25DE97A047A5"
+    },
+    {
+      "path": "build-ci/20261106-derive-writer-join-r2.py",
+      "bytes": 7032,
+      "sha256": "6EA3F18EBE4A90304F97666D909E1BB9B74695BD2FAE5F4EF5600E723B5BB8C9"
+    }
+  ]
+}

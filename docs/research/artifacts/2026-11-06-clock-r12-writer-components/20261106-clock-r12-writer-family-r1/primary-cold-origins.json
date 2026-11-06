@@ -1,0 +1,64 @@
+{
+  "files": [
+    {
+      "file": "EnumUtils.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Utilities/EnumUtils.cs",
+      "bytes": 16457,
+      "sha256": "E459B42E61CA5B60CF177D4F73BE1A1E526ACE021EF4425E150800DF2F2C5EA0"
+    },
+    {
+      "file": "EnumInfo.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Utilities/EnumInfo.cs",
+      "bytes": 1645,
+      "sha256": "38C3713EAE6D221B3317C636B9D05FC0E82B3931C004314D70F33931F6AA3A59"
+    },
+    {
+      "file": "JsonToken.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/JsonToken.cs",
+      "bytes": 3175,
+      "sha256": "83199FBFDC09B8FAD2256186107BBF73A79875644A0073DF367CC0C857FB16C0"
+    },
+    {
+      "file": "Union.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Linq/src/System/Linq/Union.cs",
+      "bytes": 13431,
+      "sha256": "CA689F2B0505A86B4FADC3E150069CF915C38C6B6050229AA86F1F2AC5794C17"
+    },
+    {
+      "file": "Union.SpeedOpt.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Linq/src/System/Linq/Union.SpeedOpt.cs",
+      "bytes": 2572,
+      "sha256": "F1C98769C0000A8D5C70F1278FDE605D3FD6C645263535C613B21627CFC59751"
+    },
+    {
+      "file": "Iterator.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Linq/src/System/Linq/Iterator.cs",
+      "bytes": 4926,
+      "sha256": "8644D8A8BDA66AB24C04D9B3FCBDF625CD0C48739EC4956E118A7589FF83454B"
+    },
+    {
+      "file": "HashSet.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/HashSet.cs",
+      "bytes": 78650,
+      "sha256": "2F3C12B3EE6D7E109E1F6CD019BE8BB91DA55784E00E115D8C752B17BD4446A0"
+    },
+    {
+      "file": "HashHelpers.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/HashHelpers.cs",
+      "bytes": 5167,
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    },
+    {
+      "file": "EncoderExceptionFallback.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Text/EncoderExceptionFallback.cs",
+      "bytes": 5088,
+      "sha256": "A36E5C20E99367CF7310FCB63103AC92E90E2CADD733A37657189B72CFEE3208"
+    },
+    {
+      "file": "DecoderExceptionFallback.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Text/DecoderExceptionFallback.cs",
+      "bytes": 3795,
+      "sha256": "EFBC47C51BA51B6955F7ED0EAEDC941FA1A3ADA19293ECE3CA7C30F54D1109BA"
+    }
+  ]
+}

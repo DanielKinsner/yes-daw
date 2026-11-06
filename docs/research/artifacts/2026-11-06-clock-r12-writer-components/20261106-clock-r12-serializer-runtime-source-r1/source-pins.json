@@ -1,0 +1,97 @@
+{
+  "schema": "R12_SERIALIZER_RUNTIME_AND_FAILURE_COMPONENT_PINS_R1",
+  "status": "SEALED_PROPOSAL_FOR_INDEPENDENT_REVIEW_NOT_COMPLETE_COLD_CODEC_GLOBAL_FIT_OR_GO",
+  "no_target_execution": true,
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/argument.md",
+      "bytes": 6225,
+      "sha256": "0D34D85BC65AA5CA8FBD4AFADA908EAF1029C95B32626FD4866191297C8AD75C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/attempt1-assert-failure.md",
+      "bytes": 668,
+      "sha256": "F5FC246F987AFA31FE66B5EC755F2F020E457F189B989BF2CB981F825DB566CB"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/derive-attempt1-assert-failure.py",
+      "bytes": 8210,
+      "sha256": "8372A1EB431106B5F8075CA0312E7D758AF21FE638AD082065FD13B4BE3D62B3"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/derive.py",
+      "bytes": 8210,
+      "sha256": "2477C8ECE0AC8544686CF89682CABAAEF6899B8627B9F771DF9FD0E9B00392EA"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/ErrorContext.cs",
+      "bytes": 2703,
+      "sha256": "E3DC6AD14637ABF28C4270DDDD336F25FBC73D7F47A9182E97A0094B4205A283"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/ErrorEventArgs.cs",
+      "bytes": 2228,
+      "sha256": "CE8D740827BA8AB12B0E5173D71E7AECB906CA1522AE27E9A62F734012057E58"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonPosition.cs",
+      "bytes": 5986,
+      "sha256": "4F9E601F9D0BE45C4F60F15BF1B6CA8F85DEC51E353EBB50E405CC6F8E422C14"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializer.cs",
+      "bytes": 50876,
+      "sha256": "8EB9AD99A39D208CCDB1F6315A6C8764619AD42464C9FFE3E20FB3E74D3C41E1"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerInternalBase.cs",
+      "bytes": 6227,
+      "sha256": "E541DA7176FB5B068C64FAA913A9366873EF05C4D7281CD49A2485C77904A065"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerInternalWriter.cs",
+      "bytes": 54055,
+      "sha256": "669C29459FB86B7B62FDBF0721B38B09E0D090DB05B31F01FAA9262273376D45"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerSettings.cs",
+      "bytes": 22890,
+      "sha256": "6746CD4D5B7C2C15613284E07EE308B67EDD6665E58B1B5CC027960138440E31"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/StreamingContext.cs",
+      "bytes": 2381,
+      "sha256": "0C4F967C21DCF88F5F799F07D21AD1A6B7AE0889BFD04DA9463A3520DC2E42DD"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary-error-origins.json",
+      "bytes": 1316,
+      "sha256": "AE0AD942A085F2D1976CA805A1870440FE542290FBE9BCEDF064A64404813235"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary-origins.json",
+      "bytes": 1339,
+      "sha256": "3342722B90D7836E5FA6B437D742F28EE5D68767FACEBB993D5CB9EC1DED9579"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/runtime-component.json",
+      "bytes": 13416,
+      "sha256": "75590F0E4336305D1111F279A6048445B22DA133EEA6A4A86871D154DCF77A93"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/seal.py",
+      "bytes": 1267,
+      "sha256": "56625CFA3E86101D4CBF5E343DA8FFEB282B5F0171B5493C442FCC390A418C66"
+    },
+    {
+      "path": "build-ci/20261106-prepare-json-serializer-runtime-source.py",
+      "bytes": 1282,
+      "sha256": "2342C06B60B73B52E99BF4C852441F2E7308C33A4D5A40FA4B909F33EE95D44F"
+    },
+    {
+      "path": "build-ci/20261106-prepare-json-serializer-error-source.py",
+      "bytes": 1586,
+      "sha256": "BD6278B2664DA33A31D01CC217D75A48B33FE710C4391C91D1DC165AA952D007"
+    }
+  ]
+}

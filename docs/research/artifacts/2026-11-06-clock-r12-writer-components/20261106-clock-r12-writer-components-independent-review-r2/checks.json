@@ -1,0 +1,1258 @@
+{
+  "schema": "FRESH_R3_WRITER_COMPONENT_INDEPENDENT_CHECKS_R2",
+  "verdict": "ACCEPT_CONDITIONAL_SOURCE_COMPONENT_ONLY",
+  "actual_check_count": 198,
+  "checks": [
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/source-pins.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/argument.md",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/cold-supplement.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/cold-supplement.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/derive.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/CamelCaseNamingStrategy.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderExceptionFallback.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderFallback.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderReplacementFallback.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderExceptionFallback.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderFallback.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderReplacementFallback.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/Encoding.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/Enumerable.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/EnumInfo.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/EnumUtils.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/HashHelpers.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/HashSet.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/Iterator.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/JsonToken.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/JsonWriter.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/List.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/NamingStrategy.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/StringWriter.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/TextWriter.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/ThreadSafeStore.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/ToCollection.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/Union.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/Union.SpeedOpt.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary/UTF8Encoding.Sealed.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary-cold-origins.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary-cold-supplement-origins.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary-fallback-origins.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/primary-origins.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/seal.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/writer-component.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-prepare-json-writer-source.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-prepare-json-writer-fallback-source.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-prepare-json-writer-cold-source.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-prepare-json-writer-cold-supplement-source.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/source-pins.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/argument.md",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/attempt1-assert-failure.md",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/derive-attempt1-assert-failure.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/derive.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/ErrorContext.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/ErrorEventArgs.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonPosition.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializer.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerInternalBase.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerInternalWriter.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerSettings.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/StreamingContext.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary-error-origins.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary-origins.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/runtime-component.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/seal.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-prepare-json-serializer-runtime-source.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-prepare-json-serializer-error-source.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-join-r2/writer-join.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261105-clock-oracle-json-primary-sources/newtonsoft-JavaScriptUtils.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261105-clock-oracle-json-primary-sources/newtonsoft-JsonConvert.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261105-clock-oracle-json-primary-sources/powershell-JsonObject.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/JsonTextWriter.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/StringBuilder.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261105-clock-oracle-r10-independent-functional-review/primary-sources/UTF8Encoding.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261105-managed-file-type-inventory-source-r3/execution-r1/inventory.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-derive-writer-join-r2.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/bundle-bound.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-join-r2/phase-graph-input-snapshot.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-components-independent-review-r1/check-components.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-components-independent-review-r1/checks.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-components-independent-review-r1/review.md",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-components-independent-review-r1/review.json",
+      "pass_": true
+    },
+    {
+      "label": "exact R3 identity",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-derive-writer-join-r2.py",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/bundle-bound.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-serializer-runtime-source-r1/runtime-component.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/writer-component.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-family-r1/cold-supplement.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-clock-r12-writer-join-r2/writer-join.json",
+      "pass_": true
+    },
+    {
+      "label": "raw pin:build-ci/20261106-derive-writer-join-r3.py",
+      "pass_": true
+    },
+    {
+      "label": "graph snapshot association",
+      "pass_": true
+    },
+    {
+      "label": "bundle all20-digit variant",
+      "pass_": true
+    },
+    {
+      "label": "closed graph:marker",
+      "pass_": true
+    },
+    {
+      "label": "fixed ASCII identifiers:marker",
+      "pass_": true
+    },
+    {
+      "label": "all R3 document dimensions:marker",
+      "pass_": true
+    },
+    {
+      "label": "all piece names:marker",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:marker:escape_all_old_arrays",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:marker:StringBuilder_all_arrays",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:marker:StringBuilder_all_objects",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:marker:returned_ToString",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:marker:returned_LF_concat",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:marker:UTF8_byte_array",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:marker:StringWriter",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:marker:JsonTextWriter",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:marker:JsonPosition_stack",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:marker:UTF8Encoding_plus_overwritten_fallbacks",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:marker:direct_serializer_runtime_and_traversal",
+      "pass_": true
+    },
+    {
+      "label": "R3 per encode:marker",
+      "pass_": true
+    },
+    {
+      "label": "R3 path error:marker",
+      "pass_": true
+    },
+    {
+      "label": "closed graph:receipt",
+      "pass_": true
+    },
+    {
+      "label": "fixed ASCII identifiers:receipt",
+      "pass_": true
+    },
+    {
+      "label": "all R3 document dimensions:receipt",
+      "pass_": true
+    },
+    {
+      "label": "all piece names:receipt",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:receipt:escape_all_old_arrays",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:receipt:StringBuilder_all_arrays",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:receipt:StringBuilder_all_objects",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:receipt:returned_ToString",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:receipt:returned_LF_concat",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:receipt:UTF8_byte_array",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:receipt:StringWriter",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:receipt:JsonTextWriter",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:receipt:JsonPosition_stack",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:receipt:UTF8Encoding_plus_overwritten_fallbacks",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:receipt:direct_serializer_runtime_and_traversal",
+      "pass_": true
+    },
+    {
+      "label": "R3 per encode:receipt",
+      "pass_": true
+    },
+    {
+      "label": "R3 path error:receipt",
+      "pass_": true
+    },
+    {
+      "label": "closed graph:failure",
+      "pass_": true
+    },
+    {
+      "label": "fixed ASCII identifiers:failure",
+      "pass_": true
+    },
+    {
+      "label": "all R3 document dimensions:failure",
+      "pass_": true
+    },
+    {
+      "label": "all piece names:failure",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:failure:escape_all_old_arrays",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:failure:StringBuilder_all_arrays",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:failure:StringBuilder_all_objects",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:failure:returned_ToString",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:failure:returned_LF_concat",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:failure:UTF8_byte_array",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:failure:StringWriter",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:failure:JsonTextWriter",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:failure:JsonPosition_stack",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:failure:UTF8Encoding_plus_overwritten_fallbacks",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:failure:direct_serializer_runtime_and_traversal",
+      "pass_": true
+    },
+    {
+      "label": "R3 per encode:failure",
+      "pass_": true
+    },
+    {
+      "label": "R3 path error:failure",
+      "pass_": true
+    },
+    {
+      "label": "closed graph:bundle",
+      "pass_": true
+    },
+    {
+      "label": "fixed ASCII identifiers:bundle",
+      "pass_": true
+    },
+    {
+      "label": "all R3 document dimensions:bundle",
+      "pass_": true
+    },
+    {
+      "label": "all piece names:bundle",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:bundle:escape_all_old_arrays",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:bundle:StringBuilder_all_arrays",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:bundle:StringBuilder_all_objects",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:bundle:returned_ToString",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:bundle:returned_LF_concat",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:bundle:UTF8_byte_array",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:bundle:StringWriter",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:bundle:JsonTextWriter",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:bundle:JsonPosition_stack",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:bundle:UTF8Encoding_plus_overwritten_fallbacks",
+      "pass_": true
+    },
+    {
+      "label": "R3 recomposition:bundle:direct_serializer_runtime_and_traversal",
+      "pass_": true
+    },
+    {
+      "label": "R3 per encode:bundle",
+      "pass_": true
+    },
+    {
+      "label": "R3 path error:bundle",
+      "pass_": true
+    },
+    {
+      "label": "finite error/addendum",
+      "pass_": true
+    },
+    {
+      "label": "phase vector P0",
+      "pass_": true
+    },
+    {
+      "label": "phase normal P0",
+      "pass_": true
+    },
+    {
+      "label": "phase failure P0",
+      "pass_": true
+    },
+    {
+      "label": "phase orphan P0",
+      "pass_": true
+    },
+    {
+      "label": "phase total P0",
+      "pass_": true
+    },
+    {
+      "label": "phase vector P1",
+      "pass_": true
+    },
+    {
+      "label": "phase normal P1",
+      "pass_": true
+    },
+    {
+      "label": "phase failure P1",
+      "pass_": true
+    },
+    {
+      "label": "phase orphan P1",
+      "pass_": true
+    },
+    {
+      "label": "phase total P1",
+      "pass_": true
+    },
+    {
+      "label": "phase vector P2",
+      "pass_": true
+    },
+    {
+      "label": "phase normal P2",
+      "pass_": true
+    },
+    {
+      "label": "phase failure P2",
+      "pass_": true
+    },
+    {
+      "label": "phase orphan P2",
+      "pass_": true
+    },
+    {
+      "label": "phase total P2",
+      "pass_": true
+    },
+    {
+      "label": "phase vector P3",
+      "pass_": true
+    },
+    {
+      "label": "phase normal P3",
+      "pass_": true
+    },
+    {
+      "label": "phase failure P3",
+      "pass_": true
+    },
+    {
+      "label": "phase orphan P3",
+      "pass_": true
+    },
+    {
+      "label": "phase total P3",
+      "pass_": true
+    },
+    {
+      "label": "phase vector P4",
+      "pass_": true
+    },
+    {
+      "label": "phase normal P4",
+      "pass_": true
+    },
+    {
+      "label": "phase failure P4",
+      "pass_": true
+    },
+    {
+      "label": "phase orphan P4",
+      "pass_": true
+    },
+    {
+      "label": "phase total P4",
+      "pass_": true
+    },
+    {
+      "label": "phase vector P5",
+      "pass_": true
+    },
+    {
+      "label": "phase normal P5",
+      "pass_": true
+    },
+    {
+      "label": "phase failure P5",
+      "pass_": true
+    },
+    {
+      "label": "phase orphan P5",
+      "pass_": true
+    },
+    {
+      "label": "phase total P5",
+      "pass_": true
+    },
+    {
+      "label": "all six selected B prefixes",
+      "pass_": true
+    },
+    {
+      "label": "known cold remains subtotal13344",
+      "pass_": true
+    },
+    {
+      "label": "orphan formula stated",
+      "pass_": true
+    },
+    {
+      "label": "all R3 structural changes exactly scoped",
+      "pass_": true,
+      "diffs": [
+        "/R3_corrections",
+        "/documents/bundle/one_failed_encode_path_upper",
+        "/documents/bundle/requests/StringBuilder_all_objects",
+        "/documents/bundle/selected_per_encode_upper",
+        "/documents/failure/one_failed_encode_path_upper",
+        "/documents/failure/requests/StringBuilder_all_objects",
+        "/documents/failure/selected_per_encode_upper",
+        "/documents/marker/one_failed_encode_path_upper",
+        "/documents/marker/requests/StringBuilder_all_objects",
+        "/documents/marker/selected_per_encode_upper",
+        "/documents/receipt/one_failed_encode_path_upper",
+        "/documents/receipt/requests/StringBuilder_all_objects",
+        "/documents/receipt/selected_per_encode_upper",
+        "/phases/0/orphan_retry_array_and_chunk_attempt_upper",
+        "/phases/1/all_failed_encode_paths_upper",
+        "/phases/1/orphan_retry_array_and_chunk_attempt_upper",
+        "/phases/1/selected_B_upper",
+        "/phases/1/selected_encoding_requests",
+        "/phases/2/all_failed_encode_paths_upper",
+        "/phases/2/orphan_retry_array_and_chunk_attempt_upper",
+        "/phases/2/selected_B_upper",
+        "/phases/2/selected_encoding_requests",
+        "/phases/3/all_failed_encode_paths_upper",
+        "/phases/3/orphan_retry_array_and_chunk_attempt_upper",
+        "/phases/3/selected_B_upper",
+        "/phases/3/selected_encoding_requests",
+        "/phases/4/all_failed_encode_paths_upper",
+        "/phases/4/orphan_retry_array_and_chunk_attempt_upper",
+        "/phases/4/selected_B_upper",
+        "/phases/4/selected_encoding_requests",
+        "/phases/5/all_failed_encode_paths_upper",
+        "/phases/5/orphan_retry_array_and_chunk_attempt_upper",
+        "/phases/5/selected_B_upper",
+        "/phases/5/selected_encoding_requests",
+        "/pinned_inputs/5",
+        "/pinned_inputs/6",
+        "/prior_r2_sha256",
+        "/schema",
+        "/status"
+      ]
+    },
+    {
+      "label": "orphan request exact operation order",
+      "pass_": true
+    },
+    {
+      "label": "chunk size selected source",
+      "pass_": true
+    },
+    {
+      "label": "all five fields now source-slot56",
+      "pass_": true
+    },
+    {
+      "label": "one using source",
+      "pass_": true
+    },
+    {
+      "label": "one Close source",
+      "pass_": true
+    },
+    {
+      "label": "null completion source",
+      "pass_": true
+    },
+    {
+      "label": "source cleanup text less than minimum growth",
+      "pass_": true
+    },
+    {
+      "label": "ordinary complete component remains conditional",
+      "pass_": true
+    }
+  ],
+  "B_prefixes": [
+    0,
+    2755816,
+    2755816,
+    2999612,
+    3243408,
+    6800264
+  ],
+  "diagnostic20408": 20408,
+  "orphan96480": 96480,
+  "known_cold_subtotal13344": 13344,
+  "limits": [
+    "No complete cold F or global32MiB fit/NOFIT.",
+    "Header/slot/array/embedded representation and selected source/binary/profile remain conditional.",
+    "No target parse/codec/import/compiler/probe/program/stage/native/GUI/Git or author helper execution."
+  ],
+  "inputs": [
+    {
+      "path": "build-ci/20261106-clock-r12-writer-components-independent-review-r1/source-pins.json",
+      "bytes": 16381,
+      "sha256": "D05F77A4546839AB3109F7A68D2381917EB243177722E9CBFC725012F4EF92AB"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/source-pins.json",
+      "bytes": 8363,
+      "sha256": "688C85CAB43BFBF54458E3E258BACBD41FBECD87C83BC5C671E06A1033178099"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/argument.md",
+      "bytes": 8472,
+      "sha256": "AAFB61612D7C6047C5D2A54B491C0FCDF94DF8F42EB9A03D99FBC059FEE12D7A"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/cold-supplement.json",
+      "bytes": 10073,
+      "sha256": "3A3A964618CBBE4A8145BEA479B673E8DF931D11B9FDBC5467859588A60693D3"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/cold-supplement.py",
+      "bytes": 6528,
+      "sha256": "F5349C8C85597CFFE69F00C1084FFF83576B0727F2FB185475092EBFB82BFDD8"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/derive.py",
+      "bytes": 8232,
+      "sha256": "14788AC4069C28F554D7487C611EAAEA37B793146CBA3AB78370B1585F35D25E"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/CamelCaseNamingStrategy.cs",
+      "bytes": 3678,
+      "sha256": "E736540B98F976EEE9CB4BA86337AAE9252153CB138935895FA4E181072E7A05"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderExceptionFallback.cs",
+      "bytes": 3795,
+      "sha256": "EFBC47C51BA51B6955F7ED0EAEDC941FA1A3ADA19293ECE3CA7C30F54D1109BA"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderFallback.cs",
+      "bytes": 12242,
+      "sha256": "118661AA450CB05C5780194C2A2DC2BBC0CBCCBAF1E6D3647967F547EDF8AA43"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderReplacementFallback.cs",
+      "bytes": 6097,
+      "sha256": "B0B653C5B53A2786AD47FDEF7DF1BBB919C2B285C88A3787B3772F9B075FD235"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderExceptionFallback.cs",
+      "bytes": 5088,
+      "sha256": "A36E5C20E99367CF7310FCB63103AC92E90E2CADD733A37657189B72CFEE3208"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderFallback.cs",
+      "bytes": 14038,
+      "sha256": "FECAA8E71992F9D568254202327662E6DE473B3D73AD5B6FA83A79417CC98715"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderReplacementFallback.cs",
+      "bytes": 7237,
+      "sha256": "735C5015DDD6FB9D5BE7E20FC85703DE97A1DD40DB2843AA79EEB5271ED1FBA1"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Encoding.cs",
+      "bytes": 67311,
+      "sha256": "44B11DDB443BD71B1C7A4406A8749D234C0E0B135D9A36DC53C4F0887B197DB4"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Enumerable.cs",
+      "bytes": 3480,
+      "sha256": "FCD6F2B4B4E3A6EFBBB2BEB0031834C8DD6B0642360D45AB81247DD047B71E74"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EnumInfo.cs",
+      "bytes": 1645,
+      "sha256": "38C3713EAE6D221B3317C636B9D05FC0E82B3931C004314D70F33931F6AA3A59"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EnumUtils.cs",
+      "bytes": 16457,
+      "sha256": "E459B42E61CA5B60CF177D4F73BE1A1E526ACE021EF4425E150800DF2F2C5EA0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/HashHelpers.cs",
+      "bytes": 5167,
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/HashSet.cs",
+      "bytes": 78650,
+      "sha256": "2F3C12B3EE6D7E109E1F6CD019BE8BB91DA55784E00E115D8C752B17BD4446A0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Iterator.cs",
+      "bytes": 4926,
+      "sha256": "8644D8A8BDA66AB24C04D9B3FCBDF625CD0C48739EC4956E118A7589FF83454B"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/JsonToken.cs",
+      "bytes": 3175,
+      "sha256": "83199FBFDC09B8FAD2256186107BBF73A79875644A0073DF367CC0C857FB16C0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/JsonWriter.cs",
+      "bytes": 63246,
+      "sha256": "75B69B3EBED4305947ADEED867EA8780AB2B03F0F3CBE6FFAA391EF56CDB4C73"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/List.cs",
+      "bytes": 43437,
+      "sha256": "1346574BE64B5708F97AAA196AD474A63FF52F6D977D7AE18C366A600766F036"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/NamingStrategy.cs",
+      "bytes": 5486,
+      "sha256": "DD075B30ACE21D2A109F6D9F837E230D6B62874A2C8A3F49C44821A4A2F42D53"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/StringWriter.cs",
+      "bytes": 9989,
+      "sha256": "3E765E60738CCBC6729E74BF45AA7780B52B18E70DD8BD058E8BAF66BBCFA3D8"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/TextWriter.cs",
+      "bytes": 44096,
+      "sha256": "F889A621F85FEDBB54D19D84372E822C303CF64AD5DCB1877C12D5A3906F48EF"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/ThreadSafeStore.cs",
+      "bytes": 3391,
+      "sha256": "05C7FEADB9AC9783223DBD14BC5CBA558E0F0FD68CA73857A8C0694CA428DD6A"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/ToCollection.cs",
+      "bytes": 13112,
+      "sha256": "0AEB8A58596BF835F7972B7688B4A0F39966E426009635DC087F313CFB161123"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Union.cs",
+      "bytes": 13431,
+      "sha256": "CA689F2B0505A86B4FADC3E150069CF915C38C6B6050229AA86F1F2AC5794C17"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Union.SpeedOpt.cs",
+      "bytes": 2572,
+      "sha256": "F1C98769C0000A8D5C70F1278FDE605D3FD6C645263535C613B21627CFC59751"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/UTF8Encoding.Sealed.cs",
+      "bytes": 7970,
+      "sha256": "6DFF14B632DFA6740048F92BE5D00CF8D7158FA7D3C741CABEE85D53A7D1834D"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary-cold-origins.json",
+      "bytes": 3285,
+      "sha256": "1A2F272EBECE05573522962D6316280AC921F39CEBF8EB8A5D672FE8653BD60E"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary-cold-supplement-origins.json",
+      "bytes": 1664,
+      "sha256": "8D48B98535ABBB0931CB1651466DF45ADF186390C6C3F64CADDB47D36084A7F8"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary-fallback-origins.json",
+      "bytes": 1770,
+      "sha256": "84F21652E01911722008815EEC5FB38410E41DE6BA03DE526CDFDD1828F7897C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary-origins.json",
+      "bytes": 1404,
+      "sha256": "FD8113AA90CFA8CF7493CD4F9B3725E0A02F432AD3E1EB90CFB6CB6BCCFBA887"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/seal.py",
+      "bytes": 1860,
+      "sha256": "CDCE768205E5C5FD38F0D2CABB3528A7D5C95984AAFF98AA6D56045EDCFE386A"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/writer-component.json",
+      "bytes": 13506,
+      "sha256": "C5E40FD9740760613B9A0BAD7F2739B533060EFEDB97D931F77B7517FADBB3E4"
+    },
+    {
+      "path": "build-ci/20261106-prepare-json-writer-source.py",
+      "bytes": 1614,
+      "sha256": "F198F4B97A99794C91DEC882074B5351B6F14238EE38891B2341017D1B1A5E03"
+    },
+    {
+      "path": "build-ci/20261106-prepare-json-writer-fallback-source.py",
+      "bytes": 1371,
+      "sha256": "2627E3C8A1A167CEACDFE15BC65F73895E6E68C2D13FB21EF7B515F5632919D9"
+    },
+    {
+      "path": "build-ci/20261106-prepare-json-writer-cold-source.py",
+      "bytes": 2072,
+      "sha256": "6BFCCD777BAB79B22DF14EA4AFAD57DB214CC86016114601B060EE1960CA28F6"
+    },
+    {
+      "path": "build-ci/20261106-prepare-json-writer-cold-supplement-source.py",
+      "bytes": 1706,
+      "sha256": "BDDC33C5BD6BF9F9D118E91C59BBD73CA46F74B75548A7BE5BF7E3FF08AB5C78"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/source-pins.json",
+      "bytes": 4061,
+      "sha256": "EF08F8538A3375D1885F5A8079751D32D27CC93BC6FA466ED4F37D92AF24EB0F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/argument.md",
+      "bytes": 6225,
+      "sha256": "0D34D85BC65AA5CA8FBD4AFADA908EAF1029C95B32626FD4866191297C8AD75C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/attempt1-assert-failure.md",
+      "bytes": 668,
+      "sha256": "F5FC246F987AFA31FE66B5EC755F2F020E457F189B989BF2CB981F825DB566CB"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/derive-attempt1-assert-failure.py",
+      "bytes": 8210,
+      "sha256": "8372A1EB431106B5F8075CA0312E7D758AF21FE638AD082065FD13B4BE3D62B3"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/derive.py",
+      "bytes": 8210,
+      "sha256": "2477C8ECE0AC8544686CF89682CABAAEF6899B8627B9F771DF9FD0E9B00392EA"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/ErrorContext.cs",
+      "bytes": 2703,
+      "sha256": "E3DC6AD14637ABF28C4270DDDD336F25FBC73D7F47A9182E97A0094B4205A283"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/ErrorEventArgs.cs",
+      "bytes": 2228,
+      "sha256": "CE8D740827BA8AB12B0E5173D71E7AECB906CA1522AE27E9A62F734012057E58"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonPosition.cs",
+      "bytes": 5986,
+      "sha256": "4F9E601F9D0BE45C4F60F15BF1B6CA8F85DEC51E353EBB50E405CC6F8E422C14"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializer.cs",
+      "bytes": 50876,
+      "sha256": "8EB9AD99A39D208CCDB1F6315A6C8764619AD42464C9FFE3E20FB3E74D3C41E1"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerInternalBase.cs",
+      "bytes": 6227,
+      "sha256": "E541DA7176FB5B068C64FAA913A9366873EF05C4D7281CD49A2485C77904A065"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerInternalWriter.cs",
+      "bytes": 54055,
+      "sha256": "669C29459FB86B7B62FDBF0721B38B09E0D090DB05B31F01FAA9262273376D45"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerSettings.cs",
+      "bytes": 22890,
+      "sha256": "6746CD4D5B7C2C15613284E07EE308B67EDD6665E58B1B5CC027960138440E31"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/StreamingContext.cs",
+      "bytes": 2381,
+      "sha256": "0C4F967C21DCF88F5F799F07D21AD1A6B7AE0889BFD04DA9463A3520DC2E42DD"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary-error-origins.json",
+      "bytes": 1316,
+      "sha256": "AE0AD942A085F2D1976CA805A1870440FE542290FBE9BCEDF064A64404813235"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary-origins.json",
+      "bytes": 1339,
+      "sha256": "3342722B90D7836E5FA6B437D742F28EE5D68767FACEBB993D5CB9EC1DED9579"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/runtime-component.json",
+      "bytes": 13416,
+      "sha256": "75590F0E4336305D1111F279A6048445B22DA133EEA6A4A86871D154DCF77A93"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/seal.py",
+      "bytes": 1267,
+      "sha256": "56625CFA3E86101D4CBF5E343DA8FFEB282B5F0171B5493C442FCC390A418C66"
+    },
+    {
+      "path": "build-ci/20261106-prepare-json-serializer-runtime-source.py",
+      "bytes": 1282,
+      "sha256": "2342C06B60B73B52E99BF4C852441F2E7308C33A4D5A40FA4B909F33EE95D44F"
+    },
+    {
+      "path": "build-ci/20261106-prepare-json-serializer-error-source.py",
+      "bytes": 1586,
+      "sha256": "BD6278B2664DA33A31D01CC217D75A48B33FE710C4391C91D1DC165AA952D007"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r2/writer-join.json",
+      "bytes": 7581,
+      "sha256": "25C4167F94C8DE538861F391F2DF940D345ABD4139CD219E2ACA25DE97A047A5"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/newtonsoft-JavaScriptUtils.cs",
+      "bytes": 25775,
+      "sha256": "93131CB6065F06AC6DA30CC15C77F7E2A96EF2D3DC171FEC34C227590D930A1A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/newtonsoft-JsonConvert.cs",
+      "bytes": 55576,
+      "sha256": "DAEB3FEF0BCDE2E756CB0CBCAA92FB8A7782727CDB4ADDBA7B8C66E94B5A6205"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/powershell-JsonObject.cs",
+      "bytes": 37049,
+      "sha256": "B0673F6376217F1104293297F0B2E3C7C9F928045F8435CD93865EF024E287B0"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/JsonTextWriter.cs",
+      "bytes": 30240,
+      "sha256": "CBEEB4F5A322E3772910CEC13788938AE6598B03C396B1187B9EC170127469D2"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/StringBuilder.cs",
+      "bytes": 144081,
+      "sha256": "4852F4B57D749BBFB9D5B865E0784974EE5F056DE4427C6E584FB4ECD193C751"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/primary-sources/UTF8Encoding.cs",
+      "bytes": 40321,
+      "sha256": "47F5E4C98751367A86329AB1E0A76D86B39FD076A5B019284694F39D40FD9011"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r3/execution-r1/inventory.json",
+      "bytes": 42678,
+      "sha256": "B015613B9A2EA1B844547C0135106C0977D8A99A4C4E4E52B22B0FBFE7EAEC9D"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "bytes": 143375,
+      "sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "bytes": 93117,
+      "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA"
+    },
+    {
+      "path": "build-ci/20261106-derive-writer-join-r2.py",
+      "bytes": 7032,
+      "sha256": "6EA3F18EBE4A90304F97666D909E1BB9B74695BD2FAE5F4EF5600E723B5BB8C9"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/bundle-bound.json",
+      "bytes": 5226,
+      "sha256": "BE3EE2DD5BDF45C3C9AE0EBF1FA6A379BB69331CA319D05E29BA29C96D99A423"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r2/phase-graph-input-snapshot.json",
+      "bytes": 16060,
+      "sha256": "872E24B3B7A11476AAE4949E6B0D43B54D6DD19B266FF0FA52D66A26691E5C4F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-components-independent-review-r1/check-components.py",
+      "bytes": 11601,
+      "sha256": "C7BD40DA7A2B6913A9FF80988162AB999BFB0C2A8A575DBC02D28FD3865F53C9"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-components-independent-review-r1/checks.json",
+      "bytes": 48750,
+      "sha256": "8FA2674F057017AD17F9238CCFD812A0760E087B8BC22243B89CED551D41DB4E"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-components-independent-review-r1/review.md",
+      "bytes": 9478,
+      "sha256": "497F978CFBDA909413277AA6AFDCECF16C37C69C0BE6E22E70DBCE76AB941755"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-components-independent-review-r1/review.json",
+      "bytes": 2989,
+      "sha256": "88DF4CDB639C01883DE90D40AF8EBF5B554D9D823191DA3F3DA29CB3B74C1D6C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r3/writer-join.json",
+      "bytes": 9229,
+      "sha256": "246F9C0FF1ED59D20B9236954A400BB457B2A9F3C9D169415B90C7E74A41E3BE"
+    },
+    {
+      "path": "build-ci/20261106-derive-writer-join-r3.py",
+      "bytes": 4135,
+      "sha256": "4861C5EF0BDA2692DB5D040CBA0E420A34C6457DE67FAADF4107D94CA54EF65F"
+    }
+  ]
+}

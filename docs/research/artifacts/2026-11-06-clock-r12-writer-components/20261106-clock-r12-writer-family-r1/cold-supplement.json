@@ -1,0 +1,227 @@
+{
+  "schema": "R12_WRITER_COLD_SELECTED_COMPONENT_SUPPLEMENT_R1",
+  "status": "FINITE_SELECTED_COLD_SOURCE_COMPONENT_WITH_PRECISE_REMAINING_CODEC_BOUNDARIES",
+  "base_component_sha256": "C5E40FD9740760613B9A0BAD7F2739B533060EFEDB97D931F77B7517FADBB3E4",
+  "shared_once_only": true,
+  "HashSet_char_routes": [
+    {
+      "distinct_chars": 34,
+      "capacities": [
+        7,
+        17,
+        37
+      ],
+      "bucket_and_entry_array_upper": 1864
+    },
+    {
+      "distinct_chars": 34,
+      "capacities": [
+        7,
+        17,
+        37
+      ],
+      "bucket_and_entry_array_upper": 1864
+    },
+    {
+      "distinct_chars": 38,
+      "capacities": [
+        7,
+        17,
+        37,
+        89
+      ],
+      "bucket_and_entry_array_upper": 4408
+    }
+  ],
+  "additional_known_once_parts": {
+    "JavaScriptUtils_three_UnionIterator2_field_slot_upper": 240,
+    "JavaScriptUtils_three_HashSet_char_field_slot_upper": 240,
+    "JavaScriptUtils_all_HashSet_backings_entry_stride_upper24": 8136,
+    "JavaScriptUtils_three_boxed_List_char_enumerators_upper": 144,
+    "JavaScriptUtils_three_array_enumerator_field_slot_upper": 144,
+    "char_EqualityComparer_object_field_slot_upper": 24,
+    "List_char_and_List_state_array_shared_empty_arrays": 48,
+    "Encoding_and_UTF8_shared_default_instances_plus_replaced_fallbacks": 240,
+    "Shared_encoder_decoder_replacement_and_exception_fallback_objects": 96,
+    "TextWriter_Null_object_field_slot_upper": 40,
+    "EnumUtils_CamelCaseNamingStrategy_field_slot_upper": 40,
+    "EnumUtils_ThreadSafeStore_field_slot_upper": 32,
+    "EnumUtils_creator_delegate_field_slot_upper": 64,
+    "EnumUtils_eighteen_boxed_underlying_JsonToken_values": 432,
+    "EnumUtils_eighteen_empty_attribute_return_arrays_upper": 432
+  },
+  "additional_known_once_subtotal": 10352,
+  "known_once_F_Bcold_subtotal": 13256,
+  "remaining": [
+    {
+      "id": "F_Bcold_EnumUtilsStore",
+      "source": "ThreadSafeStore.cs:constructor/Get",
+      "exact_obligation": "Selected HAVE_CONCURRENT_DICTIONARY build: one default ConcurrentDictionary<StructMultiKey<Type,NamingStrategy>,EnumInfo>, locks/buckets/count arrays and one JsonToken entry; default concurrency/SDK field and growth profile must be bounded. Alternate dictionary branch is not silently substituted."
+    },
+    {
+      "id": "F_Bcold_EnumReflection",
+      "source": "EnumUtils.cs:InitializeValuesAndNames18",
+      "exact_obligation": "Selected GetNames18, resolvedNames18, values18, EnumInfo and boxed underlying18 are counted. Shared reflection enum-name strings/FieldInfo/cache outputs and at most18 Cast plus18 Select iterator instances from EnumMemberAttribute-empty queries need explicit selected representation or an expressly scoped general-CLR-metadata exclusion; not0. No custom naming strategy or JsonToken field attributes are admitted by the pinned source."
+    },
+    {
+      "id": "B_SerializerRuntime",
+      "source": "powershell-JsonObject.cs:ConvertToJson; JsonConvert.cs:SerializeObjectInternal",
+      "exact_obligation": "JsonSerializerSettings/JsonSerializer/InternalWriter, their serialization traversal enumerators/serialize-stack and contract-cache owners must join B/K/F once. The selected writer-buffer subtotal is not the full codec allocation graph."
+    },
+    {
+      "id": "F_Bcold_Metadata",
+      "source": "selected official source/installed metadata association",
+      "exact_obligation": "Runtime type/comparer/delegate/metadata caches and literal storage retain their separately declared general CLR/SDK qualification; no total heap, RSS, cold loader or actual allocation-size claim follows from these field-slot source uppers."
+    }
+  ],
+  "default_capacity_primary": {
+    "file": "ToCollection.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Linq/src/System/Linq/ToCollection.cs",
+    "bytes": 13112,
+    "sha256": "0AEB8A58596BF835F7972B7688B4A0F39966E426009635DC087F313CFB161123"
+  },
+  "source_field_slot_condition": "Selected x64 object header16, each scalar/reference field occupies no more than8 bytes; JsonPosition<=32, HashSet<char>.Entry<=24. Source association/metadata conditional, not actual runtime object sizes. No destructor/Dispose/Return/Clear/GC credit.",
+  "no_target_execution": true,
+  "inputs": [
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/writer-component.json",
+      "bytes": 13506,
+      "sha256": "C5E40FD9740760613B9A0BAD7F2739B533060EFEDB97D931F77B7517FADBB3E4"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/derive.py",
+      "bytes": 8232,
+      "sha256": "14788AC4069C28F554D7487C611EAAEA37B793146CBA3AB78370B1585F35D25E"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/cold-supplement.py",
+      "bytes": 6528,
+      "sha256": "F5349C8C85597CFFE69F00C1084FFF83576B0727F2FB185475092EBFB82BFDD8"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/CamelCaseNamingStrategy.cs",
+      "bytes": 3678,
+      "sha256": "E736540B98F976EEE9CB4BA86337AAE9252153CB138935895FA4E181072E7A05"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderExceptionFallback.cs",
+      "bytes": 3795,
+      "sha256": "EFBC47C51BA51B6955F7ED0EAEDC941FA1A3ADA19293ECE3CA7C30F54D1109BA"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderFallback.cs",
+      "bytes": 12242,
+      "sha256": "118661AA450CB05C5780194C2A2DC2BBC0CBCCBAF1E6D3647967F547EDF8AA43"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderReplacementFallback.cs",
+      "bytes": 6097,
+      "sha256": "B0B653C5B53A2786AD47FDEF7DF1BBB919C2B285C88A3787B3772F9B075FD235"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderExceptionFallback.cs",
+      "bytes": 5088,
+      "sha256": "A36E5C20E99367CF7310FCB63103AC92E90E2CADD733A37657189B72CFEE3208"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderFallback.cs",
+      "bytes": 14038,
+      "sha256": "FECAA8E71992F9D568254202327662E6DE473B3D73AD5B6FA83A79417CC98715"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderReplacementFallback.cs",
+      "bytes": 7237,
+      "sha256": "735C5015DDD6FB9D5BE7E20FC85703DE97A1DD40DB2843AA79EEB5271ED1FBA1"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Encoding.cs",
+      "bytes": 67311,
+      "sha256": "44B11DDB443BD71B1C7A4406A8749D234C0E0B135D9A36DC53C4F0887B197DB4"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Enumerable.cs",
+      "bytes": 3480,
+      "sha256": "FCD6F2B4B4E3A6EFBBB2BEB0031834C8DD6B0642360D45AB81247DD047B71E74"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EnumInfo.cs",
+      "bytes": 1645,
+      "sha256": "38C3713EAE6D221B3317C636B9D05FC0E82B3931C004314D70F33931F6AA3A59"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EnumUtils.cs",
+      "bytes": 16457,
+      "sha256": "E459B42E61CA5B60CF177D4F73BE1A1E526ACE021EF4425E150800DF2F2C5EA0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/HashHelpers.cs",
+      "bytes": 5167,
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/HashSet.cs",
+      "bytes": 78650,
+      "sha256": "2F3C12B3EE6D7E109E1F6CD019BE8BB91DA55784E00E115D8C752B17BD4446A0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Iterator.cs",
+      "bytes": 4926,
+      "sha256": "8644D8A8BDA66AB24C04D9B3FCBDF625CD0C48739EC4956E118A7589FF83454B"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/JsonToken.cs",
+      "bytes": 3175,
+      "sha256": "83199FBFDC09B8FAD2256186107BBF73A79875644A0073DF367CC0C857FB16C0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/JsonWriter.cs",
+      "bytes": 63246,
+      "sha256": "75B69B3EBED4305947ADEED867EA8780AB2B03F0F3CBE6FFAA391EF56CDB4C73"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/List.cs",
+      "bytes": 43437,
+      "sha256": "1346574BE64B5708F97AAA196AD474A63FF52F6D977D7AE18C366A600766F036"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/NamingStrategy.cs",
+      "bytes": 5486,
+      "sha256": "DD075B30ACE21D2A109F6D9F837E230D6B62874A2C8A3F49C44821A4A2F42D53"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/StringWriter.cs",
+      "bytes": 9989,
+      "sha256": "3E765E60738CCBC6729E74BF45AA7780B52B18E70DD8BD058E8BAF66BBCFA3D8"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/TextWriter.cs",
+      "bytes": 44096,
+      "sha256": "F889A621F85FEDBB54D19D84372E822C303CF64AD5DCB1877C12D5A3906F48EF"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/ThreadSafeStore.cs",
+      "bytes": 3391,
+      "sha256": "05C7FEADB9AC9783223DBD14BC5CBA558E0F0FD68CA73857A8C0694CA428DD6A"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/ToCollection.cs",
+      "bytes": 13112,
+      "sha256": "0AEB8A58596BF835F7972B7688B4A0F39966E426009635DC087F313CFB161123"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Union.cs",
+      "bytes": 13431,
+      "sha256": "CA689F2B0505A86B4FADC3E150069CF915C38C6B6050229AA86F1F2AC5794C17"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Union.SpeedOpt.cs",
+      "bytes": 2572,
+      "sha256": "F1C98769C0000A8D5C70F1278FDE605D3FD6C645263535C613B21627CFC59751"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/UTF8Encoding.Sealed.cs",
+      "bytes": 7970,
+      "sha256": "6DFF14B632DFA6740048F92BE5D00CF8D7158FA7D3C741CABEE85D53A7D1834D"
+    }
+  ]
+}

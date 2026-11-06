@@ -1,0 +1,259 @@
+{
+  "schema": "R12_WRITER_CODEC_SELECTED_JOIN_CORRECTION_R3",
+  "status": "SEALED_SOURCE_PROPOSAL_FOR_FRESH_INDEPENDENT_REVIEW_COLD_AND_GLOBAL_FIT_HOLD",
+  "source_changed": false,
+  "caps_or_domain_changed": false,
+  "no_target_execution": true,
+  "documents": {
+    "marker": {
+      "byte_upper": 319,
+      "nominal_text_upper": 318,
+      "close_time_text_upper": 321,
+      "container_chain": 1,
+      "maps": 1,
+      "arrays": 0,
+      "key_units_upper": 35,
+      "requests": {
+        "escape_all_old_arrays": 1116,
+        "StringBuilder_all_arrays": 1342,
+        "StringBuilder_all_objects": 112,
+        "returned_ToString": 664,
+        "returned_LF_concat": 664,
+        "UTF8_byte_array": 344,
+        "StringWriter": 64,
+        "JsonTextWriter": 224,
+        "JsonPosition_stack": 0,
+        "UTF8Encoding_plus_overwritten_fallbacks": 120,
+        "direct_serializer_runtime_and_traversal": 832
+      },
+      "selected_per_encode_upper": 5482,
+      "one_failed_encode_path_upper": 680
+    },
+    "receipt": {
+      "byte_upper": 23635,
+      "nominal_text_upper": 23634,
+      "close_time_text_upper": 23637,
+      "container_chain": 5,
+      "maps": 58,
+      "arrays": 23,
+      "key_units_upper": 60,
+      "requests": {
+        "escape_all_old_arrays": 55308,
+        "StringBuilder_all_arrays": 63512,
+        "StringBuilder_all_objects": 448,
+        "returned_ToString": 47296,
+        "returned_LF_concat": 47296,
+        "UTF8_byte_array": 23664,
+        "StringWriter": 64,
+        "JsonTextWriter": 224,
+        "JsonPosition_stack": 192,
+        "UTF8Encoding_plus_overwritten_fallbacks": 120,
+        "direct_serializer_runtime_and_traversal": 5672
+      },
+      "selected_per_encode_upper": 243796,
+      "one_failed_encode_path_upper": 8824
+    },
+    "failure": {
+      "byte_upper": 262760,
+      "nominal_text_upper": 262759,
+      "close_time_text_upper": 262762,
+      "container_chain": 3,
+      "maps": 79,
+      "arrays": 1,
+      "key_units_upper": 38,
+      "requests": {
+        "escape_all_old_arrays": 280720,
+        "StringBuilder_all_arrays": 542662,
+        "StringBuilder_all_objects": 2128,
+        "returned_ToString": 525544,
+        "returned_LF_concat": 525544,
+        "UTF8_byte_array": 262784,
+        "StringWriter": 64,
+        "JsonTextWriter": 224,
+        "JsonPosition_stack": 192,
+        "UTF8Encoding_plus_overwritten_fallbacks": 120,
+        "direct_serializer_runtime_and_traversal": 5872
+      },
+      "selected_per_encode_upper": 2145854,
+      "one_failed_encode_path_upper": 2760
+    },
+    "bundle": {
+      "byte_upper": 452921,
+      "nominal_text_upper": 452920,
+      "close_time_text_upper": 452923,
+      "container_chain": 3,
+      "maps": 1294,
+      "arrays": 2,
+      "key_units_upper": 41,
+      "requests": {
+        "escape_all_old_arrays": 280720,
+        "StringBuilder_all_arrays": 923704,
+        "StringBuilder_all_objects": 3472,
+        "returned_ToString": 905864,
+        "returned_LF_concat": 905864,
+        "UTF8_byte_array": 452952,
+        "StringWriter": 64,
+        "JsonTextWriter": 224,
+        "JsonPosition_stack": 192,
+        "UTF8Encoding_plus_overwritten_fallbacks": 120,
+        "direct_serializer_runtime_and_traversal": 83680
+      },
+      "selected_per_encode_upper": 3556856,
+      "one_failed_encode_path_upper": 2920
+    }
+  },
+  "phases": [
+    {
+      "id": "P0",
+      "encode_vector": {
+        "marker": 0,
+        "receipt": 0,
+        "failure": 0,
+        "bundle": 0
+      },
+      "selected_encoding_requests": 0,
+      "all_failed_encode_paths_upper": 0,
+      "selected_B_upper": 0,
+      "orphan_retry_array_and_chunk_attempt_upper": 0
+    },
+    {
+      "id": "P1",
+      "encode_vector": {
+        "marker": 1,
+        "receipt": 2,
+        "failure": 1,
+        "bundle": 0
+      },
+      "selected_encoding_requests": 2638928,
+      "all_failed_encode_paths_upper": 20408,
+      "selected_B_upper": 2755816,
+      "orphan_retry_array_and_chunk_attempt_upper": 96480
+    },
+    {
+      "id": "P2",
+      "encode_vector": {
+        "marker": 1,
+        "receipt": 2,
+        "failure": 1,
+        "bundle": 0
+      },
+      "selected_encoding_requests": 2638928,
+      "all_failed_encode_paths_upper": 20408,
+      "selected_B_upper": 2755816,
+      "orphan_retry_array_and_chunk_attempt_upper": 96480
+    },
+    {
+      "id": "P3",
+      "encode_vector": {
+        "marker": 1,
+        "receipt": 3,
+        "failure": 1,
+        "bundle": 0
+      },
+      "selected_encoding_requests": 2882724,
+      "all_failed_encode_paths_upper": 20408,
+      "selected_B_upper": 2999612,
+      "orphan_retry_array_and_chunk_attempt_upper": 96480
+    },
+    {
+      "id": "P4",
+      "encode_vector": {
+        "marker": 1,
+        "receipt": 4,
+        "failure": 1,
+        "bundle": 0
+      },
+      "selected_encoding_requests": 3126520,
+      "all_failed_encode_paths_upper": 20408,
+      "selected_B_upper": 3243408,
+      "orphan_retry_array_and_chunk_attempt_upper": 96480
+    },
+    {
+      "id": "P5",
+      "encode_vector": {
+        "marker": 1,
+        "receipt": 4,
+        "failure": 1,
+        "bundle": 1
+      },
+      "selected_encoding_requests": 6683376,
+      "all_failed_encode_paths_upper": 20408,
+      "selected_B_upper": 6800264,
+      "orphan_retry_array_and_chunk_attempt_upper": 96480
+    }
+  ],
+  "known_once_F_Bcold": 13344,
+  "shared_K_J_identity_terms": [
+    {
+      "identity": "List<object>.s_emptyArray",
+      "upper": 24
+    },
+    {
+      "identity": "SZGenericArrayEnumerator<object>.Empty",
+      "field_slot_upper": 48
+    }
+  ],
+  "first_failure_correction": "R1 buffer argument did not cover close-time null insertion; use nominalL+3 for writer arrays, no increased returned text/UTF8 bound. R1 remains preserved and no complete fit was accepted.",
+  "root_profile": "Provisional R12 selected literal root only; independently derived452921-byte bundle wire bound. Final canonical union and new geometry require fresh evaluation, not transfer.",
+  "graph_snapshot_original": {
+    "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/evaluation.json",
+    "bytes": 16060,
+    "sha256": "872E24B3B7A11476AAE4949E6B0D43B54D6DD19B266FF0FA52D66A26691E5C4F"
+  },
+  "remaining": [
+    "EnumUtils default concurrent store/reflection and contract-resolver/binder/cache initialization are explicit once-only F source/storage profile terms",
+    "General CLR/SDK metadata/type/loader/native/exception heap remains expressly unqualified outside controlled owners, never0 or total-process/RSS fit",
+    "Independent source/ABI/whole phase review, exact final input/root/environment association, immutable binding and separate execution GO remain required"
+  ],
+  "pinned_inputs": [
+    {
+      "path": "build-ci/20261106-derive-writer-join-r2.py",
+      "bytes": 7032,
+      "sha256": "6EA3F18EBE4A90304F97666D909E1BB9B74695BD2FAE5F4EF5600E723B5BB8C9"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/bundle-bound.json",
+      "bytes": 5226,
+      "sha256": "BE3EE2DD5BDF45C3C9AE0EBF1FA6A379BB69331CA319D05E29BA29C96D99A423"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/runtime-component.json",
+      "bytes": 13416,
+      "sha256": "75590F0E4336305D1111F279A6048445B22DA133EEA6A4A86871D154DCF77A93"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/writer-component.json",
+      "bytes": 13506,
+      "sha256": "C5E40FD9740760613B9A0BAD7F2739B533060EFEDB97D931F77B7517FADBB3E4"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/cold-supplement.json",
+      "bytes": 10073,
+      "sha256": "3A3A964618CBBE4A8145BEA479B673E8DF931D11B9FDBC5467859588A60693D3"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r2/writer-join.json",
+      "bytes": 7581,
+      "sha256": "25C4167F94C8DE538861F391F2DF940D345ABD4139CD219E2ACA25DE97A047A5"
+    },
+    {
+      "path": "build-ci/20261106-derive-writer-join-r3.py",
+      "bytes": 4135,
+      "sha256": "4861C5EF0BDA2692DB5D040CBA0E420A34C6457DE67FAADF4107D94CA54EF65F"
+    }
+  ],
+  "known_cold_timing": "Charge once from earliest applicable prefix; previous initialization or BeforeFieldInit timing is not free credit.",
+  "R3_corrections": {
+    "generic_StringBuilder_object_field_slot_upper": 56,
+    "basis": "Header16+two-reference/three-int fields each<=8. No actual48-byte layout or allocation measurement assumed.",
+    "orphan_retry_source": "ExpandByABlock allocates char[] before new StringBuilder(this). Object allocation failure leaves an unattached array; the single using-close can retry expansion. First failed main encode exits main; only failure inventory and footer can enter again.",
+    "failed_encodes_upper": 3,
+    "orphan_pairs_per_failed_encode_upper": 2,
+    "each_pair_request_upper": 16080,
+    "whole_orphan_retry_upper": 96480,
+    "failed_object_attempt_bytes_also_charged": true,
+    "ordinary_selected_closed_SDK_no_error_handler_or_retry": true,
+    "independent_critic_supported_values_are_checked_not_source_execution": true
+  },
+  "prior_r2_sha256": "25C4167F94C8DE538861F391F2DF940D345ABD4139CD219E2ACA25DE97A047A5"
+}

@@ -1,0 +1,28 @@
+{
+  "files": [
+    {
+      "file": "JsonPosition.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/JsonPosition.cs",
+      "bytes": 5986,
+      "sha256": "4F9E601F9D0BE45C4F60F15BF1B6CA8F85DEC51E353EBB50E405CC6F8E422C14"
+    },
+    {
+      "file": "ErrorContext.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Serialization/ErrorContext.cs",
+      "bytes": 2703,
+      "sha256": "E3DC6AD14637ABF28C4270DDDD336F25FBC73D7F47A9182E97A0094B4205A283"
+    },
+    {
+      "file": "ErrorEventArgs.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Serialization/ErrorEventArgs.cs",
+      "bytes": 2228,
+      "sha256": "CE8D740827BA8AB12B0E5173D71E7AECB906CA1522AE27E9A62F734012057E58"
+    },
+    {
+      "file": "StreamingContext.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/Serialization/StreamingContext.cs",
+      "bytes": 2381,
+      "sha256": "0C4F967C21DCF88F5F799F07D21AD1A6B7AE0889BFD04DA9463A3520DC2E42DD"
+    }
+  ]
+}

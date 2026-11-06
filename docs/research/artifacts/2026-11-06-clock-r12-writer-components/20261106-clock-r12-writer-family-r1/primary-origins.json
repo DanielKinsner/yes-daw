@@ -1,0 +1,29 @@
+{
+  "scope": "Pinned official source only; no source/binary equivalence or target execution",
+  "files": [
+    {
+      "file": "JsonWriter.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/JsonWriter.cs",
+      "bytes": 63246,
+      "sha256": "75B69B3EBED4305947ADEED867EA8780AB2B03F0F3CBE6FFAA391EF56CDB4C73"
+    },
+    {
+      "file": "StringWriter.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/StringWriter.cs",
+      "bytes": 9989,
+      "sha256": "3E765E60738CCBC6729E74BF45AA7780B52B18E70DD8BD058E8BAF66BBCFA3D8"
+    },
+    {
+      "file": "TextWriter.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/TextWriter.cs",
+      "bytes": 44096,
+      "sha256": "F889A621F85FEDBB54D19D84372E822C303CF64AD5DCB1877C12D5A3906F48EF"
+    },
+    {
+      "file": "Encoding.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Text/Encoding.cs",
+      "bytes": 67311,
+      "sha256": "44B11DDB443BD71B1C7A4406A8749D234C0E0B135D9A36DC53C4F0887B197DB4"
+    }
+  ]
+}

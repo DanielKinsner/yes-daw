@@ -1,0 +1,28 @@
+{
+  "files": [
+    {
+      "file": "JsonSerializerSettings.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/JsonSerializerSettings.cs",
+      "bytes": 22890,
+      "sha256": "6746CD4D5B7C2C15613284E07EE308B67EDD6665E58B1B5CC027960138440E31"
+    },
+    {
+      "file": "JsonSerializer.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/JsonSerializer.cs",
+      "bytes": 50876,
+      "sha256": "8EB9AD99A39D208CCDB1F6315A6C8764619AD42464C9FFE3E20FB3E74D3C41E1"
+    },
+    {
+      "file": "JsonSerializerInternalBase.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Serialization/JsonSerializerInternalBase.cs",
+      "bytes": 6227,
+      "sha256": "E541DA7176FB5B068C64FAA913A9366873EF05C4D7281CD49A2485C77904A065"
+    },
+    {
+      "file": "JsonSerializerInternalWriter.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Serialization/JsonSerializerInternalWriter.cs",
+      "bytes": 54055,
+      "sha256": "669C29459FB86B7B62FDBF0721B38B09E0D090DB05B31F01FAA9262273376D45"
+    }
+  ]
+}

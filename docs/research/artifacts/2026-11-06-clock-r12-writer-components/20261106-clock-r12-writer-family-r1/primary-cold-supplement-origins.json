@@ -1,0 +1,34 @@
+{
+  "files": [
+    {
+      "file": "Enumerable.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Linq/src/System/Linq/Enumerable.cs",
+      "bytes": 3480,
+      "sha256": "FCD6F2B4B4E3A6EFBBB2BEB0031834C8DD6B0642360D45AB81247DD047B71E74"
+    },
+    {
+      "file": "ThreadSafeStore.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Utilities/ThreadSafeStore.cs",
+      "bytes": 3391,
+      "sha256": "05C7FEADB9AC9783223DBD14BC5CBA558E0F0FD68CA73857A8C0694CA428DD6A"
+    },
+    {
+      "file": "CamelCaseNamingStrategy.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Serialization/CamelCaseNamingStrategy.cs",
+      "bytes": 3678,
+      "sha256": "E736540B98F976EEE9CB4BA86337AAE9252153CB138935895FA4E181072E7A05"
+    },
+    {
+      "file": "NamingStrategy.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Serialization/NamingStrategy.cs",
+      "bytes": 5486,
+      "sha256": "DD075B30ACE21D2A109F6D9F837E230D6B62874A2C8A3F49C44821A4A2F42D53"
+    },
+    {
+      "file": "UTF8Encoding.Sealed.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Text/UTF8Encoding.Sealed.cs",
+      "bytes": 7970,
+      "sha256": "6DFF14B632DFA6740048F92BE5D00CF8D7158FA7D3C741CABEE85D53A7D1834D"
+    }
+  ]
+}

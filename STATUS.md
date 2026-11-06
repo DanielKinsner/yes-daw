@@ -80,6 +80,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    final input/root/environment, numeric/resource closure, binding and execution remain held.
    The controller environment equations passed1,293 conditional source checks; actual native startup,
    unjoined early-startup callbacks and the true writer interval remain unqualified. No environment dump was read.
+   Corrected writer component R3 passed198 independent checks, including cleanup retry arrays and diagnostic
+   owners; complete cold/runtime/profile/phase joins and the32MiB resource gate remain held.
    R5's conditional all-input/source-object argument passed18,197 independent checks; actual native
    binding/funding/resources/integration remain held. Whole production census R4 review is REVISE;
    its complete R5 successor is under fresh independent review, including all420 bodies/51 helpers.
@@ -107,6 +109,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Preserve corrected writer ownership and failure paths
+
+- Archived80 source/author/review records, including the original R1/R2 REVISE evidence and the fresh conditional R3 acceptance after198 checks.
+- R3 counts close-time null output, orphan/retry arrays and56-byte source-slot builder uppers. Selected B prefixes end at6,800,264 bytes plus13,344 known cold bytes once and named remainders.
+- This is no whole-fit, NOFIT, heap/RSS, binding or execution claim. R13's separate typed-counter/streamed-parser source still needs whole functional and fresh resource review; no app feature is enabled.
 
 ## 2026-11-06 - Preserve selected path and bundle geometry
 

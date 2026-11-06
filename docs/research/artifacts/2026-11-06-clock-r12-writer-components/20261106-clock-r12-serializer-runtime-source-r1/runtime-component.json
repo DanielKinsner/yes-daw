@@ -1,0 +1,472 @@
+{
+  "schema": "R12_DIRECT_SERIALIZER_RUNTIME_AND_FAILURE_SOURCE_COMPONENT_R1",
+  "status": "PROPOSED_SOURCE_COMPONENT_COLD_CONTRACT_CACHE_AND_GENERAL_CLR_QUALIFICATION_HOLD",
+  "fixed_per_encode": {
+    "JsonSerializerSettings_field_slot_upper": 280,
+    "JsonSerializer_field_slot_upper": 272,
+    "JsonSerializerInternalWriter_including_base_upper": 80,
+    "Settings_Converters_List_field_slot_upper": 40,
+    "InternalWriter_serializeStack_List_field_slot_upper": 40,
+    "InternalWriter_serializeStack_all_old_backings": 576
+  },
+  "source_field_inventory": {
+    "settings": [
+      [
+        "Formatting?",
+        "_formatting"
+      ],
+      [
+        "DateFormatHandling?",
+        "_dateFormatHandling"
+      ],
+      [
+        "DateTimeZoneHandling?",
+        "_dateTimeZoneHandling"
+      ],
+      [
+        "DateParseHandling?",
+        "_dateParseHandling"
+      ],
+      [
+        "FloatFormatHandling?",
+        "_floatFormatHandling"
+      ],
+      [
+        "FloatParseHandling?",
+        "_floatParseHandling"
+      ],
+      [
+        "StringEscapeHandling?",
+        "_stringEscapeHandling"
+      ],
+      [
+        "CultureInfo?",
+        "_culture"
+      ],
+      [
+        "bool?",
+        "_checkAdditionalContent"
+      ],
+      [
+        "int?",
+        "_maxDepth"
+      ],
+      [
+        "bool",
+        "_maxDepthSet"
+      ],
+      [
+        "string?",
+        "_dateFormatString"
+      ],
+      [
+        "bool",
+        "_dateFormatStringSet"
+      ],
+      [
+        "TypeNameAssemblyFormatHandling?",
+        "_typeNameAssemblyFormatHandling"
+      ],
+      [
+        "DefaultValueHandling?",
+        "_defaultValueHandling"
+      ],
+      [
+        "PreserveReferencesHandling?",
+        "_preserveReferencesHandling"
+      ],
+      [
+        "NullValueHandling?",
+        "_nullValueHandling"
+      ],
+      [
+        "ObjectCreationHandling?",
+        "_objectCreationHandling"
+      ],
+      [
+        "MissingMemberHandling?",
+        "_missingMemberHandling"
+      ],
+      [
+        "ReferenceLoopHandling?",
+        "_referenceLoopHandling"
+      ],
+      [
+        "StreamingContext?",
+        "_context"
+      ],
+      [
+        "ConstructorHandling?",
+        "_constructorHandling"
+      ],
+      [
+        "TypeNameHandling?",
+        "_typeNameHandling"
+      ],
+      [
+        "MetadataPropertyHandling?",
+        "_metadataPropertyHandling"
+      ]
+    ],
+    "settings_auto_properties": [
+      [
+        "IList<JsonConverter>",
+        "Converters"
+      ],
+      [
+        "IContractResolver?",
+        "ContractResolver"
+      ],
+      [
+        "IEqualityComparer?",
+        "EqualityComparer"
+      ],
+      [
+        "Func<IReferenceResolver?>?",
+        "ReferenceResolverProvider"
+      ],
+      [
+        "ITraceWriter?",
+        "TraceWriter"
+      ],
+      [
+        "ISerializationBinder?",
+        "SerializationBinder"
+      ],
+      [
+        "EventHandler<ErrorEventArgs>?",
+        "Error"
+      ]
+    ],
+    "serializer": [
+      [
+        "TypeNameHandling",
+        "_typeNameHandling"
+      ],
+      [
+        "TypeNameAssemblyFormatHandling",
+        "_typeNameAssemblyFormatHandling"
+      ],
+      [
+        "PreserveReferencesHandling",
+        "_preserveReferencesHandling"
+      ],
+      [
+        "ReferenceLoopHandling",
+        "_referenceLoopHandling"
+      ],
+      [
+        "MissingMemberHandling",
+        "_missingMemberHandling"
+      ],
+      [
+        "ObjectCreationHandling",
+        "_objectCreationHandling"
+      ],
+      [
+        "NullValueHandling",
+        "_nullValueHandling"
+      ],
+      [
+        "DefaultValueHandling",
+        "_defaultValueHandling"
+      ],
+      [
+        "ConstructorHandling",
+        "_constructorHandling"
+      ],
+      [
+        "MetadataPropertyHandling",
+        "_metadataPropertyHandling"
+      ],
+      [
+        "JsonConverterCollection?",
+        "_converters"
+      ],
+      [
+        "IContractResolver",
+        "_contractResolver"
+      ],
+      [
+        "ITraceWriter?",
+        "_traceWriter"
+      ],
+      [
+        "IEqualityComparer?",
+        "_equalityComparer"
+      ],
+      [
+        "ISerializationBinder",
+        "_serializationBinder"
+      ],
+      [
+        "StreamingContext",
+        "_context"
+      ],
+      [
+        "IReferenceResolver?",
+        "_referenceResolver"
+      ],
+      [
+        "Formatting?",
+        "_formatting"
+      ],
+      [
+        "DateFormatHandling?",
+        "_dateFormatHandling"
+      ],
+      [
+        "DateTimeZoneHandling?",
+        "_dateTimeZoneHandling"
+      ],
+      [
+        "DateParseHandling?",
+        "_dateParseHandling"
+      ],
+      [
+        "FloatFormatHandling?",
+        "_floatFormatHandling"
+      ],
+      [
+        "FloatParseHandling?",
+        "_floatParseHandling"
+      ],
+      [
+        "StringEscapeHandling?",
+        "_stringEscapeHandling"
+      ],
+      [
+        "CultureInfo",
+        "_culture"
+      ],
+      [
+        "int?",
+        "_maxDepth"
+      ],
+      [
+        "bool",
+        "_maxDepthSet"
+      ],
+      [
+        "bool?",
+        "_checkAdditionalContent"
+      ],
+      [
+        "string?",
+        "_dateFormatString"
+      ],
+      [
+        "bool",
+        "_dateFormatStringSet"
+      ]
+    ],
+    "serializer_event_field": "Error"
+  },
+  "graphs": {
+    "marker": {
+      "maps": 1,
+      "arrays": 0,
+      "container_chain": 1,
+      "dictionary_traversal_enumerator_box_upper": 64,
+      "list_traversal_enumerator_box_upper": 0,
+      "selected_direct_runtime_upper": 1352
+    },
+    "receipt": {
+      "maps": 58,
+      "arrays": 23,
+      "container_chain": 5,
+      "dictionary_traversal_enumerator_box_upper": 3712,
+      "list_traversal_enumerator_box_upper": 1104,
+      "selected_direct_runtime_upper": 6104
+    },
+    "failure": {
+      "maps": 79,
+      "arrays": 1,
+      "container_chain": 3,
+      "dictionary_traversal_enumerator_box_upper": 5056,
+      "list_traversal_enumerator_box_upper": 48,
+      "selected_direct_runtime_upper": 6392
+    },
+    "bundle": {
+      "maps": 1294,
+      "arrays": 2,
+      "container_chain": 3,
+      "dictionary_traversal_enumerator_box_upper": 82816,
+      "list_traversal_enumerator_box_upper": 96,
+      "selected_direct_runtime_upper": 84200
+    }
+  },
+  "graph_count_status": "Source-profile inputs from whole phase owner; key inventory and exact chain/count derivation must be pinned before whole numerical acceptance",
+  "SDK_failure_routes": {
+    "marker": {
+      "container_chain": 1,
+      "identifier_key_units_upper": 512,
+      "path_capacity_upper": 517,
+      "BuildPath_calls_upper": 2,
+      "all_path_builders_arrays_strings_upper": 4336,
+      "ErrorContext_once_field_slot_upper": 64,
+      "ErrorEventArgs_field_slot_upper": 64,
+      "boxed_array_error_member_indices_upper": 24,
+      "selected_failure_route_upper": 4488
+    },
+    "receipt": {
+      "container_chain": 5,
+      "identifier_key_units_upper": 512,
+      "path_capacity_upper": 2585,
+      "BuildPath_calls_upper": 6,
+      "all_path_builders_arrays_strings_upper": 62640,
+      "ErrorContext_once_field_slot_upper": 64,
+      "ErrorEventArgs_field_slot_upper": 192,
+      "boxed_array_error_member_indices_upper": 120,
+      "selected_failure_route_upper": 63016
+    },
+    "failure": {
+      "container_chain": 3,
+      "identifier_key_units_upper": 512,
+      "path_capacity_upper": 1551,
+      "BuildPath_calls_upper": 4,
+      "all_path_builders_arrays_strings_upper": 25216,
+      "ErrorContext_once_field_slot_upper": 64,
+      "ErrorEventArgs_field_slot_upper": 128,
+      "boxed_array_error_member_indices_upper": 72,
+      "selected_failure_route_upper": 25480
+    },
+    "bundle": {
+      "container_chain": 3,
+      "identifier_key_units_upper": 512,
+      "path_capacity_upper": 1551,
+      "BuildPath_calls_upper": 4,
+      "all_path_builders_arrays_strings_upper": 25216,
+      "ErrorContext_once_field_slot_upper": 64,
+      "ErrorEventArgs_field_slot_upper": 128,
+      "boxed_array_error_member_indices_upper": 72,
+      "selected_failure_route_upper": 25480
+    }
+  },
+  "SDK_global_error_tail_upper": 151512,
+  "phases": [
+    {
+      "id": "P0",
+      "direct_runtime_upper": 0,
+      "SDK_serialization_failure_route_upper": 0
+    },
+    {
+      "id": "P1",
+      "direct_runtime_upper": 19952,
+      "SDK_serialization_failure_route_upper": 151512
+    },
+    {
+      "id": "P2",
+      "direct_runtime_upper": 19952,
+      "SDK_serialization_failure_route_upper": 151512
+    },
+    {
+      "id": "P3",
+      "direct_runtime_upper": 26056,
+      "SDK_serialization_failure_route_upper": 151512
+    },
+    {
+      "id": "P4",
+      "direct_runtime_upper": 32160,
+      "SDK_serialization_failure_route_upper": 151512
+    },
+    {
+      "id": "P5",
+      "direct_runtime_upper": 116360,
+      "SDK_serialization_failure_route_upper": 151512
+    }
+  ],
+  "additional_cold_direct_owner_terms": {
+    "JsonPosition_SpecialCharacters_char18": 64,
+    "List_JsonConverter_shared_empty_array": 24
+  },
+  "shared_with_K_J_identity_terms": [
+    {
+      "identity": "List<object>.s_emptyArray",
+      "upper": 24
+    },
+    {
+      "identity": "SZGenericArrayEnumerator<object>.Empty",
+      "field_slot_upper": 48
+    }
+  ],
+  "R1_buffer_correction": {
+    "previous_pins_sha256": "688C85CAB43BFBF54458E3E258BACBD41FBECD87C83BC5C671E06A1033178099",
+    "issue": "R1 statement failure can only reduce writer output is too broad: AutoCompleteOnClose can replace one pending one-unit integer value with null.",
+    "abstract_counterexample": {
+      "nominal": "{\"x\":0}",
+      "completed_after_failure": "{\"x\":null}",
+      "extra_units": 3
+    },
+    "supported_next_hypothesis": "Bound writer builder/escape arrays with nominalL+3; normal returned ToString/LF/UTF8 still use nominalL because failed codec never returns. Freeze R1 and issue separate corrected component; no cap/source/domain changes."
+  },
+  "remaining": [
+    "DefaultContractResolver/DefaultSerializationBinder and type-contract/thread-store/dynamic-delegate cache source/storage profile remains a once F term, not0 or a per-encode duplicate",
+    "Actual selected source/binary/build/ordinary closed-caller association: no user converter, default-settings delegate, trace/reference handler, callbacks, custom objects, multidimensional arrays or reference-preserving setting",
+    "General CLR exception/stack/type/metadata/loader/native heap remains explicitly unqualified outside controlled DTO/array/string/clone/stored-box owners, not0 or total-RSS credit",
+    "Independent whole critic must validate graph/key/depth inputs, diagnostic and AutoComplete correction and join every phase before fit/binding/GO"
+  ],
+  "input_pins": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/source-pins.json",
+      "bytes": 8363,
+      "sha256": "688C85CAB43BFBF54458E3E258BACBD41FBECD87C83BC5C671E06A1033178099"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "bytes": 93117,
+      "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/List.cs",
+      "bytes": 43437,
+      "sha256": "1346574BE64B5708F97AAA196AD474A63FF52F6D977D7AE18C366A600766F036"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/ErrorContext.cs",
+      "bytes": 2703,
+      "sha256": "E3DC6AD14637ABF28C4270DDDD336F25FBC73D7F47A9182E97A0094B4205A283"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/ErrorEventArgs.cs",
+      "bytes": 2228,
+      "sha256": "CE8D740827BA8AB12B0E5173D71E7AECB906CA1522AE27E9A62F734012057E58"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonPosition.cs",
+      "bytes": 5986,
+      "sha256": "4F9E601F9D0BE45C4F60F15BF1B6CA8F85DEC51E353EBB50E405CC6F8E422C14"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializer.cs",
+      "bytes": 50876,
+      "sha256": "8EB9AD99A39D208CCDB1F6315A6C8764619AD42464C9FFE3E20FB3E74D3C41E1"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerInternalBase.cs",
+      "bytes": 6227,
+      "sha256": "E541DA7176FB5B068C64FAA913A9366873EF05C4D7281CD49A2485C77904A065"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerInternalWriter.cs",
+      "bytes": 54055,
+      "sha256": "669C29459FB86B7B62FDBF0721B38B09E0D090DB05B31F01FAA9262273376D45"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/JsonSerializerSettings.cs",
+      "bytes": 22890,
+      "sha256": "6746CD4D5B7C2C15613284E07EE308B67EDD6665E58B1B5CC027960138440E31"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-serializer-runtime-source-r1/primary/StreamingContext.cs",
+      "bytes": 2381,
+      "sha256": "0C4F967C21DCF88F5F799F07D21AD1A6B7AE0889BFD04DA9463A3520DC2E42DD"
+    }
+  ],
+  "no_target_execution": true
+}

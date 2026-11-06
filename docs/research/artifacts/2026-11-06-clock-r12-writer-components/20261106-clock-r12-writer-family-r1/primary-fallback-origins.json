@@ -1,0 +1,34 @@
+{
+  "files": [
+    {
+      "file": "EncoderFallback.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Text/EncoderFallback.cs",
+      "bytes": 14038,
+      "sha256": "FECAA8E71992F9D568254202327662E6DE473B3D73AD5B6FA83A79417CC98715"
+    },
+    {
+      "file": "DecoderFallback.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Text/DecoderFallback.cs",
+      "bytes": 12242,
+      "sha256": "118661AA450CB05C5780194C2A2DC2BBC0CBCCBAF1E6D3647967F547EDF8AA43"
+    },
+    {
+      "file": "EncoderReplacementFallback.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Text/EncoderReplacementFallback.cs",
+      "bytes": 7237,
+      "sha256": "735C5015DDD6FB9D5BE7E20FC85703DE97A1DD40DB2843AA79EEB5271ED1FBA1"
+    },
+    {
+      "file": "DecoderReplacementFallback.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Text/DecoderReplacementFallback.cs",
+      "bytes": 6097,
+      "sha256": "B0B653C5B53A2786AD47FDEF7DF1BBB919C2B285C88A3787B3772F9B075FD235"
+    },
+    {
+      "file": "List.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/List.cs",
+      "bytes": 43437,
+      "sha256": "1346574BE64B5708F97AAA196AD474A63FF52F6D977D7AE18C366A600766F036"
+    }
+  ]
+}
