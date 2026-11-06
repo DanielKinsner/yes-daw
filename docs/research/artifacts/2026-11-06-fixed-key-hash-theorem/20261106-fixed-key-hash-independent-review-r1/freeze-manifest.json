@@ -1,0 +1,30 @@
+{
+  "scope": "FIRST_PASSING_INDEPENDENT_SOURCE_REVIEW_ONLY",
+  "files": [
+    {
+      "path": "build-ci/20261106-fixed-key-hash-independent-review-r1/check.py",
+      "bytes": 8564,
+      "sha256": "2366AC7F2D6A0357DBAF19D6E94774D77C5E92C8EF19D3E4BBA07D0CC6EE12C9"
+    },
+    {
+      "path": "build-ci/20261106-fixed-key-hash-independent-review-r1/checks.json",
+      "bytes": 15490,
+      "sha256": "2A20E1B35DEA5B3463B64C79D286FDEBDFA0DC9B2AE065BF0697E855FB6C1068"
+    },
+    {
+      "path": "build-ci/20261106-fixed-key-hash-independent-review-r1/review.json",
+      "bytes": 1471,
+      "sha256": "CCD575DDEE91596E0ADBD6683FE39F077B32DC2B83627186609C0629D8797C9F"
+    },
+    {
+      "path": "build-ci/20261106-fixed-key-hash-independent-review-r1/review.md",
+      "bytes": 3125,
+      "sha256": "CA53B7B1ACC9105611FB1D05D4E9061D7B034C455B394E6342CF5DA785B22423"
+    },
+    {
+      "path": "build-ci/20261106-fixed-key-hash-independent-review-r1/source-pins.json",
+      "bytes": 1944,
+      "sha256": "EEAF3FF80FBF1067E6FEB0BCBDA9D97F8A218A095B313893F1DCF05D3A2B0260"
+    }
+  ]
+}

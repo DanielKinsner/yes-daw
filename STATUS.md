@@ -88,6 +88,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    R13 is a separate unrun source successor for typed preflight counters and streamed dependency parsing;
    its whole functional review passed1,491 checks; fresh complete scalar/resource censuses are in progress
    and all target execution guards remain false. Parser/source checks are not target runtime success.
+   The fixed-key R12 dictionary theorem passed228 independent source checks; whole resources remain held.
    The narrow candidate observation/restoration lemma passed13,368 independent checks; actual errno,
    floor/provider/interval and whole runtime/resource qualification remain pending.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
@@ -110,6 +111,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Bound fixed-key dictionary growth without target execution
+
+- Archived15 complete author/review/primary-input records. The independent checker passed228 checks, including exact byte-word hashes, six key universes, all growth capacities and selected FastMod results.
+- Under the exact R12 geometry/source premise, all six dictionaries avoid collision rehash; the three persistent catalogue tables need no growth after the successful pre-created fence. General JSON/FileSet dictionaries remain separate.
+- No R13 root/union, actual binary association, whole resource fit, binding or execution follows. R13 archive8419393 passed exact-head CI42201613172; continue the complete resource/census work headlessly.
 
 ## 2026-11-06 - Accept the complete R13 functional source successor
 

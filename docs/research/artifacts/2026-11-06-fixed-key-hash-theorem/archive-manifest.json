@@ -1,0 +1,143 @@
+{
+  "schema": "WHOLE_CONDITIONAL_SOURCE_REVIEW_ARCHIVE",
+  "component": "fixed-key-hash-theorem",
+  "independent_review_sha256": "CCD575DDEE91596E0ADBD6683FE39F077B32DC2B83627186609C0629D8797C9F",
+  "scope": "Conditional R12 fixed-root source theorem only; no R13 inheritance, runtime association, whole fit or execution GO",
+  "files": [
+    {
+      "file": "20261105-clock-oracle-r12-path-geometry-r1/geometry.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/geometry.json",
+      "original_bytes": 2350419,
+      "original_sha256": "BE95DC06AB85E7BF0A706656B08A6C2C8B5581C4AE3376BFE7AB1D98CADBAD9F",
+      "bytes": 2350419,
+      "sha256": "BE95DC06AB85E7BF0A706656B08A6C2C8B5581C4AE3376BFE7AB1D98CADBAD9F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "original_path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "original_bytes": 93117,
+      "original_sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA",
+      "bytes": 93117,
+      "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "original_path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "original_bytes": 5167,
+      "original_sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4",
+      "bytes": 5167,
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-clock-r12-payload-evaluation-r1/check-fixed-key-hashes.py",
+      "original_path": "build-ci/20261106-clock-r12-payload-evaluation-r1/check-fixed-key-hashes.py",
+      "original_bytes": 7677,
+      "original_sha256": "BACD6D7F66B76334429005BBF38A7C028733E66E3596C649CE11827DB5D5671C",
+      "bytes": 7677,
+      "sha256": "BACD6D7F66B76334429005BBF38A7C028733E66E3596C649CE11827DB5D5671C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-clock-r12-payload-evaluation-r1/fixed-key-hash-chains.json",
+      "original_path": "build-ci/20261106-clock-r12-payload-evaluation-r1/fixed-key-hash-chains.json",
+      "original_bytes": 16710,
+      "original_sha256": "587CB936BC03C25E3C6336AC1240C8B4EA763AEAE1EE327F4D43D1987610E1FD",
+      "bytes": 16710,
+      "sha256": "587CB936BC03C25E3C6336AC1240C8B4EA763AEAE1EE327F4D43D1987610E1FD",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-comparer-encoding-source-r1/NonRandomizedStringEqualityComparer.cs",
+      "original_path": "build-ci/20261106-comparer-encoding-source-r1/NonRandomizedStringEqualityComparer.cs",
+      "original_bytes": 8109,
+      "original_sha256": "083FC121C8E8F7FD54AD8871FF9AC3CE8E716D8EA4935CC1A9258ABE6425B2FF",
+      "bytes": 8109,
+      "sha256": "083FC121C8E8F7FD54AD8871FF9AC3CE8E716D8EA4935CC1A9258ABE6425B2FF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-comparer-encoding-source-r1/String.Comparison.cs",
+      "original_path": "build-ci/20261106-comparer-encoding-source-r1/String.Comparison.cs",
+      "original_bytes": 50926,
+      "original_sha256": "332E2A21449AD65F2368D672A116246EADF3842DFCB45F35A713D912C51731C5",
+      "bytes": 50926,
+      "sha256": "332E2A21449AD65F2368D672A116246EADF3842DFCB45F35A713D912C51731C5",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-fixed-key-hash-independent-review-r1/check.py",
+      "original_path": "build-ci/20261106-fixed-key-hash-independent-review-r1/check.py",
+      "original_bytes": 8564,
+      "original_sha256": "2366AC7F2D6A0357DBAF19D6E94774D77C5E92C8EF19D3E4BBA07D0CC6EE12C9",
+      "bytes": 8564,
+      "sha256": "2366AC7F2D6A0357DBAF19D6E94774D77C5E92C8EF19D3E4BBA07D0CC6EE12C9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-fixed-key-hash-independent-review-r1/checks.json",
+      "original_path": "build-ci/20261106-fixed-key-hash-independent-review-r1/checks.json",
+      "original_bytes": 15490,
+      "original_sha256": "2A20E1B35DEA5B3463B64C79D286FDEBDFA0DC9B2AE065BF0697E855FB6C1068",
+      "bytes": 15490,
+      "sha256": "2A20E1B35DEA5B3463B64C79D286FDEBDFA0DC9B2AE065BF0697E855FB6C1068",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-fixed-key-hash-independent-review-r1/freeze-manifest.json",
+      "original_path": "build-ci/20261106-fixed-key-hash-independent-review-r1/freeze-manifest.json",
+      "original_bytes": 1085,
+      "original_sha256": "1F7FC534921DFCDE46CB1F425EDAE36D4AD769FAB18EF975FBDF259949D25883",
+      "bytes": 1085,
+      "sha256": "1F7FC534921DFCDE46CB1F425EDAE36D4AD769FAB18EF975FBDF259949D25883",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-fixed-key-hash-independent-review-r1/review.json",
+      "original_path": "build-ci/20261106-fixed-key-hash-independent-review-r1/review.json",
+      "original_bytes": 1471,
+      "original_sha256": "CCD575DDEE91596E0ADBD6683FE39F077B32DC2B83627186609C0629D8797C9F",
+      "bytes": 1471,
+      "sha256": "CCD575DDEE91596E0ADBD6683FE39F077B32DC2B83627186609C0629D8797C9F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-fixed-key-hash-independent-review-r1/review.md",
+      "original_path": "build-ci/20261106-fixed-key-hash-independent-review-r1/review.md",
+      "original_bytes": 3125,
+      "original_sha256": "CA53B7B1ACC9105611FB1D05D4E9061D7B034C455B394E6342CF5DA785B22423",
+      "bytes": 3125,
+      "sha256": "CA53B7B1ACC9105611FB1D05D4E9061D7B034C455B394E6342CF5DA785B22423",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-fixed-key-hash-independent-review-r1/source-pins.json",
+      "original_path": "build-ci/20261106-fixed-key-hash-independent-review-r1/source-pins.json",
+      "original_bytes": 1944,
+      "original_sha256": "EEAF3FF80FBF1067E6FEB0BCBDA9D97F8A218A095B313893F1DCF05D3A2B0260",
+      "bytes": 1944,
+      "sha256": "EEAF3FF80FBF1067E6FEB0BCBDA9D97F8A218A095B313893F1DCF05D3A2B0260",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "original_bytes": 105903,
+      "original_sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-manifest.json",
+      "original_bytes": 501180,
+      "original_sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557",
+      "bytes": 501180,
+      "sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

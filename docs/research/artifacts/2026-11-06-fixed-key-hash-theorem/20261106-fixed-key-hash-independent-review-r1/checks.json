@@ -1,0 +1,914 @@
+[
+  {
+    "check": "sealed:check-fixed-key-hashes.py",
+    "passed": true
+  },
+  {
+    "check": "sealed:fixed-key-hash-chains.json",
+    "passed": true
+  },
+  {
+    "check": "sealed:String.Comparison.cs",
+    "passed": true
+  },
+  {
+    "check": "extent:String.Comparison.cs",
+    "passed": true
+  },
+  {
+    "check": "sealed:geometry.json",
+    "passed": true
+  },
+  {
+    "check": "extent:geometry.json",
+    "passed": true
+  },
+  {
+    "check": "sealed:source-manifest.json",
+    "passed": true
+  },
+  {
+    "check": "extent:source-manifest.json",
+    "passed": true
+  },
+  {
+    "check": "sealed:NonRandomizedStringEqualityComparer.cs",
+    "passed": true
+  },
+  {
+    "check": "extent:NonRandomizedStringEqualityComparer.cs",
+    "passed": true
+  },
+  {
+    "check": "sealed:Dictionary.cs",
+    "passed": true
+  },
+  {
+    "check": "extent:Dictionary.cs",
+    "passed": true
+  },
+  {
+    "check": "sealed:HashHelpers.cs",
+    "passed": true
+  },
+  {
+    "check": "prime-prefix",
+    "passed": true
+  },
+  {
+    "check": "threshold",
+    "passed": true
+  },
+  {
+    "check": "doubling",
+    "passed": true
+  },
+  {
+    "check": "initial-aliases",
+    "passed": true
+  },
+  {
+    "check": "six-tables",
+    "passed": true
+  },
+  {
+    "check": "aliases:ascii",
+    "passed": true
+  },
+  {
+    "check": "aliases:count",
+    "passed": true
+  },
+  {
+    "check": "aliases:comparer",
+    "passed": true
+  },
+  {
+    "check": "aliases:capacities",
+    "passed": true
+  },
+  {
+    "check": "aliases:rows",
+    "passed": true
+  },
+  {
+    "check": "aliases:3:fastmod",
+    "passed": true
+  },
+  {
+    "check": "aliases:3:row",
+    "passed": true
+  },
+  {
+    "check": "aliases:3:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "aliases:7:fastmod",
+    "passed": true
+  },
+  {
+    "check": "aliases:7:row",
+    "passed": true
+  },
+  {
+    "check": "aliases:7:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "aliases:17:fastmod",
+    "passed": true
+  },
+  {
+    "check": "aliases:17:row",
+    "passed": true
+  },
+  {
+    "check": "aliases:17:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "aliases:37:fastmod",
+    "passed": true
+  },
+  {
+    "check": "aliases:37:row",
+    "passed": true
+  },
+  {
+    "check": "aliases:37:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "aliases:89:fastmod",
+    "passed": true
+  },
+  {
+    "check": "aliases:89:row",
+    "passed": true
+  },
+  {
+    "check": "aliases:89:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "aliases:197:fastmod",
+    "passed": true
+  },
+  {
+    "check": "aliases:197:row",
+    "passed": true
+  },
+  {
+    "check": "aliases:197:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "aliases:431:fastmod",
+    "passed": true
+  },
+  {
+    "check": "aliases:431:row",
+    "passed": true
+  },
+  {
+    "check": "aliases:431:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "aliases:919:fastmod",
+    "passed": true
+  },
+  {
+    "check": "aliases:919:row",
+    "passed": true
+  },
+  {
+    "check": "aliases:919:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "aliases:1931:fastmod",
+    "passed": true
+  },
+  {
+    "check": "aliases:1931:row",
+    "passed": true
+  },
+  {
+    "check": "aliases:1931:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "aliases:4049:fastmod",
+    "passed": true
+  },
+  {
+    "check": "aliases:4049:row",
+    "passed": true
+  },
+  {
+    "check": "aliases:4049:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "aliases:maximum",
+    "passed": true
+  },
+  {
+    "check": "strings:ascii",
+    "passed": true
+  },
+  {
+    "check": "strings:count",
+    "passed": true
+  },
+  {
+    "check": "strings:comparer",
+    "passed": true
+  },
+  {
+    "check": "strings:capacities",
+    "passed": true
+  },
+  {
+    "check": "strings:rows",
+    "passed": true
+  },
+  {
+    "check": "strings:3:fastmod",
+    "passed": true
+  },
+  {
+    "check": "strings:3:row",
+    "passed": true
+  },
+  {
+    "check": "strings:3:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "strings:7:fastmod",
+    "passed": true
+  },
+  {
+    "check": "strings:7:row",
+    "passed": true
+  },
+  {
+    "check": "strings:7:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "strings:17:fastmod",
+    "passed": true
+  },
+  {
+    "check": "strings:17:row",
+    "passed": true
+  },
+  {
+    "check": "strings:17:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "strings:37:fastmod",
+    "passed": true
+  },
+  {
+    "check": "strings:37:row",
+    "passed": true
+  },
+  {
+    "check": "strings:37:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "strings:89:fastmod",
+    "passed": true
+  },
+  {
+    "check": "strings:89:row",
+    "passed": true
+  },
+  {
+    "check": "strings:89:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "strings:197:fastmod",
+    "passed": true
+  },
+  {
+    "check": "strings:197:row",
+    "passed": true
+  },
+  {
+    "check": "strings:197:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "strings:431:fastmod",
+    "passed": true
+  },
+  {
+    "check": "strings:431:row",
+    "passed": true
+  },
+  {
+    "check": "strings:431:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "strings:919:fastmod",
+    "passed": true
+  },
+  {
+    "check": "strings:919:row",
+    "passed": true
+  },
+  {
+    "check": "strings:919:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "strings:1931:fastmod",
+    "passed": true
+  },
+  {
+    "check": "strings:1931:row",
+    "passed": true
+  },
+  {
+    "check": "strings:1931:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "strings:maximum",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:ascii",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:count",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:comparer",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:capacities",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:rows",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:3:fastmod",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:3:row",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:3:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:7:fastmod",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:7:row",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:7:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:17:fastmod",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:17:row",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:17:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:37:fastmod",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:37:row",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:37:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:89:fastmod",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:89:row",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:89:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:197:fastmod",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:197:row",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:197:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:431:fastmod",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:431:row",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:431:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:919:fastmod",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:919:row",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:919:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:1931:fastmod",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:1931:row",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:1931:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "parent_strings:maximum",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:ascii",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:count",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:comparer",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:capacities",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:rows",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:3:fastmod",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:3:row",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:3:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:7:fastmod",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:7:row",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:7:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:17:fastmod",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:17:row",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:17:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:37:fastmod",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:37:row",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:37:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:89:fastmod",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:89:row",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:89:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:197:fastmod",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:197:row",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:197:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:431:fastmod",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:431:row",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:431:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:919:fastmod",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:919:row",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:919:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:1931:fastmod",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:1931:row",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:1931:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "catalogue_inputs:maximum",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:ascii",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:count",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:comparer",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:capacities",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:rows",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:3:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:3:row",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:3:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:7:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:7:row",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:7:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:17:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:17:row",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:17:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:37:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:37:row",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:37:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:89:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:89:row",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:89:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:197:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:197:row",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:197:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:431:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:431:row",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:431:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:919:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:919:row",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:919:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:1931:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:1931:row",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:1931:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_input_index:maximum",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:ascii",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:count",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:comparer",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:capacities",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:rows",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:3:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:3:row",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:3:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:7:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:7:row",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:7:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:17:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:17:row",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:17:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:37:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:37:row",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:37:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:89:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:89:row",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:89:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:197:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:197:row",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:197:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:431:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:431:row",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:431:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:919:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:919:row",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:919:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:1931:fastmod",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:1931:row",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:1931:no-rehash",
+    "passed": true
+  },
+  {
+    "check": "main_include_index:maximum",
+    "passed": true
+  },
+  {
+    "check": "all-prefix-values",
+    "passed": true
+  },
+  {
+    "check": "no-late-growth-alias",
+    "passed": true
+  },
+  {
+    "check": "no-late-growth-string",
+    "passed": true
+  },
+  {
+    "check": "1225-prefix-source",
+    "passed": true
+  },
+  {
+    "check": "created-after-fence",
+    "passed": true
+  },
+  {
+    "check": "exact-context",
+    "passed": true
+  },
+  {
+    "check": "unknown-fallback-not-insert",
+    "passed": true
+  },
+  {
+    "check": "dictionary-threshold-branch",
+    "passed": true
+  },
+  {
+    "check": "source-multiplier",
+    "passed": true
+  }
+]

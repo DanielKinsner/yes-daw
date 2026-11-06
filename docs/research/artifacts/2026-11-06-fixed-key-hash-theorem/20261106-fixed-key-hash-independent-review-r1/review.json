@@ -1,0 +1,49 @@
+{
+  "status": "ACCEPT_CONDITIONAL_R12_FIXED_KEY_SOURCE_THEOREM_ONLY",
+  "checks": 228,
+  "tables": [
+    {
+      "table": "aliases",
+      "keys": 2211,
+      "max_relevant_bucket": 21
+    },
+    {
+      "table": "strings",
+      "keys": 1458,
+      "max_relevant_bucket": 17
+    },
+    {
+      "table": "parent_strings",
+      "keys": 1458,
+      "max_relevant_bucket": 17
+    },
+    {
+      "table": "catalogue_inputs",
+      "keys": 1220,
+      "max_relevant_bucket": 16
+    },
+    {
+      "table": "main_input_index",
+      "keys": 1220,
+      "max_relevant_bucket": 14
+    },
+    {
+      "table": "main_include_index",
+      "keys": 1221,
+      "max_relevant_bucket": 14
+    }
+  ],
+  "prefix": {
+    "initial_aliases": 134,
+    "precreated_aliases": 2211,
+    "final_aliases": 2211,
+    "precreated_strings": 1380,
+    "final_strings": 1458,
+    "precreated_alias_capacity": 4049,
+    "final_alias_capacity": 4049,
+    "precreated_string_parent_capacity": 1931,
+    "final_string_parent_capacity": 1931
+  },
+  "scope": "Exact R12 geometry/root and selected SDK-source association only. All key hashes and growth capacities independently recomputed without the subject code or SDK hash execution.",
+  "qualification": "HashHelpers was read by the author but absent from the frozen subject JSON pins; this review explicitly seals and checks that sixth dependency. No R13 root/union inheritance, actual binary association, whole resource fit, NOFIT or execution GO."
+}

@@ -1,0 +1,5 @@
+# Fixed-key hash theorem: conditional source acceptance
+
+The independent checker passed 228 assertions without importing the author or invoking runtime hashes. It recomputed six complete fixed key universes, byte-word uint32 hashes, every selected growth capacity and every finite 64-bit FastMod result. Maximum buckets above the small-table boundary are 21/17/17/16/14/14, all below the collision transition. The three persistent catalogue tables also have sufficient capacity before taskCreated, so later failure inventory/footer retries cannot repeat their Resize allocations under the exact R12 geometry premise.
+
+The separate sixth HashHelpers dependency is explicitly sealed by the review. Every author, review and primary-source input is preserved losslessly. The result does not cover general JSON/FileSet dictionaries, a new R13 root or final union, actual source/binary association, complete resources, fit/NOFIT, immutable binding, target execution or editing completion. The full payload baseline remains in progress. No GUI, input or audio device was used.

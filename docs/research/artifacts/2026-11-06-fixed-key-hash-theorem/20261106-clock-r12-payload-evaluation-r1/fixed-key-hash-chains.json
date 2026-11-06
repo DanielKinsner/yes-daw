@@ -1,0 +1,524 @@
+{
+  "schema": "R12_FIXED_DICTIONARY_HASH_CHAIN_SOURCE_THEOREM_R1",
+  "status": "CONDITIONAL_FIXED_ROOT_SOURCE_PROPOSAL_NO_RUNTIME_HASH_OR_NATIVE_EXECUTION",
+  "source_pins": [
+    {
+      "path": "build-ci/20261106-comparer-encoding-source-r1/String.Comparison.cs",
+      "bytes": 50926,
+      "sha256": "332E2A21449AD65F2368D672A116246EADF3842DFCB45F35A713D912C51731C5"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/geometry.json",
+      "bytes": 2350419,
+      "sha256": "BE95DC06AB85E7BF0A706656B08A6C2C8B5581C4AE3376BFE7AB1D98CADBAD9F"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-manifest.json",
+      "bytes": 501180,
+      "sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557"
+    },
+    {
+      "path": "build-ci/20261106-comparer-encoding-source-r1/NonRandomizedStringEqualityComparer.cs",
+      "bytes": 8109,
+      "sha256": "083FC121C8E8F7FD54AD8871FF9AC3CE8E716D8EA4935CC1A9258ABE6425B2FF"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "bytes": 93117,
+      "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA"
+    }
+  ],
+  "arithmetic": "Unchecked uint32 rotate-left5/add/xor and final multiplier1566083941; UTF16LE/NUL-terminated instance strings, andASCII-only ignore-case OR0x00200020. Dictionary uint hash modulocapacity follows selected GetBucket/FastMod semantics, not Runtime.GetHashCode.",
+  "prefix": {
+    "initial_aliases": 134,
+    "precreated_aliases": 2211,
+    "final_aliases": 2211,
+    "precreated_strings": 1380,
+    "final_strings": 1458,
+    "precreated_alias_capacity": 4049,
+    "final_alias_capacity": 4049,
+    "precreated_string_parent_capacity": 1931,
+    "final_string_parent_capacity": 1931
+  },
+  "tables": [
+    {
+      "name": "aliases",
+      "keys": 2211,
+      "ordinal_ignore_case": false,
+      "growth_capacities": [
+        3,
+        7,
+        17,
+        37,
+        89,
+        197,
+        431,
+        919,
+        1931,
+        4049
+      ],
+      "rows": [
+        {
+          "capacity": 3,
+          "entire_universe_maximum_bucket": 759,
+          "source_chain_upper": 3,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 7,
+          "entire_universe_maximum_bucket": 332,
+          "source_chain_upper": 7,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 17,
+          "entire_universe_maximum_bucket": 151,
+          "source_chain_upper": 17,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 37,
+          "entire_universe_maximum_bucket": 73,
+          "source_chain_upper": 37,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 89,
+          "entire_universe_maximum_bucket": 36,
+          "source_chain_upper": 89,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 197,
+          "entire_universe_maximum_bucket": 21,
+          "source_chain_upper": 21,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 431,
+          "entire_universe_maximum_bucket": 13,
+          "source_chain_upper": 13,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 919,
+          "entire_universe_maximum_bucket": 8,
+          "source_chain_upper": 8,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 1931,
+          "entire_universe_maximum_bucket": 6,
+          "source_chain_upper": 6,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 4049,
+          "entire_universe_maximum_bucket": 5,
+          "source_chain_upper": 5,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        }
+      ],
+      "maximum_relevant_full_universe_bucket": 21
+    },
+    {
+      "name": "strings",
+      "keys": 1458,
+      "ordinal_ignore_case": false,
+      "growth_capacities": [
+        3,
+        7,
+        17,
+        37,
+        89,
+        197,
+        431,
+        919,
+        1931
+      ],
+      "rows": [
+        {
+          "capacity": 3,
+          "entire_universe_maximum_bucket": 502,
+          "source_chain_upper": 3,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 7,
+          "entire_universe_maximum_bucket": 225,
+          "source_chain_upper": 7,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 17,
+          "entire_universe_maximum_bucket": 104,
+          "source_chain_upper": 17,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 37,
+          "entire_universe_maximum_bucket": 57,
+          "source_chain_upper": 37,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 89,
+          "entire_universe_maximum_bucket": 27,
+          "source_chain_upper": 89,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 197,
+          "entire_universe_maximum_bucket": 17,
+          "source_chain_upper": 17,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 431,
+          "entire_universe_maximum_bucket": 10,
+          "source_chain_upper": 10,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 919,
+          "entire_universe_maximum_bucket": 7,
+          "source_chain_upper": 7,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 1931,
+          "entire_universe_maximum_bucket": 5,
+          "source_chain_upper": 5,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        }
+      ],
+      "maximum_relevant_full_universe_bucket": 17
+    },
+    {
+      "name": "parent_strings",
+      "keys": 1458,
+      "ordinal_ignore_case": false,
+      "growth_capacities": [
+        3,
+        7,
+        17,
+        37,
+        89,
+        197,
+        431,
+        919,
+        1931
+      ],
+      "rows": [
+        {
+          "capacity": 3,
+          "entire_universe_maximum_bucket": 502,
+          "source_chain_upper": 3,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 7,
+          "entire_universe_maximum_bucket": 225,
+          "source_chain_upper": 7,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 17,
+          "entire_universe_maximum_bucket": 104,
+          "source_chain_upper": 17,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 37,
+          "entire_universe_maximum_bucket": 57,
+          "source_chain_upper": 37,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 89,
+          "entire_universe_maximum_bucket": 27,
+          "source_chain_upper": 89,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 197,
+          "entire_universe_maximum_bucket": 17,
+          "source_chain_upper": 17,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 431,
+          "entire_universe_maximum_bucket": 10,
+          "source_chain_upper": 10,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 919,
+          "entire_universe_maximum_bucket": 7,
+          "source_chain_upper": 7,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 1931,
+          "entire_universe_maximum_bucket": 5,
+          "source_chain_upper": 5,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        }
+      ],
+      "maximum_relevant_full_universe_bucket": 17
+    },
+    {
+      "name": "catalogue_inputs",
+      "keys": 1220,
+      "ordinal_ignore_case": false,
+      "growth_capacities": [
+        3,
+        7,
+        17,
+        37,
+        89,
+        197,
+        431,
+        919,
+        1931
+      ],
+      "rows": [
+        {
+          "capacity": 3,
+          "entire_universe_maximum_bucket": 437,
+          "source_chain_upper": 3,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 7,
+          "entire_universe_maximum_bucket": 192,
+          "source_chain_upper": 7,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 17,
+          "entire_universe_maximum_bucket": 90,
+          "source_chain_upper": 17,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 37,
+          "entire_universe_maximum_bucket": 46,
+          "source_chain_upper": 37,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 89,
+          "entire_universe_maximum_bucket": 24,
+          "source_chain_upper": 89,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 197,
+          "entire_universe_maximum_bucket": 16,
+          "source_chain_upper": 16,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 431,
+          "entire_universe_maximum_bucket": 8,
+          "source_chain_upper": 8,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 919,
+          "entire_universe_maximum_bucket": 6,
+          "source_chain_upper": 6,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 1931,
+          "entire_universe_maximum_bucket": 4,
+          "source_chain_upper": 4,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        }
+      ],
+      "maximum_relevant_full_universe_bucket": 16
+    },
+    {
+      "name": "main_input_index",
+      "keys": 1220,
+      "ordinal_ignore_case": true,
+      "growth_capacities": [
+        3,
+        7,
+        17,
+        37,
+        89,
+        197,
+        431,
+        919,
+        1931
+      ],
+      "rows": [
+        {
+          "capacity": 3,
+          "entire_universe_maximum_bucket": 416,
+          "source_chain_upper": 3,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 7,
+          "entire_universe_maximum_bucket": 195,
+          "source_chain_upper": 7,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 17,
+          "entire_universe_maximum_bucket": 82,
+          "source_chain_upper": 17,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 37,
+          "entire_universe_maximum_bucket": 45,
+          "source_chain_upper": 37,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 89,
+          "entire_universe_maximum_bucket": 31,
+          "source_chain_upper": 89,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 197,
+          "entire_universe_maximum_bucket": 14,
+          "source_chain_upper": 14,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 431,
+          "entire_universe_maximum_bucket": 8,
+          "source_chain_upper": 8,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 919,
+          "entire_universe_maximum_bucket": 5,
+          "source_chain_upper": 5,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 1931,
+          "entire_universe_maximum_bucket": 6,
+          "source_chain_upper": 6,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        }
+      ],
+      "maximum_relevant_full_universe_bucket": 14
+    },
+    {
+      "name": "main_include_index",
+      "keys": 1221,
+      "ordinal_ignore_case": true,
+      "growth_capacities": [
+        3,
+        7,
+        17,
+        37,
+        89,
+        197,
+        431,
+        919,
+        1931
+      ],
+      "rows": [
+        {
+          "capacity": 3,
+          "entire_universe_maximum_bucket": 416,
+          "source_chain_upper": 3,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 7,
+          "entire_universe_maximum_bucket": 195,
+          "source_chain_upper": 7,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 17,
+          "entire_universe_maximum_bucket": 82,
+          "source_chain_upper": 17,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 37,
+          "entire_universe_maximum_bucket": 45,
+          "source_chain_upper": 37,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 89,
+          "entire_universe_maximum_bucket": 31,
+          "source_chain_upper": 89,
+          "basis": "actual Count<=capacity<=89"
+        },
+        {
+          "capacity": 197,
+          "entire_universe_maximum_bucket": 14,
+          "source_chain_upper": 14,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 431,
+          "entire_universe_maximum_bucket": 8,
+          "source_chain_upper": 8,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 919,
+          "entire_universe_maximum_bucket": 5,
+          "source_chain_upper": 5,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        },
+        {
+          "capacity": 1931,
+          "entire_universe_maximum_bucket": 6,
+          "source_chain_upper": 6,
+          "basis": "entire fixed key universe, independent of insertion order or subset"
+        }
+      ],
+      "maximum_relevant_full_universe_bucket": 14
+    }
+  ],
+  "checks": [
+    {
+      "check": "instance_vs_independent_span:aliases",
+      "passed": true
+    },
+    {
+      "check": "instance_vs_independent_span:strings",
+      "passed": true
+    },
+    {
+      "check": "instance_vs_independent_span:parent_strings",
+      "passed": true
+    },
+    {
+      "check": "instance_vs_independent_span:catalogue_inputs",
+      "passed": true
+    },
+    {
+      "check": "instance_vs_independent_span:main_input_index",
+      "passed": true
+    },
+    {
+      "check": "instance_vs_independent_span:main_include_index",
+      "passed": true
+    }
+  ],
+  "theorem": "Under the exact P root/provider/normalization/key-universe premise, none of these six Dictionaries can ever reach collisionCount>100, for any insertion order/prefix/subset. Their comparer-transition branch, newly allocated randomized comparer and same-capacity rehash arrays are unreachable. After the complete precreated source/input fence aliases/strings/parent_strings also never need capacity growth; unknown paths never insert. Thus post-created failure retries cannot repeat their Resize allocations.",
+  "failure_scope": "Failures during catalogue/input/include creation or precreated first population terminate before taskCreated and have no inventory/footer retry. No2-retry/3-region assumption is used; SaveFailureInventory inner-catch continuation and all finally/footer paths remain admitted.",
+  "qualifications": [
+    "Exact selected P geometry/argv/provider/normalization/all known path identity and case spellings; future union/root must be regenerated.",
+    "Selected little-endian runtime sources/Dictionary/NonRandomizedStringEqualityComparer branch association; no binary/source-equivalence, measured capacity or private field claim.",
+    "General J report/FileSet unknown-key dictionaries still retain their possible rehash/comparer/failure behavior; this theorem does not cover them.",
+    "No source change, runtime execution,32MiB fit,NOFIT or GO."
+  ]
+}
