@@ -1,0 +1,28 @@
+compiler_numeric=194435228
+control0=8064
+control1=524319
+maps=96
+rate_cases=576
+clock_successes=546
+queries=22284
+extra_append_calls=123150
+full_prefix_append_calls=106500
+partial_append_calls=16650
+empty_formula_calls=60
+knot_ok_public_bytes=4470
+knot_status_only_no_cache_bytes=6
+interior_ok_public_bytes=16540
+failed_query_status_and_reset=1274
+snapshot_intervals=146070
+native_status_changed_observer_inclusive_intervals=4
+errno_changed_observer_inclusive_intervals=0
+build_status_0=546 query_status_0=21010
+build_status_1=0 query_status_1=546
+build_status_2=18 query_status_2=0
+build_status_3=12 query_status_3=54
+build_status_4=0 query_status_4=674
+build_status_5=0 query_status_5=0
+build_status_6=0 query_status_6=0
+build_status_7=0 query_status_7=0
+build_status_8=0 query_status_8=0
+PASS finite FP callsite/prefix replay measurement; no whole-equivalence or funding qualification

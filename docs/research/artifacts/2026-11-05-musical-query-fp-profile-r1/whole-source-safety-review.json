@@ -1,0 +1,151 @@
+{
+  "schema": "WHOLE_SOURCE_SAFETY_REVIEW",
+  "at_utc": "2026-11-06T03:11:29.466256+00:00",
+  "decision": "ACCEPT_FINITE_HEADLESS_MEASUREMENT_ONLY",
+  "reviewer": "root independent of source author",
+  "source_manifest_sha256": "da5ddda7e4613b0a26a682f169049f8e384ae2ac1cc85f8ccbfca4b575b0dfeb",
+  "whole_files_read": [
+    "probe-types.h",
+    "build-and-query.cpp",
+    "replay-probe.cpp",
+    "fp-observer.cpp",
+    "README.md",
+    "source-pins.json"
+  ],
+  "inputs_verified": [
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/probe-types.h",
+      "sha256": "973089a20c88e5994e4058b1cd7ab565bdbecf23e1356ad8de8b34e0766b3101"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/build-and-query.cpp",
+      "sha256": "a1cc6f579d8a787d77ebde55383a37fa642c3d9ab8b9b7dfdf0da50cc914d63e"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/replay-probe.cpp",
+      "sha256": "c4b32519266a32bf2352eb64146481ef82967eb38755643199ffa3e47642158b"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/fp-observer.cpp",
+      "sha256": "ed9cff7130c71daca68bbf00481941367ec13480de090bcdca89a2884b8bdb5d"
+    },
+    {
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/README.md",
+      "sha256": "17b034cf73360d3940487609723dcd179653008670279a977bedd93f0f850138"
+    },
+    {
+      "path": "src/engine/MusicalAudioWindow.h",
+      "sha256": "55ae0d6fbec102dd2f9d0e3cb85ee320300f313421b1ef2a141664670ba7ff5d"
+    },
+    {
+      "path": "src/engine/RateMatchedView.h",
+      "sha256": "9a0770e8690fbc60048bdf13ff1d1bd332b6d620a1985c52895e7fe916bb0571"
+    },
+    {
+      "path": "src/engine/ClipSchedule.h",
+      "sha256": "681ed77653af195480faa63fbb57d1804c1c3cbca813310b18f0b058b7552d1a"
+    },
+    {
+      "path": "src/engine/Project.h",
+      "sha256": "0294e0b6592633b2601f09b45a9fc724edd6921512a66b9ab7ad82fb8f817d97"
+    },
+    {
+      "path": "src/engine/Resample.h",
+      "sha256": "57367c4381837eb6753a62ee1276a85c63e25085dab7f6108c2600809e442832"
+    },
+    {
+      "path": "src/engine/ClipEnvelope.h",
+      "sha256": "1375368503d68e8bcfb09014687b4a84cbf72f92fc1548fc5ab281ee19a89b9d"
+    },
+    {
+      "path": "src/engine/Node.h",
+      "sha256": "b9cc354879a703f2bcc31e52ba3f8db6243611e55478a2ffa52d8e7ff5c1e2b1"
+    },
+    {
+      "path": "src/engine/Automation.h",
+      "sha256": "8dd3153c64d8f3410682cb58c583c9e85bbd99a5e9ab5fd411503b6191605932"
+    },
+    {
+      "path": "src/engine/MixerValue.h",
+      "sha256": "abfbc5a9f79410bf5c3d766f61c16e5f197b710f59adc880fa8d70d68abf0e49"
+    },
+    {
+      "path": "src/engine/ParamSpec.h",
+      "sha256": "8459f6683cff26cf2aa4df17dc428755a540b5e811e50d8e47f27fc3b5dbee7b"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "sha256": "fc5a0861b527fffe6ed2e6f9fe571d3f8974329bbd065dacfbc38dfea8c98590"
+    },
+    {
+      "path": "src/engine/nodes/CompressorNode.h",
+      "sha256": "74e27dfa24b41649324cd1e0f6508c21af271a7272eafdc35d21a5c228676ecc"
+    },
+    {
+      "path": "src/engine/InstrumentState.h",
+      "sha256": "0e6f4e3c422ce9fbe52611b0f03c0636f212a453101788a31c03f0dd8f8e165e"
+    },
+    {
+      "path": "src/engine/nodes/EqNode.h",
+      "sha256": "efc12c1b5d93f278f12ef570c014614faf8272df02dfa5e761111ce470d02598"
+    },
+    {
+      "path": "src/engine/nodes/SimpleSynthNode.h",
+      "sha256": "9d3a8f0ae17ee8c02ea082d5d2d104260a7576b4d200cf09be5ee90fedcaaab8"
+    },
+    {
+      "path": "src/engine/nodes/SamplerNode.h",
+      "sha256": "407ab0b64de44a1f8889ca282717866a1c2e765a8504ddde7e43a7bacf132ca9"
+    },
+    {
+      "path": "src/engine/nodes/FaderNode.h",
+      "sha256": "88b69774a48c09bdd487a34f0d512ff50159eb08c680b15f43acd3a78005c50e"
+    },
+    {
+      "path": "src/engine/nodes/FxDelayNode.h",
+      "sha256": "e844ef3b83571cb2d244faea363ef717eb7f64378215f2f6bacf1b2222af5221"
+    },
+    {
+      "path": "src/engine/nodes/LimiterNode.h",
+      "sha256": "4038929b609b0a06a40b47646e772b84b430666bd174618266e268def59b89e2"
+    },
+    {
+      "path": "src/engine/nodes/MidiEffectNode.h",
+      "sha256": "65220634417e3c90bff5b923becc5a2ca418f04dd22ad5acfa802d917256fe91"
+    },
+    {
+      "path": "src/engine/nodes/PanNode.h",
+      "sha256": "89c7987add4bc62e766498b4f76aca453e3475c15209ee5ccd1270d269bddb2c"
+    },
+    {
+      "path": "src/engine/nodes/ReverbNode.h",
+      "sha256": "ff0d5718fad1f6735a4428914c085337317c2749ffb87da18cac9d69aa5e0ec9"
+    },
+    {
+      "path": "src/rt/RtHot.h",
+      "sha256": "c279973d8f1812e713c7757bdbbb86ee763d656196b7c0f54e90d91cddd74497"
+    },
+    {
+      "path": "src/dsp/LinearRamp.h",
+      "sha256": "f39b72b99b806e63ccb993dfe22a491e7af91e0b47a201e271aee8beba973c09"
+    }
+  ],
+  "review_findings": [],
+  "supported_obligations": [
+    "All fixture generation is local inside caught main; no throwing global constructors.",
+    "Only pure old Clock/public frameAt and append helper are used. No devices, threads, native windows, dialogs, process launches or external input.",
+    "Every signed Tick arithmetic is nonnegative monotone or guarded before addition; seeded sums bounded by16*65537; unsigned PRNG wrapping is defined.",
+    "Native floor cast occurs only after finite, nonnegative and strictly less than2^63 checks.",
+    "FP trap masks/nearest/no-flush required before extreme maps; snapshots read controls and never set them. Observer always strict NOINLINE.",
+    "Actual old integer-query formulas, sequential scalar replay, fallback120BPM, failure resets and public status checks correspond to inspected unchanged old source.",
+    "Mismatch exits ordinary1; unsupported state/caught runtime exceptions2. No intentional abort/crash/WER path.",
+    "Bounded finite96maps*6rates*atmost16rows; all inventory and counts are computed/self-asserted."
+  ],
+  "limitations": [
+    "Finite outputs cannot establish all-input native/prefix/query path equivalence or private overflowed prefix bytes.",
+    "Snapshots are observer-inclusive boundary measurements, not interval or allocation/new-handler proof.",
+    "Source and dependency pins do not qualify full toolchain SDK/ABI; selected native profile must be recorded separately.",
+    "No source-trace cost, funded recipe, DSP, model/job, Ready, hardware or other platform credit."
+  ],
+  "authorization": "Root may compile same exact whole sources as two console executables in serialized lane under actual project default precise and strict numeric modes; observer strict forboth; noLTO; verifyAMD64console before execution; redirect/no-window/noerrorbox/boundedtimeout."
+}

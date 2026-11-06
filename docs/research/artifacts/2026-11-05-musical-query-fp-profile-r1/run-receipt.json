@@ -1,0 +1,205 @@
+{
+  "exit": 0,
+  "scope": "Finite old Clock/public integer-query versus scalar old helper measurement only",
+  "stages": {
+    "environment": {
+      "seconds": 1.1511526,
+      "raw_exit": 0
+    },
+    "observer-compile": {
+      "seconds": 1.1306929,
+      "raw_exit": 0
+    },
+    "precise-default-build-and-query-compile": {
+      "seconds": 0.9878117,
+      "raw_exit": 0
+    },
+    "precise-default-replay-probe-compile": {
+      "seconds": 1.1197495,
+      "raw_exit": 0
+    },
+    "precise-default-link": {
+      "seconds": 0.0647162,
+      "raw_exit": 0
+    },
+    "strict-build-and-query-compile": {
+      "seconds": 0.9533681,
+      "raw_exit": 0
+    },
+    "strict-replay-probe-compile": {
+      "seconds": 0.9874249,
+      "raw_exit": 0
+    },
+    "strict-link": {
+      "seconds": 0.0589818,
+      "raw_exit": 0
+    },
+    "precise-default-measurement": {
+      "seconds": 0.0234301,
+      "raw_exit": 0
+    },
+    "strict-measurement": {
+      "seconds": 0.0211307,
+      "raw_exit": 0
+    }
+  },
+  "commands": {
+    "observer-compile": {
+      "file": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "args": [
+        "/nologo",
+        "/DWIN32",
+        "/D_WINDOWS",
+        "/EHsc",
+        "/O2",
+        "/Ob2",
+        "/DNDEBUG",
+        "/std:c++20",
+        "/MD",
+        "/W4",
+        "/WX",
+        "/Isrc",
+        "/IC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1",
+        "/c",
+        "/fp:strict",
+        "/FoC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\fp-observer.obj",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\fp-observer.cpp"
+      ]
+    },
+    "precise-default-build-and-query-compile": {
+      "file": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "args": [
+        "/nologo",
+        "/DWIN32",
+        "/D_WINDOWS",
+        "/EHsc",
+        "/O2",
+        "/Ob2",
+        "/DNDEBUG",
+        "/std:c++20",
+        "/MD",
+        "/W4",
+        "/WX",
+        "/Isrc",
+        "/IC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1",
+        "/c",
+        "/FoC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default-build-and-query.obj",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\build-and-query.cpp"
+      ]
+    },
+    "precise-default-replay-probe-compile": {
+      "file": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "args": [
+        "/nologo",
+        "/DWIN32",
+        "/D_WINDOWS",
+        "/EHsc",
+        "/O2",
+        "/Ob2",
+        "/DNDEBUG",
+        "/std:c++20",
+        "/MD",
+        "/W4",
+        "/WX",
+        "/Isrc",
+        "/IC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1",
+        "/c",
+        "/FoC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default-replay-probe.obj",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\replay-probe.cpp"
+      ]
+    },
+    "precise-default-link": {
+      "file": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "args": [
+        "/nologo",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default-build-and-query.obj",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default-replay-probe.obj",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\fp-observer.obj",
+        "/FeC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default.exe",
+        "/link",
+        "/SUBSYSTEM:CONSOLE",
+        "/MACHINE:X64",
+        "/INCREMENTAL:NO"
+      ]
+    },
+    "strict-build-and-query-compile": {
+      "file": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "args": [
+        "/nologo",
+        "/DWIN32",
+        "/D_WINDOWS",
+        "/EHsc",
+        "/O2",
+        "/Ob2",
+        "/DNDEBUG",
+        "/std:c++20",
+        "/MD",
+        "/W4",
+        "/WX",
+        "/Isrc",
+        "/IC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1",
+        "/c",
+        "/fp:strict",
+        "/FoC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict-build-and-query.obj",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\build-and-query.cpp"
+      ]
+    },
+    "strict-replay-probe-compile": {
+      "file": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "args": [
+        "/nologo",
+        "/DWIN32",
+        "/D_WINDOWS",
+        "/EHsc",
+        "/O2",
+        "/Ob2",
+        "/DNDEBUG",
+        "/std:c++20",
+        "/MD",
+        "/W4",
+        "/WX",
+        "/Isrc",
+        "/IC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1",
+        "/c",
+        "/fp:strict",
+        "/FoC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict-replay-probe.obj",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\replay-probe.cpp"
+      ]
+    },
+    "strict-link": {
+      "file": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "args": [
+        "/nologo",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict-build-and-query.obj",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict-replay-probe.obj",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\fp-observer.obj",
+        "/FeC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict.exe",
+        "/link",
+        "/SUBSYSTEM:CONSOLE",
+        "/MACHINE:X64",
+        "/INCREMENTAL:NO"
+      ]
+    }
+  },
+  "desktop_input": false,
+  "native_windows": false,
+  "audio_device": false,
+  "first_green": true,
+  "source_manifest": "DA5DDDA7E4613B0A26A682F169049F8E384AE2AC1CC85F8CCBFCA4B575B0DFEB",
+  "compiler": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+  "compiler_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "executables": {
+    "precise-default": {
+      "subsystem": "CONSOLE",
+      "sha256": "76416EDBD626B9A8A197B23D34588F1F1FCF1AA64B1874A14598B575B45698F4",
+      "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\precise-default.exe",
+      "pe_machine": "AMD64"
+    },
+    "strict": {
+      "subsystem": "CONSOLE",
+      "sha256": "CD38A42E41DFC53C4D3286614545010A98E543639210905F92226FF6FF34EA5D",
+      "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-query-fp-profile-probe-r1\\execution-r1\\strict.exe",
+      "pe_machine": "AMD64"
+    }
+  }
+}

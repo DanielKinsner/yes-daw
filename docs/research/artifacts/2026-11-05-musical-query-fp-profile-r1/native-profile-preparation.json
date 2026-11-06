@@ -1,0 +1,28 @@
+{
+  "schema": "NATIVE_FP_PROFILE_PROBE_PREPARATION",
+  "scope": "Compiler metadata and primary documentation only; no probe compilation/execution or qualification.",
+  "actual_cache_rows": [
+    "CMAKE_CXX_COMPILER:FILEPATH=C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+    "CMAKE_CXX_FLAGS:STRING=/DWIN32 /D_WINDOWS /EHsc",
+    "CMAKE_CXX_FLAGS_RELEASE:STRING=/O2 /Ob2 /DNDEBUG"
+  ],
+  "actual_project_TU_command": "C:\\PROGRA~2\\MICROS~3\\2022\\BUILDT~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -DJUCE_USE_MP3AUDIOFORMAT=1 -I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\src\" -external:I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\signalsmith_stretch-src\" -external:I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\choc-src\" -external:I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\catch2-src\\src\\catch2\\..\" -external:I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\catch2-build\\generated-includes\" -external:I\"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\sqlite3-src\" -external:W0 /DWIN32 /D_WINDOWS /EHsc /O2 /Ob2 /DNDEBUG -std:c++20 -MD /W4 /WX /FoCMakeFiles\\YesDawClickPositionCacheCheck.dir\\tests\\playback_click_position_cache_tests.cpp.obj /FdCMakeFiles\\YesDawClickPositionCacheCheck.dir\\ /FS -c \"C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\tests\\playback_click_position_cache_tests.cpp\"",
+  "compiler_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+  "compiler_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "planned_profile_A": "Build/query and replay: actual project default precise; readonly observer strict",
+  "planned_profile_B": "All TUs strict",
+  "LTO": false,
+  "primary_sources": [
+    {
+      "url": "https://learn.microsoft.com/en-us/cpp/build/reference/fp-specify-floating-point-behavior?view=msvc-170",
+      "supported_notes": "VS2022 default precise and contraction off unless explicitly enabled; strict required for dependable FP-environment access. Mixed-profile sampling does not prove intermediate execution or all-input equivalence."
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170#fpcsr",
+      "supported_notes": "x87 control and MXCSR control are nonvolatile under stated ABI rules/exceptions; no callback interval proof follows."
+    }
+  ],
+  "no_environment_values_dumped": true,
+  "no_native_program_or_probe_run": true,
+  "no_query_binding_or_Ready_credit": true
+}

@@ -1,0 +1,177 @@
+{
+  "schema": "YESDAW_FINITE_FP_CALLSITE_MEASUREMENT_ARCHIVE_V1",
+  "purpose": "Finite Windows MSVC public integer-query/scalar old append-helper measurement only. Not whole native equivalence, funding, recipe, DSP, Ready or hardware proof.",
+  "execution_checkout_head": "09053635d075e4689faa0f9d6624bf8544d9aad8",
+  "whole_probe_source_frozen": true,
+  "all_six_source_helpers_comments_readme_exact": true,
+  "no_executables_or_objects": true,
+  "files": [
+    {
+      "file": "probe-types.h",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/probe-types.h",
+      "original_sha256": "973089A20C88E5994E4058B1CD7AB565BDBECF23E1356AD8DE8B34E0766B3101",
+      "bytes": 985,
+      "sha256": "973089A20C88E5994E4058B1CD7AB565BDBECF23E1356AD8DE8B34E0766B3101"
+    },
+    {
+      "file": "build-and-query.cpp",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/build-and-query.cpp",
+      "original_sha256": "A1CC6F579D8A787D77EBDE55383A37FA642C3D9AB8B9B7DFDF0DA50CC914D63E",
+      "bytes": 480,
+      "sha256": "A1CC6F579D8A787D77EBDE55383A37FA642C3D9AB8B9B7DFDF0DA50CC914D63E"
+    },
+    {
+      "file": "replay-probe.cpp",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/replay-probe.cpp",
+      "original_sha256": "C4B32519266A32BF2352EB64146481EF82967EB38755643199FFA3E47642158B",
+      "bytes": 15632,
+      "sha256": "C4B32519266A32BF2352EB64146481EF82967EB38755643199FFA3E47642158B"
+    },
+    {
+      "file": "fp-observer.cpp",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/fp-observer.cpp",
+      "original_sha256": "ED9CFF7130C71DACA68BBF00481941367EC13480DE090BCDCA89A2884B8BDB5D",
+      "bytes": 2101,
+      "sha256": "ED9CFF7130C71DACA68BBF00481941367EC13480DE090BCDCA89A2884B8BDB5D"
+    },
+    {
+      "file": "source-pins.json",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/source-pins.json",
+      "original_sha256": "DA5DDDA7E4613B0A26A682F169049F8E384AE2AC1CC85F8CCBFCA4B575B0DFEB",
+      "bytes": 4049,
+      "sha256": "DA5DDDA7E4613B0A26A682F169049F8E384AE2AC1CC85F8CCBFCA4B575B0DFEB"
+    },
+    {
+      "file": "run-native.ps1",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/run-native.ps1",
+      "original_sha256": "15B7681E6F6DD664956CFFF4B164F4769557077098A926F1470C004A89D65F2A",
+      "bytes": 5459,
+      "sha256": "15B7681E6F6DD664956CFFF4B164F4769557077098A926F1470C004A89D65F2A"
+    },
+    {
+      "file": "probe-authoring-README.md",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/README.md",
+      "original_sha256": "17B034CF73360D3940487609723DCD179653008670279A977BEDD93F0F850138",
+      "bytes": 8880,
+      "sha256": "17B034CF73360D3940487609723DCD179653008670279A977BEDD93F0F850138"
+    },
+    {
+      "file": "whole-source-safety-review.json",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1-independent-review.json",
+      "original_sha256": "4546EB0AE075E26B6601799F571A504B8371BE64CBC495193021A143AC8B90FE",
+      "bytes": 6596,
+      "sha256": "4546EB0AE075E26B6601799F571A504B8371BE64CBC495193021A143AC8B90FE"
+    },
+    {
+      "file": "native-profile-preparation.json",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-native-preparation-r1/profile.json",
+      "original_sha256": "D21384B6C886264B33A2D55193756536E0CE8DAFDFDACCC78C9070F6A790B1EF",
+      "bytes": 2702,
+      "sha256": "D21384B6C886264B33A2D55193756536E0CE8DAFDFDACCC78C9070F6A790B1EF"
+    },
+    {
+      "file": "run-receipt.json",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/receipt.json",
+      "original_sha256": "314C1B5287193451D0A1F0228E88762C40EBA53BD8F150F87BBB247F95629F56",
+      "bytes": 8133,
+      "sha256": "314C1B5287193451D0A1F0228E88762C40EBA53BD8F150F87BBB247F95629F56"
+    },
+    {
+      "file": "first-green-whole-source-freeze.json",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/first-green-whole-source-freeze.json",
+      "original_sha256": "DAEB9168C54A86586C82156029714519F6B6CFF7A86133D54140469940850CBF",
+      "bytes": 354,
+      "sha256": "DAEB9168C54A86586C82156029714519F6B6CFF7A86133D54140469940850CBF"
+    },
+    {
+      "file": "environment.txt",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/environment.log",
+      "original_sha256": "025AD1525A998DDF279F8F547917F377B25E09A5C0149856E7CA6A4414338765",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "QWxsb3dsaXN0ZWQgY29tcGlsZXIgZW52aXJvbm1lbnQgbG9hZGVkOyB2YWx1ZXMgbm90IHJldGFpbmVkLg==",
+      "bytes": 61,
+      "sha256": "025AD1525A998DDF279F8F547917F377B25E09A5C0149856E7CA6A4414338765"
+    },
+    {
+      "file": "observer-compile.txt",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/observer-compile.log",
+      "original_sha256": "DCAB87B5FD3DE7EEB3A1DBB2D0589ADAE4E66ADFA5830705C2E2FC19552EB014",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "ZnAtb2JzZXJ2ZXIuY3BwDQo=",
+      "bytes": 16,
+      "sha256": "96110509AA3B2ECA8D0A25823FC86DB1F50AD2EB3625FEE2944578F699623122"
+    },
+    {
+      "file": "precise-default-build-and-query-compile.txt",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/precise-default-build-and-query-compile.log",
+      "original_sha256": "A022612BFF26B7D8566BD30E53557E778421E634ECF0FFDE3D226E78DDDFDC21",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "YnVpbGQtYW5kLXF1ZXJ5LmNwcA0K",
+      "bytes": 20,
+      "sha256": "F2BC0EC2BAF7FF7F00DB68876DEB7730609E4D453B089521C03A1A888D616D11"
+    },
+    {
+      "file": "precise-default-link.txt",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/precise-default-link.log",
+      "original_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "file": "precise-default-measurement.txt",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/precise-default-measurement.log",
+      "original_sha256": "920D6A9B8FE61DE09A9A06FF0D10B8E3AF82F1422D91C7DEC1AA9317CCFCEA86",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "Y29tcGlsZXJfbnVtZXJpYz0xOTQ0MzUyMjgNCmNvbnRyb2wwPTgwNjQNCmNvbnRyb2wxPTUyNDMxOQ0KbWFwcz05Ng0KcmF0ZV9jYXNlcz01NzYNCmNsb2NrX3N1Y2Nlc3Nlcz01NDYNCnF1ZXJpZXM9MjIyODQNCmV4dHJhX2FwcGVuZF9jYWxscz0xMjMxNTANCmZ1bGxfcHJlZml4X2FwcGVuZF9jYWxscz0xMDY1MDANCnBhcnRpYWxfYXBwZW5kX2NhbGxzPTE2NjUwDQplbXB0eV9mb3JtdWxhX2NhbGxzPTYwDQprbm90X29rX3B1YmxpY19ieXRlcz00NDcwDQprbm90X3N0YXR1c19vbmx5X25vX2NhY2hlX2J5dGVzPTYNCmludGVyaW9yX29rX3B1YmxpY19ieXRlcz0xNjU0MA0KZmFpbGVkX3F1ZXJ5X3N0YXR1c19hbmRfcmVzZXQ9MTI3NA0Kc25hcHNob3RfaW50ZXJ2YWxzPTE0NjA3MA0KbmF0aXZlX3N0YXR1c19jaGFuZ2VkX29ic2VydmVyX2luY2x1c2l2ZV9pbnRlcnZhbHM9NA0KZXJybm9fY2hhbmdlZF9vYnNlcnZlcl9pbmNsdXNpdmVfaW50ZXJ2YWxzPTANCmJ1aWxkX3N0YXR1c18wPTU0NiBxdWVyeV9zdGF0dXNfMD0yMTAxMA0KYnVpbGRfc3RhdHVzXzE9MCBxdWVyeV9zdGF0dXNfMT01NDYNCmJ1aWxkX3N0YXR1c18yPTE4IHF1ZXJ5X3N0YXR1c18yPTANCmJ1aWxkX3N0YXR1c18zPTEyIHF1ZXJ5X3N0YXR1c18zPTU0DQpidWlsZF9zdGF0dXNfND0wIHF1ZXJ5X3N0YXR1c180PTY3NA0KYnVpbGRfc3RhdHVzXzU9MCBxdWVyeV9zdGF0dXNfNT0wDQpidWlsZF9zdGF0dXNfNj0wIHF1ZXJ5X3N0YXR1c182PTANCmJ1aWxkX3N0YXR1c183PTAgcXVlcnlfc3RhdHVzXzc9MA0KYnVpbGRfc3RhdHVzXzg9MCBxdWVyeV9zdGF0dXNfOD0wDQpQQVNTIGZpbml0ZSBGUCBjYWxsc2l0ZS9wcmVmaXggcmVwbGF5IG1lYXN1cmVtZW50OyBubyB3aG9sZS1lcXVpdmFsZW5jZSBvciBmdW5kaW5nIHF1YWxpZmljYXRpb24NCg==",
+      "bytes": 888,
+      "sha256": "4C2CCFD72D515CD49731E526A45349E0A6D416D536B60AC4BC8533117EA92CEA"
+    },
+    {
+      "file": "precise-default-replay-probe-compile.txt",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/precise-default-replay-probe-compile.log",
+      "original_sha256": "5F18E0F0130811704E0E1715A20D05125D89DFE13B81280A497F0B8DE07CE02E",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "cmVwbGF5LXByb2JlLmNwcA0K",
+      "bytes": 17,
+      "sha256": "91FB6A59445981816CD761037543F8EBCB7BC6DA1B9F6E73BB33DFE1C1B2F12E"
+    },
+    {
+      "file": "strict-build-and-query-compile.txt",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/strict-build-and-query-compile.log",
+      "original_sha256": "A022612BFF26B7D8566BD30E53557E778421E634ECF0FFDE3D226E78DDDFDC21",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "YnVpbGQtYW5kLXF1ZXJ5LmNwcA0K",
+      "bytes": 20,
+      "sha256": "F2BC0EC2BAF7FF7F00DB68876DEB7730609E4D453B089521C03A1A888D616D11"
+    },
+    {
+      "file": "strict-link.txt",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/strict-link.log",
+      "original_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "file": "strict-measurement.txt",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/strict-measurement.log",
+      "original_sha256": "920D6A9B8FE61DE09A9A06FF0D10B8E3AF82F1422D91C7DEC1AA9317CCFCEA86",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "Y29tcGlsZXJfbnVtZXJpYz0xOTQ0MzUyMjgNCmNvbnRyb2wwPTgwNjQNCmNvbnRyb2wxPTUyNDMxOQ0KbWFwcz05Ng0KcmF0ZV9jYXNlcz01NzYNCmNsb2NrX3N1Y2Nlc3Nlcz01NDYNCnF1ZXJpZXM9MjIyODQNCmV4dHJhX2FwcGVuZF9jYWxscz0xMjMxNTANCmZ1bGxfcHJlZml4X2FwcGVuZF9jYWxscz0xMDY1MDANCnBhcnRpYWxfYXBwZW5kX2NhbGxzPTE2NjUwDQplbXB0eV9mb3JtdWxhX2NhbGxzPTYwDQprbm90X29rX3B1YmxpY19ieXRlcz00NDcwDQprbm90X3N0YXR1c19vbmx5X25vX2NhY2hlX2J5dGVzPTYNCmludGVyaW9yX29rX3B1YmxpY19ieXRlcz0xNjU0MA0KZmFpbGVkX3F1ZXJ5X3N0YXR1c19hbmRfcmVzZXQ9MTI3NA0Kc25hcHNob3RfaW50ZXJ2YWxzPTE0NjA3MA0KbmF0aXZlX3N0YXR1c19jaGFuZ2VkX29ic2VydmVyX2luY2x1c2l2ZV9pbnRlcnZhbHM9NA0KZXJybm9fY2hhbmdlZF9vYnNlcnZlcl9pbmNsdXNpdmVfaW50ZXJ2YWxzPTANCmJ1aWxkX3N0YXR1c18wPTU0NiBxdWVyeV9zdGF0dXNfMD0yMTAxMA0KYnVpbGRfc3RhdHVzXzE9MCBxdWVyeV9zdGF0dXNfMT01NDYNCmJ1aWxkX3N0YXR1c18yPTE4IHF1ZXJ5X3N0YXR1c18yPTANCmJ1aWxkX3N0YXR1c18zPTEyIHF1ZXJ5X3N0YXR1c18zPTU0DQpidWlsZF9zdGF0dXNfND0wIHF1ZXJ5X3N0YXR1c180PTY3NA0KYnVpbGRfc3RhdHVzXzU9MCBxdWVyeV9zdGF0dXNfNT0wDQpidWlsZF9zdGF0dXNfNj0wIHF1ZXJ5X3N0YXR1c182PTANCmJ1aWxkX3N0YXR1c183PTAgcXVlcnlfc3RhdHVzXzc9MA0KYnVpbGRfc3RhdHVzXzg9MCBxdWVyeV9zdGF0dXNfOD0wDQpQQVNTIGZpbml0ZSBGUCBjYWxsc2l0ZS9wcmVmaXggcmVwbGF5IG1lYXN1cmVtZW50OyBubyB3aG9sZS1lcXVpdmFsZW5jZSBvciBmdW5kaW5nIHF1YWxpZmljYXRpb24NCg==",
+      "bytes": 888,
+      "sha256": "4C2CCFD72D515CD49731E526A45349E0A6D416D536B60AC4BC8533117EA92CEA"
+    },
+    {
+      "file": "strict-replay-probe-compile.txt",
+      "original_path": "build-ci/20261105-musical-query-fp-profile-probe-r1/execution-r1/strict-replay-probe-compile.log",
+      "original_sha256": "5F18E0F0130811704E0E1715A20D05125D89DFE13B81280A497F0B8DE07CE02E",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "cmVwbGF5LXByb2JlLmNwcA0K",
+      "bytes": 17,
+      "sha256": "91FB6A59445981816CD761037543F8EBCB7BC6DA1B9F6E73BB33DFE1C1B2F12E"
+    }
+  ]
+}

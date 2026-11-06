@@ -50,13 +50,17 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Active: Musical audio tempo-follow. Window/channel planning and pure history foundations are pushed; audible
    tempo-follow is not enabled. The request-owner prototype now passes135,111 headless checks and eight biting
    mutants; the source/evidence archive is `docs/research/artifacts/2026-11-05-musical-origin-formation-r4/`.
-   Its funded legacy adapter, complete recipe/resource/renderer proof and model/job integration are unfinished.
+   The funded adapter's ownership/cleanup revision passed source review; its query classifier and complete
+   recipe/resource/renderer proof and model/job integration remain unfinished. A finite native timing probe
+   passed both compiler profiles: each checked22,284 queries over96maps and six rates; archived source/results
+   are `docs/research/artifacts/2026-11-05-musical-query-fp-profile-r1/`. This is not whole-equivalence proof.
    Current CI: metronome performance repair5785a3f passes490 local pure checks, GUI3 compile-only and Clang4.
    The exact-source diagnostic repaird3ec661 passes19 policy methods, all491 local pure checks and GUI3
    compile-only. Fresh exact-head CI42146047209 passed ALL TEN jobs, including all three platform tests,
    both sanitizers and package/publication gates. The metronome repair and build correction are certified.
    Separate clock research remains unrun: corrected C++ censusR2 has conditional acceptance; R9 whole source
-   is accepted, with the complete runner operation/capacity/lifetime census active. No new execution GO.
+   is accepted. The complete R9 runner census proposes5,041,187,603 operations and is in independent
+   numeric review; controlled-payload qualification remains on hold. No new execution GO.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -77,6 +81,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Preserve both native floating-point measurement profiles
+
+- Compiled and ran the same frozen six-file console probe in actual MSVC default-precise and strict numerical modes, with a strict read-only observer in both. All ten environment/compile/link/run stages returned0; no windows, devices or desktop input.
+- Each profile checked22,284 public integer queries across96maps and six sample rates. All successful double bytes/native floors and all refusal statuses/output resets matched the separate scalar replay using the old append helper. Six overflowed knots provide status-only evidence, not private cache bytes or all-input equivalence.
+- Archived21 exact source/receipt/evidence files plus overview/manifest under `docs/research/artifacts/2026-11-05-musical-query-fp-profile-r1/`; raw log bytes/hashes are retained alongside LF copies. All archive identities and the actual stage exits were mechanically verified.
+- Next: independently review the complete R9 scalar census while payload qualification remains held; finish the new funded query source, native argument and complete resource census before recipe/renderer/job integration. Musical tempo-follow, linked/folder/piano and hardware proof remain unfinished.
 
 ## 2026-11-05 - Close cross-platform CI and preserve the ownership proof through Git
 

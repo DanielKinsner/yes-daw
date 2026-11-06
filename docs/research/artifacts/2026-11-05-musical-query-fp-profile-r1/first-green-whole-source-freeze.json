@@ -1,0 +1,7 @@
+{
+  "source_review": "4546EB0AE075E26B6601799F571A504B8371BE64CBC495193021A143AC8B90FE",
+  "scope": "All six whole authored probe files including helpers comments README frozen",
+  "utc": "2026-11-06T03:12:07.6265409Z",
+  "source_manifest": "DA5DDDA7E4613B0A26A682F169049F8E384AE2AC1CC85F8CCBFCA4B575B0DFEB",
+  "first_green_profile": "precise-default"
+}

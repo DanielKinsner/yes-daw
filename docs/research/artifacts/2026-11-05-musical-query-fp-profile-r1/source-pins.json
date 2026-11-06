@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "purpose": "Finite actual old Clock/public integer-query versus scalar old append-helper callsite measurement; no equivalence or funded-query qualification",
+  "authoringState": "source-first unrun; root must independently review before first compile/run",
+  "authoredEncoding": "UTF-8 without BOM; LF; exact raw-byte SHA-256",
+  "authoredFiles": {
+    "probe-types.h": "973089a20c88e5994e4058b1cd7ab565bdbecf23e1356ad8de8b34e0766b3101",
+    "build-and-query.cpp": "a1cc6f579d8a787d77ebde55383a37fa642c3d9ab8b9b7dfdf0da50cc914d63e",
+    "replay-probe.cpp": "c4b32519266a32bf2352eb64146481ef82967eb38755643199ffa3e47642158b",
+    "fp-observer.cpp": "ed9cff7130c71daca68bbf00481941367ec13480de090bcdca89a2884b8bdb5d",
+    "README.md": "17b034cf73360d3940487609723dcd179653008670279a977bedd93f0f850138"
+  },
+  "oldQuotedIncludeClosure": {
+    "src/engine/MusicalAudioWindow.h": "55ae0d6fbec102dd2f9d0e3cb85ee320300f313421b1ef2a141664670ba7ff5d",
+    "src/engine/RateMatchedView.h": "9a0770e8690fbc60048bdf13ff1d1bd332b6d620a1985c52895e7fe916bb0571",
+    "src/engine/ClipSchedule.h": "681ed77653af195480faa63fbb57d1804c1c3cbca813310b18f0b058b7552d1a",
+    "src/engine/Project.h": "0294e0b6592633b2601f09b45a9fc724edd6921512a66b9ab7ad82fb8f817d97",
+    "src/engine/Resample.h": "57367c4381837eb6753a62ee1276a85c63e25085dab7f6108c2600809e442832",
+    "src/engine/ClipEnvelope.h": "1375368503d68e8bcfb09014687b4a84cbf72f92fc1548fc5ab281ee19a89b9d",
+    "src/engine/Node.h": "b9cc354879a703f2bcc31e52ba3f8db6243611e55478a2ffa52d8e7ff5c1e2b1",
+    "src/engine/Automation.h": "8dd3153c64d8f3410682cb58c583c9e85bbd99a5e9ab5fd411503b6191605932",
+    "src/engine/MixerValue.h": "abfbc5a9f79410bf5c3d766f61c16e5f197b710f59adc880fa8d70d68abf0e49",
+    "src/engine/ParamSpec.h": "8459f6683cff26cf2aa4df17dc428755a540b5e811e50d8e47f27fc3b5dbee7b",
+    "src/engine/Time.h": "fc5a0861b527fffe6ed2e6f9fe571d3f8974329bbd065dacfbc38dfea8c98590",
+    "src/engine/nodes/CompressorNode.h": "74e27dfa24b41649324cd1e0f6508c21af271a7272eafdc35d21a5c228676ecc",
+    "src/engine/InstrumentState.h": "0e6f4e3c422ce9fbe52611b0f03c0636f212a453101788a31c03f0dd8f8e165e",
+    "src/engine/nodes/EqNode.h": "efc12c1b5d93f278f12ef570c014614faf8272df02dfa5e761111ce470d02598",
+    "src/engine/nodes/SimpleSynthNode.h": "9d3a8f0ae17ee8c02ea082d5d2d104260a7576b4d200cf09be5ee90fedcaaab8",
+    "src/engine/nodes/SamplerNode.h": "407ab0b64de44a1f8889ca282717866a1c2e765a8504ddde7e43a7bacf132ca9",
+    "src/engine/nodes/FaderNode.h": "88b69774a48c09bdd487a34f0d512ff50159eb08c680b15f43acd3a78005c50e",
+    "src/engine/nodes/FxDelayNode.h": "e844ef3b83571cb2d244faea363ef717eb7f64378215f2f6bacf1b2222af5221",
+    "src/engine/nodes/LimiterNode.h": "4038929b609b0a06a40b47646e772b84b430666bd174618266e268def59b89e2",
+    "src/engine/nodes/MidiEffectNode.h": "65220634417e3c90bff5b923becc5a2ca418f04dd22ad5acfa802d917256fe91",
+    "src/engine/nodes/PanNode.h": "89c7987add4bc62e766498b4f76aca453e3475c15209ee5ccd1270d269bddb2c",
+    "src/engine/nodes/ReverbNode.h": "ff0d5718fad1f6735a4428914c085337317c2749ffb87da18cac9d69aa5e0ec9",
+    "src/rt/RtHot.h": "c279973d8f1812e713c7757bdbbb86ee763d656196b7c0f54e90d91cddd74497",
+    "src/dsp/LinearRamp.h": "f39b72b99b806e63ccb993dfe22a491e7af91e0b47a201e271aee8beba973c09"
+  },
+  "closureLimit": "Literal quoted includes beneath src/engine/MusicalAudioWindow.h, source inspected; excludes standard library, SDK, toolchain, generated and preprocessed dependencies",
+  "plannedProfiles": [
+    {
+      "numericTranslationUnits": "actual project MSVC Release default /fp:precise",
+      "observerTranslationUnit": "/fp:strict",
+      "lto": false
+    },
+    {
+      "numericTranslationUnits": "/fp:strict",
+      "observerTranslationUnit": "/fp:strict",
+      "lto": false
+    }
+  ],
+  "inventory": {
+    "maps": 96,
+    "rates": 6,
+    "maximumRows": 16,
+    "attemptedBuilds": 576,
+    "nativeMeasuredResults": null
+  },
+  "sourceFreeze": "Whole source set freezes at first GREEN; source pins manifest SHA-256 reported externally"
+}
