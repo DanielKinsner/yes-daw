@@ -53,11 +53,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    acceptance; actual native/resources/binding, public recipe/DSP, renderer and jobs/model remain unfinished.
    Current app code isd3ec661:491 local pure checks and GUI3 compile-only passed; exact-code CI42146047209
    passed all ten jobs. Later evidence/docs commits use the separate docs-only CI path, with runtime jobs skipped.
-   Research runner R13's bootstrap receiver is wrong and its operation-budget proposal remains REVISE.
+   Research runner R13's bootstrap receiver is wrong; its exact-source scalar upper now has conditional acceptance.
    R14 corrects that receiver, but its whole functional source review found eight failure-path issues.
    The complete R15 correction is frozen after1,764 own checks; its fresh whole critic returned REVISE
-   after3,374 checks for a pre-resume budget-cut gap and stale descriptive policy counts. R16 is being authored.
-   No new scalar price is accepted.
+   after3,374 checks for a pre-resume budget-cut gap and stale descriptive policy counts. R16's fresh whole
+   functional source review accepts its correction, with native/profile and complete pricing gates still held.
+   A new R17 explicit directory-progress guard is next; frozen R16 is unchanged.
    All Clock execution guards remain false; no supervisor/Clock run has started.
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
    reader actually passed88 types/391 declared fields. A separate /c-only purpose now measured194 type/layout
@@ -69,8 +70,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
    is REVISE, with no runtime credit. A different fresh critic returned R13 scalarR2 REVISE after3,770
    source/data checks: four source-sponsorship omissions remain in that proposal. Complete scalarR3 is now
-   frozen at5,577,542,589 after9,244 own checks and under a fresh whole critic; no price is accepted.
-   Next: finish the complete R16 correction/fresh review, R13 scalarR3 and SDK/contextR2 reviews, then resource/native/binding proof
+   frozen at5,577,542,589 after9,244 own checks; a fresh whole critic's18,310 checks support conditional
+   acceptance for exact R13 only. No total/price transfers to R16/R17, and no combined limit or fit is accepted.
+   Next: complete the source-bounded supervisor successor and SDK/contextR2 reviews, then resource/native/binding proof
    before any Clock attempt. Detailed evidence and earlier
    source revisions remain in the dated entries below; Dan is not a tester or approval gate.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
@@ -93,6 +95,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Accept the exact R13 scalar upper, with its limits
+
+- The complete [R3 source argument](docs/research/artifacts/2026-11-06-clock-r13-runner-census-r3/sources/182-argument.md) and [fresh whole review](docs/research/artifacts/2026-11-06-clock-r13-runner-census-independent-review-r3/sources/139-review.md) support conditional acceptance of5,577,542,589 for exact R13's six positive upper-prefix schedules. All74 bodies,347 calls,127 caller rows, defaults, graphs and54 families were reviewed;18,310 independent source/data assertions passed.
+- Four descriptive-note errata are superseded explicitly in the review; frozen source is unchanged. Complete failed attempts and lossless raw inputs remain preserved. Both staged archives passed exact membership, original-byte reconstruction and Git whitespace checks; no target code was run.
+- R13 still has its bootstrap functionality HOLD. This grants no R14/R15/R16/R17 transfer, combined U, selected limit, controlled-resource/native/ABI/profile fit, Data, binding or execution GO. SDK/contextR2 and the source-bounded supervisor successor remain active; no new application test result is claimed.
+- The preceding commits41985db andd8cddb2 passed CI42241552186/42239608414 respectively, through the docs-only path; runtime/package/sanitizer jobs were skipped. Current application evidence remains the491 pure checks/GUI3 compile-only and exact-code CI42146047209 recorded above.
 
 ## 2026-11-06 - Correct the C++ helper/context source inventory
 

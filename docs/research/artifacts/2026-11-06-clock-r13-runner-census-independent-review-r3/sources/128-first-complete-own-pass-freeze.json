@@ -1,0 +1,39 @@
+{
+  "first_complete_own_pass": true,
+  "verdict": "REVISE",
+  "checks": 3770,
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r2/check.py",
+      "bytes": 36619,
+      "sha256": "377D5230CB4B236418EBC89425F24364F245A8FB269B5E6D3C70DF3CFFDB775A"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r2/failed-read-attempt-r1.json",
+      "bytes": 530,
+      "sha256": "9D4176147AAE1B9EBA5CB643751899B3B43152144A3A5938D008E82B2BD9FC2C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r2/failed-read-attempt-r2.json",
+      "bytes": 539,
+      "sha256": "50415A7E0DDDAAC30C070222B2EFE73CA6E705EE7353974228B8DC23A89FB017"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r2/review.json",
+      "bytes": 589177,
+      "sha256": "A9F97BDE57B80B7F92BF8AE8E6EDF3C755E7AABD41DAA63F3FE5595C0E42A06E"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r2/review.md",
+      "bytes": 10376,
+      "sha256": "D1D11F4EEDF9329302240F5AA28355D5EB12F6A6869CBE87BAB3002B2DEF2678"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r2/source-pins.json",
+      "bytes": 8508,
+      "sha256": "60D7833F12C237370822E785F3058244A4C2CCB422DBE3064068FB498520B33F"
+    }
+  ],
+  "whole_critic_helpers_oracles_frozen": true,
+  "no_subject_execution": true
+}

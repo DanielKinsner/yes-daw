@@ -1,0 +1,249 @@
+{
+  "schema": "R13_R2_FIRST_COMPLETE_OWN_PASS_WHOLE_FREEZE",
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/argument.md",
+      "bytes": 18033,
+      "sha256": "3BC494E74D08CF1C7D32EFAB6150B75DB14CEBBCB45AC54F60663221D104A682"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/authoring-attempt-r1/body_ledgers.py",
+      "bytes": 28625,
+      "sha256": "400838525D0A6DC8184B8C0059BFEE3678549E5F060604C9325A30EBB7A4840C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/authoring-attempt-r1/failure.json",
+      "bytes": 260,
+      "sha256": "8E5CB7A1FBCCCA3E4C1F54596DB310DCB7280AB840C69C7F05AF82DE79886A73"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/authoring-attempt-r2/body_ledgers.py",
+      "bytes": 53006,
+      "sha256": "21478B1966EBF28F3720B07A76C2BDBFEB87788BEA9EF5962760CF8297C99460"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/authoring-attempt-r2/failure.json",
+      "bytes": 244,
+      "sha256": "4E26E05E66B9652BB7B0A50EDCA454E0EE131915B3691A827E6382F3C3AA9875"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/authoring-attempt-r3/body_ledgers.py",
+      "bytes": 67963,
+      "sha256": "9DD0E561BD64146B7DD67115EA491FCF5A4D6A5AD97176160F463F9367A2A27F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/authoring-attempt-r3/failure.json",
+      "bytes": 268,
+      "sha256": "712A14DD546FC7973562067820AA577CC8478343FFD1A16C3DCB2CAC000AA5E2"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/authoring-attempt-r4/body_ledgers.py",
+      "bytes": 108314,
+      "sha256": "4BB2AE1B50D0D6CF836CA1939B15728D6583A429D26DAD837400F8B374FA52B5"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/authoring-attempt-r4/failure.json",
+      "bytes": 321,
+      "sha256": "8862CE25A74C862A98CFD86D31F5495E955C06AC1DBE5B55F54EA0104052FC95"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/authoring-attempt-r5/body_ledgers.py",
+      "bytes": 109156,
+      "sha256": "B9122F95A922A2619FE23E8FC060B7E4B5C543E49917979917154D1C5F495807"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/authoring-attempt-r5/derive_prices.py",
+      "bytes": 9114,
+      "sha256": "FDA17018BA8F3CA88BC9C4B9DF728A140DC706B791A30CECAC1C583AA07749E0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/authoring-attempt-r5/failure.json",
+      "bytes": 214,
+      "sha256": "4E0E09A78D64E0948C829D0DD8E83E9B92ACB5DF4BA5EA922249159121041534"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/body-components.json",
+      "bytes": 22483,
+      "sha256": "F1C1A2F675B8740869B222D043F2EEA3533E96F824FA700AABF9F032E50C0038"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/body_ledgers.py",
+      "bytes": 109923,
+      "sha256": "B0499AFA278D68895AC40D155C15EB0335AA18047B91E40EF83180DA06B1477F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/build-census.py",
+      "bytes": 21195,
+      "sha256": "7D23EBC8A14CBC25E70486EB5B12F8373A8051A9D8AE0B1261B5F8F5B50B2B23"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/census.json",
+      "bytes": 30361,
+      "sha256": "90E6F31DBF49D8D4A5B5DAC4B08AA022BF47EA94112850AEFD228F0B14D069CC"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/census.md",
+      "bytes": 20942,
+      "sha256": "5566BFD65CF3B3ACDA73CA91EBE927CB9C17DF99C6A2EC6D169456FFD7E66166"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/checks.json",
+      "bytes": 611868,
+      "sha256": "A5D384A9302E99075C7EF2B9D2D1E836C2A89140D269E26FEC95708C3FCE2CAD"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r1/argument.md",
+      "bytes": 17725,
+      "sha256": "BC57A54B31EEC6251A787A96ACB4BD06680E258A2550165BA9ACCA8402CD56F7"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r1/body_ledgers.py",
+      "bytes": 109923,
+      "sha256": "B0499AFA278D68895AC40D155C15EB0335AA18047B91E40EF83180DA06B1477F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r1/build-census.py",
+      "bytes": 20171,
+      "sha256": "2FA96105F66432FC91DD54585F0DA460BA6FB5F5909D5A85872CA31D1577CFEB"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r1/compose.py",
+      "bytes": 12111,
+      "sha256": "A7FED16AE2B17A9253A96792140AAA19C6C44EABFD09D9C7646D0B67B756B2A2"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r1/derive_graphs.py",
+      "bytes": 5944,
+      "sha256": "2979A9D61240743F831CF09F0E0E17E32AC2AE6154B89A415CC68F31F2AD1006"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r1/derive_prices.py",
+      "bytes": 9556,
+      "sha256": "444383E36D0AAAE69C93207D7C4EB44B0F234193F1AD0BA0BE8B9ED6356D5027"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r1/derive_schedules.py",
+      "bytes": 9002,
+      "sha256": "B3BC2C645F7E7C1C19428CA30C4F86BBEF98933C8440FFD92927A574F3DEAFD2"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r1/failure.json",
+      "bytes": 1637,
+      "sha256": "916B646643E0B43908B0410C2EDC13B47A935DC5267F13EB2E00090706979E6C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r1/public-cmdlet-ports.json",
+      "bytes": 8285,
+      "sha256": "135B3092E3CD24219B8758BE44C2672CA6078F5775033EF5BDB4F3B70DC099FC"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r1/WORKING.md",
+      "bytes": 12477,
+      "sha256": "77D0D98070253255497CA481F1034DF3374E13A27A814EAB570CACFB750BAF4C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r2/argument.md",
+      "bytes": 17725,
+      "sha256": "BC57A54B31EEC6251A787A96ACB4BD06680E258A2550165BA9ACCA8402CD56F7"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r2/body_ledgers.py",
+      "bytes": 109923,
+      "sha256": "B0499AFA278D68895AC40D155C15EB0335AA18047B91E40EF83180DA06B1477F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r2/build-census.py",
+      "bytes": 20390,
+      "sha256": "E940FB79B7A7E45591D464F8DDA0A9FD7D59A8009139EF3CE14A02E221CE934B"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r2/compose.py",
+      "bytes": 12111,
+      "sha256": "A7FED16AE2B17A9253A96792140AAA19C6C44EABFD09D9C7646D0B67B756B2A2"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r2/derive_graphs.py",
+      "bytes": 5944,
+      "sha256": "2979A9D61240743F831CF09F0E0E17E32AC2AE6154B89A415CC68F31F2AD1006"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r2/derive_prices.py",
+      "bytes": 9556,
+      "sha256": "444383E36D0AAAE69C93207D7C4EB44B0F234193F1AD0BA0BE8B9ED6356D5027"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r2/derive_schedules.py",
+      "bytes": 9002,
+      "sha256": "B3BC2C645F7E7C1C19428CA30C4F86BBEF98933C8440FFD92927A574F3DEAFD2"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r2/failure.json",
+      "bytes": 1009,
+      "sha256": "A9BFCEA8F4894314EEF4A6CCF9F788CEA92D67B65ADAF3042B536FD18D4E617F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r2/public-cmdlet-ports.json",
+      "bytes": 8285,
+      "sha256": "135B3092E3CD24219B8758BE44C2672CA6078F5775033EF5BDB4F3B70DC099FC"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/complete-check-attempt-r2/WORKING.md",
+      "bytes": 12477,
+      "sha256": "77D0D98070253255497CA481F1034DF3374E13A27A814EAB570CACFB750BAF4C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/compose.py",
+      "bytes": 12111,
+      "sha256": "A7FED16AE2B17A9253A96792140AAA19C6C44EABFD09D9C7646D0B67B756B2A2"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/derive_graphs.py",
+      "bytes": 5944,
+      "sha256": "2979A9D61240743F831CF09F0E0E17E32AC2AE6154B89A415CC68F31F2AD1006"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/derive_prices.py",
+      "bytes": 9556,
+      "sha256": "444383E36D0AAAE69C93207D7C4EB44B0F234193F1AD0BA0BE8B9ED6356D5027"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/derive_schedules.py",
+      "bytes": 9002,
+      "sha256": "B3BC2C645F7E7C1C19428CA30C4F86BBEF98933C8440FFD92927A574F3DEAFD2"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/phase-schedules.json",
+      "bytes": 11871,
+      "sha256": "F12CDE8966CECF8270C19D1609F18E49F1C20ED5D5A2BCAB7CF09A2D76A9FE00"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/public-cmdlet-ports.json",
+      "bytes": 8285,
+      "sha256": "135B3092E3CD24219B8758BE44C2672CA6078F5775033EF5BDB4F3B70DC099FC"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/source-graphs.json",
+      "bytes": 1514,
+      "sha256": "2DE7DA16FEAD2516C6878DCB960EBEE35C7944A8177CC2B8CF4B4D3F3EF56F35"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/source-inventory.json",
+      "bytes": 603206,
+      "sha256": "12B4B7652C0B61EB639A6A6183693098B3150D7E01A78EBA01DA2E8F8689242F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/WORKING.md",
+      "bytes": 12477,
+      "sha256": "77D0D98070253255497CA481F1034DF3374E13A27A814EAB570CACFB750BAF4C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/source-pins.json",
+      "bytes": 320241,
+      "sha256": "DFC0F598BF3CECC00484A3772B86819BA2EF71A11078B26B30ED73ECA8BB4B93"
+    }
+  ],
+  "checks": 5852,
+  "upper_proposal": 5577409900,
+  "independent_numeric_review_pending": true,
+  "target_executed": false
+}

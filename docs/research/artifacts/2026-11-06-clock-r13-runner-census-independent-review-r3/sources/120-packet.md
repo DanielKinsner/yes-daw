@@ -1,0 +1,47 @@
+# Clock-oracle next stage: source-only preparation, admission HOLD
+
+The recommendation is A: keep the original standard reference-file matrix, close the actual compiler/header/runtime inventory, then derive a separate finite oracle-stage profile and whole source-work ledger from that inventory. Do not change the immutable DefinitionR4 first-stage256 profile. No oracle source, guard, compiler, reference, test, DSP, environment, Git, device or native-window action is authorized by these documents.
+
+## What was read and what is already measured
+
+DefinitionR4 manifest6822A96025D6EEADD79642AB50B0A30224A35429B0577D3246BBC173AC630E88 completed its sole run20261105-171222-6659395 with raw parent/generation/replay exits0. Bundle28909B793046C026890456FA59A841DA2B75450B60AAD5E8DD3888DFCCB23E71 retains96 artifacts and147 transitive inputs. The exact97-file run tree is69,798,868B; its five authored sources add225,572B, defining70,024,440B in the reviewed first-stage pool. Root reviewD71F2FB42B6C267FB52468C63BE697E38C699CD6C753229C2E1DF40FB45ADDD1 records those facts. Root relays fresh measured acceptance; that immutable audit JSON still spells its fresh_measured_critic field PENDING, so it is not silently rewritten into a new receipt.
+
+The complete predecessor closure is243 distinct artifact/transitive paths plus its bundle:244 paths/74,499,159B. No bytes-only deduplication is used. All92 generated first-stage files, the294 request IDs/13 future physical controls,141 protected inputs, original source laws/owners and all existing files remain unchanged. The closure is hash-verified again for this preparation. This supplies source-definition evidence only: no compiler, DSP, full waveform quality, context, production resource, Ready or renderer credit.
+
+Actual sources read: immutable R3 clock_oracle.cpp54 lines and independent_clock.h194 lines; production Time.h whole/fractional forward, prefix build, scaled ratio and native inverse; ADR0083 Decision2; ADR0084; active Musical plan sections3/4; the original revised waveform proof's dense-clock proposal and56 clock/inverse artifact entries; R4 launcher/manifest and actual bundle/root review; the accepted research source-cost convention; actual MSVC algorithm/xutility/numeric/vector/ostream/fstream portions. STATUS and the active plan were read for scope. STATUS is moving and is not a stable proof pin.
+
+## Why the old oracle cannot simply be compiled
+
+Its three source/cost/output guards are literal false and remain immutable. Its 256-unit cut debit is not a proof of Fractions::cut plus NumericAClock::frame, append, scaled, binary search, caller loops and streams. Its 128M fixed debit is not a proof of every helper, output and replay. It has no complete independent dense-Q/native-inverse replay. A good stream flag checked before destruction does not prove every close/flush succeeded or complete file closure.
+
+The old body creates27 Q files,27 metadata files and one native-inverse binary:55 outputs. The original frozen reference allowlist additionally requires references/native-inverse/r48000-map5.json, making56. A successor must supply that complete exact clock-key/bounds descriptor and independently validate it; missing it is HOLD. Its existence supplies no missing bake-case/window/qualified-unfaded binding or physical center owner.
+
+## Options
+
+A. Recommended: preserve all56 original standard clock/inverse files and every244 predecessor path. Author a dedicated headless ClockOracle stage only after a new actual closed input inventory and source-supported work worksheet are reviewed. The known proposed inventory is323 identities before further real compiler, linker, UCRT, SDK, helper-header, environment-file and tool identities. Do not choose320/384/512 merely to accommodate that subtotal. Enumerate actual distinct paths, derive the exact admission maximum and all associated source/path/hash/byte/loop costs, then obtain fresh source review. The256 bound in R4 is a private first-stage bound; the original broader proposal did not establish a universal future256 identity maximum. A new finite future profile must be explicitly reviewed, not retroactively called already accepted.
+
+B. A standard bounded container could hold all55 existing logical oracle outputs, with the missing native-inverse descriptor added as the56th logical member. Every name, length, record count, offset, digest, stream/close/error and decoded byte must still be checked; all244 old physical paths remain individually fenced. Packing reduces new physical paths but adds format/index/parser, extraction and integrity work, plus retained-copy/streaming lifetimes. It cannot deduplicate old identities or lower any logical-domain cost. This is held as an alternative; no container format is introduced here.
+
+C. Running the old body, retaining only selected maps/windows, skipping predecessor artifacts, pinning only their bundle, calling an unreviewed larger profile accepted, or trusting256/cut is refused. A tiny smoke cannot replace the full27-table stage.
+
+## Proposed next source unit, not authoring GO
+
+Tentative new sibling source-revisions/waveform-clock-r1 would contain exactly clock_stage.cpp, run-clock.ps1, README.md and authored-manifest.json. The C++ unit would include the unchanged R3 independent_clock.h and pinned production Time.h directly. No old oracle/header, WaveformCandidate, fitter, probe, DefinitionR4 source or guard is edited or copied for admission.
+
+One compiled console executable can expose separate produce/verify modes. Produce preserves the old NumericA expressions and exact rational-cache bits. Verify reads every actual output word, reconstructs brackets independently, and compares zero-tolerance Q floors and exact native whole/fraction bits against the actual production checked clock APIs; it does not import generation code or accept only monotonicity/round-trip agreement. The separate production clock is the normal expected-reference path. The finite helper bodies, control implementation and actual toolchain must undergo numeric and engine/cost review before this source unit receives any execution guards.
+
+The single future command would explicitly supply the reviewed new manifest, old R4 bundle/hash, compiler/toolchain identities and a new owned one-use root to run-clock.ps1 -Stage ClockOracle. It performs full before fences, one compiler invocation, actual PE-console/machine checks, produce, complete independent verify, after fences, exact pool sums and one final bundle. This is command design only; there is currently no script to invoke and no compiler GO.
+
+## Numeric and matrix obligations
+
+Use all rates44100/48000/96000 and all9 original maps, S=46081,L=153600,N=10R. Keep the90-BPM preclip prefix, constants120/80/60/40/30, original ramp/jump directions and jumpTick=S+4PPQ+1. F is ADR0083 NumericA's computed binary64 clock, including whole-Tick operation order, nearest-endpoint ramp BPM, scaled frexp/ldexp ratios, log1p/expm1 grouping, full prefixes and actual upper_bound behavior. Strict FE_TONEAREST/MXCSR, no reassociation/contraction/fast-math and exact compiler/runtime provenance are required. Libm accuracy as a universal real-log theorem is not claimed.
+
+Every0<=i<=N is included:16,929,027 int64 Q entries/135,432,216B. Adjacent fraction endpoints must enclose the exact rational, normalize a high endpoint of1 by checked Tick carry, have finite ordered frames, width<=1/1024 and identical floors; no epsilon relocation. Original785 fraction residues occupy12,560B of mathematical pair payload (735/25/25); retained cache bits must be proved equal to the original helper for every residue. All windows use the exact original W expression, start gridR/20, lengthR/4 and edge_low/max/edge_high/min formula. No band/interior/window exclusion is added. Native inverse covers every j in[0,D) for48k/map5, D=B-A, with original16-byte whole/fraction-bit records and D<=960000; its exact descriptor is mandatory.
+
+## Gates and controls
+
+Controls must call the very helpers/gates normal produce/verify/runner use and require the exact caught rejection reason plus actual reached operands. Positive baselines are mandatory. In-memory or small owned mutations must leave all old files and the new frozen56 unchanged. Planned gates are listed in proof-plan.json: Q off-by-one; high-fraction carry; changed full Tempo prefix; ramp replaced by jump; inverse whole/fraction corruption; missing/extra/truncated/duplicate file closure; whole work one below; whole retained bytes one below; compiler/PE/input-change/predecessor checks. None is run. A copied coordinate, marker-only receipt, local inequality, unrelated exception or hand-authored PASS is invalid.
+
+## Finish line and holds
+
+This packet closes only preparation. Known323 is a proposed identity census, not a chosen cap or an observed future tree. Whole canonical source-work upper is HOLD, because the new full replay/helper/control/launcher bodies and complete toolchain are absent/unclosed. Compiler output pre-write bounds and total compiler/internal heap/RSS are also unqualified. The existing2^34 research work ceiling,840MiB future retention envelope and production2^28/512MiB/1GiB limits remain unchanged. Resource-and-lifetime.md gives exact known arithmetic and the missing terms. Root must first accept these documents, commission actual input/toolchain and source closure, then require fresh exact-source critics and separate one-attempt execution GO. No overall task completion is claimed.

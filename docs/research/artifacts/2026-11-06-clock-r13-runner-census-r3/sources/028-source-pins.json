@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "subject": "Independent R6 PowerShell runner partial census; numeric/lifetime HOLD",
+  "date": "2026-11-05",
+  "workspace": "C:/Users/SM - Dan/Documents/GitHub/yes-daw",
+  "method": "Read/hash only. Source files not run, imported, parsed as authored code, compiled, tested or mutated. Current direct inputs and two output bodies independently byte/hash checked. The R6 manifest anchors exact transitive historical inputs; root's separate all-input physical audit is attributed, not silently recertified here.",
+  "inputs": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r6-source-prototype/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r6-source-prototype/run-clock.ps1",
+      "bytes": 83585,
+      "sha256": "ADF8A50F12C2E323C404538542142F1302108B480CA1E5375ACE29C11956B20D"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r6-source-prototype/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r6-source-prototype/README.md",
+      "bytes": 15405,
+      "sha256": "73554F351C2934DFBE4E6E8FD413BD537EC941E06F1440E565E2559D43F08C2C"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r6-source-prototype/source-manifest.json",
+      "bytes": 449904,
+      "sha256": "4E246199E2AED7AF6D5BA97DFF86A7DB39655DBAC854A685F9F6572478FE7D1D"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r6-independent-review.json",
+      "bytes": 1634,
+      "sha256": "AA5158C15218FD3D36F91E8D1EC328E166FC04833EAA319E4F96255E17826798"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/review.json",
+      "bytes": 2933,
+      "sha256": "7487D2E18E2894CD122D24D3FE07B2602B94FDCFE625F52E95AE705E3D149687"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-leaf-census-conventions.md",
+      "bytes": 1746,
+      "sha256": "DE33D91712372C2FE887A02FB137AA9A96C8C3BB93CB0D88BF57AA32DBEAE564"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-bulk-leaf-clarification.md",
+      "bytes": 2153,
+      "sha256": "268597D1F066779CE76DACFDBBC384FC452DC6B9AD319419F52DE597242BB3E8"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/powershell-JsonObject.cs",
+      "bytes": 37049,
+      "sha256": "B0673F6376217F1104293297F0B2E3C7C9F928045F8435CD93865EF024E287B0"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/powershell-ConvertToJsonCommand.cs",
+      "bytes": 5210,
+      "sha256": "110FB32101AA117D90F9DCF95037B5B6C16E4F7C55A593FA066034D77F964723"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/powershell-TypeTable_Types.cs",
+      "bytes": 361303,
+      "sha256": "C96DFBFCDD9C11C9D0608BBF0E4162D168FF817F05E263D4ABA3C045A33630C5"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/powershell-TypeTable_TypesV3.cs",
+      "bytes": 17171,
+      "sha256": "643623D2EC5E75C4438393308FBD56C56B9AA0F4C008FC6DB7F1DC3B08D7A952"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/newtonsoft-JsonConvert.cs",
+      "bytes": 55576,
+      "sha256": "DAEB3FEF0BCDE2E756CB0CBCAA92FB8A7782727CDB4ADDBA7B8C66E94B5A6205"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/newtonsoft-JavaScriptUtils.cs",
+      "bytes": 25775,
+      "sha256": "93131CB6065F06AC6DA30CC15C77F7E2A96EF2D3DC171FEC34C227590D930A1A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/origins.json",
+      "bytes": 2974,
+      "sha256": "FAFBEA972A9ED397976B491B9D2FBDA06737BCA382A877A4F2954C9E16E6EF4C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r6-primary-sources/newtonsoft-JsonTextReader.cs",
+      "bytes": 101923,
+      "sha256": "A9F79EBF4527275D5DE362DD9160F8B246CF34A5D1F767B4A978ECF420C36039"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r6-primary-sources/powershell-CommandDiscovery.cs",
+      "bytes": 72388,
+      "sha256": "922F32B3C221A0B2B74F7140A245CDD98A0AA6FF06163D9EC56ED3C20D184EBA"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r6-primary-sources/origins.json",
+      "bytes": 1354,
+      "sha256": "824B483E4C94D82892F3ADA78938F0FCB0B0A677D8F5438A20CDFD7A266EA45F"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r6-runner-census/census.md",
+      "bytes": 31973,
+      "sha256": "231ABC08A5C4D9A93DEF1AD0B78D3BE4FEFC5A494CA1E6FCAF1781828296CFCC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r6-runner-census/census.json",
+      "bytes": 37230,
+      "sha256": "D80F6FD18F20CF386357F585C5651F01062EAEA9DC24579873CD996DBE4C7546"
+    }
+  ],
+  "selfHash": "EXTERNAL_FINAL_SEAL_TO_AVOID_SELF_HASH_CYCLE",
+  "allSourceGuardsRemainFalse": true,
+  "privateDataPricesUpperOrFitBound": false
+}

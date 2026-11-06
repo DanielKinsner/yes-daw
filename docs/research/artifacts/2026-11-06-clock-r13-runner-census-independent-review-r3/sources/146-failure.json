@@ -1,0 +1,4 @@
+{
+  "scope": "text-edit context failure, no code/check execution",
+  "reason": "apply_patch expected range_refusal spelling while working prose formula was rangeRefusal. Patch tool refused entire edit; no subject or working ledger mutation."
+}

@@ -1,0 +1,13 @@
+# Exact R13 bootstrap and main caller ledger — root source proposal R3
+
+Root owns source1–61,74 function-registration events and929–1038. The R2 body author owns all74 helper bodies/formal writes/returns, public-port audit and global six-phase assembly in its separate folder. Neither author changes the frozen R13 source or inherits old main88 numeric rows. Fresh FP whole critique is still required.
+
+Only written argument evaluation, dispatch, actual caller/result/operand destinations, actual caller nonidentity conversions and omitted-default literal reads belong here. Own helper E/parameterW/return and bodies are excluded. Authored main callbacks expand with their own D/E/T and automatic input, actual bodies and direct-result fusion. Catches retain the selected-handler K and automatic caught-input W once, plus source body/rethrows. No VM/CLR loop expansion or per-cell capture tariff.
+
+Named foreach fixed4=enumerableR+setupS+terminalK+exitK; indexed fixed7 substitutes indexed4; each iteration5=elementR/W+condition/body/advanceK. A for loop with literal/named bound costs8+9N; a property bound of getter6 costs13+14N, before its body. Static data fields cost TypeR+field-selectionO+valueR, with actual destination once; static properties cost TypeR+D/E/T+destination. Method/command designators are dispatch, not literal reads. [ordered]@{} is one selected construction, not a Type value or a separate Hashtable conversion (selected Compiler.cs6112–6118).
+
+Fixed source domains: I1220, own sources4, references56, build outputs3, control files4, four final stage artifacts and transitive1225. Full-main positive-prefix coverage may be used in all six schedules; it is an upper envelope, never an observed execution trace or credit for unexecuted statements. Preserve branch failures and actual callback multiplicities. Literal Int32→typedInt64 arguments have O1 only where nonidentity; typed helper formal W remains in its body.
+
+R13's Type[].EmptyTypes receiver is a confirmed source-level functionality HOLD, with no observed runtime failure. Only R14 will correct it. All source/cost/Data/flags/native/resource/GO limits remain unchanged. The separate own checker records and freezes its first complete source/file/integer pass; that is neither a whole R13 price nor independent acceptance. Failed own attempts, if any, remain preserved.
+
+R3 preserves R2 after an explicit-cast accounting finding. Written cast/type-check O1 is distinct from implicit identity binding O0; all29 source cast sites receive a whole bounded multiplicity audit before the new complete pass. No old aggregate is used to choose the new sum.

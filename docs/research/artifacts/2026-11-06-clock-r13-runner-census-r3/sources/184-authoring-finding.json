@@ -1,0 +1,7 @@
+{
+  "kind": "OWN_CHECK_ORDERING_FAILURE",
+  "finding": "The complete source scanner encountered VisitJson's line448 AddBound before the separately authored plain-alternative source locations had been appended to its call sponsors.",
+  "original_inputs_and_output": "inputs/, input-pins.json, stdout.txt, stderr.txt and result.json preserve the full exact failed invocation.",
+  "correction": "Check all caller sponsor lists after both located role groups and located plain alternative vectors are assembled. No role, component price, schedule, graph or source subject changed.",
+  "subject_executed_or_modified": false
+}

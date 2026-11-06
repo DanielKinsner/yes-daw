@@ -1,0 +1,6 @@
+{
+  "stage": "unfinished component evaluator summary",
+  "error": "TypeError: total() attempted to sum source group metadata along with units",
+  "target_execution": false,
+  "complete_census_check": false
+}

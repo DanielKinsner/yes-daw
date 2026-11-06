@@ -1,0 +1,14 @@
+{
+  "candidate_or_calibration_executed": false,
+  "files_sha256": {
+    "calibration.tsv": "5341cfca9aa6f7b64ebfdd99becd76858d62da99322afbfc015b740451c8306a",
+    "clock.tsv": "c25b0f5a7f6c0357a47ad73cfcd8ac69368919344eec2cdcbb29111347c3ac76",
+    "freeze_receipt.json": "9b1f584c3ecf117091297d43ffe4181dbfa3b2b411f0d50790ad1f47769a4131",
+    "geometry.jsonl": "f56929ce26422caf39e37313507bc9e3c2dc611cd7ffc11166bdfe0eddef1b7d",
+    "whole-case-source-hold.json": "8d9e794fb09d555bfcc8387909966ee740276d5c21391d3bbbf582548d7d88cf",
+    "whole-cases.tsv": "e9212267ec0e06b498262a9f05e48990490972a13c3c34bd9f5bcffe9a001a98",
+    "whole-windows.tsv": "6998c612d1efb4c6dd882ea0c0641ad01bb43383c36e2264df02b7ca59353fb1"
+  },
+  "source_manifest_sha256": "f48b3b5683b881c9dc6d7112e65cde42250ff0977a4dcf0dca3d2e0634946b67",
+  "status": "FROZEN_ACTUAL_OUTPUTS_AWAIT_ROOT_REVIEW"
+}

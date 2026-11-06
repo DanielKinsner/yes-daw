@@ -1,0 +1,5 @@
+{
+  "scope": "unfinished own ledger arithmetic summary; not complete census check",
+  "raw_exit": 1,
+  "reason": "Python dictionary keyword finally=88 is reserved syntax; use explicit finally_group label. No model executed, subject modified, target/old helper run."
+}

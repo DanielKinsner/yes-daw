@@ -1,0 +1,9 @@
+{
+  "kind": "OWN_INLINE_READ_HELPER_SYNTAX_ERROR_BEFORE_FILE_READ",
+  "exit_code": 1,
+  "source": "from pathlib import Path;s=Path('build-ci/20261106-clock-r13-runner-census-r2/compose.py').read_text().splitlines();print('\\n'.join(str(i+1)+':'+s[i] for i in range(92,min(150,len(s))))));j=__import__('json').loads(Path('build-ci/20261106-clock-r13-runner-census-r2/public-cmdlet-ports.json').read_text()); print('ports',str(j)[:4000])",
+  "stdout": "",
+  "stderr": "SyntaxError: unmatched ')'",
+  "correction": "Remove the unmatched parenthesis in the read-only inline Python. No subject, old generator, target parser or program executed.",
+  "subject_changes": false
+}

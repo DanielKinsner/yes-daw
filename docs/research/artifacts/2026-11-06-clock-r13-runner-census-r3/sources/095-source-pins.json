@@ -1,0 +1,205 @@
+{
+  "status": "SOURCE_ONLY_PINS_NO_EXECUTION_GO",
+  "pins": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77"
+    },
+    {
+      "path": "CLAUDE.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77"
+    },
+    {
+      "path": "docs/adr/0083-musical-audio-prepared-lane.md",
+      "bytes": 31387,
+      "sha256": "7C45C564AC86079A82E487E8AE6AD510A34FCC6AB630663C2B56F8EFEF6FC646"
+    },
+    {
+      "path": "docs/plans/2026-11-04-musical-audio-prepared-lane-plan.md",
+      "bytes": 14255,
+      "sha256": "6A2087759DCE5A89BCF472589C3C94F822E41C0132077AAFACB3BC642FB4E95F"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/packet.md",
+      "bytes": 21799,
+      "sha256": "4F0933E8BEFEE4C6C676453369077697D9ED1FE4D12DBDB893E55F55243601D6"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/proof-plan.json",
+      "bytes": 5048,
+      "sha256": "D1B13FE352DDE33815412F48864C82B561F890EEC739CD27A859AF20BF3F294B"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/source-pins.json",
+      "bytes": 2238,
+      "sha256": "04F57EA57854D3926832F25968CF4FF36CEF706556EC49FCECC49DE00D160C04"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/manifest.json",
+      "bytes": 10210,
+      "sha256": "6D1A2126601CD490900A08272AFEECCD282CE77F49FFC41FA113090B40F9F4EC"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/quality_calibration.cpp",
+      "bytes": 21617,
+      "sha256": "C10396FB2A2A8A82B79A23950323E810ABBF8A25AFD1659A011485FD5CC933B1"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/freeze_reference.py",
+      "bytes": 19534,
+      "sha256": "EC4FD9C1D53FD613AE6516664302445007CB2CA17DD180B3CB32B35E0AB927A5"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/run_stage.py",
+      "bytes": 14528,
+      "sha256": "CA451637A3CE492A7F0A32C1463785B9E6691408FD9FFFE373EE86EB24C7F346"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/README.md",
+      "bytes": 13967,
+      "sha256": "1F92AD50447ADF53515236DAA52B53D0C82FBF81F6498A562443D5390D583E2E"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/CompileCalibrate-20261105T113800.647407Z-395bd38b/stage_receipt.json",
+      "bytes": 3412,
+      "sha256": "05F51815B86583568499FB41CB5525C62454F3E2FB11D3408E137FCC2F60B202"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/CompileCalibrate-20261105T113800.647407Z-395bd38b/calibration/calibration-results.tsv",
+      "bytes": 199706,
+      "sha256": "40BD7F908A4FC67AC83377408E1DC3BF6B2EDB96FB926053B7BB1BACE89B3EEF"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/CompileCalibrate-20261105T113800.647407Z-395bd38b/calibration/clock-results.tsv",
+      "bytes": 42672,
+      "sha256": "1284C102C8EC423B2ABB016760AC4A168F7D4334A1AC01D0193ACBBE19FA3410"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/CompileCalibrate-20261105T113800.647407Z-395bd38b/calibration/summary.json",
+      "bytes": 445,
+      "sha256": "A7433318ADF9C039BE2422F001F724C9D134421B861F70D8835CA1864D1FA66A"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    {
+      "path": "src/engine/TimeStretch.h",
+      "bytes": 7540,
+      "sha256": "7F759B9A8015E8C020F4EA0EE6E0F7283CBC0D563A20CED6CC5A219D5A761227"
+    },
+    {
+      "path": "src/engine/MusicalAudioWindow.h",
+      "bytes": 19572,
+      "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D"
+    },
+    {
+      "path": "src/engine/MusicalAudioCutPlan.h",
+      "bytes": 28956,
+      "sha256": "17A84770B9B4904162008492ADC393EB183678ECD00113C0658EFE355413B390"
+    },
+    {
+      "path": "src/engine/ClipEnvelope.h",
+      "bytes": 5221,
+      "sha256": "1375368503D68E8BCFB09014687B4A84CBF72F92FC1548FC5AB281EE19A89B9D"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/signalsmith-stretch.h",
+      "bytes": 22145,
+      "sha256": "E7BD5C4E35AE05DE34ADE0CFC0E0C2285598543BEDB91420AC863812AF2A035E"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/spectral.h",
+      "bytes": 17009,
+      "sha256": "8B15F3E710BDEB2F7DDF9DA9DB10C0123FE0B0C675726202A6770F18ECFAED96"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/fft.h",
+      "bytes": 16832,
+      "sha256": "B75422EE9E261F4268FB85BF9693388AF565F57B4F14D637B732FB570A818B30"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/delay.h",
+      "bytes": 24125,
+      "sha256": "876F3A5B69EC8E55E6769E14383A99A4354060EF0B76594D509444CE1FEAAC72"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/authored-manifest.json",
+      "bytes": 74092,
+      "sha256": "AD0837999552269370A7511B3727E112DB71CD680BDA2CBE23381ED70F536625"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/context_probe.cpp",
+      "bytes": 14136,
+      "sha256": "CD148D4D1B794343A10CBB2E784E84193B249065E56520DECF3559F64A90391A"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/authored-manifest.json",
+      "bytes": 17564,
+      "sha256": "1121DD78F582932DBD6D9C0022DEF0CFFD1085BF6FFC9497FBB2E4A1216ACAA0"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/authored-manifest.json",
+      "bytes": 27709,
+      "sha256": "699EBD8136ACD1C0C40A2844E209B4A9A85E6A72BBF7956CA91AA2CBCEA89795"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-execution-prep/packet.md",
+      "bytes": 17126,
+      "sha256": "D870163A91C913F69A85D7C8483C0937926D2AA57DDEF8D9CD9940EAB5664B79"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-execution-prep/proof-plan.json",
+      "bytes": 18103,
+      "sha256": "3E11102C97DB1EC18C902E4BA2E90B62B34AC0279833830CF70CB3143C42A1D7"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114929-3203284/execution-receipt.json",
+      "bytes": 9244,
+      "sha256": "D97C1F19ACBBC584C80BC0A664DB182B3F1A5B522AD65DC3B170D9595AE8C283"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114929-3203284/candidate/verification-receipt.json",
+      "bytes": 10722,
+      "sha256": "D3A6B7F699E6717789EE44AE8D77521FEB45194571AC6D896DC963C198E4EAFF"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114929-3203284/candidate/small-identical/candidate-receipt.json",
+      "bytes": 436,
+      "sha256": "A9A2A410B1D871CA10DA98B95F92D6F9C86A9DAA4556A7749DB89FD6A78E0593"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114929-3203284/candidate/small-identical/events.txt",
+      "bytes": 19044243,
+      "sha256": "8AB9075CA901311D306F61EA4A6918AB234E06EC4563C5E298F0A106E5F6E320"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114736-2317082/frozen/small-identical/geometry.json",
+      "bytes": 764,
+      "sha256": "8668F9861F9D7578915C9ED23D3186B60C5BCF579563927BB3ABA0D4BF6C5F12"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114736-2317082/frozen/small-identical/calls.txt",
+      "bytes": 595,
+      "sha256": "33105C849180FE48E82A2E520828259BF485428DEA824575D1B01F2EC9ACD92D"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114736-2317082/frozen/small-identical/operands.bin",
+      "bytes": 10752,
+      "sha256": "B9953204A36319E2C21687BD2D548845C1402737CF5518B90E3464BC0E19784F"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/context_probe.cpp",
+      "bytes": 19975,
+      "sha256": "4CFE4B202E4AF70324F637D2DA0CBFCEA46A6D14BBB02AF9193A557DFA94A2AC"
+    }
+  ]
+}

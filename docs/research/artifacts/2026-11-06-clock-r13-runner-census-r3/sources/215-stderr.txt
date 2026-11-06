@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261106-clock-r13-runner-census-r3\invoke.py", line 46, in <module>
+    runpy.run_path(str(HERE/'rebuild.py'),run_name='__main__')
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261106-clock-r13-runner-census-r3\rebuild.py", line 266, in <module>
+    check('call_has_source_sponsor_'+str(line)+'_'+str(column),bool(refs),{'caller':owner,'callee':m.group(1)})
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261106-clock-r13-runner-census-r3\rebuild.py", line 31, in check
+    if not condition: raise AssertionError(row)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'name': 'call_has_source_sponsor_448_26', 'pass': False, 'detail': {'caller': 'Visit-TaskJsonValue', 'callee': 'Add-TaskJsonBound'}}

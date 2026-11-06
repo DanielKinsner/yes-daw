@@ -1,0 +1,169 @@
+{
+  "entries": [
+    {
+      "id": "canonical_alternatives",
+      "source_lines": [
+        133,
+        140
+      ],
+      "actual_alternatives": {
+        "context_false": 39,
+        "tilde_fallback": 51,
+        "alias_hit": 65,
+        "strings_hit": 76,
+        "both_miss": 75
+      },
+      "upper": 76,
+      "scope": "same helper complete mutually exclusive source paths; own aliasD included"
+    },
+    {
+      "id": "manifest_changed_overshoot",
+      "source_lines": [
+        821,
+        824
+      ],
+      "current_manifest_chunks": 8,
+      "changed_manifest_cap_chunks": 16,
+      "unreached_owned_input_normal_chunks": 7854,
+      "scope": "same failing fence before sources/inputs; no immutability or unrelated family"
+    },
+    {
+      "id": "bad_key_validation",
+      "source_lines": [
+        869,
+        884
+      ],
+      "key_unit_cap": 128,
+      "shortest_expected_key_units": 4,
+      "extra_source_upper": 7937,
+      "same_record_unreached_ASCII": 10288,
+      "scope": "throw before the SAME control or summary mandatory String64/String128 validation"
+    },
+    {
+      "id": "codec_refusal",
+      "source_lines": [
+        351,
+        351
+      ],
+      "normal_body": 18,
+      "refusal_body": 19,
+      "same_enclosing_helper_unreached_T": 1,
+      "scope": "Controller final T directly after Codec; Measure/ReadJson/Encode/ReadChild have larger later source prefix"
+    },
+    {
+      "id": "quarantine_or_dispose",
+      "source_lines": [
+        241,
+        245
+      ],
+      "disposal_alternative": 9824,
+      "quarantine_alternative": 2456,
+      "scope": "same child branch after shared settled/exit test; no disposal physical-free credit"
+    },
+    {
+      "id": "walker_first_overflow",
+      "source_lines": [
+        493,
+        499
+      ],
+      "per_walk_extra_candidates": 1,
+      "canonical_calls_per_walk": 2,
+      "normal_canonical_per_candidate": 1,
+      "scope": "initial Enqueue root and first-overflow Candidate; normal candidates covered by E"
+    },
+    {
+      "id": "Entry_first_failure_retries",
+      "source_lines": [
+        102,
+        132
+      ],
+      "known_identities": 1294,
+      "later_first_fail_sites": 3,
+      "upper": 1297,
+      "scope": "failure inventory root walk, failure-document stage walk, footer receipt stage walk after main abort"
+    },
+    {
+      "id": "FileSet_refusal_replacements",
+      "source_lines": [
+        827,
+        835
+      ],
+      "slots": 2,
+      "only_subtracted_sponsored_fixed": 102,
+      "scope": "same actual failed slot; never subtract max-N normal work"
+    },
+    {
+      "id": "raw_class_extent",
+      "source_lines": [
+        511,
+        689
+      ],
+      "string_classes": {
+        "outer_integer_path": 241,
+        "string_body": 113,
+        "hex_body": 62,
+        "digits_body": 40,
+        "magnitude_body": 34,
+        "literal_body": 36
+      },
+      "byte_classes": {
+        "outer_integer_path": 241,
+        "string_body": 136,
+        "hex_body": 62,
+        "digits_body": 40,
+        "magnitude_body": 34,
+        "literal_body": 38
+      },
+      "scope": "each disjoint scan/replay class bounded by original input extent, not arbitrary retries"
+    },
+    {
+      "id": "bad_ID_prefix",
+      "source_lines": [
+        868,
+        893
+      ],
+      "extra_prefix": 11897,
+      "raw_call_prefix_bounds": [
+        4,
+        16
+      ],
+      "scope": "first bad control prefix replaces same invocation unreached summary Raw; complete reader common/finally still retained"
+    },
+    {
+      "id": "posthash_pool_admission",
+      "source_lines": [
+        838,
+        899
+      ],
+      "reference": {
+        "pool": 152627224,
+        "largest": 15360000,
+        "attempts": 60,
+        "chunks": 2623
+      },
+      "build": {
+        "pool": 67108864,
+        "largest": 33554432,
+        "attempts": 4,
+        "chunks": 1539
+      },
+      "scope": "last hash precedes aggregate guard; ceil sum <=ceil(total/65536)+N-1"
+    },
+    {
+      "id": "outer_requests",
+      "source_lines": [
+        205,
+        219
+      ],
+      "cap": 1048576,
+      "minimum_nonterminal_positive": 4096,
+      "maximum_full_chunks_with_two_short_positive": 255,
+      "maximum_short_EOF_positives": 2,
+      "initial": 2,
+      "outer_requests": 259,
+      "scope": "outer source requests only; inner async/resource/fault ownership unqualified"
+    }
+  ],
+  "unrelated_slack_or_padding": false,
+  "all_source_theorems_proposed_not_accepted": true
+}

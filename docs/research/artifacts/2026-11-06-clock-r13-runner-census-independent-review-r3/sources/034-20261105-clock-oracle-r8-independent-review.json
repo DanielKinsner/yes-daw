@@ -1,0 +1,57 @@
+{
+  "schema": "CLOCK_ORACLE_R8_WHOLE_FUNCTIONAL_SOURCE_REVIEW",
+  "verdict": "REVISE_WHOLE_PACKET_ACCEPT_RAW_ADMISSION_MECHANISM_SOURCE_ONLY",
+  "reviewer": "/root/clock_runner_census_independent_review",
+  "seals": {
+    "run-clock.ps1": "52E461173724748EC55969BAD200FDC21AC4D74A390A8D0B24FA1F309F73EE7C",
+    "source-manifest.json": "814F696E39CC61F628BBFC6A8D7D45E9D989C7D5BEB34D66A1DB26A9BD4AB3BD",
+    "README.md": "2ED8645842E2B873BE9941C78C7FFA9E7F702DC41866591CD9297FC078B640C0",
+    "clock_stage.cpp": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+    "source-costs.h": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+  },
+  "whole_reviewed": {
+    "PS": 779,
+    "CPP": 289,
+    "header": 72,
+    "README": 163,
+    "manifest": true
+  },
+  "independent_identity": {
+    "inputs": 1180,
+    "own": 4,
+    "closed_namespaces": 26,
+    "entries": 1053,
+    "files": 1007,
+    "reparse": 0
+  },
+  "only_residual": "README114/manifest12010 unsupported JsonTextReaderchar[32768] capacity. Boolean/null Parse paths omit ShiftBufferIfNeeded, MatchValue2368 EnsureChars(value.Length-1,true) permits appendgrowth. Withdraw/rederivebeforecleanpacketacceptance.",
+  "source_counterexample": {
+    "false_start_offsets": [
+      1021,
+      2045,
+      4093,
+      8189,
+      16381,
+      32765
+    ],
+    "final_close_offset": 32770,
+    "raw_bytes": 32771,
+    "nodes": 7,
+    "depth": 1,
+    "forced_reader_capacity_chars": 65536,
+    "executed": false
+  },
+  "otherwise_functional_no_blocker": [
+    "all4parserpreflights/19normalcalls",
+    "exactUTF16profiles/samecapturedpredecessorhash",
+    "strictinteger/bool/null/grammar/string/escape/surrogaterules",
+    "tenthactualnegativecontrol+oldcontrols/matrix/polls/ownership/fences/cleanup"
+  ],
+  "retention_arithmetic_only": 779187335,
+  "root_4MiB_append_hypothesis": "REJECTED_NOT_NEW_NOFIT:14nodes/exact4194304bytes finalfalseC-6 fitsC-1data. SeparatorEnsureChars(0,false) shifts0remainingandreuseschar[C]. Lastforced2^21to2^22 arrays give21037056bytes fourownerlower,not33619968. No wholefit follows.",
+  "numeric_or_payload_fit": false,
+  "new_NOFIT_established": false,
+  "binding_or_GO": false,
+  "compiler_parser_helper_program_or_target_execution": false,
+  "Ready_credit": false
+}

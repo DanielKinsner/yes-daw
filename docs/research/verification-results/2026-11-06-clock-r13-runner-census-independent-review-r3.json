@@ -1,0 +1,14 @@
+{
+  "scope": "HEADLESS_STAGED_LOSSLESS_SOURCE_DELIVERY_ONLY",
+  "archive_manifest_sha256": "7A50B99298A33A682BB6E9072596C52E0F603A01DA187CCA778EF24673E44C2E",
+  "archive_source_rows_verified": 476,
+  "additional_opaque_raw_payloads_roundtripped": 73,
+  "complete_staged_membership": true,
+  "git_whitespace_check": "PASS",
+  "protected_test_and_instructions_unchanged": true,
+  "Git_CREATE_NO_WINDOW_and_null_stdin": true,
+  "checker_source_sha256": "8E30AD68FBA9EB2E0BEAFF74C09BFCF1D19FA73D310B60A978ACF2B00B2D5964",
+  "target_execution": false,
+  "numeric_resource_native_binding_acceptance": false,
+  "first_passing_result": true
+}

@@ -1,0 +1,92 @@
+{
+  "schema": "YESDAW_CLOCK_ORACLE_CPP_TRANSITIVE_CLOSURE_PREPARATION_V1",
+  "state": "COMPLETE_76_FAMILY_DEPENDENCY_MAP_NO_NUMERIC_PRICES",
+  "repo": "C:/Users/SM - Dan/Documents/GitHub/yes-daw",
+  "own_packet": {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-cpp-transitive-closure-prep/packet.md","bytes":52883,"sha256":"94B54094FE71B8EEC655EFC55A183CB97C28326A0C9B40D16E2493B207FCD3CC"},
+  "own_pins_hash": "EXTERNAL_FINAL_SEAL_NO_SELF_HASH_CYCLE",
+  "governing_and_historical_anchors": [
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-separate-research-contract/contract.md","sha256":"344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010","read_scope":"whole accepted prospective research contract; new source preparation only, no prices/new limit/binding/execution"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-separate-research-contract/review.json","sha256":"7487D2E18E2894CD122D24D3FE07B2602B94FDCFE625F52E95AE705E3D149687","read_scope":"whole root persisted independent-review record; root separately reported fresh exact-promotion confirmation, not a runtime receipt"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-separate-research-contract-prep/packet.md","sha256":"D7E13A33F9DA83B82DE838D6C0986A68FF446B5EF5EE82FF31E4825A9796B07D","read_scope":"whole earlier preparation; preserved provenance, successor contract above supplies current convention authority"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-separate-research-contract-prep/source-pins.json","sha256":"9D145A2D942C5AAD370D71CCADC520E89B03D5CCDE0E7BBD8E6C0C35F05A65D3","read_scope":"whole pins; transitive governance/history identities preserved, not recopied or requalified"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-r4-cpp-census/census.md","sha256":"B415336A0A7576EAAB422BF7D12F19EDB419B2D9A20950176937E39E2830BCC4","read_scope":"whole document; accepted historical NOFIT remains unchanged, not a new floor result"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-r4-cpp-census/census.json","sha256":"10935399D84D18108E2C9C3BFA871DC5257B57ABC06258623DB6491E08303283","read_scope":"all76 family identities and existing obligations; no numeric upper imported"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-r4-cpp-census/source-pins.json","sha256":"C939AA8CF00125FAC82648B823790238C22E2D5D1A474B48645DE6D724DCB872","transitive_source_identity_closure":"Exact five R4 source files, Time.h, independent_clock.h, vector/xutility/xmemory/type_traits/array/bit/cmath/corecrt_math.h; source identities preserved. This packet reads the additional selected SDK bodies/ranges cited in its node map."}
+  ],
+  "R4_source_seal_rechecked_unchanged": [
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype/clock_stage.cpp","sha256":"4F98DE66BFD720A5AA713D1B3075A3F46732F1F5855E86E0A6D356A53A8AA474"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype/source-costs.h","sha256":"F96AE41DEE24685EDE35B555676B095C5AD8BBEF8F4CC48A86751EB187527903"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype/run-clock.ps1","sha256":"B20DB319544BD879D2E132237A0518F4B2BEFAF510EF3142E2E8B57A0D33C8BF"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype/README.md","sha256":"05C9D98BC3D0B496D5B46DAA76DD6EA11E9B35879F85F064498B8A194FA48CB9"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype/source-manifest.json","sha256":"2D550D6DDDFF29DAC9BF589C3B23A52531A840E1BAFCC0B6AD5EA0591AF7E97B"}
+  ],
+  "additional_selected_SDK_sources_read_and_hashed": [
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xstring","sha256":"9407C290A1D0C6BEBC42CF131BD04F09A9892F61B713EECB12827C0F6BBC3045","selected_bodies":"const iterators; String_val/Bxty/defaults; constructors/trait selection/SSO/growth/allocate; move/take_contents; concat overloads and constructors; append/insert/reallocation lambdas; c_str/size/max_size; tidy/deallocation/Getal"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/__msvc_string_view.hpp","sha256":"957AE97E03169F46D8D9B77C9DC5AB3F66C619BE5A228D062499B60B8D336C47","selected_bodies":"Char_traits copy/move; Narrow_char_traits char length/compare/assign; actual runtime-vs-constant paths"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/utility","sha256":"403BCF5919D0E0371F25A929752F0A05AAE7B0667129D65CFE3A8DFF858E97D6","selected_bodies":"two-argument min/max; pair default/value/copy/move/assign; exchange"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/initializer_list","sha256":"6FF91697D3FC1734976F2290DCA64DB6FF910A7D7ADD242029F692C745AC4558","selected_bodies":"pointer construction and size/begin/end"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/stdexcept","sha256":"E677DAF8465DD4B870F420DF9010EE3A17CD80FB6F6F5655F2AD3DC6D8009AE1","selected_bodies":"logic_error/runtime_error const-char constructors and exception base forwarding"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_exception.h","sha256":"0DD3DCC67B655FBFC96708F131C9E7F86416D2DB95FD33B1E7ACC8489F2C32D4","selected_bodies":"exception default/message/copy/assignment/destructor/what, std_exception_data, bad_alloc/bad_array_new_length constructor path; copy/destroy declarations distinguished"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vadefs.h","sha256":"200B49C2EFD26BC7A92E9DFA3B847CC612B237DFF5C7291D9F901D39B4A5E52E","selected_bodies":"AMD64 va_start/va_end and C++ reference assertion wrapper"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals.h","sha256":"A186476441EAA158056BE01DA9A1473217E14A7CC33365CBD0B6C9115833E0DC","selected_bodies":"iterator-level derivation, hardening/tombstone defaults, STL_VERIFY/assert/internal-check selected macros"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals_core.h","sha256":"5070449E37A1735ADF49204A12C7A7D5EFA145D6AA607720AEF5ADBD2C57EF83","selected_bodies":"STL intrinsic-header selection and language/configuration references; not a preprocessed observation"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime.h","sha256":"A2FE9117DC2640E243F91FA94E1D05FC35083218C2A67A446DB9E34CECE779B5","selected_bodies":"exception default and C++17/20/23 selection from declared language mode"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/__msvc_sanitizer_annotate_container.hpp","sha256":"50D83B50FD98DF02F58C3C643B5BC26313968A9EDD75A485F7AF4A24CFCEF8E1","selected_bodies":"actual macro requirements for string/vector annotation insertion; absence must persist in future invocation"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cstdlib","sha256":"0A7EDD2C3BA954E98AA26894F28C3EB7FB9B0BA748261EC6E568563ED17B2FC4","selected_bodies":"abs(double) to fabs wrapper"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/limits","sha256":"5CDA311B1B514CDEA1FDDA5C1B53865A85C9288EF50D59B7B8F09802BF9BC60B","selected_bodies":"signed/unsigned long long min/max literal-return accessors"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/intrin.h","sha256":"B1CFCC48E6E64200641D677886F63473E3D4135209BCC3438D5A73A298293E0D","selected_bodies":"mm_getcsr declaration/intrinsic boundary"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/intrin0.inl.h","sha256":"BE7631000A4E89DDA44873B0C5E6336C8D3A2F4FDF594365B16F8AAAF7177AEB","selected_bodies":"umul128 AMD64 declaration/intrinsic boundary"},
+    {"path":"C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/stdio.h","sha256":"06CBAB3A501306FDD9176A00A83E5BB92EA4D7863CFD666355743527CF99EDC6","selected_bodies":"File I/O declarations, selected lock-remapping condition, fprintf/printf/vfprintf visible wrappers and variadic/option callers"},
+    {"path":"C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_stdio_config.h","sha256":"A7E100624320A8E0123890C5008BCB2281C1273CA7CE5BB1D297F987FDBE79A0","selected_bodies":"inline mode selection; static local printf-options storage/address helper and macro"},
+    {"path":"C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/errno.h","sha256":"C64E8DF96F057FDEBC0474BD765CEE3AE17DE34A2B1FC9D197597321F2D1E447","selected_bodies":"errno expands to _errno declaration call and dereference"},
+    {"path":"C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/fenv.h","sha256":"12E9EE9809314CA1DB03E7FB0E36E20CB9052DF291C8367D580F600DEA7546E3","selected_bodies":"fegetround primitive declaration"},
+    {"path":"C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/io.h","sha256":"FEDD480BC429A85ABB122962C158CBC5B2F117C3C0CA628DB2934CA68F2EE1C1","selected_bodies":"include edge to actual corecrt_io declarations"},
+    {"path":"C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_io.h","sha256":"0EA13520ED2078B7DB3DEDACCC882AE61DD517DBD3AF831B8E76FAE5CCA3C830","selected_bodies":"close and sopen_s primitive declarations"},
+    {"path":"C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_wstdio.h","sha256":"A10BBF4667B3AADA380A6B80DF853F9FBDDC3CC691CA57389B3B6759F119E515","selected_bodies":"FILE declaration, iob primitive declaration and stdout/stderr source macros"}
+  ],
+  "source_selection": {
+    "declared_toolset":"MSVC14.44.35207/AMD64/C++20/EHsc/MD/fp-strict/iterator-debug0",
+    "compiler_preprocessing_or_syntax_observed":false,
+    "optimizer_discount":false,
+    "visible_STL_source_opaque_reclassification":false,
+    "direct_declared_primitive_internals":"OS/CRT/CLR/libm/intrinsic runtime CPU and general heap/RSS remain unqualified; every visible wrapper/caller still counts",
+    "declaration_only_cpp_throw_helpers":"Xlength_error/Xout_of_range are residual reachability/source obligations, not invented primitives",
+    "prospective_research_convention":"ACCEPTED_EXACT_CONTRACT_344408DA_REVIEW_7487D2E1_SOURCE_PREPARATION_ONLY",
+    "production_ADR85_primitive_model_imported":false
+  },
+  "family_readiness": {
+    "family_count":76,
+    "complete_dependency_map":true,
+    "numeric_upper_census_complete":false,
+    "all_numeric_prices":"HOLD_UNBOUND",
+    "R_definition":"Source dependencies and finite local domain identified; ready to count expressions under the accepted exact convention. Not an accepted price/source certificate.",
+    "R_count":69,
+    "R_ranges":[[0,1],[5,55],[57,72]],
+    "H_definition":"Additional actual source/domain/whole-lifetime obligation before literal pricing of this composite",
+    "H_ids":[2,3,4,56,73,74,75],
+    "successor_cap_getter_admission_diagnostics":"Any actual new source invalidates affected current rows/call schedules until recounted"
+  },
+  "residual_register": [
+    {"id":"G1","owner":"accepted contract and actual-source application critic","status":"CONVENTION_ACCEPTED_NO_NUMERIC_UPPER_ACCEPTED","obligation":"apply caller source read once/callee destination binding once, prvalue once/real optional NRVO, no invented uninitialized zero/write, existing primitive CPU/general-heap boundary, explicit SDK bulk vs implicit field-copy distinction and source entry/exit/default/retirement ownership"},
+    {"id":"G2","owner":"new successor admission source or explicit exact-controller contract","obligation":"bound argv root/manifest bytes before C-string constructor scan/allocation; reconcile complete derived path/UTF16/encoded-byte profile"},
+    {"id":"G3","owner":"C++ literal census after G2","obligation":"exact string concat capacities/branch/temporary/old-new lifetime worksheet from located actual source; no guessed O(1) price"},
+    {"id":"G4","owner":"exception/footer source census and optional successor bounded diagnostics","obligation":"prove closed reachable exception/message domain or bound source diagnostics; prove declaration-only throw guards unreachable or supply implementation source; include partial construction and runtime failure ownership"},
+    {"id":"G5","owner":"future source/static binding author and critic","obligation":"actual constinit literal definition/cap getter/admission/identity/include/static-data profile; no runtime factory/local-static binding guard"},
+    {"id":"G6","owner":"whole C++ census/lifetime critic","obligation":"expand exact source rows and administration schedule, success plus one failure prefix/unwind/footer, disjoint owners, retained and controlled explicit scratch"},
+    {"id":"G7","owner":"future exact tool/source root authority","obligation":"preserve declared template/macro/tool choices; later separately authorized mechanical syntax/compile/control qualification; no current execution credit"}
+  ],
+  "authority": {
+    "only_authored_files":["packet.md","source-pins.json"],
+    "prototype_censuses_history_ADRs_production_modified":false,
+    "numeric_prices_limits_or_binding_authored":false,
+    "authored_preprocessor_parser_import_helper_compiler_program_test_or_stage_executed":false,
+    "app_device_UI_OS_input_used":false,
+    "environment_or_Git_actions":false,
+    "future_successor_full_identity_union":"NOT_ENUMERATED_BY_THIS_MAP; exact real paths required at authoring; hashes alone do not merge identities",
+    "all_source_promotion_binding_execution":"HOLD",
+    "controlled_retained_ceiling_bytes":880803840,
+    "controlled_explicit_scratch_ceiling_bytes":33554432,
+    "general_CRT_compiler_CPU_heap_RSS_peak_temporary_disk":"UNQUALIFIED_HOLD",
+    "production_fit_quality_renderer_Ready":"NO_CREDIT"
+  }
+}

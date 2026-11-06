@@ -1,0 +1,2396 @@
+{
+  "schema": 1,
+  "stage": "AUTHORED_SOURCE_ONLY_DEFINITION_FIRST_STAGE_HOLD",
+  "revision": "waveform-definition-r4",
+  "source_authoring_authorized": true,
+  "source_authoring_basis": "Root SOURCE-ONLY five-file successor GO after exact R3 numeric and engine/cost SOURCE ACCEPT; explicit first-stage guards armed only. Final exact R4 critic PENDING and root execution GO ABSENT; no execution authority.",
+  "sources_excluding_manifest_count": 4,
+  "sources": [
+    {
+      "path": "freeze_waveform.py",
+      "bytes": 34241,
+      "lines": 672,
+      "sha256": "75311D8E03F66861ECF8067631A77EAE67BD42AD98D3A43FA8159716A50002E7"
+    },
+    {
+      "path": "verify_waveform.py",
+      "bytes": 45475,
+      "lines": 801,
+      "sha256": "46CF40A10EA241BF8C446EA7039E1588820AADF2BEF6A9880855EA9AE9CDCBD5"
+    },
+    {
+      "path": "run-waveform.ps1",
+      "bytes": 32071,
+      "lines": 290,
+      "sha256": "43713FCDC4474D00FEBC7C2127DDE36AAD3E5096D2C35334475288AD5061F13D"
+    },
+    {
+      "path": "README.md",
+      "bytes": 12662,
+      "lines": 63,
+      "sha256": "017766079600E648B37D38BADD6F9D7DD8D8BC90EF98F5666E58FEE2147AD27A"
+    }
+  ],
+  "own_manifest_hash": "External ReviewedManifestSha256 required; this manifest does not hash itself",
+  "accepted_completion_proposal": [
+    {
+      "path": "build-ci/20261105-waveform-definition-completion-prep/packet.md",
+      "sha256": "A4C27FA1665BED1028631F78CB52C677128F59B28C8BCDF0E5FB4A9B0BFEE91A"
+    },
+    {
+      "path": "build-ci/20261105-waveform-definition-completion-prep/proof-plan.json",
+      "sha256": "2336E0741876E44653070C042C3C34AE75663FB915C8C662275D279292807B05"
+    },
+    {
+      "path": "build-ci/20261105-waveform-definition-completion-prep/source-pins.json",
+      "sha256": "908FA5DD960DFAA175C4F9E81C052F4DA944566005D8B32F603822B94ED20564"
+    }
+  ],
+  "original_r2_proof": {
+    "path": "build-ci/20261105-musical-waveform-candidate-prep/revision-r2/proof-plan.json",
+    "sha256": "D5C87F0986B12E168020442BEC6760FCBA9E05AB714395DF95B43F9206BD3A96"
+  },
+  "preserved_pin_count": 141,
+  "preserved_pins": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "CLAUDE.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "CONTEXT.md",
+      "bytes": 46352,
+      "sha256": "C94A06170918C62ADD5D97E9B4C9DF8EF00278426E1BCDE93B97E9B55898A916",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "docs/adr/0030-time-stretch-node.md",
+      "bytes": 6083,
+      "sha256": "0EA5C76A6C4BBA22E51627A3AFCCFF737A73686C3EFAA3F68DFAAE2204577407",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "docs/adr/0042-stereo-sources-track-width-and-balance.md",
+      "bytes": 5595,
+      "sha256": "16B7162657A178DC6BE1B3A80BCB4DA9AB1C195507DC0BABD888225A9E299A6C",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "docs/adr/0049-autonomous-delivery-and-usable-song-milestone.md",
+      "bytes": 9124,
+      "sha256": "CB99B27721D379AD631B43527724BEA8AB53D6EB82D1C27C01CA795175775843",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "docs/adr/0055-cross-rate-audio.md",
+      "bytes": 11568,
+      "sha256": "95D92D6B0B657313F28694F08069F9744EF20B3DDEC4E5DC353E1545E796668E",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "docs/adr/0059-shared-decoded-assets.md",
+      "bytes": 10327,
+      "sha256": "6284E8C11F1264463D472E41E299A8DFDFF2BEEB21FDF6E6226FF68D2F74331E",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "docs/adr/0078-ship-first-cadence.md",
+      "bytes": 3882,
+      "sha256": "16FF2736DE8D9DDCCF88D146EFBDD295697FF64B54EBAB5135883AB706AD6AEC",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "docs/adr/0083-musical-audio-prepared-lane.md",
+      "bytes": 31387,
+      "sha256": "7C45C564AC86079A82E487E8AE6AD510A34FCC6AB630663C2B56F8EFEF6FC646",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "docs/adr/0084-musical-audio-channel-equivalence.md",
+      "bytes": 11431,
+      "sha256": "50036D3AEFE09133298B85EA00D93C37E5E41CBFC21F8A3DFBF46725F8CCFA45",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "docs/plans/2026-11-03-editing-improvements-headless-plan.md",
+      "bytes": 6776,
+      "sha256": "A4958D3AF415423055F0C71E3A5883F0B4FB6445CB94E6304134FFC7EA53CCC2",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "docs/plans/2026-11-04-musical-audio-prepared-lane-plan.md",
+      "bytes": 15036,
+      "sha256": "FFC05053978459CBC090000A72B0EE8261C18229A2803355DD4BAC2EEAA679CB",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/Project.h",
+      "bytes": 181566,
+      "sha256": "0294E0B6592633B2601F09B45A9FC724EDD6921512A66B9AB7AD82FB8F817D97",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/MusicalAudioWindow.h",
+      "bytes": 19572,
+      "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/MusicalAudioCutPlan.h",
+      "bytes": 28956,
+      "sha256": "17A84770B9B4904162008492ADC393EB183678ECD00113C0658EFE355413B390",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/MusicalAudioChannelPlan.h",
+      "bytes": 17081,
+      "sha256": "F47C6E49B02A69C16CD554A4C5520CC891146A434603F4E1BB73E9099EB97F16",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/MusicalAudioChannelMaterialization.h",
+      "bytes": 11960,
+      "sha256": "6C96FC13BCBDD21040DCD53E990F35F336A6C6E8436CE404BA28B6240E2B7EC7",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/ClipEnvelope.h",
+      "bytes": 5221,
+      "sha256": "1375368503D68E8BCFB09014687B4A84CBF72F92FC1548FC5AB281EE19A89B9D",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/ClipSchedule.h",
+      "bytes": 6706,
+      "sha256": "681ED77653AF195480FAA63FBB57D1804C1C3CBCA813310B18F0B058B7552D1A",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/RateMatchedView.h",
+      "bytes": 5293,
+      "sha256": "9A0770E8690FBC60048BDF13FF1D1BD332B6D620A1985C52895E7FE916BB0571",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/TimeStretch.h",
+      "bytes": 7540,
+      "sha256": "7F759B9A8015E8C020F4EA0EE6E0F7283CBC0D563A20CED6CC5A219D5A761227",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "tests/time_stretch_tests.cpp",
+      "bytes": 21740,
+      "sha256": "966C0CDC77F2A5DEFBA9E0BF5B1D2A9B503D168A0AD4C0F2B25473C13B1C20C1",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "tests/musical_audio_channel_plan_tests.cpp",
+      "bytes": 31649,
+      "sha256": "943EA981BF42E7C389D28E8408C47B501B9DDBBCA34FECC9DD0C67A8907D95BB",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "tests/musical_audio_channel_materialization_tests.cpp",
+      "bytes": 33715,
+      "sha256": "2E976A026C9EC14CC04A8482B6A9286A8216C84BE246163FBE3AEE49642DB155",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/signalsmith-stretch.h",
+      "bytes": 22145,
+      "sha256": "E7BD5C4E35AE05DE34ADE0CFC0E0C2285598543BEDB91420AC863812AF2A035E",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/spectral.h",
+      "bytes": 17009,
+      "sha256": "8B15F3E710BDEB2F7DDF9DA9DB10C0123FE0B0C675726202A6770F18ECFAED96",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/fft.h",
+      "bytes": 16832,
+      "sha256": "B75422EE9E261F4268FB85BF9693388AF565F57B4F14D637B732FB570A818B30",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/packet.md",
+      "bytes": 21799,
+      "sha256": "4F0933E8BEFEE4C6C676453369077697D9ED1FE4D12DBDB893E55F55243601D6",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/proof-plan.json",
+      "bytes": 5048,
+      "sha256": "D1B13FE352DDE33815412F48864C82B561F890EEC739CD27A859AF20BF3F294B",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/source-pins.json",
+      "bytes": 2238,
+      "sha256": "04F57EA57854D3926832F25968CF4FF36CEF706556EC49FCECC49DE00D160C04",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-execution-prep/packet.md",
+      "bytes": 17126,
+      "sha256": "D870163A91C913F69A85D7C8483C0937926D2AA57DDEF8D9CD9940EAB5664B79",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-execution-prep/proof-plan.json",
+      "bytes": 18103,
+      "sha256": "3E11102C97DB1EC18C902E4BA2E90B62B34AC0279833830CF70CB3143C42A1D7",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-execution-prep/source-pins.json",
+      "bytes": 9007,
+      "sha256": "7B6CE5B2A4A65073C0D58E5A74F6612D86F4E6C98CEE9FC2F30A32F424D7E0BC",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-physical-c1-context-prep/packet.md",
+      "bytes": 18049,
+      "sha256": "1AB6799790F6B6BC4D082A81F643C13ECF5CB2725179BD484BAB0600D23B7DD2",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-physical-c1-context-prep/proof-plan.json",
+      "bytes": 11786,
+      "sha256": "7374575E498100F000B4D95FD08B1E6C06B6927AB2DC5859783F78A861D53305",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-physical-c1-context-prep/source-pins.json",
+      "bytes": 20792,
+      "sha256": "F3C9FD207E3833B22E29C4F58783D519331C3E3A8E763055042113C5DAECE78E",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/authored-manifest.json",
+      "bytes": 23031,
+      "sha256": "F48B3B5683B881C9DC6D7112E65CDE42250FF0977A4DCF0DCA3D2E0634946B67",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/fast_fit.h",
+      "bytes": 30686,
+      "sha256": "761C74E7D83800E08000CAD4E7542A0BC063CBE751C68D31F7CF361FF8E7BE51",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/quality_calibration.cpp",
+      "bytes": 25793,
+      "sha256": "58A6AF4529916848EE39038808D90CA59ED9789360BA5EB8E76A08496DFEEA28",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/freeze_reference.py",
+      "bytes": 24091,
+      "sha256": "D0A2164D1E3E6FDABA321B0E8C7C713835C4952137C59D151CB100F3257C1AF9",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/run_stage.py",
+      "bytes": 15718,
+      "sha256": "9E5647120FF214CA41F19D0ABD07B7B93DC1607A243F89D3A898D9243D840AE2",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/README.md",
+      "bytes": 17944,
+      "sha256": "BF0A79FFC7B7007BE07B853104B6F1A5959D5F5A553D78FAD52726FFC8D8C7FB",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/Freeze-20261105T131446.163733Z-53d8220c/stage_receipt.json",
+      "bytes": 920,
+      "sha256": "172EE1962FB0B6A307326A64CC441D2794CCBFAACE21C8049889CB94E3AE17B6",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/Freeze-20261105T131446.163733Z-53d8220c/freeze/freeze_bundle.json",
+      "bytes": 872,
+      "sha256": "F5F981826BBA93B49D1E103D60916A60AC81959F7721A4C7FC508B527966E071",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/Freeze-20261105T131446.163733Z-53d8220c/freeze/freeze_receipt.json",
+      "bytes": 2256,
+      "sha256": "9B1F584C3ECF117091297D43FFE4181DBFA3B2B411F0D50790AD1F47769A4131",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/Freeze-20261105T131446.163733Z-53d8220c/freeze/calibration.tsv",
+      "bytes": 280165,
+      "sha256": "5341CFCA9AA6F7B64EBFDD99BECD76858D62DA99322AFBFC015B740451C8306A",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/Freeze-20261105T131446.163733Z-53d8220c/freeze/clock.tsv",
+      "bytes": 96098,
+      "sha256": "C25B0F5A7F6C0357A47AD73CFCD8AC69368919344EEC2CDCBB29111347C3AC76",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/Freeze-20261105T131446.163733Z-53d8220c/freeze/geometry.jsonl",
+      "bytes": 36710,
+      "sha256": "F56929CE26422CAF39E37313507BC9E3C2DC611CD7FFC11166BDFE0EDDEF1B7D",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/Freeze-20261105T131446.163733Z-53d8220c/freeze/whole-cases.tsv",
+      "bytes": 246,
+      "sha256": "E9212267EC0E06B498262A9F05E48990490972A13C3C34BD9F5BCFFE9A001A98",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/Freeze-20261105T131446.163733Z-53d8220c/freeze/whole-windows.tsv",
+      "bytes": 563319,
+      "sha256": "6998C612D1EFB4C6DD882EA0C0641AD01BB43383C36E2264DF02B7CA59353FB1",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/Freeze-20261105T131446.163733Z-53d8220c/freeze/whole-case-source-hold.json",
+      "bytes": 721,
+      "sha256": "8D9E794FB09D555BFCC8387909966EE740276D5C21391D3BBBF582548D7D88CF",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/Freeze-20261105T131446.163733Z-53d8220c/freeze/compile-calibrate-consumed.json",
+      "bytes": 398,
+      "sha256": "FAD879CEC8196EBE95F601E07547B1CBBF9D4D46F144E80E8579301D874B6DE8",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/CompileCalibrate-20261105T131552.901514Z-635fcc27/stage_receipt.json",
+      "bytes": 3529,
+      "sha256": "2B6FC1631999AA948169FFEC89E29091A7BD563F405E54A98F3A5650AE2BFF2D",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/CompileCalibrate-20261105T131552.901514Z-635fcc27/calibration/summary.json",
+      "bytes": 550,
+      "sha256": "C0C131EECEE638E557B055B3F78C9C96E3B6189077B90106A045E84523881AD0",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/CompileCalibrate-20261105T131552.901514Z-635fcc27/calibration/calibration-results.tsv",
+      "bytes": 202739,
+      "sha256": "5C7F3EAC1142E2F6D012B0B719E9F4E2F32AAD16F8FDBDB5603A7FBC47B9C0B0",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/CompileCalibrate-20261105T131552.901514Z-635fcc27/calibration/clock-results.tsv",
+      "bytes": 42672,
+      "sha256": "1284C102C8EC423B2ABB016760AC4A168F7D4334A1AC01D0193ACBBE19FA3410",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/CompileCalibrate-20261105T131552.901514Z-635fcc27/calibration/whole-results.tsv",
+      "bytes": 315302,
+      "sha256": "77E31F7C7465B42D31282716C358127E70A486F07FBCA34420CB3095B7A50601",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/CompileCalibrate-20261105T131552.901514Z-635fcc27/compile.stdout.log",
+      "bytes": 25,
+      "sha256": "D1772D1A5803B7016ADB18AC289138669E04F91A1D4CF4BDB34E25DBC47D8F85",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/CompileCalibrate-20261105T131552.901514Z-635fcc27/compile.stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/CompileCalibrate-20261105T131552.901514Z-635fcc27/calibration.stdout.log",
+      "bytes": 65,
+      "sha256": "BF3C9153036F927510BEBD36EDFB09245AEC1BAD68800ED3FC54045B1E60E6E4",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/CompileCalibrate-20261105T131552.901514Z-635fcc27/calibration.stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/root-runs/CompileCalibrate-20261105T131552.901514Z-635fcc27/quality-calibration.exe",
+      "bytes": 205824,
+      "sha256": "AFE8B6EF6E5FF6682239FF8F222E9393C896CBD1BC10BB46B2E633736899C295",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-stereo-context-r1-root-measured-audit.json",
+      "bytes": 4499,
+      "sha256": "CD73FC22614DE13C6C65EB8319BA38CE7DB67E47E0073E2014B5B8CBBEFF66BE",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-materialization-focused-r1/receipt.json",
+      "bytes": 864,
+      "sha256": "95292875B1F8A53601978E8594F00CF1D35936B870D1656B086CA002A2269EBA",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-materialization-focused-r1/first-green-proof.cpp",
+      "bytes": 33715,
+      "sha256": "2E976A026C9EC14CC04A8482B6A9286A8216C84BE246163FBE3AEE49642DB155",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r3/authored-manifest.json",
+      "bytes": 51949,
+      "sha256": "2A0F75C05970250E07D822CE350157BF7D144F963CA61F3547A6935AA7E369E2",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r3/runs/20261105-115757-2903006/execution-receipt.json",
+      "bytes": 4279,
+      "sha256": "B21F9131EFAAB0567E4ECA66965DF6D0DB8F984ABC192EAD86F484E404B37ABE",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r3/runs/20261105-115757-2903006/candidate/verification-receipt.json",
+      "bytes": 2192,
+      "sha256": "6F856107160BC22935DDB84A073CEDD7838FD2F5DE58EED59FBCC83561919A50",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-candidate-prep/packet.md",
+      "bytes": 18970,
+      "sha256": "91BA742EBA08FE6D898750ED3317C3D8D1F756B5B1579F47E05AE807D9B96DDE",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-candidate-prep/proof-plan.json",
+      "bytes": 16206,
+      "sha256": "5006D876D40D516A25CCD802B5AC1B92EBFF9CAC4AB928ADD3C70B919134D1B3",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-candidate-prep/source-pins.json",
+      "bytes": 21331,
+      "sha256": "693EC6340182C746963A2EB1CE15E4A416E9BF3DA384D8ED83A7FE476C698A10",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/dsp/LinearRamp.h",
+      "bytes": 2571,
+      "sha256": "F39B72B99B806E63CCB993DFE22A491E7AF91E0B47A201E271AEE8BEBA973C09",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/Automation.h",
+      "bytes": 10749,
+      "sha256": "8DD3153C64D8F3410682CB58C583C9E85BBD99A5E9AB5FD411503B6191605932",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/InstrumentState.h",
+      "bytes": 4068,
+      "sha256": "0E6F4E3C422CE9FBE52611B0F03C0636F212A453101788A31C03F0DD8F8E165E",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/MixerValue.h",
+      "bytes": 470,
+      "sha256": "ABFBC5A9F79410BF5C3D766F61C16E5F197B710F59ADC880FA8D70D68ABF0E49",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/Node.h",
+      "bytes": 14358,
+      "sha256": "B9CC354879A703F2BCC31E52BA3F8DB6243611E55478A2FFA52D8E7FF5C1E2B1",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/nodes/CompressorNode.h",
+      "bytes": 21153,
+      "sha256": "74E27DFA24B41649324CD1E0F6508C21AF271A7272EAFDC35D21A5C228676ECC",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/nodes/EqNode.h",
+      "bytes": 20715,
+      "sha256": "EFC12C1B5D93F278F12EF570C014614FAF8272DF02DFA5E761111CE470D02598",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/nodes/FaderNode.h",
+      "bytes": 8698,
+      "sha256": "88B69774A48C09BDD487A34F0D512FF50159EB08C680B15F43ACD3A78005C50E",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/nodes/FxDelayNode.h",
+      "bytes": 24393,
+      "sha256": "E844EF3B83571CB2D244FAEA363EF717EB7F64378215F2F6BACF1B2222AF5221",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/nodes/LimiterNode.h",
+      "bytes": 23166,
+      "sha256": "4038929B609B0A06A40B47646E772B84B430666BD174618266E268DEF59B89E2",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/nodes/MidiEffectNode.h",
+      "bytes": 32944,
+      "sha256": "65220634417E3C90BFF5B923BECC5A2CA418F04DD22AD5ACFA802D917256FE91",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/nodes/PanNode.h",
+      "bytes": 9822,
+      "sha256": "89C7987ADD4BC62E766498B4F76ACA453E3475C15209EE5CCD1270D269BDDB2C",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/nodes/ReverbNode.h",
+      "bytes": 27524,
+      "sha256": "FF0D5718FAD1F6735A4428914C085337317C2749FFB87DA18CAC9D69AA5E0EC9",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/nodes/SamplerNode.h",
+      "bytes": 17532,
+      "sha256": "407AB0B64DE44A1F8889CA282717866A1C2E765A8504DDDE7E43A7BACF132CA9",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/nodes/SimpleSynthNode.h",
+      "bytes": 26617,
+      "sha256": "9D3A8F0AE17EE8C02EA082D5D2D104260A7576B4D200CF09BE5EE90FEDCAAAB8",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/ParamSpec.h",
+      "bytes": 4327,
+      "sha256": "8459F6683CFF26CF2AA4DF17DC428755A540B5E811E50D8E47F27FC3B5DBEE7B",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/engine/Resample.h",
+      "bytes": 7045,
+      "sha256": "57367C4381837EB6753A62EE1276A85C63E25085DAB7F6108C2600809E442832",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "src/rt/RtHot.h",
+      "bytes": 2559,
+      "sha256": "C279973D8F1812E713C7757BDBBB86EE763D656196B7C0F54E90D91CDDD74497",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-candidate-prep/revision-r2/packet.md",
+      "bytes": 22941,
+      "sha256": "3EB84E435F85B1AA04018C6AB9916DE0C51D9CD0E8AA2FEB33EB979336C34705",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-candidate-prep/revision-r2/proof-plan.json",
+      "bytes": 74042,
+      "sha256": "D5C87F0986B12E168020442BEC6760FCBA9E05AB714395DF95B43F9206BD3A96",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-candidate-prep/revision-r2/source-pins.json",
+      "bytes": 37142,
+      "sha256": "E59AD60CE6D00C3611E3B1C381B74BF934755CC46E43C3DAF417F46FC192FBD9",
+      "role": "ALL_R1_PRESERVED_INPUTS_IMMUTABLE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/WaveformCandidate.h",
+      "bytes": 9467,
+      "sha256": "649B77B66A536EEBB483FEB3806A56A650DDC61ABA7FD7EE0A122FA208FA045B",
+      "role": "IMMUTABLE_R1_CURRENT_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/waveform_probe.cpp",
+      "bytes": 17059,
+      "sha256": "524395123F293221BF39D8E1524AECD7AADA630878066707FC0909AF8643B003",
+      "role": "IMMUTABLE_R1_CURRENT_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/waveform_check.cpp",
+      "bytes": 36522,
+      "sha256": "1CCDD42C63002A27B73E7ED1ED1260527566F6AE9D96CD8F9427752762BFBEBA",
+      "role": "IMMUTABLE_R1_CURRENT_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/clock_oracle.cpp",
+      "bytes": 5202,
+      "sha256": "A4BE16AB07DAF5DB627C7B1779587746E3792A2554D2D27C25BA33FBFB47666F",
+      "role": "IMMUTABLE_R1_CURRENT_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/plan_probe.cpp",
+      "bytes": 3983,
+      "sha256": "417FF77ED291B0E680F5A4B20AAE5254215029A0ADFFA93C39FCFEA7C262DC6A",
+      "role": "IMMUTABLE_R1_CURRENT_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+      "role": "IMMUTABLE_R1_CURRENT_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/fast_fit.h",
+      "bytes": 30686,
+      "sha256": "761C74E7D83800E08000CAD4E7542A0BC063CBE751C68D31F7CF361FF8E7BE51",
+      "role": "IMMUTABLE_R1_CURRENT_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/freeze_waveform.py",
+      "bytes": 18966,
+      "sha256": "C62F98C1B72936F34E9B3DDB3A36D42FE3F58C539CF0CAFD0DDC04153FE7EFD3",
+      "role": "IMMUTABLE_R1_CURRENT_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/verify_waveform.py",
+      "bytes": 12083,
+      "sha256": "4E90151481C9BF3F93E3C0100EF4ABACB41C5870389DD05D717E7D24A3D925B0",
+      "role": "IMMUTABLE_R1_CURRENT_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/run-waveform.ps1",
+      "bytes": 17408,
+      "sha256": "C9E90B87E440051F592E525ED7676593D8F36F8705A8A108B24262CB08C713AE",
+      "role": "IMMUTABLE_R1_CURRENT_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/README.md",
+      "bytes": 10107,
+      "sha256": "224D6843368113D9FBEB1739E6A914F9A23E3970DAC9373310BFDF899109AF7F",
+      "role": "IMMUTABLE_R1_CURRENT_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/authored-manifest.json",
+      "bytes": 87573,
+      "sha256": "8EC6B5A41D2AD217881A9D43BBADE9187C678E42F58A5C02531B76920E6D5EAC",
+      "role": "IMMUTABLE_R1_MANIFEST"
+    },
+    {
+      "path": "build-ci/20261105-musical-cut-endpoint-green/source-cost-audit.md",
+      "bytes": 3368,
+      "sha256": "62C3CE3EACEDD485C216642F24D9532DC8694F5C2D3A60C018878B9D073B256A",
+      "role": "SOURCE_COST_RESEARCH_CONVENTION_AND_LIMITED_EVIDENCE_ONLY"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/freeze_context.py",
+      "bytes": 24617,
+      "sha256": "412921F9B2EC9FED0D2684A422703922BDA104D2DDF5F0B11A52520996DDED7B",
+      "role": "SOURCE_COST_RESEARCH_CONVENTION_AND_LIMITED_EVIDENCE_ONLY"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/run-context.ps1",
+      "bytes": 28835,
+      "sha256": "E00CC274236EFB216907E3F3DAB23360B74EF97BE8DA9A37E4F6BC7327D5EF5B",
+      "role": "SOURCE_COST_RESEARCH_CONVENTION_AND_LIMITED_EVIDENCE_ONLY"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/verify_context.py",
+      "bytes": 38656,
+      "sha256": "E1788A1CA34B300E707BC372CF50933E97457848D6226F0291892530959489D0",
+      "role": "SOURCE_COST_RESEARCH_CONVENTION_AND_LIMITED_EVIDENCE_ONLY"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/README.md",
+      "bytes": 2631,
+      "sha256": "66FA47A7D70B7E0D13C059494A3EA41C7711F8D7C0DA3792783B5A085A96BC73",
+      "role": "SOURCE_COST_RESEARCH_CONVENTION_AND_LIMITED_EVIDENCE_ONLY"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/authored-manifest.json",
+      "bytes": 56021,
+      "sha256": "2BEC07DE9FC3CB813803BA04AC16A352CCBFFD90E28C5B199BAFE56E71C4D0BC",
+      "role": "SOURCE_COST_RESEARCH_CONVENTION_AND_LIMITED_EVIDENCE_ONLY"
+    },
+    {
+      "path": "build-ci/20261105-physical-c1-r5-measured-root-audit.json",
+      "bytes": 2455,
+      "sha256": "DEE37FA54BD533D1608BB7B61E1EB50E11D6FD456CE40E6C0A9337A9510EB1C6",
+      "role": "SOURCE_COST_RESEARCH_CONVENTION_AND_LIMITED_EVIDENCE_ONLY"
+    },
+    {
+      "path": "build-ci/20261105-waveform-definition-completion-prep/packet.md",
+      "bytes": 15479,
+      "sha256": "A4C27FA1665BED1028631F78CB52C677128F59B28C8BCDF0E5FB4A9B0BFEE91A",
+      "role": "CURRENT_PREPARATION_DOCUMENT"
+    },
+    {
+      "path": "build-ci/20261105-waveform-definition-completion-prep/proof-plan.json",
+      "bytes": 51356,
+      "sha256": "2336E0741876E44653070C042C3C34AE75663FB915C8C662275D279292807B05",
+      "role": "CURRENT_PREPARATION_DOCUMENT"
+    },
+    {
+      "path": "build-ci/20261105-waveform-definition-completion-prep/source-pins.json",
+      "bytes": 31332,
+      "sha256": "908FA5DD960DFAA175C4F9E81C052F4DA944566005D8B32F603822B94ED20564",
+      "role": "ACCEPTED_COMPLETION_PROPOSAL_PIN_INVENTORY"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/WaveformCandidate.h",
+      "bytes": 9467,
+      "sha256": "649B77B66A536EEBB483FEB3806A56A650DDC61ABA7FD7EE0A122FA208FA045B",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/waveform_probe.cpp",
+      "bytes": 17059,
+      "sha256": "524395123F293221BF39D8E1524AECD7AADA630878066707FC0909AF8643B003",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/waveform_check.cpp",
+      "bytes": 36522,
+      "sha256": "1CCDD42C63002A27B73E7ED1ED1260527566F6AE9D96CD8F9427752762BFBEBA",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/clock_oracle.cpp",
+      "bytes": 5202,
+      "sha256": "A4BE16AB07DAF5DB627C7B1779587746E3792A2554D2D27C25BA33FBFB47666F",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/plan_probe.cpp",
+      "bytes": 3983,
+      "sha256": "417FF77ED291B0E680F5A4B20AAE5254215029A0ADFFA93C39FCFEA7C262DC6A",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/fast_fit.h",
+      "bytes": 30686,
+      "sha256": "761C74E7D83800E08000CAD4E7542A0BC063CBE751C68D31F7CF361FF8E7BE51",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/freeze_waveform.py",
+      "bytes": 32044,
+      "sha256": "CD9058460379F50E9149DC907569F3C85BEBBA5729270387E8BF3FCD1C2709CA",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/verify_waveform.py",
+      "bytes": 39180,
+      "sha256": "D286EE9D5BDCDC07365FDC9113190D97A249DEFC6ED21493ADF718B87758E9B8",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/run-waveform.ps1",
+      "bytes": 28974,
+      "sha256": "9959CF64AC1258604556C7AB1919CF11B20842A3EB4B901967E9AC31814C5645",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/README.md",
+      "bytes": 12021,
+      "sha256": "FAFCD75CD2BF4496732CC5C5DBFE9B6808B2B13ECC8A8F41FE7D371A872B215B",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/authored-manifest.json",
+      "bytes": 82880,
+      "sha256": "DAA8AC86739044D24C9B0806F22A92D0D96D6489D14FC6BD374FAF5FB4039877",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R2_MANIFEST"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/WaveformCandidate.h",
+      "bytes": 9467,
+      "sha256": "649B77B66A536EEBB483FEB3806A56A650DDC61ABA7FD7EE0A122FA208FA045B",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/waveform_probe.cpp",
+      "bytes": 17059,
+      "sha256": "524395123F293221BF39D8E1524AECD7AADA630878066707FC0909AF8643B003",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/waveform_check.cpp",
+      "bytes": 36522,
+      "sha256": "1CCDD42C63002A27B73E7ED1ED1260527566F6AE9D96CD8F9427752762BFBEBA",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/clock_oracle.cpp",
+      "bytes": 5202,
+      "sha256": "A4BE16AB07DAF5DB627C7B1779587746E3792A2554D2D27C25BA33FBFB47666F",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/plan_probe.cpp",
+      "bytes": 3983,
+      "sha256": "417FF77ED291B0E680F5A4B20AAE5254215029A0ADFFA93C39FCFEA7C262DC6A",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/fast_fit.h",
+      "bytes": 30686,
+      "sha256": "761C74E7D83800E08000CAD4E7542A0BC063CBE751C68D31F7CF361FF8E7BE51",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/freeze_waveform.py",
+      "bytes": 34364,
+      "sha256": "95545868319900153815C91E6FFBE17B48C5223DA82D9EDDF52EC77273E5B5AC",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/verify_waveform.py",
+      "bytes": 45624,
+      "sha256": "C9D63649D55F44FBF0872911B38D59A087FC846C18E12607078E6E1DCE8D02F3",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/run-waveform.ps1",
+      "bytes": 32215,
+      "sha256": "19EBFD0540407A73478C1617E19ABD1E017C3DF70BF095566A2492BEEC8B2CB5",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/README.md",
+      "bytes": 10900,
+      "sha256": "CB698327E344993D9D96E15D6B4D1E44082D342F72D449400DD376562C14B56E",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_SOURCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/authored-manifest.json",
+      "bytes": 97149,
+      "sha256": "442EBBCF173060CDC8E9AAD3984D27BA93EFED87213488A00952F5D9B7ECBCDE",
+      "role": "IMMUTABLE_UNRUN_DEFINITION_R3_MANIFEST"
+    }
+  ],
+  "all_preparation116_pins_exact": true,
+  "all_r1_twelve_exact": true,
+  "case_ids": [
+    "tone-r44100-map0-mono-f220",
+    "tone-r44100-map0-mono-f997",
+    "tone-r44100-map0-equivalent-f220",
+    "tone-r44100-map0-equivalent-f997",
+    "tone-r44100-map0-distinct-f220-f997",
+    "zero-r44100-map0-mono",
+    "zero-r44100-map0-equivalent",
+    "burst-r44100-map0-mono",
+    "burst-r44100-map0-equivalent",
+    "tone-r44100-map1-mono-f220",
+    "tone-r44100-map1-mono-f997",
+    "tone-r44100-map1-equivalent-f220",
+    "tone-r44100-map1-equivalent-f997",
+    "tone-r44100-map1-distinct-f220-f997",
+    "zero-r44100-map1-mono",
+    "zero-r44100-map1-equivalent",
+    "burst-r44100-map1-mono",
+    "burst-r44100-map1-equivalent",
+    "tone-r44100-map2-mono-f220",
+    "tone-r44100-map2-mono-f997",
+    "tone-r44100-map2-equivalent-f220",
+    "tone-r44100-map2-equivalent-f997",
+    "tone-r44100-map2-distinct-f220-f997",
+    "zero-r44100-map2-mono",
+    "zero-r44100-map2-equivalent",
+    "burst-r44100-map2-mono",
+    "burst-r44100-map2-equivalent",
+    "tone-r44100-map3-mono-f220",
+    "tone-r44100-map3-mono-f997",
+    "tone-r44100-map3-equivalent-f220",
+    "tone-r44100-map3-equivalent-f997",
+    "tone-r44100-map3-distinct-f220-f997",
+    "zero-r44100-map3-mono",
+    "zero-r44100-map3-equivalent",
+    "burst-r44100-map3-mono",
+    "burst-r44100-map3-equivalent",
+    "tone-r44100-map4-mono-f220",
+    "tone-r44100-map4-mono-f997",
+    "tone-r44100-map4-equivalent-f220",
+    "tone-r44100-map4-equivalent-f997",
+    "tone-r44100-map4-distinct-f220-f997",
+    "zero-r44100-map4-mono",
+    "zero-r44100-map4-equivalent",
+    "burst-r44100-map4-mono",
+    "burst-r44100-map4-equivalent",
+    "tone-r44100-map5-mono-f220",
+    "tone-r44100-map5-mono-f997",
+    "tone-r44100-map5-equivalent-f220",
+    "tone-r44100-map5-equivalent-f997",
+    "tone-r44100-map5-distinct-f220-f997",
+    "zero-r44100-map5-mono",
+    "zero-r44100-map5-equivalent",
+    "burst-r44100-map5-mono",
+    "burst-r44100-map5-equivalent",
+    "tone-r44100-map6-mono-f220",
+    "tone-r44100-map6-mono-f997",
+    "tone-r44100-map6-equivalent-f220",
+    "tone-r44100-map6-equivalent-f997",
+    "tone-r44100-map6-distinct-f220-f997",
+    "zero-r44100-map6-mono",
+    "zero-r44100-map6-equivalent",
+    "burst-r44100-map6-mono",
+    "burst-r44100-map6-equivalent",
+    "tone-r44100-map7-mono-f220",
+    "tone-r44100-map7-mono-f997",
+    "tone-r44100-map7-equivalent-f220",
+    "tone-r44100-map7-equivalent-f997",
+    "tone-r44100-map7-distinct-f220-f997",
+    "zero-r44100-map7-mono",
+    "zero-r44100-map7-equivalent",
+    "burst-r44100-map7-mono",
+    "burst-r44100-map7-equivalent",
+    "tone-r44100-map8-mono-f220",
+    "tone-r44100-map8-mono-f997",
+    "tone-r44100-map8-equivalent-f220",
+    "tone-r44100-map8-equivalent-f997",
+    "tone-r44100-map8-distinct-f220-f997",
+    "zero-r44100-map8-mono",
+    "zero-r44100-map8-equivalent",
+    "burst-r44100-map8-mono",
+    "burst-r44100-map8-equivalent",
+    "tone-r48000-map0-mono-f220",
+    "tone-r48000-map0-mono-f997",
+    "tone-r48000-map0-equivalent-f220",
+    "tone-r48000-map0-equivalent-f997",
+    "tone-r48000-map0-distinct-f220-f997",
+    "zero-r48000-map0-mono",
+    "zero-r48000-map0-equivalent",
+    "burst-r48000-map0-mono",
+    "burst-r48000-map0-equivalent",
+    "tone-r48000-map1-mono-f220",
+    "tone-r48000-map1-mono-f997",
+    "tone-r48000-map1-equivalent-f220",
+    "tone-r48000-map1-equivalent-f997",
+    "tone-r48000-map1-distinct-f220-f997",
+    "zero-r48000-map1-mono",
+    "zero-r48000-map1-equivalent",
+    "burst-r48000-map1-mono",
+    "burst-r48000-map1-equivalent",
+    "tone-r48000-map2-mono-f220",
+    "tone-r48000-map2-mono-f997",
+    "tone-r48000-map2-equivalent-f220",
+    "tone-r48000-map2-equivalent-f997",
+    "tone-r48000-map2-distinct-f220-f997",
+    "zero-r48000-map2-mono",
+    "zero-r48000-map2-equivalent",
+    "burst-r48000-map2-mono",
+    "burst-r48000-map2-equivalent",
+    "tone-r48000-map3-mono-f220",
+    "tone-r48000-map3-mono-f997",
+    "tone-r48000-map3-equivalent-f220",
+    "tone-r48000-map3-equivalent-f997",
+    "tone-r48000-map3-distinct-f220-f997",
+    "zero-r48000-map3-mono",
+    "zero-r48000-map3-equivalent",
+    "burst-r48000-map3-mono",
+    "burst-r48000-map3-equivalent",
+    "tone-r48000-map4-mono-f220",
+    "tone-r48000-map4-mono-f997",
+    "tone-r48000-map4-equivalent-f220",
+    "tone-r48000-map4-equivalent-f997",
+    "tone-r48000-map4-distinct-f220-f997",
+    "zero-r48000-map4-mono",
+    "zero-r48000-map4-equivalent",
+    "burst-r48000-map4-mono",
+    "burst-r48000-map4-equivalent",
+    "tone-r48000-map5-mono-f220",
+    "tone-r48000-map5-mono-f997",
+    "tone-r48000-map5-equivalent-f220",
+    "tone-r48000-map5-equivalent-f997",
+    "tone-r48000-map5-distinct-f220-f997",
+    "zero-r48000-map5-mono",
+    "zero-r48000-map5-equivalent",
+    "burst-r48000-map5-mono",
+    "burst-r48000-map5-equivalent",
+    "tone-r48000-map6-mono-f220",
+    "tone-r48000-map6-mono-f997",
+    "tone-r48000-map6-equivalent-f220",
+    "tone-r48000-map6-equivalent-f997",
+    "tone-r48000-map6-distinct-f220-f997",
+    "zero-r48000-map6-mono",
+    "zero-r48000-map6-equivalent",
+    "burst-r48000-map6-mono",
+    "burst-r48000-map6-equivalent",
+    "tone-r48000-map7-mono-f220",
+    "tone-r48000-map7-mono-f997",
+    "tone-r48000-map7-equivalent-f220",
+    "tone-r48000-map7-equivalent-f997",
+    "tone-r48000-map7-distinct-f220-f997",
+    "zero-r48000-map7-mono",
+    "zero-r48000-map7-equivalent",
+    "burst-r48000-map7-mono",
+    "burst-r48000-map7-equivalent",
+    "tone-r48000-map8-mono-f220",
+    "tone-r48000-map8-mono-f997",
+    "tone-r48000-map8-equivalent-f220",
+    "tone-r48000-map8-equivalent-f997",
+    "tone-r48000-map8-distinct-f220-f997",
+    "zero-r48000-map8-mono",
+    "zero-r48000-map8-equivalent",
+    "burst-r48000-map8-mono",
+    "burst-r48000-map8-equivalent",
+    "tone-r96000-map0-mono-f220",
+    "tone-r96000-map0-mono-f997",
+    "tone-r96000-map0-equivalent-f220",
+    "tone-r96000-map0-equivalent-f997",
+    "tone-r96000-map0-distinct-f220-f997",
+    "zero-r96000-map0-mono",
+    "zero-r96000-map0-equivalent",
+    "burst-r96000-map0-mono",
+    "burst-r96000-map0-equivalent",
+    "tone-r96000-map1-mono-f220",
+    "tone-r96000-map1-mono-f997",
+    "tone-r96000-map1-equivalent-f220",
+    "tone-r96000-map1-equivalent-f997",
+    "tone-r96000-map1-distinct-f220-f997",
+    "zero-r96000-map1-mono",
+    "zero-r96000-map1-equivalent",
+    "burst-r96000-map1-mono",
+    "burst-r96000-map1-equivalent",
+    "tone-r96000-map2-mono-f220",
+    "tone-r96000-map2-mono-f997",
+    "tone-r96000-map2-equivalent-f220",
+    "tone-r96000-map2-equivalent-f997",
+    "tone-r96000-map2-distinct-f220-f997",
+    "zero-r96000-map2-mono",
+    "zero-r96000-map2-equivalent",
+    "burst-r96000-map2-mono",
+    "burst-r96000-map2-equivalent",
+    "tone-r96000-map3-mono-f220",
+    "tone-r96000-map3-mono-f997",
+    "tone-r96000-map3-equivalent-f220",
+    "tone-r96000-map3-equivalent-f997",
+    "tone-r96000-map3-distinct-f220-f997",
+    "zero-r96000-map3-mono",
+    "zero-r96000-map3-equivalent",
+    "burst-r96000-map3-mono",
+    "burst-r96000-map3-equivalent",
+    "tone-r96000-map4-mono-f220",
+    "tone-r96000-map4-mono-f997",
+    "tone-r96000-map4-equivalent-f220",
+    "tone-r96000-map4-equivalent-f997",
+    "tone-r96000-map4-distinct-f220-f997",
+    "zero-r96000-map4-mono",
+    "zero-r96000-map4-equivalent",
+    "burst-r96000-map4-mono",
+    "burst-r96000-map4-equivalent",
+    "tone-r96000-map5-mono-f220",
+    "tone-r96000-map5-mono-f997",
+    "tone-r96000-map5-equivalent-f220",
+    "tone-r96000-map5-equivalent-f997",
+    "tone-r96000-map5-distinct-f220-f997",
+    "zero-r96000-map5-mono",
+    "zero-r96000-map5-equivalent",
+    "burst-r96000-map5-mono",
+    "burst-r96000-map5-equivalent",
+    "tone-r96000-map6-mono-f220",
+    "tone-r96000-map6-mono-f997",
+    "tone-r96000-map6-equivalent-f220",
+    "tone-r96000-map6-equivalent-f997",
+    "tone-r96000-map6-distinct-f220-f997",
+    "zero-r96000-map6-mono",
+    "zero-r96000-map6-equivalent",
+    "burst-r96000-map6-mono",
+    "burst-r96000-map6-equivalent",
+    "tone-r96000-map7-mono-f220",
+    "tone-r96000-map7-mono-f997",
+    "tone-r96000-map7-equivalent-f220",
+    "tone-r96000-map7-equivalent-f997",
+    "tone-r96000-map7-distinct-f220-f997",
+    "zero-r96000-map7-mono",
+    "zero-r96000-map7-equivalent",
+    "burst-r96000-map7-mono",
+    "burst-r96000-map7-equivalent",
+    "tone-r96000-map8-mono-f220",
+    "tone-r96000-map8-mono-f997",
+    "tone-r96000-map8-equivalent-f220",
+    "tone-r96000-map8-equivalent-f997",
+    "tone-r96000-map8-distinct-f220-f997",
+    "zero-r96000-map8-mono",
+    "zero-r96000-map8-equivalent",
+    "burst-r96000-map8-mono",
+    "burst-r96000-map8-equivalent",
+    "zero-r48000-map2-mixed-signed-zero",
+    "reverse-burst-r48000-map7-mono",
+    "reverse-burst-r48000-map7-equivalent",
+    "bake-r48000-map5-mono-f220-Linear-minus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Linear-minus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-Linear-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Linear-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-Linear-zero-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Linear-zero-overlap3L4",
+    "bake-r48000-map5-mono-f220-Linear-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Linear-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-Linear-plus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Linear-plus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-Linear-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Linear-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-EqualPower-minus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-EqualPower-minus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-EqualPower-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-EqualPower-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-EqualPower-zero-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-EqualPower-zero-overlap3L4",
+    "bake-r48000-map5-mono-f220-EqualPower-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-EqualPower-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-EqualPower-plus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-EqualPower-plus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-EqualPower-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-EqualPower-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-SCurve-minus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-SCurve-minus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-SCurve-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-SCurve-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-SCurve-zero-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-SCurve-zero-overlap3L4",
+    "bake-r48000-map5-mono-f220-SCurve-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-SCurve-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-SCurve-plus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-SCurve-plus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-SCurve-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-SCurve-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-Log-minus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Log-minus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-Log-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Log-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-Log-zero-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Log-zero-overlap3L4",
+    "bake-r48000-map5-mono-f220-Log-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Log-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-Log-plus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Log-plus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-Log-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Log-plus1-overlong2Lplus1-L2"
+  ],
+  "control_ids": [
+    "pitch6cent",
+    "level1p1dB",
+    "double_fade",
+    "reverse_after",
+    "latency_plus1",
+    "omit_OL",
+    "center3Frame",
+    "skip_late_finite",
+    "merge_last_ulp",
+    "omit_logical_stereo",
+    "swap_distinct",
+    "damage_materialized_sample",
+    "old_C2_equivalent"
+  ],
+  "requested_case_count": 294,
+  "future_physical_control_count": 13,
+  "stage_artifacts": [
+    {
+      "path": "generated/private-sources/baseline/engine/MusicalAudioChannelPlan.h",
+      "kind": "namespace_isolated_header",
+      "bytes_cap": 65536,
+      "variant": "baseline",
+      "namespace": "yesdaw::engine::waveform_private_baseline",
+      "input": "src/engine/MusicalAudioChannelPlan.h"
+    },
+    {
+      "path": "generated/private-sources/patches/baseline.plan.isolation.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "baseline"
+    },
+    {
+      "path": "generated/private-sources/patches/baseline.plan.isolation.inverse.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "baseline"
+    },
+    {
+      "path": "generated/private-sources/baseline/engine/MusicalAudioChannelMaterialization.h",
+      "kind": "namespace_isolated_header",
+      "bytes_cap": 65536,
+      "variant": "baseline",
+      "namespace": "yesdaw::engine::waveform_private_baseline",
+      "input": "src/engine/MusicalAudioChannelMaterialization.h"
+    },
+    {
+      "path": "generated/private-sources/patches/baseline.materializer.isolation.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "baseline"
+    },
+    {
+      "path": "generated/private-sources/patches/baseline.materializer.isolation.inverse.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "baseline"
+    },
+    {
+      "path": "generated/private-sources/skip_late_finite/engine/MusicalAudioChannelPlan.h",
+      "kind": "namespace_isolated_header",
+      "bytes_cap": 65536,
+      "variant": "skip_late_finite",
+      "namespace": "yesdaw::engine::waveform_private_skip_late_finite",
+      "input": "src/engine/MusicalAudioChannelPlan.h"
+    },
+    {
+      "path": "generated/private-sources/patches/skip_late_finite.plan.isolation.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "skip_late_finite"
+    },
+    {
+      "path": "generated/private-sources/patches/skip_late_finite.plan.isolation.inverse.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "skip_late_finite"
+    },
+    {
+      "path": "generated/private-sources/skip_late_finite/engine/MusicalAudioChannelMaterialization.h",
+      "kind": "namespace_isolated_header",
+      "bytes_cap": 65536,
+      "variant": "skip_late_finite",
+      "namespace": "yesdaw::engine::waveform_private_skip_late_finite",
+      "input": "src/engine/MusicalAudioChannelMaterialization.h"
+    },
+    {
+      "path": "generated/private-sources/patches/skip_late_finite.materializer.isolation.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "skip_late_finite"
+    },
+    {
+      "path": "generated/private-sources/patches/skip_late_finite.materializer.isolation.inverse.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "skip_late_finite"
+    },
+    {
+      "path": "generated/private-sources/ignore_last_mismatch/engine/MusicalAudioChannelPlan.h",
+      "kind": "namespace_isolated_header",
+      "bytes_cap": 65536,
+      "variant": "ignore_last_mismatch",
+      "namespace": "yesdaw::engine::waveform_private_ignore_last_mismatch",
+      "input": "src/engine/MusicalAudioChannelPlan.h"
+    },
+    {
+      "path": "generated/private-sources/patches/ignore_last_mismatch.plan.isolation.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "ignore_last_mismatch"
+    },
+    {
+      "path": "generated/private-sources/patches/ignore_last_mismatch.plan.isolation.inverse.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "ignore_last_mismatch"
+    },
+    {
+      "path": "generated/private-sources/ignore_last_mismatch/engine/MusicalAudioChannelMaterialization.h",
+      "kind": "namespace_isolated_header",
+      "bytes_cap": 65536,
+      "variant": "ignore_last_mismatch",
+      "namespace": "yesdaw::engine::waveform_private_ignore_last_mismatch",
+      "input": "src/engine/MusicalAudioChannelMaterialization.h"
+    },
+    {
+      "path": "generated/private-sources/patches/ignore_last_mismatch.materializer.isolation.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "ignore_last_mismatch"
+    },
+    {
+      "path": "generated/private-sources/patches/ignore_last_mismatch.materializer.isolation.inverse.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "ignore_last_mismatch"
+    },
+    {
+      "path": "generated/private-sources/swap_stored_channels/engine/MusicalAudioChannelPlan.h",
+      "kind": "namespace_isolated_header",
+      "bytes_cap": 65536,
+      "variant": "swap_stored_channels",
+      "namespace": "yesdaw::engine::waveform_private_swap_stored_channels",
+      "input": "src/engine/MusicalAudioChannelPlan.h"
+    },
+    {
+      "path": "generated/private-sources/patches/swap_stored_channels.plan.isolation.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "swap_stored_channels"
+    },
+    {
+      "path": "generated/private-sources/patches/swap_stored_channels.plan.isolation.inverse.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "swap_stored_channels"
+    },
+    {
+      "path": "generated/private-sources/swap_stored_channels/engine/MusicalAudioChannelMaterialization.h",
+      "kind": "namespace_isolated_header",
+      "bytes_cap": 65536,
+      "variant": "swap_stored_channels",
+      "namespace": "yesdaw::engine::waveform_private_swap_stored_channels",
+      "input": "src/engine/MusicalAudioChannelMaterialization.h"
+    },
+    {
+      "path": "generated/private-sources/patches/swap_stored_channels.materializer.isolation.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "swap_stored_channels"
+    },
+    {
+      "path": "generated/private-sources/patches/swap_stored_channels.materializer.isolation.inverse.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "swap_stored_channels"
+    },
+    {
+      "path": "generated/private-sources/corrupt_constructed_output/engine/MusicalAudioChannelPlan.h",
+      "kind": "namespace_isolated_header",
+      "bytes_cap": 65536,
+      "variant": "corrupt_constructed_output",
+      "namespace": "yesdaw::engine::waveform_private_corrupt_constructed_output",
+      "input": "src/engine/MusicalAudioChannelPlan.h"
+    },
+    {
+      "path": "generated/private-sources/patches/corrupt_constructed_output.plan.isolation.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "corrupt_constructed_output"
+    },
+    {
+      "path": "generated/private-sources/patches/corrupt_constructed_output.plan.isolation.inverse.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "corrupt_constructed_output"
+    },
+    {
+      "path": "generated/private-sources/corrupt_constructed_output/engine/MusicalAudioChannelMaterialization.h",
+      "kind": "namespace_isolated_header",
+      "bytes_cap": 65536,
+      "variant": "corrupt_constructed_output",
+      "namespace": "yesdaw::engine::waveform_private_corrupt_constructed_output",
+      "input": "src/engine/MusicalAudioChannelMaterialization.h"
+    },
+    {
+      "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.isolation.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "corrupt_constructed_output"
+    },
+    {
+      "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.isolation.inverse.patch",
+      "kind": "exact_isolation_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "corrupt_constructed_output"
+    },
+    {
+      "path": "generated/private-sources/patches/skip_late_finite.plan.fault.patch",
+      "kind": "single_semantic_fault_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "skip_late_finite"
+    },
+    {
+      "path": "generated/private-sources/patches/skip_late_finite.plan.fault.inverse.patch",
+      "kind": "single_semantic_fault_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "skip_late_finite"
+    },
+    {
+      "path": "generated/private-sources/patches/ignore_last_mismatch.plan.fault.patch",
+      "kind": "single_semantic_fault_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "ignore_last_mismatch"
+    },
+    {
+      "path": "generated/private-sources/patches/ignore_last_mismatch.plan.fault.inverse.patch",
+      "kind": "single_semantic_fault_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "ignore_last_mismatch"
+    },
+    {
+      "path": "generated/private-sources/patches/swap_stored_channels.materializer.fault.patch",
+      "kind": "single_semantic_fault_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "swap_stored_channels"
+    },
+    {
+      "path": "generated/private-sources/patches/swap_stored_channels.materializer.fault.inverse.patch",
+      "kind": "single_semantic_fault_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "swap_stored_channels"
+    },
+    {
+      "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.fault.patch",
+      "kind": "single_semantic_fault_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "corrupt_constructed_output"
+    },
+    {
+      "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.fault.inverse.patch",
+      "kind": "single_semantic_fault_patch_or_inverse",
+      "bytes_cap": 65536,
+      "variant": "corrupt_constructed_output"
+    },
+    {
+      "path": "generated/private-sources/source-copy-manifest.json",
+      "kind": "manifest_or_mechanical_inverse_receipt",
+      "bytes_cap": 262144
+    },
+    {
+      "path": "generated/private-sources/source-copy-verification.json",
+      "kind": "manifest_or_mechanical_inverse_receipt",
+      "bytes_cap": 262144
+    },
+    {
+      "path": "references/tone/r44100-f220-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r44100-f220-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 70560,
+      "records": 2205,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r44100-f220-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r44100-f220-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r44100-f220-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 70560,
+      "records": 2205,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r44100-f220-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r44100-f997-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r44100-f997-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 1411200,
+      "records": 44100,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r44100-f997-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r44100-f997-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r44100-f997-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 1411200,
+      "records": 44100,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r44100-f997-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/zero/r44100.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/burst/r44100.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/tone/r48000-f220-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r48000-f220-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 76800,
+      "records": 2400,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r48000-f220-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r48000-f220-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r48000-f220-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 76800,
+      "records": 2400,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r48000-f220-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r48000-f997-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r48000-f997-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 1536000,
+      "records": 48000,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r48000-f997-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r48000-f997-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r48000-f997-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 1536000,
+      "records": 48000,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r48000-f997-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/zero/r48000.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/burst/r48000.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/tone/r96000-f220-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r96000-f220-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 153600,
+      "records": 4800,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r96000-f220-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r96000-f220-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r96000-f220-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 153600,
+      "records": 4800,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r96000-f220-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r96000-f997-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r96000-f997-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 3072000,
+      "records": 96000,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r96000-f997-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r96000-f997-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r96000-f997-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 3072000,
+      "records": 96000,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r96000-f997-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/zero/r96000.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/burst/r96000.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/control-sources/r48000-equivalent-last-ulp.interleaved.bin",
+      "kind": "frozen actual control source words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/control-sources/r48000-equivalent-last-ulp.json",
+      "kind": "control identities/expected validity and exact source error or dyadic proof",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/control-sources/r48000-early-distinct-late-nan.interleaved.bin",
+      "kind": "frozen actual control source words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/control-sources/r48000-early-distinct-late-nan.json",
+      "kind": "control identities/expected validity and exact source error or dyadic proof",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/control-sources/r48000-mixed-signed-zero.interleaved.bin",
+      "kind": "frozen actual control source words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/control-sources/r48000-mixed-signed-zero.json",
+      "kind": "control identities/expected validity and exact source error or dyadic proof",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/definition-manifest.json",
+      "kind": "fixed reference manifest/receipt",
+      "bytes_cap": 262144
+    },
+    {
+      "path": "references/source-error-summary.json",
+      "kind": "fixed reference manifest/receipt",
+      "bytes_cap": 262144
+    },
+    {
+      "path": "references/reference-manifest.json",
+      "kind": "fixed reference manifest/receipt",
+      "bytes_cap": 262144
+    },
+    {
+      "path": "references/original-case-inventory.json",
+      "kind": "fixed reference manifest/receipt",
+      "bytes_cap": 262144
+    }
+  ],
+  "stage_artifact_count": 92,
+  "private_count": 40,
+  "reference_count": 52,
+  "other110_references": "FORBIDDEN_THIS_STAGE_HOLD",
+  "all15_compiler_artifacts": "FORBIDDEN_THIS_STAGE_HOLD",
+  "permanent_first_stage_exclusions": {
+    "compiler": false,
+    "vendor": false,
+    "context": false,
+    "queried_layout": false,
+    "center": false,
+    "quality": false,
+    "production_resource_admission": false,
+    "renderer": false,
+    "native_app": false,
+    "audio_device": false
+  },
+  "source_execution_readiness": {
+    "runner_definition_source_accepted": true,
+    "runner_stage_execution_accepted": true,
+    "generator_entry_execution_accepted": true,
+    "generator_source_review_accepted": true,
+    "generator_interval_helpers_accepted": true,
+    "generator_retention_accepted": true,
+    "verifier_entry_execution_accepted": true,
+    "verifier_source_review_accepted": true,
+    "verifier_helpers_accepted": true,
+    "verifier_retention_accepted": true,
+    "actual_source_critic": "PENDING",
+    "root_execution_go": "ABSENT",
+    "state": "ARMED_FIRST_STAGE_SOURCE_ONLY_NOT_EXECUTED_PENDING_FINAL_EXACT_REVIEW"
+  },
+  "work_worksheet": {
+    "cap": 17179869184,
+    "single_parent_resets": false,
+    "generator_and_replay_same_ceiling_each": {
+      "phase395010_times8192": 3235921920,
+      "base7524000_times256": 1926144000,
+      "dyadic3762000_times128": 481536000,
+      "controls2880000_times256": 737280000,
+      "private1800000_times512_plus16Mi": 938377216,
+      "fixed_all_helpers": 128000000,
+      "per_child_upper": 7447259136
+    },
+    "generator_upper": 7447259136,
+    "independent_replay_upper": 7447259136,
+    "two_runner_guards_1Mi_each": 2097152,
+    "total_upper": 14896615424,
+    "headroom": 2283253760,
+    "composition": "Before any child, the root runner prepays the complete14,896,615,424 once. Two disjoint child reservations validate those prepaid slots. Verifier receives the hash-bound generator receipt and prior/composed work; it independently checks the generator categories and adds its own fixed slot. No counter may reset at process/window/channel/profile boundaries, no claimed small observed work can create extra authority. Child overflow or missing category refuses the complete stage.",
+    "runner_guard_each": {
+      "cap": 1048576,
+      "owned_inputs_max": 148,
+      "all_per_fence_max": 256,
+      "historical_inputs": 141,
+      "immutable_bytes": 8388608,
+      "path_operations_max": 592,
+      "path_ops_at128": 75776,
+      "hash_chunk_ops": 278528,
+      "polling": 460864,
+      "callbacks": 33024,
+      "fixed_startup_receipts": 131072,
+      "child_setup": 4096,
+      "cleanup": 8192,
+      "auxiliary_pool_inventory_length_seal": 8192,
+      "base_bound": 999744,
+      "new_shared_validator_controls_prepaid_first_region": 20480,
+      "first_region_bound": 1020224,
+      "second_region_bound": 999744,
+      "first_region_headroom": 28352,
+      "global_two_guard_reservation_unchanged": 2097152
+    }
+  },
+  "actual_runner_helper_worksheet": {
+    "unchanged_region_guard": 1048576,
+    "unchanged_regions": 2,
+    "hash_chunk_ops": 278528,
+    "polling_at64": 460864,
+    "callbacks_at128": 33024,
+    "fixed_startup_receipts": 131072,
+    "child_setup": 4096,
+    "cleanup": 8192,
+    "auxiliary_pool_inventory_length_seal": 8192,
+    "sum": 1020224,
+    "relation_to_proposal": "Five-file first-stage successor preserves141 historical identities and uses4 own paths;148 input profile and246 worst fence stay within unchanged256/8MiB. Four148 path groups give75776 units. Existing20480 normal/control prepayment remains inside first1Mi guard; global source slots unchanged.",
+    "input_profile": {
+      "unique_owned_inputs": 148,
+      "immutable_and_predecessor_input_bytes": 8388608,
+      "per_fence_total_with_own_and_data": 256,
+      "hash_chunk": 65536,
+      "path_depth": 64,
+      "predecessor_depth": 8,
+      "protected_manifest_identities": 141,
+      "current_identity_count_with_own_manifest_python": 147,
+      "current_own_files": 4,
+      "worst_actual_fence_count": 246
+    },
+    "sum_before_new_validators": 999744,
+    "new_controls_and_normal_helpers_prepaid": 20480,
+    "first_region_sum": 1020224,
+    "second_region_sum": 999744,
+    "first_region_headroom": 28352,
+    "592_path_hash_ops_at128": 75776
+  },
+  "numeric_helper_worksheet": {
+    "unit_note": "Conservative elementary source-operation uppers including validation and ledger updates. Must be rederived against the exact corrective bodies; any excess or unlisted helper keeps SOURCE_HOLD.",
+    "q48_phase": {
+      "domain_exact_phase": 300,
+      "theta_square": 190,
+      "26_coefficients_at30": 780,
+      "24_horner_mul_add_at116": 2784,
+      "finish_quadrant_division": 200,
+      "row_pack_counter_guards": 200,
+      "sum": 4454,
+      "reserved": 8192
+    },
+    "p56_phase": {
+      "domain_exact_phase": 300,
+      "theta_square": 190,
+      "initial_terms": 50,
+      "12_recurrences_at308": 3696,
+      "remainder_quadrant_division": 150,
+      "row_pack_counter_guards": 200,
+      "sum": 4586,
+      "reserved": 8192
+    },
+    "base_word_generation": {
+      "loop": 6,
+      "original_libm_formula": 16,
+      "pack_unpack": 12,
+      "interval_row_lookup": 16,
+      "float149_decode": 18,
+      "error_endpoint_ops": 36,
+      "guards": 24,
+      "maximum_witness": 50,
+      "ledger": 12,
+      "sum": 190,
+      "reserved": 256
+    },
+    "base_word_replay": "At most256 including full-n libm reconstruction, exact bit compare, both interval lookups, one exact float149 decode reused for two endpoint errors, finite/error/maximum guards and ledger. Do not compute a periodic libm word surrogate.",
+    "control_word_replay": "At most256 including full-n expected word construction, exact exception placement/payload/parity comparison, original/profile binding, every finite analytic error and ledger; all2,880,000 words charged even when exact zero.",
+    "dyadic_word": "128 per actual zero/burst word for complete generation/replay admission; burst integer setup stays in fixed setup. No source samples skipped.",
+    "private_source_byte_pass": "Each direction uses <=1,800,000 counted visited bytes. Ten original headers total145,205B; 12*145205 +4*10*256 final-byte growth +32768 anchor/patch/control overhead=1,785,468<1,800,000. Unique namespace/include/fault growth<256/header and literal old+new fault anchor bytes659 are checked statically. Keep512 units/visited byte +16Mi fixed for generation AND independent replay; no old2^31 reuse/reset.",
+    "opaque_chunk_body": "Generator and verifier each <=128 elementary source operations per owner chunk (eight explicit byte lanes or independent array lanes, length/position/EOF checks, hash call, counters, allocation/teardown guards). Their1796 chunks per child use229888 units, covered in fixed helper reservation; bulk primitive internals are separately unqualified.",
+    "fixed_helpers_128M_each": {
+      "scope": [
+        "separate Machin qualification/finite bounded-width checks",
+        "all chunk reads/writes/SHA/API calls and actual per-file hash/EOF guards",
+        "30 complete original-owner stream setup/chunks/descriptor verification",
+        "strict metadata schemas, duplicate keys, finite depth/node/byte bounds and actual source/manifest/lineage walks",
+        "byte/input/source fences and92-file manifest construction/replay",
+        "bounded in-memory own-gate controls and failure reports"
+      ],
+      "upper_conditions": {
+        "metadata_depth": 16,
+        "metadata_nodes": 131072,
+        "metadata_node_source_ops": 256,
+        "node_work_upper": 33554432,
+        "total_encoded_metadata_bytes": 4194304,
+        "byte_schema_prescan_source_ops_per_byte": 12,
+        "prescan_upper": 50331648,
+        "chunk_body_calls_per_child_upper": 20000,
+        "chunk_body_ops": 128,
+        "chunk_upper": 2560000,
+        "owner_chunk_ops": 229888,
+        "file_case_path_schema_helpers_upper": 8388608,
+        "Machin_and_fixed_width_setup_upper": 1048576,
+        "in_memory_replay_controls_upper": 1048576,
+        "sum_bound": 97161728,
+        "reserve": 128000000,
+        "unknown_helper": "HOLD; no silent inclusion after authoring"
+      }
+    },
+    "private_source_visit_derivation": {
+      "counted_scope": "Explicit whole-header unique-anchor count/replace and exact comparison byte visits. Hash/I/O/strict JSON scans and serialization are separately in fixed helpers; no primitive CPU bound implied.",
+      "generator_all_plan_passes": 42,
+      "generator_all_materializer_passes": 58,
+      "independent_replay_all_plan_passes_upper": 44,
+      "independent_replay_all_materializer_passes_upper": 60,
+      "pinned_plan_bytes": 17081,
+      "pinned_materializer_bytes": 11960,
+      "replay_header_visit_upper": 1469164,
+      "growth_104_passes_times256": 26624,
+      "anchor_and_control_visit_upper": 32768,
+      "sum": 1528556,
+      "looser_retained_worksheet": 1785468,
+      "reserved_visited_bytes": 1800000,
+      "requirement": "Corrective helpers must match these finite pass maxima; additional repeated scanning is HOLD unless covered by the same unchanged reserve after actual-source criticism."
+    }
+  },
+  "metadata_format_bounds": {
+    "note": "These are source-template bounds to enforce before serialization/write, not an assertion that all loose per-file caps can be saturated together. Retain aggregate encoded metadata4MiB guard. Unknown field, larger string/depth/node count or larger helper refuses before writing.",
+    "case_inventory": {
+      "rows": 294,
+      "max_encoded_row": 768,
+      "profiles": 12,
+      "max_profile_descriptor": 2048,
+      "fixed_fields": 4096,
+      "sum": 254464,
+      "file_cap": 262144
+    },
+    "source_certificates": 24576,
+    "control_source_descriptors": 6144,
+    "source_error_summary": 4096,
+    "definition_manifest": 50176,
+    "reference_manifest": 50688,
+    "private_patch_and_inverse28": 57344,
+    "private_lineage_manifest": 14336,
+    "private_verification": 4096,
+    "total_encoded_bound": 465920,
+    "aggregate_guard": 4194304,
+    "string_and_schema_caps": "Canonical compact JSON. Data-output relative path<=192 ASCII bytes and case id<=128; source/transitive absolute paths<=512 and bundle entries have separate256KiB bounds. Hash64 hex; integer fields admitted fixed domains; private patch strings<=1024. No PCM or phase rows embedded in JSON."
+  },
+  "controlled_lifetime_matrix": {
+    "retirement_is_executable_requirement": "Separate scoped helpers; release/unbind every prior PCM/table/encoded metadata buffer before entering the next phase. No accumulation of profile/source/owner buffers or retained full interleaved originals. Child process exit is observed and reads settled before replay starts.",
+    "generator_source_copy": {
+      "raw_production_inputs": 29041,
+      "all_private_artifact_caps": 3014656,
+      "encoded_metadata_cap": 4194304,
+      "bounded_working_header_and_patch_temporaries": 393216,
+      "sum": 7631217,
+      "controlled_payload_ceiling": 8388608
+    },
+    "generator_profile": {
+      "largest_tone_bytes": 3840000,
+      "largest_Q48_phase_bytes": 3072000,
+      "two_metadata_and_math_buffers": 131072,
+      "three_chunks": 196608,
+      "sum": 7239680,
+      "ceiling": 8388608
+    },
+    "generator_control": {
+      "pinned_base220_bytes": 1920000,
+      "one_current_control_bytes": 3840000,
+      "chunk_and_schema_buffers": 1310720,
+      "sum": 7070720,
+      "ceiling": 8388608,
+      "forbidden": "No extra full pair clone or three simultaneous control outputs"
+    },
+    "generator_owner": "Stream at most64KiB interleaved output with two32KiB planes and bounded transient byte lanes; encoded metadata<=4MiB; complete phase payload<=8MiB. No full original owner retained.",
+    "verifier_profile": {
+      "tone_bytes": 3840000,
+      "Q48_phase_bytes": 3072000,
+      "P56_refined_bytes": 1536000,
+      "control_reference_cache_bytes": 38400,
+      "math_and_metadata_bytes": 131072,
+      "two_chunks": 131072,
+      "sum": 8748544,
+      "ceiling": 16777216
+    },
+    "verifier_dyadic": "Two files<=7,680,000B plus bounded sparse burst integers, metadata and chunks; <=8MiB.",
+    "verifier_control_owner_copy": "Controls one current3,840,000B source plus38,400B analytic cache; owner/patch replay streamed/scoped. Each phase<=8MiB.",
+    "launcher_controlled_payload": "At most2MiB: current own/input/bundle/receipt encoded buffers with explicit262144B caps, two4096B read buffers,65536B hash buffer and bounded footer state. One rooted unsettled owner blocks another child; no accumulation.",
+    "maximum_sequential_child_plus_runner_payload": 18874368,
+    "prepaid_scratch_payload": 33554432,
+    "scratch_headroom": 14680064,
+    "excluded_claim": "These are explicit buffer/payload lifetimes and finite metadata geometry, not total CPython/CLR/allocator heap or RSS. Opaque primitive internals never receive production resource credit."
+  },
+  "retention": {
+    "private_individual_cap_sum": 3014656,
+    "reference_individual_cap_sum": 71335936,
+    "complete_data": 74350592,
+    "stage_pool": 67108864,
+    "complete_first_stage": 141459456,
+    "authored_source_input_pool_within_stage": 1048576,
+    "controlled_sequential_payload": 18874368,
+    "controlled_scratch_cap": 33554432,
+    "full_internal_CPU_heap_RSS": "UNQUALIFIED",
+    "future_whole840MiB_graph": "HOLD"
+  },
+  "closure_order": {
+    "first90": "all data except definition/reference manifests",
+    "definition_manifest": "hash binds90",
+    "reference_manifest": "hash binds91 excluding itself",
+    "runner_bundle": "hash binds92 data plus closed receipt/logs/marker and full recursive predecessor closure; no self hash",
+    "retention_exactness": "Manual key sums and bounded byte-length fixed points; bundle and receipt actual filesystem lengths checked"
+  },
+  "exact_source_words": {
+    "pcm_words": 14166000,
+    "finite": 14165999,
+    "intentional_right_final_nan": 1,
+    "finite_tone_control": 9443999,
+    "dyadic_including_mixed_zero": 4722000,
+    "unique_full_original_owners": 30,
+    "full_original_bytes": 116858688,
+    "selected_data_chunks": 1796,
+    "all_request_rows": 294,
+    "source_error_limit": "2^-20",
+    "exact_word_reconstruction": "full original n and operation grouping; independent source bit and interval obligations"
+  },
+  "remaining_literal_holds": [
+    "C/K queried-layout seam",
+    "full nine-map varying physical context",
+    "retained center-owner issuer and complete physical center witnesses",
+    "vendor candidate and all13 physical controls",
+    "complete-case checker support under original unreset2^34/64MiB",
+    "mono burst receipt count8 must become4*Cl in a later source successor",
+    "bake case/window/qualified-unfaded binding",
+    "denseQ/native inverse/full later-stage replay and remaining110 references",
+    "full renderer and production2^28/512MiB/1GiB resource graph",
+    "complete internal primitive CPU/total heap/RSS/RT/hardware",
+    "Later control stage ordinary-id/missing-unique-invocation/marker-only defects remain held; runner only exposes DefinitionFreeze"
+  ],
+  "author_verification": {
+    "python_ast_parse": 2,
+    "powershell_static_parse": "ZERO_ERRORS_SCRIPT_NOT_INVOKED",
+    "seven_cpp_headers_in_r3_only_fully_protected": 7,
+    "all141_protected_pins_verified": true,
+    "all_r3_twelve_bytes_exact": true,
+    "unaffected_helper_AST_matches_r2": 37,
+    "all_python_functions_except_checked_manifest_AST_equal_r3": true,
+    "lf_files": 5,
+    "actual_imports_generation_compile_tests_dsp": "NONE_UNRUN",
+    "controls_executed": "NONE_UNRUN",
+    "source_body_bounds": "R3_SOURCE_ACCEPT_RELAYED_FINAL_EXACT_R4_CRITIC_PENDING",
+    "control_bodies_and_witnesses": "R3_UNCHANGED_EXCEPT_REAL_LINEAGE_PROFILE_OPERANDS_STATIC_ONLY"
+  },
+  "new_writes_only": [
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/freeze_waveform.py",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/verify_waveform.py",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/run-waveform.ps1",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/README.md",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/authored-manifest.json"
+  ],
+  "moving_root_surfaces_not_pinned": [
+    "STATUS.md",
+    "CMakeLists.txt"
+  ],
+  "unchanged_original_objectives_caps_thresholds_matrix": true,
+  "no_finished_proof_claim": true,
+  "predecessor_r2_manifest_sha256": "DAA8AC86739044D24C9B0806F22A92D0D96D6489D14FC6BD374FAF5FB4039877",
+  "predecessor_r2_execution": "ALL_UNRUN_IMMUTABLE",
+  "all_prior117_protected_and_r2_twelve_exact": true,
+  "r3_fixed_helper_worksheet": {
+    "unchanged_fixed_slot_each_child": 128000000,
+    "accepted_r2_fixed_upper": 97161728,
+    "new_normal_validator_reservation_each": 32768,
+    "r3_conservative_fixed_upper": 97194496,
+    "generator_control_prepaid": 32768,
+    "generator_control_within_prior_allowance": 1048576,
+    "verifier_control_prepaid_unchanged": 1048576,
+    "verifier_control_body_upper": 625664,
+    "verifier_control_components": {
+      "14_rejection_mutation_bodies_at4096": 57344,
+      "14_positive_baselines_at512": 7168,
+      "encoded_report32768_at12": 393216,
+      "512_report_nodes_at256": 131072,
+      "setup_and_private_clone": 32768,
+      "witness_capture": 4096
+    },
+    "normal_body_scope": "Finite artifact/pool/owner/lineage/constructor/cardinality helpers only. Numeric spend bodies and37 numerical/private/stream helpers remain R2-equal. P56 wrapper/control branch fits unchanged8192 phase upper."
+  },
+  "r3_runner_validator_worksheet": {
+    "prepaid_inside_first_region": 20480,
+    "control_suite": 12288,
+    "normal_helpers_at_most9_predecessor_levels": 4096,
+    "bounded_report_setup": 4096,
+    "source_scope": "Three positive families and three exact-reason/witness rejections, bounded two-key schema/ancestor/profile validators, no filesystem access for owned control descriptor",
+    "controlled_payload_bytes": 4096,
+    "additional_retained_files": 0,
+    "new_regions": 0
+  },
+  "lineage_profile_proof": {
+    "old_protected": 129,
+    "r3_current_files_plus_manifest": 12,
+    "new_protected": 141,
+    "new_own_runtime_sources": 4,
+    "current_manifest": 1,
+    "python": 1,
+    "actual_owned_inputs": 147,
+    "owned_limit": 148,
+    "worst_fence_count": 246,
+    "fence_limit": 256,
+    "worst_hash_path_operations": 592,
+    "path_units_each": 128,
+    "path_upper": 75776,
+    "protected_bytes": 4368903,
+    "immutable_bytes_limit": 8388608,
+    "owned_source_bytes_limit": 1048576,
+    "remaining_python_and_optional_lineage_after_full_owned_1Mi": 2971129,
+    "overflow_control_count": 149,
+    "overflow_control_fence_count": 247,
+    "unrelated128_constants": "Directory/queue128 and chunk/API128 unchanged; LIMIT149=2^129 unchanged; no broad numeric replacement"
+  },
+  "normal_helper_control_coverage": [
+    {
+      "id": "generation-unlisted-artifact",
+      "reason": "EXACT_FILE_SET",
+      "helper": "artifact_name_gate",
+      "normal_callers": "Store.admit called on actual control path",
+      "required_reached_witness": "name/listed/seen/count"
+    },
+    {
+      "id": "generation-data-pool-one-below",
+      "reason": "WHOLE_DATA_POOL",
+      "helper": "data_pool_gate",
+      "normal_callers": "Store.admit",
+      "required_reached_witness": "used/amount/actual lower limit"
+    },
+    {
+      "id": "generation-work-one-below",
+      "reason": "WORK_RESERVATION",
+      "helper": "work_reservation_gate",
+      "normal_callers": "Budget.__init__",
+      "required_reached_witness": "reserved/limit/global_cap from failed constructor"
+    },
+    {
+      "id": "base-word-bitflip",
+      "reason": "ORIGINAL_BASE_WORD_BITS",
+      "helper": "exact_equal",
+      "normal_callers": "verify_profiles every actual word",
+      "required_reached_witness": "observed/expected word"
+    },
+    {
+      "id": "last-ulp-position",
+      "reason": "EXACT_CONTROL_WORD_POSITION_PARITY_PAYLOAD",
+      "helper": "control_sample_gate",
+      "normal_callers": "verify_controls every actual paired word",
+      "required_reached_witness": "control/index/channel/observed_word/expected_word"
+    },
+    {
+      "id": "late-nan-channel",
+      "reason": "EXACT_CONTROL_WORD_POSITION_PARITY_PAYLOAD",
+      "helper": "control_sample_gate",
+      "normal_callers": "verify_controls every actual paired word",
+      "required_reached_witness": "control/index/channel/observed_word/expected_word"
+    },
+    {
+      "id": "late-nan-payload",
+      "reason": "EXACT_CONTROL_WORD_POSITION_PARITY_PAYLOAD",
+      "helper": "control_sample_gate",
+      "normal_callers": "verify_controls every actual paired word",
+      "required_reached_witness": "control/index/channel/observed_word/expected_word"
+    },
+    {
+      "id": "mixed-zero-parity",
+      "reason": "EXACT_CONTROL_WORD_POSITION_PARITY_PAYLOAD",
+      "helper": "control_sample_gate",
+      "normal_callers": "verify_controls every actual paired word",
+      "required_reached_witness": "control/index/channel/observed_word/expected_word"
+    },
+    {
+      "id": "source-error-over-limit",
+      "reason": "REPLAY_SOURCE_ERROR_2POW_MINUS20",
+      "helper": "error_exact",
+      "normal_callers": "verify_profiles and verify_controls finite source checks",
+      "required_reached_witness": "exact/bounds/scale/error/limit"
+    },
+    {
+      "id": "owner-prefix-corruption",
+      "reason": "COMPLETE_ORIGINAL_OWNER_HASH",
+      "helper": "owner_binding_gate",
+      "normal_callers": "verify_case_owners controls and all actual case original hashes",
+      "required_reached_witness": "actual mutated complete stream hash/baseline hash; raw byte position and before/after region"
+    },
+    {
+      "id": "owner-suffix-corruption",
+      "reason": "COMPLETE_ORIGINAL_OWNER_HASH",
+      "helper": "owner_binding_gate",
+      "normal_callers": "verify_case_owners controls and all actual case original hashes",
+      "required_reached_witness": "actual mutated complete stream hash/baseline hash; raw byte position and before/after region"
+    },
+    {
+      "id": "owner-interleaving-corruption",
+      "reason": "COMPLETE_ORIGINAL_OWNER_HASH",
+      "helper": "owner_binding_gate",
+      "normal_callers": "verify_case_owners controls and all actual case original hashes",
+      "required_reached_witness": "actual mutated complete stream hash/baseline hash; raw byte position and before/after region"
+    },
+    {
+      "id": "unlisted-artifact",
+      "reason": "EXACT_FILE_SET",
+      "helper": "artifact_name_gate",
+      "normal_callers": "data_fence before actual file hash",
+      "required_reached_witness": "name/listed/seen/count"
+    },
+    {
+      "id": "data-pool-one-below",
+      "reason": "WHOLE_DATA_POOL",
+      "helper": "data_pool_gate",
+      "normal_callers": "data_fence before actual sum addition",
+      "required_reached_witness": "used/amount/lower limit"
+    },
+    {
+      "id": "work-one-below",
+      "reason": "WORK_RESERVATION",
+      "helper": "work_reservation_gate",
+      "normal_callers": "ReplayLedger.__init__",
+      "required_reached_witness": "reserved/limit/global_cap from failed constructor"
+    },
+    {
+      "id": "private-lineage-corruption",
+      "reason": "COMPLETE_PRIVATE_LINEAGE",
+      "helper": "private_lineage_gate",
+      "normal_callers": "verify_copies after actual ten-header reconstruction",
+      "required_reached_witness": "actual validated lineage/owned altered clone; row/field/hash before/after"
+    },
+    {
+      "id": "excluded-p56-enclosure",
+      "reason": "INDEPENDENT_ENCLOSURE_CONTAINMENT",
+      "helper": "phase_containment_gate",
+      "normal_callers": "verify_profiles first actual frozen row and independently computed P56 interval",
+      "required_reached_witness": "frozen/independent pairs plus actual profile/phase and bracket before/after"
+    },
+    {
+      "id": "missing-predecessor-fields",
+      "reason": "PREDECESSOR_FIELDS_MISSING",
+      "helper": "Assert-TaskPredecessorSchema",
+      "normal_callers": "runner every actual predecessor before enumeration",
+      "required_reached_witness": "actual missing key/has_artifacts/has_transitive_inputs"
+    },
+    {
+      "id": "missing-ancestor-hash",
+      "reason": "ANCESTOR_BUNDLE_HASH_MISSING",
+      "helper": "Get-TaskAncestorDescriptor",
+      "normal_callers": "runner before each actual ancestor enqueue",
+      "required_reached_witness": "owned path/hash_present"
+    },
+    {
+      "id": "lineage-input-profile-overflow",
+      "reason": "COMPLETE_INPUT_PROFILE",
+      "helper": "Assert-TaskInputProfile",
+      "normal_callers": "runner actual accumulated input count",
+      "required_reached_witness": "count149/max148/fence_count247/fence_max256"
+    }
+  ],
+  "authored_control_counts": {
+    "generator": 3,
+    "independent_replay": 14,
+    "runner": 3,
+    "actual_execution": "NONE_UNRUN",
+    "later_physical_controls_13": "HOLD_UNCHANGED"
+  },
+  "control_authenticity": "Only exact typed gate exceptions with matching actual operand witnesses create records. Valid baselines also execute. No catch-any, standalone local predicate, marker-only or hand-authored pass. Frozen92/old sources never modified.",
+  "r3_control_payload_worksheet": {
+    "generator_control_maps": 8192,
+    "verifier_owner_complete_stream_bytes": 128,
+    "verifier_private_metadata_clone_upper": 16384,
+    "verifier_encoded_report_upper": 32768,
+    "verifier_report_node_upper": 512,
+    "all_new_verifier_control_payload_upper": 65536,
+    "runner_descriptors_reports_upper": 4096,
+    "inside_existing_metadata_allowances": true,
+    "new_payload_pool": 0,
+    "sequential_controlled_payload_unchanged": 18874368,
+    "scratch_unchanged": 33554432,
+    "heap_CPU_RSS": "STILL_UNQUALIFIED"
+  },
+  "source_preparation_history": {
+    "immutable_prior_runner_guard_example": {
+      "cap": 1048576,
+      "max_pins_and_artifacts_per_fence": 256,
+      "max_immutable_bytes": 8388608,
+      "max_generated_hash_bytes": 276824064,
+      "hash_chunk_bytes": 65536,
+      "two_fence_chunk_ops": 278528,
+      "path_open_setup_ops": 32768,
+      "poll_250ms_1800s_at64_ops": 460864,
+      "raw_log_read_ops": 16512,
+      "fixed_receipts_startup": 131072,
+      "bounded_cleanup": 8192,
+      "sum_bound": 927936,
+      "controlled_raw_log_cap_per_child": 1048576,
+      "receipt_writes_max": 8,
+      "overflow": "raw refusal; no next child",
+      "r3_refinement": "First region1018176; second997696;129 historical/144 owned inputs, actual shared-gate controls included; both1048576 guards and total14896615424 unchanged.",
+      "r4_refinement": "First region1020224; second999744;141 historical/148 owned/4 own files; both1048576 guards,256 per-fence and total14896615424 unchanged. R3 refinement above remains historical."
+    },
+    "note": "Historical proposal and R3 worksheets remain explicit. Current R4 helper and lineage bounds above do not reinterpret or increase any public cap."
+  },
+  "predecessor_r3_manifest_sha256": "442EBBCF173060CDC8E9AAD3984D27BA93EFED87213488A00952F5D9B7ECBCDE",
+  "predecessor_r3_execution": "UNRUN_ALL_FLAGS_FALSE_IMMUTABLE",
+  "all_prior129_protected_and_r3_twelve_exact": true,
+  "r4_first_stage_promotion": {
+    "authorized_by_root": true,
+    "only_first_stage_guards_armed": true,
+    "first_stage_guards_armed_count": 10,
+    "r3_numeric_enginecost_source_accept": "ROOT_RELAYED_ACCEPT",
+    "r4_actual_source_critic": "PENDING",
+    "root_execution_go": "ABSENT",
+    "authored_modules_imported_or_invoked": false,
+    "actual_controls_run": false,
+    "actual_generation_replay_run": false,
+    "compiler_path_present": false,
+    "Ready": false,
+    "seven_cpp_headers_location": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3",
+    "seven_cpp_headers_newly_copied": false,
+    "normal_callgraph": "Only stdlib Python generation/replay. Production Plan/materializer read as pinned text for private-copy preparation/replay. Seven historical C++/headers read only by protected hash fences. Runner stage selector is DefinitionFreeze only and has exactly two Python child invocations.",
+    "source_changes": "Exact own4/protected141/profile148 path-count guards and149/247 overflow operands; first-stage guard promotion and documentation/manifest only. No numeric/source/control algorithm or rejection reason changed.",
+    "immutable_r3_and_protected_identity_count": 141,
+    "unchanged_numeric_private_stream_helper_count": 37,
+    "all_remaining_compiler_vendor_context_quality_production_renderer_admissions": false
+  }
+}

@@ -1,0 +1,63 @@
+# Definition R4 - first-stage guards armed, execution review pending
+
+Exactly five new ignored files: two Python modules, the DefinitionFreeze-only runner, this README and its externally pinned manifest. No C++/header is copied. The seven unchanged C++/headers remain physically in immutable R3 and are hash-fenced before and after both children as protected inputs. All129 prior protected identities plus all12 R3 identities are retained as141 distinct protected paths. R3 manifest442EBBCF173060CDC8E9AAD3984D27BA93EFED87213488A00952F5D9B7ECBCDE and every R3 byte remain immutable and UNRUN. Current own4 filenames/bytes/hashes are runtime-fenced; the current manifest hash remains an external argument without a self-hash cycle.
+
+Root relayed numeric and engine/cost SOURCE ACCEPT of exact R3, fully read its diff and semantic manifest, and explicitly authorized only this first-stage guard promotion. Generator source/interval-helper/retention/entry guards, verifier source/helper/reservation/entry guards and the runner's two Definition guards are literal true in R4. This is armed SOURCE, not execution authority: the exact R4 actual-source critic remains PENDING and separate root execution GO remains ABSENT. Compiler/vendor/context/quality/production/renderer/Ready admission remains false. No authored module was imported or invoked; no controls, source data, compiler/tests/DSP/environment/Git/network/native/device/subagent work ran. Static AST/PowerShell parsing, source comparisons, hashes and arithmetic are the only author verification.
+
+## Exact normal helper/control correspondence
+
+Python controls catch only GateRejected, require the exact reason AND exact actual operand witness, and fail if the helper returns or another error occurs. Every family also exercises a valid baseline. Records contain the caught exception's actual witness and, for owned source mutations, raw mutation coordinates. There is no standalone false predicate, dictionary-membership assertion, generic exception acceptance, substring marker or hand-authored PASS row.
+
+| Real normal enforcement | Authored negative controls | Exact reason / reached operands |
+|---|---|---|
+| Store.admit and replay data_fence -> artifact_name_gate | generator/replay unlisted-artifact | EXACT_FILE_SET; actual name, listed/seen flags and current count |
+| Store.admit and data_fence -> data_pool_gate | generator/replay data-pool-one-below | WHOLE_DATA_POOL; actual used/amount/limit |
+| Both actual ledger constructors -> work_reservation_gate | generator/replay work-one-below | WORK_RESERVATION; full reserved total, lower ceiling, unchanged global cap |
+| Every base word -> exact_equal | base-word-bitflip | ORIGINAL_BASE_WORD_BITS; actual/expected binary32 words |
+| Every paired control sample -> control_sample_gate/control_word | last-ulp-position, late-nan-channel, late-nan-payload, mixed-zero-parity | EXACT_CONTROL_WORD_POSITION_PARITY_PAYLOAD; control id, actual index/channel and observed/expected word |
+| Every finite tone/control error -> error_exact | source-error-over-limit | REPLAY_SOURCE_ERROR_2POW_MINUS20; exact rational numerator, actual bounds/scale/error/limit |
+| Actual full-original-owner hashes for all controls/cases -> owner_binding_gate | owner-prefix-corruption, owner-suffix-corruption, owner-interleaving-corruption | COMPLETE_ORIGINAL_OWNER_HASH; hashes of actual mutated/baseline complete streams, with byte index and before/after bytes |
+| Every actual Q48 row/P56 interval -> phase_containment_gate | excluded-p56-enclosure | INDEPENDENT_ENCLOSURE_CONTAINMENT; first ACTUAL frozen row and independently computed P56 pair, with owned excluded bracket |
+| Complete reconstructed private lineage -> private_lineage_gate | private-lineage-corruption | COMPLETE_PRIVATE_LINEAGE; actual validated ten-row lineage and owned clone with one changed final hash, plus row/field/before/after |
+
+The generator runs three controls through its own Store/gates before any data file write and retains the exact rejection witnesses. The verifier validates those records and runs fourteen independent controls. Prefix/suffix/interleaving controls mutate an owned128-byte complete original stream with seven sentinel frames at both ends and two distinct selected C2 frames, hash the actual mutated bytes and invoke the SAME full-owner binding gate normal replay uses. Frozen data92 and old sources are never mutated. The P56 and private-lineage controls use the actual reached row/reconstruction, rather than a coordinate or local metadata surrogate.
+
+The verifier never imports generator code. Generic gates are separately defined in each module. Source laws, full-index binary32 replay, independent P56/Machin arithmetic, source-error2^-20, source/control positions/parity, full sentinels/owners,294 requests,92 caps and all numeric/private algorithms are preserved.37 unaffected numeric/private/stream helper ASTs match R2 exactly; only the necessary enforcement call sites and rejection-witness wrappers differ.
+
+## PowerShell predecessor controls use the actual runner
+
+Assert-TaskPredecessorSchema is called for every normal predecessor before artifact enumeration. Get-TaskAncestorDescriptor is called before every normal ancestor enqueue. Assert-TaskInputProfile admits the real accumulated input map. Their actual typed exceptions carry gate identity and operand witness; Expect-TaskGate requires exact identity/message/key/value agreement and fails on no rejection. The runner itself executes three bounded in-memory controls, not a Python approximation:
+
+- missing-predecessor-fields -> PREDECESSOR_FIELDS_MISSING, actual missing key and both observed field-presence flags;
+- missing-ancestor-hash -> ANCESTOR_BUNDLE_HASH_MISSING, actual owned descriptor path and hash-presence flag;
+- lineage-input-profile-overflow -> COMPLETE_INPUT_PROFILE, actual149 count,148 limit,247 per-fence count and256 limit.
+
+Valid schema/ancestor/profile baselines precede each negative family. No nonexistent ancestor file is opened or written; the owned descriptor mutation is passed through the same schema/hash validator normal loading consumes. The existing recursively hash-fenced predecessor walk, raw child exits, bounded cancellation/reap/read settlement/quarantine, before/after own/input/generated fences, manual dictionary sums and final receipt/bundle byte-length sealing remain unchanged.
+
+## Coherent lineage and unchanged caps
+
+Both Python manifests require141 historical identities, and own4 plus manifest/interpreter must fit148. The runner's actual normal input-map guard is148.141 protected +4 own +current manifest +Python=147 distinct paths; optional predecessor data must also fit148 and8MiB.148+4 repeated own checks+2 manifest/Python checks+92 generated artifacts=246<=256 per fence. No identity is omitted/deduplicated merely because bytes match. All141 protected files total4,368,903B. With the full unchanged1Mi current authored-input allowance,2,971,129B remains inside8MiB for Python and accepted extra lineage; actual aggregate/count admission remains mandatory.
+
+R4 changes only historical141/owned148/current-own4 cardinalities and the corresponding overflow witness. Four groups of148 hash/path operations give592*128=75,776 units, an increase of2,048 from R3. Directory/queue128, chunk/API128, JSON bounds, sample tolerances, registry/per-fence256 and every unrelated numeric/storage constant remain unchanged. No first-stage algorithm or rejection reason changes.
+
+The R3 helper worksheet997,696 becomes999,744 for the larger lineage profile. Existing normal validator bodies, positive/negative controls, exception/witness inspection and receipt construction still prepay20,480 units ONLY inside the existing first1Mi region: bounded control suite12,288, normal schema/ancestor/profile helper calls4,096 and bounded report/setup4,096. At most nine predecessor levels and three controls consume these finite bodies. First-region upper1,020,224<1,048,576 leaves28,352; the second region needs no control-suite prepayment and stays999,744. Both1Mi slots and the ONE combined14,896,615,424 source upper under2^34 are unchanged.
+
+## Python helper and lifetime worksheet
+
+Each child retains7,447,259,136:395010*8192 phase,7524000*256 base,3762000*128 dyadic,2880000*256 controls,938377216 private-copy/replay and128M fixed helpers. Constructors test the genuine full prepayment before allocating ledger state. Lower-ceiling controls fail there; they do not run another numerical ledger or gain fresh work. Per-word spend bodies and numeric algorithms remain unchanged.
+
+The inherited R3 design prepays32,768 additional normal-validation body units per child inside the existing128M fixed slot. Generator controls prepay32,768 within the prior1Mi control allowance. Verifier's existing1Mi control reservation is unchanged and covers all fourteen controls, including later actual P56/private cases. A conservative control-body bound is625,664: fourteen4096-unit rejection/mutation bodies57,344; fourteen512-unit positive baselines7,168; report encoded32KiB*12=393,216;512 report nodes*256=131,072; setup/clone32,768; witness/capture4,096. Encoded rejection evidence is mechanically limited to32KiB and512 nodes. No control allocates or hashes a large PCM stream.
+
+The old fixed-helper source upper97,161,728 plus the additional32,768 normal body reservation is97,194,496<128,000,000. Controls stay inside its existing1Mi allowance. Artifact/pool gates run only at bounded file admissions/fences; extra owner comparisons are bounded by297 bindings. The P56 validation wrapper replaces its existing predicate and adds only the finite first-row-control branch inside the unchanged8192 phase ceiling; no remainder/coefficient arithmetic changes. The control sample wrapper replaces the old control_word+exact_equal composition without extra per-word source loops. R3 actual-source numeric/engine-cost reviews ACCEPTED these bodies; final exact R4 review remains required. Overflow or an unclosed helper remains HOLD.
+
+Generator controls own only small caps/witness maps. Verifier owner mutations own128-byte streams; private mutation owns a bounded ten-row metadata clone; phase mutation owns two integer pairs. Rejection records/encoded scratch stay<=64KiB within existing metadata allowances. Runner controls own<=4KiB descriptors/reports inside its existing2Mi controlled launcher allowance. No extra retained file, process, primitive pool or stage exists. Exact-size readinto/retirement is unchanged. Complete controlled sequential payload18MiB remains within32MiB; internal Python/CLR heap, primitive CPU and RSS are still unqualified.
+
+## Retention and finish line
+
+The exact92 artifacts remain40 private files and52 references with caps3,014,656+71,335,936=74,350,592B. The unchanged64Mi stage pool gives141,459,456B complete retained first-stage upper; current authored inputs<=1Mi, immutable inputs<=8Mi,32Mi scratch and future840Mi whole-revision HOLD are unchanged. Source error summary gains only the three real generator witnesses. Independent verifier stdout gains bounded caught-control evidence. Both remain inside their existing metadata/log/file caps.
+
+No actual controls, source replay, generated artifacts, timings or resource measurements exist for R4. Its manifest records source identities, normal wiring, exact rejection reasons, static comparisons, unchanged reservations and armed first-stage guards only. The historical stage-schema name remains AUTHORED_SOURCE_ONLY_DEFINITION_FIRST_STAGE_HOLD; it is exact-runner scope, not an execution or PASS claim. Final exact R4 source critic and root execution GO are still pending. All compiler/vendor/context/quality/production/renderer/Ready admissions remain false. Later C++ issues and all13 physical controls remain held; root owns STATUS, Git, CI and execution.
+
+## Five-file call graph
+
+Both Python modules import standard-library code only. Their seven C++/header literals occurred solely in the former OWN inventory. Private-copy generation and replay read the production MusicalAudioChannelPlan.h and MusicalAudioChannelMaterialization.h directly through their preserved pins. The PowerShell stage selector admits only DefinitionFreeze and launches exactly generation plus independent Python replay; it contains no compiler invocation. R4's seven historical C++/headers receive full path/size/hash protection through the unchanged before/after complete-input fence. They gain no compiler, vendor or renderer credit. All37 unaffected numerical/private/stream helper ASTs and every Python function except the required checked_manifest cardinality guard remain R3-equal.

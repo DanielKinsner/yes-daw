@@ -1,0 +1,104 @@
+{
+  "stage": "CompileAndRun",
+  "status": "limited_24_setup_profile_and_reached_lifecycle_checks_passed_production_unadmitted",
+  "started_utc": "2026-11-05T11:57:57.2979001Z",
+  "authored_manifest_sha256": "2A0F75C05970250E07D822CE350157BF7D144F963CA61F3547A6935AA7E369E2",
+  "prepared_run": "C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-musical-resource-graph-prep/measurement-r3/runs/20261105-115648-1072184",
+  "freeze_exit": null,
+  "prepare_exit": null,
+  "compile_exit": 0,
+  "candidate_exit": 0,
+  "verify_exit": 0,
+  "production_accepted": false,
+  "full_resource_certificate": false,
+  "full_vendor_processing_work_certified": false,
+  "physical_lifetime_controls_run": false,
+  "waveform_run": false,
+  "public_pcm_samples": 0,
+  "native_app_run": false,
+  "desktop_input": false,
+  "audio_device_run": false,
+  "hardware_run": false,
+  "compiler_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\cl.exe",
+  "compiler_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "compiler_file_version": "19.44.35228.0",
+  "compile_arguments": [
+    "/nologo",
+    "/std:c++20",
+    "/EHsc",
+    "/O2",
+    "/fp:strict",
+    "/W4",
+    "/DNDEBUG",
+    "/D_ITERATOR_DEBUG_LEVEL=0",
+    "/D_USE_MATH_DEFINES",
+    "/IC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-resource-graph-prep\\measurement-r3\\runs\\20261105-115648-1072184\\observer",
+    "/IC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\signalsmith_stretch-src",
+    "/IC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\_deps\\signalsmith_stretch-src\\dsp",
+    "/FeC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-resource-graph-prep\\measurement-r3\\runs\\20261105-115757-2903006\\resource-probe.exe",
+    "/FoC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-resource-graph-prep\\measurement-r3\\runs\\20261105-115757-2903006\\resource-probe.obj",
+    "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-resource-graph-prep\\measurement-r3\\resource_probe.cpp",
+    "/link",
+    "/SUBSYSTEM:CONSOLE"
+  ],
+  "executable_sha256": "0613FD8A6732C2ABC443D8EC940694639526EBE72A8BB1D54D3A985CF4D07C70",
+  "artifact_hashes": [
+    {
+      "path": "authored-manifest.json",
+      "sha256": "2A0F75C05970250E07D822CE350157BF7D144F963CA61F3547A6935AA7E369E2"
+    },
+    {
+      "path": "candidate.log",
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "compile.log",
+      "sha256": "B2B7FE5B59EA3BF82664ED6542FBE16248D2B567022B184B3F19A516FCACB4D1"
+    },
+    {
+      "path": "compiler-environment.log",
+      "sha256": "77172E41DB4031BF2E2271543DC9D497BE43335F87A7A88C9AA417B69F0C7249"
+    },
+    {
+      "path": "resource-probe.exe",
+      "sha256": "0613FD8A6732C2ABC443D8EC940694639526EBE72A8BB1D54D3A985CF4D07C70"
+    },
+    {
+      "path": "resource-probe.obj",
+      "sha256": "A5E032087DE559270DBF0145CEC36925E43CBE313B017B4B9D18F19BAFC106A2"
+    },
+    {
+      "path": "verify.log",
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "candidate/abi.csv",
+      "sha256": "026539E67DF0BCB24C6BF2AC700DB4E4725E97D4D41227EBAAF1B4AF684D59BF"
+    },
+    {
+      "path": "candidate/candidate-receipt.json",
+      "sha256": "25B597D342BC9184E199677F1EA09AECE13676FA479641D0E8A6423AC5279DE3"
+    },
+    {
+      "path": "candidate/measurements.csv",
+      "sha256": "2AF2604CFB3A434B376759EB9920F68938BB5EF992B527E2992C512EE4659453"
+    },
+    {
+      "path": "candidate/pcm-bits.csv",
+      "sha256": "11EF7DCA2A3B1D967CDD2ADECA3242AFF6809E66E4D42C9F07BD21D016403301"
+    },
+    {
+      "path": "candidate/requests.csv",
+      "sha256": "B7EB8FD9E7E0C66F92E52BBE83F3F3A16B65AE890663D32739B5598FF7A1DB80"
+    },
+    {
+      "path": "candidate/snapshots.csv",
+      "sha256": "6A89025F85F4CC03C8E75A0004268BB203BA90865F02D2663CFA11AF02E8FC40"
+    },
+    {
+      "path": "candidate/verification-receipt.json",
+      "sha256": "6F856107160BC22935DDB84A073CEDD7838FD2F5DE58EED59FBCC83561919A50"
+    }
+  ],
+  "finished_utc": "2026-11-05T11:58:01.0753111Z"
+}

@@ -1,0 +1,34 @@
+{
+  "record_created_utc": "2026-11-05T22:52:21.727115+00:00",
+  "reviewer": "/root/musical_parent_provenance",
+  "review_received_exact_utc": null,
+  "verdict": "ACCEPT_WHOLE_FUNCTIONAL_NUMERIC_SOURCE_FOR_INDEPENDENT_CENSUS",
+  "source_manifest_sha256": "4E246199E2AED7AF6D5BA97DFF86A7DB39655DBAC854A685F9F6572478FE7D1D",
+  "scope": "whole289CPP/688PS/72header/README and all functional/profile/guard/reference/control/76family manifest sections; own5 hashes",
+  "closed_R5_blockers": [
+    "five pre-authentication joins use CLR Path.Join; reachable bootstrap uses local helpers/CLR before explicit authenticated imports",
+    "sole six-operand projection normalizes exact parsed BigInteger only after exact Sign/range check to UInt64; general serializer/summary allowlists unchanged"
+  ],
+  "preserved": [
+    "56 references and16929027densewords",
+    "785 fraction pairs and carry",
+    "native inverse/full prefix/ramp/window/burst laws",
+    "both actual checked production endpoints per Q",
+    "11 numeric and8 runner controls",
+    "numerical thresholds/grouping",
+    "preflight/once-only encoding/exact fixedpoint",
+    "raw primary/secondary errors/fences/close/quarantine",
+    "one-attempt law and all false/absent catalogue guards"
+  ],
+  "root_separate_mechanical_evidence": {
+    "all1153inputs_and4own_match": true,
+    "all21closednamespaces_match": true,
+    "entries": 1034,
+    "files": 988,
+    "no_reparse": true,
+    "critic_reread_all_historical_bodies": false
+  },
+  "all_prices_new_limit_data_binding_lifetime_fit_execution": "HOLD",
+  "R5_REVISE_preserved": true,
+  "execution_or_runtime_credit": false
+}

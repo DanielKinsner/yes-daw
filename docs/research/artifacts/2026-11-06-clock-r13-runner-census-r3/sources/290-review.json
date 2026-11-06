@@ -1,0 +1,591 @@
+{
+  "schema": "RESEARCH_ARRAY_CMDLET_EXISTING_BOUNDARY_INDEPENDENT_REVIEW_R1",
+  "verdict": "ACCEPT_EXISTING_BOUNDARY_APPLICATION_SELECTED_BUILTIN_PATHS_ONLY",
+  "subject": {
+    "path": "build-ci/20261106-research-array-cmdlet-boundary-clarifier-r1.md",
+    "sha256": "0A98D4889BE641CD427AA10DFFA648F0806DAAE7302083FBFA8347454E09E661"
+  },
+  "authority": [
+    {
+      "path": "20261105-clock-oracle-separate-research-contract/contract.md",
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010",
+      "text": "# Separate ClockOracle research contract \u2014 source preparation\n\nRoot adopts this prospective contract after independent review by\n`/root/critic_history_linux_allocator` of preparation packet D7E13A33 and pins\n9D145A2D. This is authority to prepare a NEW source revision only. It grants no\nnumeric prices, work limit, binding, parsing, compilation, test or execution GO.\n\n## Historical result and unchanged limits\n\nThe old ClockOracle R4 source/guards/caps remain exact. Its quoted scalar-action\nlower bound is 17,821,237,248, exceeding its private 2^34 cap. That stage stays\nNOFIT. DefinitionR4's first GREEN, original profile and all old receipts/proofs\nremain immutable. This is not a repair or passing result for the old contract.\n\nPreserve all 56 logical clock/inverse files, 16,929,027 dense words, 785 fraction\npairs/carry, full prefix/ramp/window/burst/native-inverse/metadata laws, eleven\nnumeric and eight runner controls, and BOTH actual checked production endpoints\nfor every Q. Preserve all numerical acceptance thresholds and supported domains.\n\nProduction 2^28 work, 512MiB new prepared bytes and 1GiB peak remain unchanged.\nResearch retains 840MiB admitted artifacts, 32MiB controlled explicit scratch,\n1800s per child, one heavy headless lane, one-use/unreset accounting and actual\ncancellation/reap/read settlement/quarantine. Compiler CPU/internal heap/RSS and\ntemporary peak disk remain unqualified. No renderer, Ready or activation credit.\n\nThe NEW limit is NOT SELECTED. First close the exact complete runner/producer/\nverifier upper U and their payload/error lifetimes. Derive one finite checked\nlimit from that U, then obtain independent review before immutable data binding.\nChoose no convenient power of two, padding, multiplier, split or budget reset.\n\n## Prospective research scalar convention\n\nApply the preparation's explicit scalar convention with these clarifications:\n\n- Count each reached scalar/literal read, destination initialization/write,\n  arithmetic/bitwise/comparison/boolean/conversion, selected branch, call entry/\n  dispatch/return and actual loop/control event once. This is not CPU cycles.\n- Caller evaluation supplies the source read of a by-value copy. Callee parameter\n  initialization supplies its destination write; do not invent a second source\n  read for the same copy. Reference arguments do not copy their referents.\n- Guaranteed direct prvalue construction initializes its destination once.\n  Optional NRVO alternatives retain their real copy/move obligations.\n- Uninitialized storage has no invented zero value or write. Explicit constructor\n  entry/return and any independently defined lifetime event are separate facts.\n- Expand selected C++ SDK/STL and our helper bodies under the pinned source and\n  compiler profile. No optimizer or new opaque-category discount supplies fit.\n- Existing OS/CRT/libm and CLR codec/JSON runtime internals remain the declared\n  primitive CPU/general-heap boundary. Public source availability does not move\n  that boundary. Audit behavior and every controlled payload/clone/temporary\n  without claiming primitive CPU, general CLR heap, allocator overhead or RSS.\n- Count all quotation, Catalogue, Meter/Spend, validation, default/aggregate,\n  receipt, failure and retirement source in a finite nonrecursive schedule.\n  Reservations/quoted upper work are distinct from measured actual visits.\n\nThis convention is prospective and distinct from the earlier elementary/API\nEuclid-six certificate and production ADR0085's logical primitive contract.\nNeither historical model is rewritten or retroactively certified under it.\n\n## Selected serialization route: A, existing trusted built-in objects\n\nKeep the actual source-built maps/arrays and existing JSON format. A new wire-node\nplatform is unnecessary for the closed actual runner caller graph. Admit exact\nconcrete containers/comparers and null, Boolean, String and actual signed/unsigned\nintegral types, including Int32/UInt16/UInt32. Reject unsupported objects without\nstringifying them. Do not serialize arbitrary parsed properties.\n\nProject the exact twelve C++ summary fields and exact control schemas/IDs/reasons/\nsix integral operands. Validate any parsed predecessor fields copied into output.\nAll normal witnesses and primary raw outcomes remain. Unknown fields/types refuse.\n\nUse a fresh pinned `-NoProfile -NonInteractive` controller, explicit trusted\nimports and exact serializer binding. Establish the actual source graph has no\nrelevant type-data/property augmentation or serializer-default registration.\nPowerShell preprocessing and extended-property behavior require this closed-domain\naudit; the library also has a global default-settings hook. Sources:\n[PowerShell JsonObject](https://raw.githubusercontent.com/PowerShell/PowerShell/v7.6.5/src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/JsonObject.cs),\n[JsonConvert](https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/13.0.4/Src/Newtonsoft.Json/JsonConvert.cs).\nVerify exact installed module identities/version-to-source mapping before relying\non those sources; version names alone are not a compiled-binary certificate.\n\nBefore serialization or variable normalization/copy/join, check exact container\ncounts/depth, String lengths, scalar types, finite visits and all arithmetic.\nRepeated aliases are repeated serialization visits. Admit source-built sizes\nbefore each allocation/copy; do not fabricate convenient node/cardinality limits.\n\nA checked byte UPPER is sufficient; exact serializer length prediction is optional.\nPrefer explicit EscapeNonAscii: safe ASCII one byte, quote/backslash/short escape\ntwo, other escaped UTF16 unit six; include punctuation, integer digits, Boolean/\nnull and final LF. Specify surrogate validity and safe prefix truncation. This\nbehavior must match the pinned [escaping source](https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/13.0.4/Src/Newtonsoft.Json/Utilities/JavaScriptUtils.cs).\nKeep the actual encoded-length check against both preflight and document cap.\n\nEncode receipts ONCE under the receipt cap, then pass those bytes to a bounded\nwriter. Use preflight lengths for bundle fixed-point iterations, then one final\nencode. Include preprocessing clones, escape/output buffers, returned UTF16,\nReplace/LF results if retained, UTF8 bytes, prior buffers, parsed results, source\ncontainers and quarantine in simultaneous payload phases. No 32MiB fit is granted.\n\n## Other mandatory source corrections\n\nAdmit Repo/NewRunRoot and derived suffix lengths before variable path copies/\nscans. Bound C++ argv root/manifest/mode before std::string/strcmp traversal or\nenforce an equally explicit exact launcher domain. Bound C++ exception diagnostic\noutput. Use bounded structured failure-inventory diagnostics, not full messages.\n\nPreserve the primary error/raw child result separately from footer/fence/serializer\nfailures; a throwing finally fence must not replace the primary cause. Record both\noutcomes and keep raw exits/logs. Footer failure always prevents certification.\nDo not serialize opaque Exception/ErrorRecord graphs into the controlled schema or\nclaim their general CLR heap is bounded by the controlled scratch worksheet.\n\nInclude actual split/filter callback prefixes and join delimiters, or replace them\nwith genuine reviewed bounded source. Close all bootstrap/34 existing helpers/new\nhelpers/main/76 C++ families and their transitive source/error/instrumentation rows.\nRecompute exact lineage/namespace/include/hash/byte/slot profiles, including every\nnew source, contract, census and eventual constant-data identity. Equal bytes do\nnot merge distinct paths or simultaneous owners.\n\nNew sources retain false guards and unbound private immutable Catalogue data.\nFresh whole functional review precedes complete independent census/lifetime review,\nderived-limit review, binding-source review and separate root one-attempt GO.\nNo source maximum, partial floor or manual PASS supplies any missing proof.\n"
+    },
+    {
+      "path": "20261105-clock-oracle-research-leaf-census-conventions.md",
+      "sha256": "DE33D91712372C2FE887A02FB137AA9A96C8C3BB93CB0D88BF57AA32DBEAE564",
+      "text": "# Research census: declared primitive call boundary\n\nSource-only clarification of separate contract344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010.\nThis is the research scalar convention, not production ADR0085's logical primitive\nmodel or a reinterpretation of any historical certificate.\n\n- Count evaluated caller arguments/reference formation and dispatch, plus the\n  declared primitive boundary's entry and return. An actually reached visible\n  wrapper has its own entry/body/return; do not merge it with the primitive.\n- Existing declared CRT/OS/libm/intrinsic and CLR runtime/JSON implementation CPU\n  remains opaque. Public implementation source does not expand that boundary.\n  Selected C++ SDK and all newly authored helper bodies remain expanded.\n- External scalar/result/out-buffer destination writes occur once. A guaranteed\n  result initialized directly into the caller destination is not another value\n  transfer or second destination write. Caller evaluation supplies its value read;\n  actual parameter initialization supplies its write, without a second input read.\n- Reference arguments copy no referent cells. Actual reference formation/binding\n  and implicit receiver actions are accounted once under the research convention;\n  generic forwarding does not manufacture a second referent copy.\n- All controlled payloads, buffers, clones, capacities, preprocessing and retained\n  owners still need their complete lifetime worksheet. Primitive CPU/general CLR\n  heap/RSS exclusions do not turn an explicit array into physically freed storage.\n\nNo price, work limit, constant data, payload fit or execution authority is supplied.\nRoot relayed this same boundary to both independent runner and C++ census reviewers.\n"
+    },
+    {
+      "path": "20261105-clock-oracle-research-bulk-leaf-clarification.md",
+      "sha256": "268597D1F066779CE76DACFDBBC384FC452DC6B9AD319419F52DE597242BB3E8",
+      "text": "# Research census: bulk primitive clarification\n\nThis clarifies DE33D91712372C2FE887A02FB137AA9A96C8C3BB93CB0D88BF57AA32DBEAE564\nunder unchanged separate contract344408DA. Both records remain source-only.\n\nThe accepted preparation's library row and the selected C++ transitive-closure\nmap explicitly preserve the bulk CRT/OS/CLR/libm primitive CPU boundary. In\nparticular, an explicit SDK memcpy remains a bulk primitive; its surrounding\nvisible wrappers and source calculations remain expanded.\n\n- For a declared opaque memcpy, memmove, memset, fread or corresponding existing\n  bulk CLR primitive, count its evaluated caller arguments, dispatch, boundary\n  entry/return and visible wrappers. Do not count n internal byte writes, invent\n  a per-byte source loop, or add a new bulk-scalar fee on top of that call.\n- Explicit scalar results and scalar out-parameter destinations are initialized\n  once. Guaranteed direct caller-result initialization is not another transfer.\n  The earlier record's out-buffer wording does not reopen bulk primitive internals.\n- Fully retain byte extents, capacity, lifetime, old/new overlap and controlled\n  payload obligations. An opaque CPU body grants no storage reclamation or fit.\n- Visible C++ aggregate/default/per-field initialization, copy and retirement\n  retain their actual source actions. Do not replace those semantics with a\n  hypothetical optimized memcpy. Selected C++ SDK wrappers stay expanded; existing\n  CLR/codec runtime internals retain their accepted distinct primitive boundary.\n- Count an actually invoked selected special member's entry, receiver binding,\n  return and real field actions. Empty bodies are not optimizer-discounted.\n  Aggregate initialization that invokes no constructor gets no invented one;\n  uninitialized storage gets no fabricated zero/write, and an uninvoked special\n  member gets no call. Do not invent a field loop for trivial retirement.\n\nThis supplies neither prices nor a new work limit. The old R4 NOFIT, all source\nseals, production policy and resource limits remain unchanged. Future independent\nreview must inspect actual primitive-versus-visible call incidence.\n"
+    }
+  ],
+  "selected_source_evidence": [
+    {
+      "label": "literal elements",
+      "file": "Compiler.cs",
+      "lines": [
+        6519,
+        6528
+      ],
+      "text": "        public object VisitArrayLiteral(ArrayLiteralAst arrayLiteralAst)\n        {\n            List<Expression> elementValues = new List<Expression>(arrayLiteralAst.Elements.Count);\n            foreach (var element in arrayLiteralAst.Elements)\n            {\n                var elementValue = Compile(element);\n                elementValues.Add(elementValue.Type != typeof(void) ? elementValue.Cast(typeof(object)) : Expression.Block(elementValue, ExpressionCache.AutomationNullConstant));\n            }\n\n            return Expression.NewArrayInit(typeof(object), elementValues);"
+    },
+    {
+      "label": "literal capture fusion",
+      "file": "Compiler.cs",
+      "lines": [
+        6495,
+        6517
+      ],
+      "text": "            values ??= CaptureAstResults(subExpr, CaptureAstContext.Enumerable);\n\n            if (pureExprAst is ArrayLiteralAst)\n            {\n                // If the pure expression is ArrayLiteralAst, just return the result.\n                return values;\n            }\n\n            if (values.Type.IsPrimitive || values.Type == typeof(string))\n            {\n                // Slight optimization - no need for a dynamic site.  We could special case other\n                // types as well, but it's probably not worth it.\n                return Expression.NewArrayInit(typeof(object), values.Cast(typeof(object)));\n            }\n\n            if (values.Type == typeof(void))\n            {\n                // A dynamic site can't take void - but a void value is just an empty array.\n                return Expression.Block(values, Expression.NewArrayInit(typeof(object)));\n            }\n\n            return DynamicExpression.Dynamic(PSToObjectArrayBinder.Get(), typeof(object[]), values);\n        }"
+    },
+    {
+      "label": "runtime capture branches",
+      "file": "Binders.cs",
+      "lines": [
+        805,
+        837
+      ],
+      "text": "        public override DynamicMetaObject Bind(DynamicMetaObject target, DynamicMetaObject[] args)\n        {\n            if (!target.HasValue)\n            {\n                return Defer(target, args);\n            }\n\n            if (target.Value == AutomationNull.Value)\n            {\n                return new DynamicMetaObject(Expression.Constant(Array.Empty<object>()),\n                    BindingRestrictions.GetInstanceRestriction(target.Expression, AutomationNull.Value)).WriteToDebugLog(this);\n            }\n\n            var enumerable = PSEnumerableBinder.IsEnumerable(target);\n            if (enumerable == null)\n            {\n                return new DynamicMetaObject(\n                    Expression.NewArrayInit(typeof(object), target.Expression.Cast(typeof(object))),\n                    target.PSGetTypeRestriction()).WriteToDebugLog(this);\n            }\n\n            var value = PSObject.Base(target.Value);\n            if (value is List<object>)\n            {\n                return new DynamicMetaObject(\n                    Expression.Call(PSEnumerableBinder.MaybeDebase(this, static e => e.Cast(typeof(List<object>)), target), CachedReflectionInfo.ObjectList_ToArray),\n                    PSEnumerableBinder.GetRestrictions(target)).WriteToDebugLog(this);\n            }\n\n            // It's enumerable, but not an List<object>.  Call EnumerableOps.ToArray\n            return new DynamicMetaObject(\n                Expression.Call(CachedReflectionInfo.EnumerableOps_ToArray, enumerable.Expression),\n                target.PSGetTypeRestriction()).WriteToDebugLog(this);"
+    },
+    {
+      "label": "typed array copies",
+      "file": "LanguagePrimitives.cs",
+      "lines": [
+        3459,
+        3518
+      ],
+      "text": "        private static object ConvertRelatedArrays(object valueToConvert,\n                                                   Type resultType,\n                                                   bool recursion,\n                                                   PSObject originalValueToConvert,\n                                                   IFormatProvider formatProvider,\n                                                   TypeTable backupTable)\n        {\n            typeConversion.WriteLine(\"The element type of result is assignable from the element type of the value to convert\");\n            var originalAsArray = (Array)valueToConvert;\n            var newValue = Array.CreateInstance(resultType.GetElementType(), originalAsArray.Length);\n            originalAsArray.CopyTo(newValue, 0);\n            return newValue;\n        }\n\n        private static object ConvertUnrelatedArrays(object valueToConvert,\n                                                     Type resultType,\n                                                     bool recursion,\n                                                     PSObject originalValueToConvert,\n                                                     IFormatProvider formatProvider,\n                                                     TypeTable backupTable)\n        {\n            Array valueAsArray = valueToConvert as Array;\n            Type resultElementType = resultType.GetElementType();\n            Array resultArray = Array.CreateInstance(resultElementType, valueAsArray.Length);\n\n            for (int i = 0; i < valueAsArray.Length; i++)\n            {\n                object resultElement = ConvertTo(valueAsArray.GetValue(i), resultElementType, false, formatProvider, backupTable);\n                resultArray.SetValue(resultElement, i);\n            }\n\n            return resultArray;\n        }\n\n        private static object ConvertEnumerableToArray(object valueToConvert,\n                                                       Type resultType,\n                                                       bool recursion,\n                                                       PSObject originalValueToConvert,\n                                                       IFormatProvider formatProvider,\n                                                       TypeTable backupTable)\n        {\n            try\n            {\n                ArrayList result = new ArrayList();\n                Type resultElementType = resultType == typeof(Array) ? typeof(object) : resultType.GetElementType();\n                typeConversion.WriteLine(\"Converting elements in the value to convert to the result's element type.\");\n                foreach (object obj in LanguagePrimitives.GetEnumerable(valueToConvert))\n                {\n                    // false means no further recursions and therefore no cycles\n                    result.Add(ConvertTo(obj, resultElementType, false, formatProvider, backupTable));\n                }\n\n                return result.ToArray(resultElementType);\n            }\n            catch (Exception e)\n            {\n                typeConversion.WriteLine(\"Element conversion exception: \\\"{0}\\\".\", e.Message);\n                throw new PSInvalidCastException(\"InvalidCastExceptionEnumerableToArray\", e,\n                    ExtendedTypeSystem.InvalidCastExceptionWithInnerException,\n                    valueToConvert.ToString(), resultType.ToString(), e.Message);"
+    },
+    {
+      "label": "parameter shape",
+      "file": "Compiler.cs",
+      "lines": [
+        4278,
+        4301
+      ],
+      "text": "        public object VisitCommandParameter(CommandParameterAst commandParameterAst)\n        {\n            var arg = commandParameterAst.Argument;\n            var errorPos = commandParameterAst.ErrorPosition;\n            if (arg != null)\n            {\n                bool spaceAfterParameter = errorPos.EndLineNumber != arg.Extent.StartLineNumber ||\n                                           errorPos.EndColumnNumber != arg.Extent.StartColumnNumber;\n                return Expression.Call(\n                    CachedReflectionInfo.CommandParameterInternal_CreateParameterWithArgument,\n                    Expression.Constant(commandParameterAst),\n                    Expression.Constant(commandParameterAst.ParameterName),\n                    Expression.Constant(errorPos.Text),\n                    Expression.Constant(arg),\n                    Expression.Convert(GetCommandArgumentExpression(arg), typeof(object)),\n                    ExpressionCache.Constant(spaceAfterParameter),\n                    ExpressionCache.Constant(false));\n            }\n\n            return Expression.Call(\n                CachedReflectionInfo.CommandParameterInternal_CreateParameter,\n                Expression.Constant(commandParameterAst.ParameterName),\n                Expression.Constant(errorPos.Text),\n                Expression.Constant(commandParameterAst));"
+    },
+    {
+      "label": "presence semantics",
+      "file": "ParameterBinderBase.cs",
+      "lines": [
+        1347,
+        1383
+      ],
+      "text": "        private object HandleNullParameterForSpecialTypes(\n            CommandParameterInternal argument,\n            string parameterName,\n            Type toType,\n            object currentValue)\n        {\n            object result = null;\n\n            // The presence of the name switch for SwitchParameters (and not booleans)\n            // makes them true.\n\n            if (toType == typeof(bool))\n            {\n                bindingTracer.WriteLine(\n                        \"ERROR: No argument is specified for parameter and parameter type is BOOL\");\n\n                ParameterBindingException exception =\n                    new ParameterBindingException(\n                        ErrorCategory.InvalidArgument,\n                        this.InvocationInfo,\n                        GetErrorExtent(argument),\n                        parameterName,\n                        toType,\n                        null,\n                        ParameterBinderStrings.ParameterArgumentValidationErrorNullNotAllowed,\n                        \"ParameterArgumentValidationErrorNullNotAllowed\",\n                        string.Empty);\n\n                throw exception;\n            }\n            else\n                if (toType == typeof(SwitchParameter))\n            {\n                bindingTracer.WriteLine(\n                    \"Arg is null or not present, parameter type is SWITCHPARAMTER, value is true.\");\n                result = SwitchParameter.Present;\n            }"
+    },
+    {
+      "label": "callable member name",
+      "file": "Compiler.cs",
+      "lines": [
+        6444,
+        6465
+      ],
+      "text": "        public object VisitInvokeMemberExpression(InvokeMemberExpressionAst invokeMemberExpressionAst)\n        {\n            var constraints = GetInvokeMemberConstraints(invokeMemberExpressionAst);\n\n            var target = CompileExpressionOperand(invokeMemberExpressionAst.Expression);\n            var args = CompileInvocationArguments(invokeMemberExpressionAst.Arguments);\n\n            var memberNameAst = invokeMemberExpressionAst.Member as StringConstantExpressionAst;\n            if (memberNameAst != null)\n            {\n                return InvokeMember(\n                    memberNameAst.Value,\n                    constraints,\n                    target,\n                    args,\n                    invokeMemberExpressionAst.Static,\n                    propertySet: false,\n                    invokeMemberExpressionAst.NullConditional);\n            }\n\n            var memberNameExpr = Compile(invokeMemberExpressionAst.Member);\n            return InvokeDynamicMember(memberNameExpr, constraints, target, args, invokeMemberExpressionAst.Static, propertySet: false, invokeMemberExpressionAst.NullConditional);"
+    },
+    {
+      "label": "bareword value",
+      "file": "Compiler.cs",
+      "lines": [
+        6163,
+        6171
+      ],
+      "text": "        public object VisitConstantExpression(ConstantExpressionAst constantExpressionAst)\n        {\n            return Expression.Constant(constantExpressionAst.Value);\n        }\n\n        public object VisitStringConstantExpression(StringConstantExpressionAst stringConstantExpressionAst)\n        {\n            return Expression.Constant(stringConstantExpressionAst.Value);\n        }"
+    },
+    {
+      "label": "enum conversion",
+      "file": "LanguagePrimitives.cs",
+      "lines": [
+        3581,
+        3605
+      ],
+      "text": "        private static object ConvertStringToEnum(object valueToConvert,\n                                                  Type resultType,\n                                                  bool recursion,\n                                                  PSObject originalValueToConvert,\n                                                  IFormatProvider formatProvider,\n                                                  TypeTable backupTable)\n        {\n            string valueAsString = valueToConvert as string;\n            object result = null;\n\n            typeConversion.WriteLine(\"Calling case sensitive Enum.Parse\");\n            try\n            {\n                result = Enum.Parse(resultType, valueAsString);\n            }\n            catch (ArgumentException e)\n            {\n                typeConversion.WriteLine(\"Enum.Parse Exception: \\\"{0}\\\".\", e.Message);\n                // Enum.Parse will always throw this kind of exception.\n                // Even when no map exists. We want to try without case sensitivity\n                // If it works, we will return it, otherwise a new exception will\n                // be thrown and we will use it to set exceptionToWrap\n                try\n                {\n                    typeConversion.WriteLine(\"Calling case insensitive Enum.Parse\");"
+    },
+    {
+      "label": "json public switches and enum",
+      "file": "ConvertToJsonCommand.cs",
+      "lines": [
+        45,
+        77
+      ],
+      "text": "        /// Gets or sets the Compress property.\n        /// If the Compress property is set to be true, the Json string will\n        /// be output in the compressed way. Otherwise, the Json string will\n        /// be output with indentations.\n        /// </summary>\n        [Parameter]\n        public SwitchParameter Compress { get; set; }\n\n        /// <summary>\n        /// Gets or sets the EnumsAsStrings property.\n        /// If the EnumsAsStrings property is set to true, enum values will\n        /// be converted to their string equivalent. Otherwise, enum values\n        /// will be converted to their numeric equivalent.\n        /// </summary>\n        [Parameter]\n        public SwitchParameter EnumsAsStrings { get; set; }\n\n        /// <summary>\n        /// Gets or sets the AsArray property.\n        /// If the AsArray property is set to be true, the result JSON string will\n        /// be returned with surrounding '[', ']' chars. Otherwise,\n        /// the array symbols will occur only if there is more than one input object.\n        /// </summary>\n        [Parameter]\n        public SwitchParameter AsArray { get; set; }\n\n        /// <summary>\n        /// Specifies how strings are escaped when writing JSON text.\n        /// If the EscapeHandling property is set to EscapeHtml, the result JSON string will\n        /// be returned with HTML (&lt;, &gt;, &amp;, ', \") and control characters (e.g. newline) are escaped.\n        /// </summary>\n        [Parameter]\n        public StringEscapeHandling EscapeHandling { get; set; } = StringEscapeHandling.Default;"
+    },
+    {
+      "label": "fromjson public switches and enum",
+      "file": "ConvertFromJsonCommand.cs",
+      "lines": [
+        30,
+        56
+      ],
+      "text": "        private readonly List<string> _inputObjectBuffer = new();\n\n        /// <summary>\n        /// Returned data structure is a Hashtable instead a CustomPSObject.\n        /// </summary>\n        [Parameter]\n        public SwitchParameter AsHashtable { get; set; }\n\n        /// <summary>\n        /// Gets or sets the maximum depth the JSON input is allowed to have. By default, it is 1024.\n        /// </summary>\n        [Parameter]\n        [ValidateRange(ValidateRangeKind.Positive)]\n        public int Depth { get; set; } = 1024;\n\n        /// <summary>\n        /// Gets or sets the switch to prevent ConvertFrom-Json from unravelling collections during deserialization, instead passing them as a single\n        /// object through the pipeline.\n        /// </summary>\n        [Parameter]\n        public SwitchParameter NoEnumerate { get; set; }\n\n        /// <summary>\n        /// Gets or sets the switch to control how DateTime values are to be parsed as a dotnet object.\n        /// </summary>\n        [Parameter]\n        public JsonDateKind DateKind { get; set; } = JsonDateKind.Default;"
+    }
+  ],
+  "recommendation": "Apply existing source/primitive boundary; no per-cell hidden runtime CPU tariff; retain all real source/callback/conversion/destination/storage work; whole R2 review still required.",
+  "unsupported": [
+    "Any new blanket PowerShell/VM opacity category",
+    "Hiding entered own callbacks/loops/helpers or selected C++ SDK bodies",
+    "Converting constant callable-designator rule into general constant folding",
+    "Per-cell hidden CLR/VM copy tariff not present in existing model",
+    "Free storage/GC/pool-hit/physical-reclaim assumption",
+    "Transfer of old ToArray/caller/whole prices"
+  ],
+  "ambiguity": "The word VM is scoped to existing selected capture/binder/coercion machinery, not a new category. Compiler implementation facts do not qualify compiled runtime or assign a tariff. No unresolved contract change is needed for the selected cases; actual source/caller and resource/binary gates remain.",
+  "not_whole_census_or_numeric_resource_review": true,
+  "no_price_fit_Data_flags_or_GO": true,
+  "no_target_execution": true,
+  "checks": [
+    {
+      "name": "exact root subject",
+      "passed": true
+    },
+    {
+      "name": "exact authority 20261105-clock-oracle-separate-research-contract/contract.md",
+      "passed": true
+    },
+    {
+      "name": "exact authority 20261105-clock-oracle-research-leaf-census-conventions.md",
+      "passed": true
+    },
+    {
+      "name": "exact authority 20261105-clock-oracle-research-bulk-leaf-clarification.md",
+      "passed": true
+    },
+    {
+      "name": "selected source commit",
+      "passed": true
+    },
+    {
+      "name": "one origin src/System.Management.Automation/engine/parser/Compiler.cs",
+      "passed": true
+    },
+    {
+      "name": "selected source src/System.Management.Automation/engine/parser/Compiler.cs",
+      "passed": true
+    },
+    {
+      "name": "one origin src/System.Management.Automation/engine/runtime/Binding/Binders.cs",
+      "passed": true
+    },
+    {
+      "name": "selected source src/System.Management.Automation/engine/runtime/Binding/Binders.cs",
+      "passed": true
+    },
+    {
+      "name": "one origin src/System.Management.Automation/engine/LanguagePrimitives.cs",
+      "passed": true
+    },
+    {
+      "name": "selected source src/System.Management.Automation/engine/LanguagePrimitives.cs",
+      "passed": true
+    },
+    {
+      "name": "one origin src/System.Management.Automation/engine/ParameterBinderBase.cs",
+      "passed": true
+    },
+    {
+      "name": "selected source src/System.Management.Automation/engine/ParameterBinderBase.cs",
+      "passed": true
+    },
+    {
+      "name": "one origin src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/ConvertToJsonCommand.cs",
+      "passed": true
+    },
+    {
+      "name": "selected source src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/ConvertToJsonCommand.cs",
+      "passed": true
+    },
+    {
+      "name": "one origin src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/ConvertFromJsonCommand.cs",
+      "passed": true
+    },
+    {
+      "name": "selected source src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/ConvertFromJsonCommand.cs",
+      "passed": true
+    },
+    {
+      "name": "older primary copy exact Compiler.cs",
+      "passed": true
+    },
+    {
+      "name": "older primary copy exact Binders.cs",
+      "passed": true
+    },
+    {
+      "name": "older primary copy exact LanguagePrimitives.cs",
+      "passed": true
+    },
+    {
+      "name": "literal elements:foreach (var element in arrayLiteralAst.Elements)",
+      "passed": true
+    },
+    {
+      "name": "literal elements:var elementValue = Compile(element);",
+      "passed": true
+    },
+    {
+      "name": "literal elements:Expression.NewArrayInit(typeof(object), elementValues)",
+      "passed": true
+    },
+    {
+      "name": "literal capture fusion:if (pureExprAst is ArrayLiteralAst)",
+      "passed": true
+    },
+    {
+      "name": "literal capture fusion:return values;",
+      "passed": true
+    },
+    {
+      "name": "literal capture fusion:PSToObjectArrayBinder.Get()",
+      "passed": true
+    },
+    {
+      "name": "runtime capture branches:Array.Empty<object>()",
+      "passed": true
+    },
+    {
+      "name": "runtime capture branches:if (value is List<object>)",
+      "passed": true
+    },
+    {
+      "name": "runtime capture branches:CachedReflectionInfo.ObjectList_ToArray",
+      "passed": true
+    },
+    {
+      "name": "runtime capture branches:CachedReflectionInfo.EnumerableOps_ToArray",
+      "passed": true
+    },
+    {
+      "name": "typed array copies:originalAsArray.CopyTo(newValue, 0);",
+      "passed": true
+    },
+    {
+      "name": "typed array copies:Array.CreateInstance(resultElementType, valueAsArray.Length)",
+      "passed": true
+    },
+    {
+      "name": "typed array copies:resultArray.SetValue(resultElement, i);",
+      "passed": true
+    },
+    {
+      "name": "typed array copies:return result.ToArray(resultElementType);",
+      "passed": true
+    },
+    {
+      "name": "parameter shape:if (arg != null)",
+      "passed": true
+    },
+    {
+      "name": "parameter shape:CommandParameterInternal_CreateParameterWithArgument",
+      "passed": true
+    },
+    {
+      "name": "parameter shape:CommandParameterInternal_CreateParameter,",
+      "passed": true
+    },
+    {
+      "name": "presence semantics:if (toType == typeof(bool))",
+      "passed": true
+    },
+    {
+      "name": "presence semantics:if (toType == typeof(SwitchParameter))",
+      "passed": true
+    },
+    {
+      "name": "presence semantics:result = SwitchParameter.Present;",
+      "passed": true
+    },
+    {
+      "name": "callable member name:memberNameAst.Value",
+      "passed": true
+    },
+    {
+      "name": "callable member name:var memberNameExpr = Compile(invokeMemberExpressionAst.Member);",
+      "passed": true
+    },
+    {
+      "name": "bareword value:return Expression.Constant(stringConstantExpressionAst.Value);",
+      "passed": true
+    },
+    {
+      "name": "enum conversion:string valueAsString = valueToConvert as string;",
+      "passed": true
+    },
+    {
+      "name": "enum conversion:result = Enum.Parse(resultType, valueAsString);",
+      "passed": true
+    },
+    {
+      "name": "json public switches and enum:public SwitchParameter Compress",
+      "passed": true
+    },
+    {
+      "name": "json public switches and enum:public StringEscapeHandling EscapeHandling",
+      "passed": true
+    },
+    {
+      "name": "fromjson public switches and enum:public SwitchParameter AsHashtable",
+      "passed": true
+    },
+    {
+      "name": "fromjson public switches and enum:public JsonDateKind DateKind",
+      "passed": true
+    },
+    {
+      "name": "lineage constant ToArray group",
+      "passed": true
+    },
+    {
+      "name": "lineage bulk note",
+      "passed": true
+    },
+    {
+      "name": "lineage resource obligation",
+      "passed": true
+    },
+    {
+      "name": "review disclosure ACCEPT as an application",
+      "passed": true
+    },
+    {
+      "name": "review disclosure Alternative B",
+      "passed": true
+    },
+    {
+      "name": "review disclosure not a new free category",
+      "passed": true
+    },
+    {
+      "name": "review disclosure No old helper/call/phase number",
+      "passed": true
+    },
+    {
+      "name": "review disclosure all prior owner",
+      "passed": true
+    },
+    {
+      "name": "review disclosure actual receiver/type/argument",
+      "passed": true
+    },
+    {
+      "name": "review disclosure failed candidate",
+      "passed": true
+    },
+    {
+      "name": "review disclosure one real nonidentity string-to-enum",
+      "passed": true
+    },
+    {
+      "name": "review disclosure second array",
+      "passed": true
+    },
+    {
+      "name": "review disclosure this accepts no row price",
+      "passed": true
+    },
+    {
+      "name": "prior packet pin untouched build-ci/20261106-clock-native-child-source-owners-r1/source-pins.json",
+      "passed": true
+    },
+    {
+      "name": "prior packet frozen file build-ci/20261106-clock-native-child-source-owners-r1/derive.py",
+      "passed": true
+    },
+    {
+      "name": "prior packet frozen file build-ci/20261106-clock-native-child-source-owners-r1/argument.md",
+      "passed": true
+    },
+    {
+      "name": "prior packet frozen file build-ci/20261106-clock-native-child-source-owners-r1/owners.json",
+      "passed": true
+    },
+    {
+      "name": "prior packet frozen file build-ci/20261106-clock-native-child-source-owners-r1/own-check-receipt.json",
+      "passed": true
+    },
+    {
+      "name": "prior packet frozen file build-ci/20261106-clock-native-child-source-owners-r1/first-green-freeze.json",
+      "passed": true
+    },
+    {
+      "name": "prior packet pin untouched build-ci/20261106-clock-native-resource-boundary-audit-r1/source-pins.json",
+      "passed": true
+    },
+    {
+      "name": "prior packet frozen file build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.md",
+      "passed": true
+    },
+    {
+      "name": "prior packet frozen file build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.json",
+      "passed": true
+    },
+    {
+      "name": "prior packet frozen file build-ci/20261106-clock-native-resource-boundary-audit-r1/check.py",
+      "passed": true
+    },
+    {
+      "name": "prior packet frozen file build-ci/20261106-clock-native-resource-boundary-audit-r1/own-check-receipt.json",
+      "passed": true
+    },
+    {
+      "name": "prior packet frozen file build-ci/20261106-clock-native-resource-boundary-audit-r1/first-green-freeze.json",
+      "passed": true
+    }
+  ],
+  "input_pins": [
+    {
+      "path": "build-ci/20261106-research-array-cmdlet-boundary-clarifier-r1.md",
+      "bytes": 2757,
+      "sha256": "0A98D4889BE641CD427AA10DFFA648F0806DAAE7302083FBFA8347454E09E661"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-leaf-census-conventions.md",
+      "bytes": 1746,
+      "sha256": "DE33D91712372C2FE887A02FB137AA9A96C8C3BB93CB0D88BF57AA32DBEAE564"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-bulk-leaf-clarification.md",
+      "bytes": 2153,
+      "sha256": "268597D1F066779CE76DACFDBBC384FC452DC6B9AD319419F52DE597242BB3E8"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/source-origins.json",
+      "bytes": 276057,
+      "sha256": "5314810ED0AF072A0103248367FAF8A42E51D3C1835242D2D40309771D06DA68"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/parser/Compiler.cs",
+      "bytes": 341878,
+      "sha256": "C5DED9509B65F2CD81B1D5B11F8915A220B32BE038599FC7008BA235563B95DC"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/runtime/Binding/Binders.cs",
+      "bytes": 389899,
+      "sha256": "CCA6BC97C2CDC16FDC1EB612FABCCCEA919629BC4C04F952C00A458FF7C9F6AC"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/LanguagePrimitives.cs",
+      "bytes": 291050,
+      "sha256": "284B0FAD37EF182C51566E8135B20E4C27464B1EE9352A1786E7DC76C3089711"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/ParameterBinderBase.cs",
+      "bytes": 94857,
+      "sha256": "D44A8B39133E8B3C38835DAD7B22861F5B56A2F01F4FA853278E9FFC1E5BBE70"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/ConvertToJsonCommand.cs",
+      "bytes": 5210,
+      "sha256": "110FB32101AA117D90F9DCF95037B5B6C16E4F7C55A593FA066034D77F964723"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/ConvertFromJsonCommand.cs",
+      "bytes": 5180,
+      "sha256": "A96F19EE7FEB6CB45CF1ED547A036B909EBD0362B57EB556D4982FE9E142B37A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/Compiler.cs",
+      "bytes": 341878,
+      "sha256": "C5DED9509B65F2CD81B1D5B11F8915A220B32BE038599FC7008BA235563B95DC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/primary-sources/Binders.cs",
+      "bytes": 389899,
+      "sha256": "CCA6BC97C2CDC16FDC1EB612FABCCCEA919629BC4C04F952C00A458FF7C9F6AC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/primary-sources/LanguagePrimitives.cs",
+      "bytes": 291050,
+      "sha256": "284B0FAD37EF182C51566E8135B20E4C27464B1EE9352A1786E7DC76C3089711"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "bytes": 143375,
+      "sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7"
+    },
+    {
+      "path": "build-ci/20261106-research-array-boundary-independent-review-r1/review.md",
+      "bytes": 10268,
+      "sha256": "585F6BA1C7FC661429C7A2DD9CBB61DF385665510F08E3398492EFF1742E4691"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/source-pins.json",
+      "bytes": 4342,
+      "sha256": "D665AF77E103BDFE8F2D12D81D04F9E90C3C95A430343E673AC0D8F3597C8E4A"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/derive.py",
+      "bytes": 17132,
+      "sha256": "972FED59EC971485B2E3FABE100485B7C703E1995089B903E21B2F56DA1698EA"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/argument.md",
+      "bytes": 12341,
+      "sha256": "800AD9E0F558A7B8B27D0235533642F0925BA60F207A39E1FC586C871C5532D1"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/owners.json",
+      "bytes": 33532,
+      "sha256": "73B9A2C4F0BACC420EA86E87F1BB7EC46098E9CB5806DD2D4B53EC97C514FDBE"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/own-check-receipt.json",
+      "bytes": 492,
+      "sha256": "4F71D625D2F44D6DCFD95D86D336DA562FB29AF64F7C9E7FCE59E0076E4D6FDE"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/first-green-freeze.json",
+      "bytes": 1029,
+      "sha256": "AF60891D04E89790C8E3178482738518C5C174F5F886CC30D798C933B4945ECC"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/source-pins.json",
+      "bytes": 6550,
+      "sha256": "5F274105BB68DB2F0FFDCE4E7C13D5CA190C60032795C5ABBD750A971CAAE182"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.md",
+      "bytes": 13383,
+      "sha256": "D5E405FCFC94E2E1B9C6936532362592B6F91ADAD2A9DB7DD065F38416D3B44B"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.json",
+      "bytes": 16931,
+      "sha256": "C76A0FF1289E7B9EC094A7AF77D95372BA90736028640133FE6313F40F42DF1C"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/check.py",
+      "bytes": 6746,
+      "sha256": "D2D6FC0615968C6187164A16CBCA38143B26A37BCD36C2F963A5582C8EDCAFA3"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/own-check-receipt.json",
+      "bytes": 486,
+      "sha256": "877858AC4FBA76E49D6E0C78D08DA8B4D283E86FCD94B3AC1622D5ADFFB39CC7"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/first-green-freeze.json",
+      "bytes": 958,
+      "sha256": "003CA6EC592361FAEDDBC619FA3A95929CA7CD7B4B9CCB6B67CEB69CF54D06A2"
+    }
+  ],
+  "discovery_failures_preserved": [
+    {
+      "action": "rg literal Windows glob path build-ci/20261105-clock-oracle*",
+      "raw_exit": 1,
+      "diagnostic": "os error123 invalid path syntax; corrected to rg over build-ci"
+    },
+    {
+      "action": "read guessed primary-sources/origins.json under R10 review",
+      "raw_exit": 1,
+      "diagnostic": "file absent; selected source-origins ledger located under environment-writer-closure-r2; no subject changes"
+    }
+  ]
+}

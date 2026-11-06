@@ -1,0 +1,45 @@
+{
+  "record_created_utc": "2026-11-05T22:44:01.084804+00:00",
+  "reviewer": "/root/musical_parent_provenance",
+  "review_received_exact_utc": null,
+  "verdict": "REVISE_FUNCTIONAL_SOURCE",
+  "review_scope": "whole289-lineCPP,676-linePS,72-lineheader,README, all functional/profile/guard/reference manifest sections; own5 hashes",
+  "source_manifest_sha256": "436E86D9EB3EC00A8E3CD6A4621B2EC5A909DCBB6732C706DCA94484E4ADBFFC",
+  "root_mechanical_input_and_own_pin_check": {
+    "inputs": 1144,
+    "own_sources": 4,
+    "all_match": true
+  },
+  "critic_independently_reread_all_historical_bodies": false,
+  "blockers": [
+    {
+      "id": "exact-uint64-parsed-control-operands",
+      "source": "Read-TaskChildResult six operand projection",
+      "finding": "Pinned JSON reader can retain a BigInteger for valid UInt64 decimal values greater than Int64.MaxValue; Assert-TaskIntegral currently rejects that parsed representation. C++ uint64 hash/control operand domain is not proven to fit signed Int64.",
+      "correction": "Normalize only exact parsed System.Numerics.BigInteger in0..UInt64.MaxValue to actual UInt64 at the six-operand projection. Reject negative/out-of-range/nonintegral values; keep output graph built-in integral domain.",
+      "observed_runtime_failure": false
+    },
+    {
+      "id": "pre-authentication-module-cmdlet-edge",
+      "source": "five bootstrap unqualified Join-Path calls before Initialize-TaskController",
+      "finding": "NoProfile alone does not close module autoload before explicit authentication/import. DefaultsAll and PSHOME-first discovery do not prove a malicious ambient module ran; they leave the promised exact loader graph unclosed.",
+      "correction": "Replace only the five bootstrap fixed joins with CLR IO.Path.Join, leaving no reachable pre-authentication unqualified module cmdlet.",
+      "observed_runtime_failure": false
+    }
+  ],
+  "otherwise_reviewed_coherent": [
+    "unchanged numerical bodies/grouping",
+    "56 files and16929027 dense words",
+    "785 fraction pairs/carry/native inverse",
+    "both actual production endpoints per Q",
+    "11 numeric and8 runner controls",
+    "12 summary and3 control field projection",
+    "exact digits/escaping/preflight/once-only encode/fixedpoint",
+    "raw primary/secondary errors/fences/quarantine",
+    "all guards false; private catalogue undefined; prices and new U unbound"
+  ],
+  "source_only": true,
+  "parser_helper_compiler_stage_test_execution": false,
+  "cost_payload_fit_or_runtime_qualification": false,
+  "R5_preserved_sealed_UNRUN": true
+}

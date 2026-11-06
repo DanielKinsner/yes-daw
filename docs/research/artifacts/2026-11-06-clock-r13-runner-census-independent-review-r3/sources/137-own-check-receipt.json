@@ -1,0 +1,11 @@
+{
+  "purpose": "independent source/file/hash/JSON/integer only",
+  "attempt": 2,
+  "raw_exit": 0,
+  "check_count": 18310,
+  "wall_seconds_before_output_seal": 0.5582764000282623,
+  "subject_or_old_code_executed": false,
+  "candidate_edits": false,
+  "prior_read_failure": "failed-read-attempt-01.json",
+  "prior_complete_check_failure": "failed-own-attempt-01: optional-signature regex overran into same-line bodies; replaced with actual pre-body declaration prefix; no subject finding"
+}

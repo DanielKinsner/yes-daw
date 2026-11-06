@@ -1,0 +1,2102 @@
+{
+  "schema": 2,
+  "stage": "SOURCE_ONLY_CORRECTION_NO_TWELVE_FILE_AUTHORING_OR_EXECUTION_GO",
+  "supersedes_only": [
+    "generated actual source-fault mechanism",
+    "physical Project-frame read/center control",
+    "independent source-error and retained-stage bounds"
+  ],
+  "original_documents_immutable": {
+    "packet.md": "91BA742EBA08FE6D898750ED3317C3D8D1F756B5B1579F47E05AE807D9B96DDE",
+    "proof-plan.json": "5006D876D40D516A25CCD802B5AC1B92EBFF9CAC4AB928ADD3C70B919134D1B3",
+    "source-pins.json": "693EC6340182C746963A2EB1CE15E4A416E9BF3DA384D8ED83A7FE476C698A10"
+  },
+  "root_head_snapshot": "80dcad36bfa077abcca23662ad0f5e9a1a5064d6",
+  "writes_only": [
+    "revision-r2/packet.md",
+    "revision-r2/proof-plan.json",
+    "revision-r2/source-pins.json"
+  ],
+  "original_matrix_and_controls": {
+    "requested_nonmutant_preparations": 294,
+    "physical_controls": 13,
+    "matrix": {
+      "rates": [
+        44100,
+        48000,
+        96000
+      ],
+      "PPQ": 15360,
+      "S": "3*PPQ+1",
+      "L": "10*PPQ",
+      "N": "10*R",
+      "source_offset": 7,
+      "original_frames": "N+14",
+      "prefix_bpm": 90,
+      "constant_ratios": [
+        0.5,
+        0.75,
+        1,
+        1.5,
+        2
+      ],
+      "constant_bpm": "60/ratio",
+      "ramps": [
+        [
+          120,
+          30
+        ],
+        [
+          30,
+          120
+        ]
+      ],
+      "jumps": [
+        [
+          120,
+          30
+        ],
+        [
+          30,
+          120
+        ]
+      ],
+      "jump_tick": "S+4*PPQ+1",
+      "source_jump": "4*R+R/PPQ",
+      "base_tones": 135,
+      "base_zero": 54,
+      "base_bursts": 54,
+      "base_total": 243,
+      "additional_signed_zero": 1,
+      "additional_reverse": 2,
+      "additional_nontrivial_bake": 48,
+      "non_mutant_requested_total": 294,
+      "reverse_selection": "48k,120->30 jump,p=2R,mono/equivalent",
+      "bake_selection": "48k,120->30 ramp,220Hz,mono/equivalent; 4shapes*3curves*2nontrivial length pairs*2layouts",
+      "bake_no_fade_references": "two already required base-tone rows; do not duplicate behavior-identical zero-fade dimensions",
+      "actual_numeric_a_inventory": "UNRUN_MUST_FREEZE",
+      "planner_refusal_policy": "all rows retained; actual precise ChordBoundUnproved or other refusal is NOT_REACHED waveform, never PASS"
+    },
+    "control_ids": [
+      "pitch6cent",
+      "level1p1dB",
+      "double_fade",
+      "reverse_after",
+      "latency_plus1",
+      "omit_OL",
+      "center3Frame",
+      "skip_late_finite",
+      "merge_last_ulp",
+      "omit_logical_stereo",
+      "swap_distinct",
+      "damage_materialized_sample",
+      "old_C2_equivalent"
+    ],
+    "objective_thresholds_caps_changed": false
+  },
+  "authored_candidate_allowlist_unchanged": [
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/WaveformCandidate.h",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/waveform_probe.cpp",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/waveform_check.cpp",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/clock_oracle.cpp",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/plan_probe.cpp",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/independent_clock.h",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/fast_fit.h",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/freeze_waveform.py",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/verify_waveform.py",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/run-waveform.ps1",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/README.md",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/authored-manifest.json"
+  ],
+  "generated_source_preparation": {
+    "owner": "freeze_waveform.py; separately reviewed SourceCopyPreparation substage of DefinitionFreeze",
+    "status": "UNRUN_SOURCE_REVIEW_ROOT_GO_REQUIRED",
+    "production_inputs": {
+      "src/engine/MusicalAudioChannelPlan.h": "F47C6E49B02A69C16CD554A4C5520CC891146A434603F4E1BB73E9099EB97F16",
+      "src/engine/MusicalAudioChannelMaterialization.h": "6C96FC13BCBDD21040DCD53E990F35F336A6C6E8436CE404BA28B6240E2B7EC7"
+    },
+    "variants": [
+      "baseline",
+      "skip_late_finite",
+      "ignore_last_mismatch",
+      "swap_stored_channels",
+      "corrupt_constructed_output"
+    ],
+    "literal_generated_artifacts": [
+      {
+        "path": "generated/private-sources/baseline/engine/MusicalAudioChannelPlan.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "baseline",
+        "namespace": "yesdaw::engine::waveform_private_baseline",
+        "input": "src/engine/MusicalAudioChannelPlan.h"
+      },
+      {
+        "path": "generated/private-sources/patches/baseline.plan.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "baseline"
+      },
+      {
+        "path": "generated/private-sources/patches/baseline.plan.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "baseline"
+      },
+      {
+        "path": "generated/private-sources/baseline/engine/MusicalAudioChannelMaterialization.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "baseline",
+        "namespace": "yesdaw::engine::waveform_private_baseline",
+        "input": "src/engine/MusicalAudioChannelMaterialization.h"
+      },
+      {
+        "path": "generated/private-sources/patches/baseline.materializer.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "baseline"
+      },
+      {
+        "path": "generated/private-sources/patches/baseline.materializer.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "baseline"
+      },
+      {
+        "path": "generated/private-sources/skip_late_finite/engine/MusicalAudioChannelPlan.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite",
+        "namespace": "yesdaw::engine::waveform_private_skip_late_finite",
+        "input": "src/engine/MusicalAudioChannelPlan.h"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.plan.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.plan.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/skip_late_finite/engine/MusicalAudioChannelMaterialization.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite",
+        "namespace": "yesdaw::engine::waveform_private_skip_late_finite",
+        "input": "src/engine/MusicalAudioChannelMaterialization.h"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.materializer.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.materializer.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/ignore_last_mismatch/engine/MusicalAudioChannelPlan.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch",
+        "namespace": "yesdaw::engine::waveform_private_ignore_last_mismatch",
+        "input": "src/engine/MusicalAudioChannelPlan.h"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.plan.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.plan.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/ignore_last_mismatch/engine/MusicalAudioChannelMaterialization.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch",
+        "namespace": "yesdaw::engine::waveform_private_ignore_last_mismatch",
+        "input": "src/engine/MusicalAudioChannelMaterialization.h"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.materializer.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.materializer.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/swap_stored_channels/engine/MusicalAudioChannelPlan.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels",
+        "namespace": "yesdaw::engine::waveform_private_swap_stored_channels",
+        "input": "src/engine/MusicalAudioChannelPlan.h"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.plan.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.plan.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/swap_stored_channels/engine/MusicalAudioChannelMaterialization.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels",
+        "namespace": "yesdaw::engine::waveform_private_swap_stored_channels",
+        "input": "src/engine/MusicalAudioChannelMaterialization.h"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.materializer.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.materializer.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/corrupt_constructed_output/engine/MusicalAudioChannelPlan.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output",
+        "namespace": "yesdaw::engine::waveform_private_corrupt_constructed_output",
+        "input": "src/engine/MusicalAudioChannelPlan.h"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.plan.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.plan.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/corrupt_constructed_output/engine/MusicalAudioChannelMaterialization.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output",
+        "namespace": "yesdaw::engine::waveform_private_corrupt_constructed_output",
+        "input": "src/engine/MusicalAudioChannelMaterialization.h"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.plan.fault.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.plan.fault.inverse.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.plan.fault.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.plan.fault.inverse.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.materializer.fault.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.materializer.fault.inverse.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.fault.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.fault.inverse.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/source-copy-manifest.json",
+        "kind": "manifest_or_mechanical_inverse_receipt",
+        "bytes_cap": 262144
+      },
+      {
+        "path": "generated/private-sources/source-copy-verification.json",
+        "kind": "manifest_or_mechanical_inverse_receipt",
+        "bytes_cap": 262144
+      }
+    ],
+    "generated_artifact_count": 40,
+    "generated_file_cap_sum": 3014656,
+    "reserved_retained_bytes": 8388608,
+    "scratch_cap": 8388608,
+    "source_work_proposal": 2147483648,
+    "weighted_byte_upper": 512,
+    "fixed_work_upper": 16777216,
+    "cost_is_closed": false,
+    "lineage": [
+      "exact pinned production bytes",
+      "namespace/include-only isolated baseline",
+      "one separately reversible semantic fault if any",
+      "semantic inverse exact to isolated baseline",
+      "isolation inverse exact to pinned production source"
+    ],
+    "generation_algorithm": "unique exact anchors and deterministic linear patch emission; no fuzzy difflib/Git execution",
+    "generated_helpers": [],
+    "selection_helper": "authored waveform_probe.cpp only",
+    "unchanged_gates": [
+      "authored waveform_check.cpp",
+      "authored verify_waveform.py"
+    ],
+    "checker_object": "compiled once without fault defines and hash-bound into all links",
+    "private_factory_requirement": "normal public copied request/Plan/materializer factories only; private constructors/friends preserved",
+    "forbidden": [
+      "forged descriptor",
+      "aggregate private Plan",
+      "reinterpret_cast or const_cast bypass",
+      "externally mutable result/source alias",
+      "post-publication descriptor mutation",
+      "combined semantic faults",
+      "unlisted source/include/helper"
+    ],
+    "weighted_byte_scope": "every actual repeated visit for read/write/parse/inverse/hash, not retained bytes only",
+    "maximum_visited_bytes": 4161536
+  },
+  "include_inventory_contract": {
+    "roots": [
+      "candidate authored directory",
+      "each generated/private-sources/<listed-variant>/engine",
+      "repo/src",
+      "pinned vendor root",
+      "pinned compiler standard-library and SDK roots"
+    ],
+    "generated_plan_quote": "engine/MusicalAudioWindow.h",
+    "generated_materializer_quote": "same-variant same-directory MusicalAudioChannelPlan.h",
+    "existing_Window_quote_closure": "all24files/50edges pinned in source-pins.json",
+    "future_authored_source_helper_closure": "must be exhaustive in authored manifest before source acceptance; unknown include remains HOLD"
+  },
+  "actual_factory_faults": [
+    {
+      "id": "skip_late_finite",
+      "changed_code": "actual private Plan finite checks conditioned on still-equivalent state",
+      "reached_input": "early finite distinct pair then late selected NaN",
+      "actual_result": "normal private factory may incorrectly return a distinct descriptor",
+      "unchanged_gate": "independent full selected finite-bit scan",
+      "must_reject_before_DSP": true,
+      "required_vendor_construction_count": 0,
+      "not_credit": "invalid Plan channel index or another earlier guard"
+    },
+    {
+      "id": "ignore_last_mismatch",
+      "changed_code": "actual private Plan equivalence comparison ignores final selected frame; finite validation unchanged",
+      "reached_input": "final-right oneULP mismatch",
+      "unchanged_gate": "independent complete selected equivalence/layout expects physical2",
+      "forged_descriptor": false
+    },
+    {
+      "id": "swap_stored_channels",
+      "changed_code": "actual private materializer construction stores opposite physical channel for distinct2/2",
+      "unchanged_gate": "independent exact physical-to-logical stored-bit/provenance comparison",
+      "checker_expected_channels_changed": false
+    },
+    {
+      "id": "corrupt_constructed_output",
+      "changed_code": "private factory flips bit0 of first already-constructed finite sample before publication",
+      "unchanged_gate": "independent exact-bit projection/integrity comparison",
+      "external_mutable_alias": false,
+      "finite_binary32_bit0_flip_remains_finite": true
+    }
+  ],
+  "physical_center_control": {
+    "adapter_baseline": "j=p-A",
+    "adapter_mutant": "j=p-(A+delta)",
+    "zero_outside": "j not in[0,D)",
+    "frozen_delta": "+3 if d2>=0 else-3 using exact integer/rational arithmetic",
+    "unaltered": [
+      "stored PCM",
+      "original A/B/D",
+      "Q table",
+      "owners",
+      "checker",
+      "expected centers"
+    ],
+    "actual_output": "complete Project-indexed sample stream over frozen baseline+shift halo",
+    "must_record": [
+      "p",
+      "j or outside-zero owner",
+      "physical r=OL+j when retained",
+      "sample bits",
+      "contribution owner/token",
+      "changed output hash/locations",
+      "baseline signed d",
+      "chosen delta"
+    ],
+    "center_derivation": "baseline p=A+j: y2=2*(r-wi-OL)+W; mutant actual p=A+delta+j gives y2_mut=y2+2delta",
+    "own_failure": "abs(d_mut)=abs(d)+3>2",
+    "separate_verdicts": [
+      "actual sample/location change",
+      "unchanged center gate rejection",
+      "other placement/extraction/bounds failures"
+    ],
+    "short_circuit_center_credit": false,
+    "missing_witness_or_owner_composition": "PHYSICAL_CENTER_CONTROL_HOLD",
+    "copied_coordinate_only_credit": false,
+    "center_twice": "y2=2*(p-A-wi)+W from actual(p,j,r=OL+j,owner,wi,W)",
+    "residual_twice": "d2=y2-2*Q(x); absolute expected=A+Q(x)"
+  },
+  "independent_source_error": {
+    "status": "UNRUN_NEW_GENERATION_AND_REPLAY_REQUIRED",
+    "original_source_law_and_rounded_bits_unchanged": true,
+    "analytic_target": "(1/5)*sin(pi*(2*f*n/R+p/q)), f220/997, p/q0 or1/7",
+    "fixed_point_scale_bits": 48,
+    "Machin": {
+      "identity": "pi=16atan(1/5)-4atan(1/239)",
+      "terms": [
+        24,
+        8
+      ],
+      "independent_recompute": "NEW freezer and independent replay each recompute directed integer bracket",
+      "uses_libm_pi_or_sin": false,
+      "term": "floor/ceil(2^48/((2k+1)*d^(2k+1))) with signs and next-term remainder"
+    },
+    "exact_phase": {
+      "a": "2*f*n*q+p*R",
+      "b": "R*q",
+      "k": "nearestInteger(2*a/b),positive half-up",
+      "h": "2*a-k*b",
+      "reduced": "theta=pi*h/(2*b), abs(theta)<=pi/4",
+      "quadrant": "k mod4; no floating angle reduction"
+    },
+    "polynomials": {
+      "sin_degree": 25,
+      "cos_degree": 24,
+      "coefficients": "directed exact factorial reciprocals k0..12, precomputed independently",
+      "evaluation": "Horner in interval theta^2, sine final multiply by theta",
+      "remainder": "<=1/27! and1/26!<2^-80; expand1Q48unit",
+      "exact_prerequisite": "26!>2^80",
+      "arithmetic": "integer endpoint add/negate and four-product floor/ceil multiplication; prechecked widths; outward positive rational division"
+    },
+    "binary32_gate": {
+      "decode": "exact sign/exponent/mantissa dyadic; reject nonfinite",
+      "common_denominator_power": 149,
+      "Q48_endpoint_shift": 101,
+      "maximum_absolute_error_numerator": 680564733841876926926749214863536422912,
+      "equivalent_bound": "2^-20 exactly",
+      "check": "both endpoint distances for EVERY frozen word; exact max numerator/index/word/interval reported"
+    },
+    "streams": 12,
+    "frozen_tone_words": 7524000,
+    "analytic_phase_rows": 395010,
+    "period": "R/gcd(f,R)",
+    "phase_reuse": "exact rational/quadrant identity and hash-pinned table contract only",
+    "every_word_still_checked": true,
+    "float_bits_assumed_periodic": false,
+    "whole_stream_dedup": "identical complete ordered bytes +rate/frequency/phase/length/channel order/offset/sentinels/hash",
+    "bursts": "unchanged exact dyadic law and exact symmetry/sum/peak/centroid",
+    "independent_replay": "verify_waveform.py recomputes from raw definitions/phase keys, no generator imports or unchecked table/max trust; cost included in second pass"
+  },
+  "source_certificate_cost_proposal": {
+    "phase_rows": 395010,
+    "base_tone_words": 7524000,
+    "two_tone_control_words": 1920000,
+    "tone_control_words_total": 9444000,
+    "base_zero_burst_words": 3762000,
+    "mixed_zero_control_words": 960000,
+    "exact_dyadic_words_total": 4722000,
+    "generation_and_independent_replay_passes": 2,
+    "per_phase_each_pass": 8192,
+    "per_tone_control_word_each_pass": 256,
+    "per_exact_dyadic_word_each_pass": 128,
+    "fixed_setup_metadata": 128000000,
+    "source_copy_extra": 2147483648,
+    "DefinitionFreeze_total_proposed": 14791487488,
+    "stage_cap": 17179869184,
+    "headroom": 2388381696,
+    "actual_bounded_integer_hash_library_callgraph_closed": false,
+    "expected_late_NaN": "invalid input refuses before DSP; finite neighboring tone words checked; no source-error PASS for invalid stream",
+    "source_error_scope": "only actual checked matrix/control streams, not all different historical R5 calibration signals",
+    "unclosed_status": "SOURCE_ERROR_CERTIFICATION_HOLD"
+  },
+  "reference_storage": {
+    "cap": 268435456,
+    "dense_Q_pairs": 27,
+    "dense_Q_records": 16929027,
+    "dense_Q_record_bytes": 8,
+    "dense_Q_bytes": 135432216,
+    "tone_block_bytes": 30096000,
+    "phase_rows": 395010,
+    "phase_record_bytes": 32,
+    "phase_table_bytes": 12640320,
+    "inverse_tables": 1,
+    "inverse_key": "48k/ramp120->30 complete clock/A/B/D/S/L",
+    "inverse_max_records": 960000,
+    "inverse_record_bytes": 16,
+    "inverse_max_bytes": 15360000,
+    "zero_burst_blocks_max_bytes": 15048000,
+    "other_metadata_calls_cap": 8388608,
+    "global_call_records_max": 131072,
+    "call_record_bytes": 48,
+    "dimension_sum": 233742360,
+    "duplicate_stage_archives": false,
+    "same_content_reuse": "hash-pinned full-key immutable store references; no hidden full copies",
+    "excess_inventory": "precise reference-resource refusal; do not omit records or raise cap",
+    "control_source_subreservation": 16777216,
+    "control_sources": [
+      "r48000-equivalent-last-ulp",
+      "r48000-early-distinct-late-nan",
+      "r48000-mixed-signed-zero"
+    ],
+    "control_source_words_each": 960000,
+    "control_source_data_bytes": 11520000,
+    "reference_artifact_count": 162,
+    "all_binary_headers_in_metadata_pool": true,
+    "metadata_caps": "both individual caps and combined8MiB; call records share that aggregate; preflight serialized lengths before any write",
+    "per_plan_file_bound_does_not_multiply_global_call_cap": true
+  },
+  "dense_oracle_cost_proposal": {
+    "dense_query_units": 4333830912,
+    "replay_units": 8667661824,
+    "inverse_units": 1966080000,
+    "fixed_IO_hash_eligibility_units": 128000000,
+    "total": 15095572736,
+    "stage_cap": 17179869184,
+    "actual_callgraph_closed": false,
+    "one_unreset_parent_across_all27pairs": true,
+    "unclosed_status": "DENSE_CLOCK_COST_HOLD",
+    "cached_fraction_rows": [
+      735,
+      25,
+      25
+    ],
+    "cached_fraction_total": 785,
+    "cache_bytes": 12560,
+    "cache_semantics": "exact original helper bits for original unreduced numerator/N; key by rate,N,integer remainder,algorithm hash; no cached map/frame values",
+    "per_dense_query_proposal": 256,
+    "per_replay_record_proposal": 512,
+    "replay_hash_work_included": true,
+    "cached_helper_equivalence": "UNPROVED_HOLD_ACTUAL_SOURCE_REVIEW_REQUIRED"
+  },
+  "retained_revision": {
+    "cap": 1073741824,
+    "envelopes_MiB": {
+      "references": 256,
+      "generated_private_sources_patches": 8,
+      "all_objects_binaries": 64,
+      "compact_gate_read_window_ledgers": 64,
+      "physical_control_outputs_and_witnesses": 256,
+      "one_unexpected_failure_quarantine": 128,
+      "interstage_logs_transfer_overlap": 64
+    },
+    "total_bytes": 880803840,
+    "headroom_bytes": 192937984,
+    "passing_full_PCM_files": 0,
+    "passing_data_flow": "in-memory spans +fixed streamed records to unchanged checker TU/independent verifier; release current owners before next case",
+    "physical_control_full_outputs_max": 13,
+    "physical_control_output_shape_bound": "2*1920006*4 bytes each +bounded fixed witnesses; no five redundant PCM forms",
+    "unexpected_failure_policy": "preserve all produced bytes within prepaid128MiB and stop; no retry or overwrite",
+    "per_file_write_preflight": true,
+    "after_fact_size_check_rescues_overshoot": false,
+    "compiler_output_source_profile_bound": "UNPROVED_HOLD_BEFORE_COMPILATION",
+    "source_context_full_event_stream_overlap": "must close or refuse before execution",
+    "actual_retained_stage_graph_closed": false
+  },
+  "unchanged_caps": {
+    "complete_case_work": 17179869184,
+    "scratch": 67108864,
+    "one_unreset_budget_across_all_logical_channels_windows_and_auxiliary_work": true,
+    "reset_per_window": false,
+    "production": {
+      "calls": 1048576,
+      "complete_preparation_work": 268435456,
+      "new_payload_clip": 536870912,
+      "pending_batch": 1073741824,
+      "reusable_cache": 1073741824,
+      "complete_resource_admission": "HOLD_UNPROVED",
+      "checker_budget_donation": false,
+      "Plan_materializer_subtotals_are_complete": false
+    }
+  },
+  "literal_readiness_holds": [
+    "generated lineage/include/helper/copy/hash cost",
+    "independent source interval kernel generation/replay cost",
+    "dense Numeric A query/inverse/replay cost",
+    "physical Project read-to-owner-center proof and changed samples",
+    "changed checker complete-case work/scratch",
+    "matched varying physical C1/C2 context/quiet",
+    "complete production work/allocator/ownership graph",
+    "all retained source/reference/compiler/control/output overlaps"
+  ],
+  "all_new_proof_status": "UNRUN",
+  "no_code_generated_or_authored": true,
+  "new_source_go": "ROOT_AND_FRESH_CRITIC_REQUIRED_AFTER_R2_REVIEW",
+  "execution_go": "SEPARATE_ROOT_STAGE_AUTHORIZATION_AFTER_ACTUAL_SOURCE_REVIEW_AND_OUTPUT_HASH_REVIEW",
+  "literal_reference_artifacts": [
+    {
+      "path": "references/tone/r44100-f220-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r44100-f220-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 70560,
+      "records": 2205,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r44100-f220-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r44100-f220-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r44100-f220-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 70560,
+      "records": 2205,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r44100-f220-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r44100-f997-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r44100-f997-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 1411200,
+      "records": 44100,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r44100-f997-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r44100-f997-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r44100-f997-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 1411200,
+      "records": 44100,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r44100-f997-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/zero/r44100.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/burst/r44100.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 1764000,
+      "records": 441000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/clock/r44100-map0-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map0-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r44100-map0-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r44100-map0-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map1-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map1-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r44100-map1-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r44100-map1-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map2-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map2-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r44100-map2-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r44100-map2-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map3-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map3-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r44100-map3-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r44100-map3-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map4-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map4-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r44100-map4-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r44100-map4-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map5-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map5-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r44100-map5-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r44100-map5-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map6-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map6-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r44100-map6-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r44100-map6-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map7-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map7-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r44100-map7-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r44100-map7-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map8-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map8-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r44100-map8-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r44100-map8-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r48000-f220-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r48000-f220-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 76800,
+      "records": 2400,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r48000-f220-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r48000-f220-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r48000-f220-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 76800,
+      "records": 2400,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r48000-f220-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r48000-f997-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r48000-f997-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 1536000,
+      "records": 48000,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r48000-f997-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r48000-f997-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r48000-f997-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 1536000,
+      "records": 48000,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r48000-f997-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/zero/r48000.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/burst/r48000.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 1920000,
+      "records": 480000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/clock/r48000-map0-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map0-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r48000-map0-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r48000-map0-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map1-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map1-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r48000-map1-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r48000-map1-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map2-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map2-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r48000-map2-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r48000-map2-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map3-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map3-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r48000-map3-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r48000-map3-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map4-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map4-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r48000-map4-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r48000-map4-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map5-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map5-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r48000-map5-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r48000-map5-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map6-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map6-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r48000-map6-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r48000-map6-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map7-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map7-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r48000-map7-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r48000-map7-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map8-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map8-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r48000-map8-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r48000-map8-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r96000-f220-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r96000-f220-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 153600,
+      "records": 4800,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r96000-f220-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r96000-f220-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r96000-f220-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 153600,
+      "records": 4800,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r96000-f220-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r96000-f997-p0.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r96000-f997-p0.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 3072000,
+      "records": 96000,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r96000-f997-p0.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/tone/r96000-f997-p1q7.bin",
+      "kind": "original frozen float words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/phase-intervals/r96000-f997-p1q7.bin",
+      "kind": "analytic fixed32B phase records",
+      "bytes_cap": 3072000,
+      "records": 96000,
+      "record_bytes": 32
+    },
+    {
+      "path": "references/source-certificates/r96000-f997-p1q7.json",
+      "kind": "actual all-word source certificate",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/zero/r96000.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/burst/r96000.bin",
+      "kind": "exact dyadic source words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/clock/r96000-map0-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map0-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r96000-map0-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r96000-map0-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map1-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map1-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r96000-map1-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r96000-map1-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map2-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map2-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r96000-map2-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r96000-map2-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map3-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map3-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r96000-map3-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r96000-map3-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map4-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map4-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r96000-map4-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r96000-map4-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map5-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map5-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r96000-map5-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r96000-map5-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map6-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map6-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r96000-map6-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r96000-map6-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map7-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map7-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r96000-map7-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r96000-map7-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map8-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map8-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/plans/r96000-map8-calls.bin",
+      "kind": "checked production call records; global131072-record cap",
+      "bytes_cap": 6291456,
+      "record_bytes": 48
+    },
+    {
+      "path": "references/plans/r96000-map8-metadata.json",
+      "kind": "checked plan metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/native-inverse/r48000-map5.bin",
+      "kind": "shared bake-clock native inverse records",
+      "bytes_cap": 15360000,
+      "records": 960000,
+      "record_bytes": 16
+    },
+    {
+      "path": "references/native-inverse/r48000-map5.json",
+      "kind": "shared exact clock key and bounds",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/control-sources/r48000-equivalent-last-ulp.interleaved.bin",
+      "kind": "frozen actual control source words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/control-sources/r48000-equivalent-last-ulp.json",
+      "kind": "control identities/expected validity and exact source error or dyadic proof",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/control-sources/r48000-early-distinct-late-nan.interleaved.bin",
+      "kind": "frozen actual control source words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/control-sources/r48000-early-distinct-late-nan.json",
+      "kind": "control identities/expected validity and exact source error or dyadic proof",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/control-sources/r48000-mixed-signed-zero.interleaved.bin",
+      "kind": "frozen actual control source words",
+      "bytes_cap": 3840000,
+      "records": 960000,
+      "record_bytes": 4
+    },
+    {
+      "path": "references/control-sources/r48000-mixed-signed-zero.json",
+      "kind": "control identities/expected validity and exact source error or dyadic proof",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/definition-manifest.json",
+      "kind": "fixed reference manifest/receipt",
+      "bytes_cap": 262144
+    },
+    {
+      "path": "references/source-error-summary.json",
+      "kind": "fixed reference manifest/receipt",
+      "bytes_cap": 262144
+    },
+    {
+      "path": "references/reference-manifest.json",
+      "kind": "fixed reference manifest/receipt",
+      "bytes_cap": 262144
+    },
+    {
+      "path": "references/original-case-inventory.json",
+      "kind": "fixed reference manifest/receipt",
+      "bytes_cap": 262144
+    }
+  ],
+  "case_ids_fixed_before_authoring": [
+    "tone-r44100-map0-mono-f220",
+    "tone-r44100-map0-mono-f997",
+    "tone-r44100-map0-equivalent-f220",
+    "tone-r44100-map0-equivalent-f997",
+    "tone-r44100-map0-distinct-f220-f997",
+    "zero-r44100-map0-mono",
+    "zero-r44100-map0-equivalent",
+    "burst-r44100-map0-mono",
+    "burst-r44100-map0-equivalent",
+    "tone-r44100-map1-mono-f220",
+    "tone-r44100-map1-mono-f997",
+    "tone-r44100-map1-equivalent-f220",
+    "tone-r44100-map1-equivalent-f997",
+    "tone-r44100-map1-distinct-f220-f997",
+    "zero-r44100-map1-mono",
+    "zero-r44100-map1-equivalent",
+    "burst-r44100-map1-mono",
+    "burst-r44100-map1-equivalent",
+    "tone-r44100-map2-mono-f220",
+    "tone-r44100-map2-mono-f997",
+    "tone-r44100-map2-equivalent-f220",
+    "tone-r44100-map2-equivalent-f997",
+    "tone-r44100-map2-distinct-f220-f997",
+    "zero-r44100-map2-mono",
+    "zero-r44100-map2-equivalent",
+    "burst-r44100-map2-mono",
+    "burst-r44100-map2-equivalent",
+    "tone-r44100-map3-mono-f220",
+    "tone-r44100-map3-mono-f997",
+    "tone-r44100-map3-equivalent-f220",
+    "tone-r44100-map3-equivalent-f997",
+    "tone-r44100-map3-distinct-f220-f997",
+    "zero-r44100-map3-mono",
+    "zero-r44100-map3-equivalent",
+    "burst-r44100-map3-mono",
+    "burst-r44100-map3-equivalent",
+    "tone-r44100-map4-mono-f220",
+    "tone-r44100-map4-mono-f997",
+    "tone-r44100-map4-equivalent-f220",
+    "tone-r44100-map4-equivalent-f997",
+    "tone-r44100-map4-distinct-f220-f997",
+    "zero-r44100-map4-mono",
+    "zero-r44100-map4-equivalent",
+    "burst-r44100-map4-mono",
+    "burst-r44100-map4-equivalent",
+    "tone-r44100-map5-mono-f220",
+    "tone-r44100-map5-mono-f997",
+    "tone-r44100-map5-equivalent-f220",
+    "tone-r44100-map5-equivalent-f997",
+    "tone-r44100-map5-distinct-f220-f997",
+    "zero-r44100-map5-mono",
+    "zero-r44100-map5-equivalent",
+    "burst-r44100-map5-mono",
+    "burst-r44100-map5-equivalent",
+    "tone-r44100-map6-mono-f220",
+    "tone-r44100-map6-mono-f997",
+    "tone-r44100-map6-equivalent-f220",
+    "tone-r44100-map6-equivalent-f997",
+    "tone-r44100-map6-distinct-f220-f997",
+    "zero-r44100-map6-mono",
+    "zero-r44100-map6-equivalent",
+    "burst-r44100-map6-mono",
+    "burst-r44100-map6-equivalent",
+    "tone-r44100-map7-mono-f220",
+    "tone-r44100-map7-mono-f997",
+    "tone-r44100-map7-equivalent-f220",
+    "tone-r44100-map7-equivalent-f997",
+    "tone-r44100-map7-distinct-f220-f997",
+    "zero-r44100-map7-mono",
+    "zero-r44100-map7-equivalent",
+    "burst-r44100-map7-mono",
+    "burst-r44100-map7-equivalent",
+    "tone-r44100-map8-mono-f220",
+    "tone-r44100-map8-mono-f997",
+    "tone-r44100-map8-equivalent-f220",
+    "tone-r44100-map8-equivalent-f997",
+    "tone-r44100-map8-distinct-f220-f997",
+    "zero-r44100-map8-mono",
+    "zero-r44100-map8-equivalent",
+    "burst-r44100-map8-mono",
+    "burst-r44100-map8-equivalent",
+    "tone-r48000-map0-mono-f220",
+    "tone-r48000-map0-mono-f997",
+    "tone-r48000-map0-equivalent-f220",
+    "tone-r48000-map0-equivalent-f997",
+    "tone-r48000-map0-distinct-f220-f997",
+    "zero-r48000-map0-mono",
+    "zero-r48000-map0-equivalent",
+    "burst-r48000-map0-mono",
+    "burst-r48000-map0-equivalent",
+    "tone-r48000-map1-mono-f220",
+    "tone-r48000-map1-mono-f997",
+    "tone-r48000-map1-equivalent-f220",
+    "tone-r48000-map1-equivalent-f997",
+    "tone-r48000-map1-distinct-f220-f997",
+    "zero-r48000-map1-mono",
+    "zero-r48000-map1-equivalent",
+    "burst-r48000-map1-mono",
+    "burst-r48000-map1-equivalent",
+    "tone-r48000-map2-mono-f220",
+    "tone-r48000-map2-mono-f997",
+    "tone-r48000-map2-equivalent-f220",
+    "tone-r48000-map2-equivalent-f997",
+    "tone-r48000-map2-distinct-f220-f997",
+    "zero-r48000-map2-mono",
+    "zero-r48000-map2-equivalent",
+    "burst-r48000-map2-mono",
+    "burst-r48000-map2-equivalent",
+    "tone-r48000-map3-mono-f220",
+    "tone-r48000-map3-mono-f997",
+    "tone-r48000-map3-equivalent-f220",
+    "tone-r48000-map3-equivalent-f997",
+    "tone-r48000-map3-distinct-f220-f997",
+    "zero-r48000-map3-mono",
+    "zero-r48000-map3-equivalent",
+    "burst-r48000-map3-mono",
+    "burst-r48000-map3-equivalent",
+    "tone-r48000-map4-mono-f220",
+    "tone-r48000-map4-mono-f997",
+    "tone-r48000-map4-equivalent-f220",
+    "tone-r48000-map4-equivalent-f997",
+    "tone-r48000-map4-distinct-f220-f997",
+    "zero-r48000-map4-mono",
+    "zero-r48000-map4-equivalent",
+    "burst-r48000-map4-mono",
+    "burst-r48000-map4-equivalent",
+    "tone-r48000-map5-mono-f220",
+    "tone-r48000-map5-mono-f997",
+    "tone-r48000-map5-equivalent-f220",
+    "tone-r48000-map5-equivalent-f997",
+    "tone-r48000-map5-distinct-f220-f997",
+    "zero-r48000-map5-mono",
+    "zero-r48000-map5-equivalent",
+    "burst-r48000-map5-mono",
+    "burst-r48000-map5-equivalent",
+    "tone-r48000-map6-mono-f220",
+    "tone-r48000-map6-mono-f997",
+    "tone-r48000-map6-equivalent-f220",
+    "tone-r48000-map6-equivalent-f997",
+    "tone-r48000-map6-distinct-f220-f997",
+    "zero-r48000-map6-mono",
+    "zero-r48000-map6-equivalent",
+    "burst-r48000-map6-mono",
+    "burst-r48000-map6-equivalent",
+    "tone-r48000-map7-mono-f220",
+    "tone-r48000-map7-mono-f997",
+    "tone-r48000-map7-equivalent-f220",
+    "tone-r48000-map7-equivalent-f997",
+    "tone-r48000-map7-distinct-f220-f997",
+    "zero-r48000-map7-mono",
+    "zero-r48000-map7-equivalent",
+    "burst-r48000-map7-mono",
+    "burst-r48000-map7-equivalent",
+    "tone-r48000-map8-mono-f220",
+    "tone-r48000-map8-mono-f997",
+    "tone-r48000-map8-equivalent-f220",
+    "tone-r48000-map8-equivalent-f997",
+    "tone-r48000-map8-distinct-f220-f997",
+    "zero-r48000-map8-mono",
+    "zero-r48000-map8-equivalent",
+    "burst-r48000-map8-mono",
+    "burst-r48000-map8-equivalent",
+    "tone-r96000-map0-mono-f220",
+    "tone-r96000-map0-mono-f997",
+    "tone-r96000-map0-equivalent-f220",
+    "tone-r96000-map0-equivalent-f997",
+    "tone-r96000-map0-distinct-f220-f997",
+    "zero-r96000-map0-mono",
+    "zero-r96000-map0-equivalent",
+    "burst-r96000-map0-mono",
+    "burst-r96000-map0-equivalent",
+    "tone-r96000-map1-mono-f220",
+    "tone-r96000-map1-mono-f997",
+    "tone-r96000-map1-equivalent-f220",
+    "tone-r96000-map1-equivalent-f997",
+    "tone-r96000-map1-distinct-f220-f997",
+    "zero-r96000-map1-mono",
+    "zero-r96000-map1-equivalent",
+    "burst-r96000-map1-mono",
+    "burst-r96000-map1-equivalent",
+    "tone-r96000-map2-mono-f220",
+    "tone-r96000-map2-mono-f997",
+    "tone-r96000-map2-equivalent-f220",
+    "tone-r96000-map2-equivalent-f997",
+    "tone-r96000-map2-distinct-f220-f997",
+    "zero-r96000-map2-mono",
+    "zero-r96000-map2-equivalent",
+    "burst-r96000-map2-mono",
+    "burst-r96000-map2-equivalent",
+    "tone-r96000-map3-mono-f220",
+    "tone-r96000-map3-mono-f997",
+    "tone-r96000-map3-equivalent-f220",
+    "tone-r96000-map3-equivalent-f997",
+    "tone-r96000-map3-distinct-f220-f997",
+    "zero-r96000-map3-mono",
+    "zero-r96000-map3-equivalent",
+    "burst-r96000-map3-mono",
+    "burst-r96000-map3-equivalent",
+    "tone-r96000-map4-mono-f220",
+    "tone-r96000-map4-mono-f997",
+    "tone-r96000-map4-equivalent-f220",
+    "tone-r96000-map4-equivalent-f997",
+    "tone-r96000-map4-distinct-f220-f997",
+    "zero-r96000-map4-mono",
+    "zero-r96000-map4-equivalent",
+    "burst-r96000-map4-mono",
+    "burst-r96000-map4-equivalent",
+    "tone-r96000-map5-mono-f220",
+    "tone-r96000-map5-mono-f997",
+    "tone-r96000-map5-equivalent-f220",
+    "tone-r96000-map5-equivalent-f997",
+    "tone-r96000-map5-distinct-f220-f997",
+    "zero-r96000-map5-mono",
+    "zero-r96000-map5-equivalent",
+    "burst-r96000-map5-mono",
+    "burst-r96000-map5-equivalent",
+    "tone-r96000-map6-mono-f220",
+    "tone-r96000-map6-mono-f997",
+    "tone-r96000-map6-equivalent-f220",
+    "tone-r96000-map6-equivalent-f997",
+    "tone-r96000-map6-distinct-f220-f997",
+    "zero-r96000-map6-mono",
+    "zero-r96000-map6-equivalent",
+    "burst-r96000-map6-mono",
+    "burst-r96000-map6-equivalent",
+    "tone-r96000-map7-mono-f220",
+    "tone-r96000-map7-mono-f997",
+    "tone-r96000-map7-equivalent-f220",
+    "tone-r96000-map7-equivalent-f997",
+    "tone-r96000-map7-distinct-f220-f997",
+    "zero-r96000-map7-mono",
+    "zero-r96000-map7-equivalent",
+    "burst-r96000-map7-mono",
+    "burst-r96000-map7-equivalent",
+    "tone-r96000-map8-mono-f220",
+    "tone-r96000-map8-mono-f997",
+    "tone-r96000-map8-equivalent-f220",
+    "tone-r96000-map8-equivalent-f997",
+    "tone-r96000-map8-distinct-f220-f997",
+    "zero-r96000-map8-mono",
+    "zero-r96000-map8-equivalent",
+    "burst-r96000-map8-mono",
+    "burst-r96000-map8-equivalent",
+    "zero-r48000-map2-mixed-signed-zero",
+    "reverse-burst-r48000-map7-mono",
+    "reverse-burst-r48000-map7-equivalent",
+    "bake-r48000-map5-mono-f220-Linear-minus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Linear-minus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-Linear-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Linear-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-Linear-zero-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Linear-zero-overlap3L4",
+    "bake-r48000-map5-mono-f220-Linear-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Linear-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-Linear-plus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Linear-plus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-Linear-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Linear-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-EqualPower-minus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-EqualPower-minus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-EqualPower-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-EqualPower-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-EqualPower-zero-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-EqualPower-zero-overlap3L4",
+    "bake-r48000-map5-mono-f220-EqualPower-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-EqualPower-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-EqualPower-plus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-EqualPower-plus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-EqualPower-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-EqualPower-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-SCurve-minus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-SCurve-minus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-SCurve-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-SCurve-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-SCurve-zero-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-SCurve-zero-overlap3L4",
+    "bake-r48000-map5-mono-f220-SCurve-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-SCurve-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-SCurve-plus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-SCurve-plus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-SCurve-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-SCurve-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-Log-minus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Log-minus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-Log-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Log-minus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-Log-zero-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Log-zero-overlap3L4",
+    "bake-r48000-map5-mono-f220-Log-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Log-zero-overlong2Lplus1-L2",
+    "bake-r48000-map5-mono-f220-Log-plus1-overlap3L4",
+    "bake-r48000-map5-equivalent-f220-Log-plus1-overlap3L4",
+    "bake-r48000-map5-mono-f220-Log-plus1-overlong2Lplus1-L2",
+    "bake-r48000-map5-equivalent-f220-Log-plus1-overlong2Lplus1-L2"
+  ],
+  "other_generated_artifact_allowlist": {
+    "literal_build_artifacts": [
+      {
+        "path": "build/clock_oracle.obj",
+        "kind": "oracle object"
+      },
+      {
+        "path": "build/clock_oracle.exe",
+        "kind": "oracle console PE"
+      },
+      {
+        "path": "build/plan_probe.obj",
+        "kind": "plan object"
+      },
+      {
+        "path": "build/plan_probe.exe",
+        "kind": "plan console PE"
+      },
+      {
+        "path": "build/waveform_check.obj",
+        "kind": "unchanged checker object without fault defines"
+      },
+      {
+        "path": "build/baseline-probe.obj",
+        "kind": "private variant object or console PE"
+      },
+      {
+        "path": "build/baseline-probe.exe",
+        "kind": "private variant object or console PE"
+      },
+      {
+        "path": "build/skip_late_finite-probe.obj",
+        "kind": "private variant object or console PE"
+      },
+      {
+        "path": "build/skip_late_finite-probe.exe",
+        "kind": "private variant object or console PE"
+      },
+      {
+        "path": "build/ignore_last_mismatch-probe.obj",
+        "kind": "private variant object or console PE"
+      },
+      {
+        "path": "build/ignore_last_mismatch-probe.exe",
+        "kind": "private variant object or console PE"
+      },
+      {
+        "path": "build/swap_stored_channels-probe.obj",
+        "kind": "private variant object or console PE"
+      },
+      {
+        "path": "build/swap_stored_channels-probe.exe",
+        "kind": "private variant object or console PE"
+      },
+      {
+        "path": "build/corrupt_constructed_output-probe.obj",
+        "kind": "private variant object or console PE"
+      },
+      {
+        "path": "build/corrupt_constructed_output-probe.exe",
+        "kind": "private variant object or console PE"
+      }
+    ],
+    "build_aggregate_bytes_cap": 67108864,
+    "build_profile_upper_bound": "HOLD_UNPROVED_ACTUAL_SOURCE_PROFILE_REQUIRED_BEFORE_COMPILE",
+    "compile_log_paths": [
+      "build/compile-clock_oracle.stdout.log",
+      "build/compile-clock_oracle.stderr.log",
+      "build/compile-plan_probe.stdout.log",
+      "build/compile-plan_probe.stderr.log",
+      "build/compile-waveform_check.stdout.log",
+      "build/compile-waveform_check.stderr.log",
+      "build/compile-baseline.stdout.log",
+      "build/compile-baseline.stderr.log",
+      "build/compile-skip_late_finite.stdout.log",
+      "build/compile-skip_late_finite.stderr.log",
+      "build/compile-ignore_last_mismatch.stdout.log",
+      "build/compile-ignore_last_mismatch.stderr.log",
+      "build/compile-swap_stored_channels.stdout.log",
+      "build/compile-swap_stored_channels.stderr.log",
+      "build/compile-corrupt_constructed_output.stdout.log",
+      "build/compile-corrupt_constructed_output.stderr.log"
+    ],
+    "compile_log_pool": "interstage/log64MiB, bounded stream before appending",
+    "case_gate_files": {
+      "per_id_exact_suffixes": [
+        "case.json",
+        "windows.bin"
+      ],
+      "path": "case-results/<one listed id>/<one listed suffix>",
+      "aggregate_pool": 67108864,
+      "full_passing_PCM_written": false,
+      "ids_ref": "case_ids_fixed_before_authoring"
+    },
+    "control_files": {
+      "ids": [
+        "pitch6cent",
+        "level1p1dB",
+        "double_fade",
+        "reverse_after",
+        "latency_plus1",
+        "omit_OL",
+        "center3Frame",
+        "skip_late_finite",
+        "merge_last_ulp",
+        "omit_logical_stereo",
+        "swap_distinct",
+        "damage_materialized_sample",
+        "old_C2_equivalent"
+      ],
+      "per_id_exact_suffixes": [
+        "output.bin",
+        "witness.bin",
+        "receipt.json"
+      ],
+      "path": "controls/<one listed control id>/<one listed suffix>",
+      "aggregate_pool": 268435456
+    },
+    "unexpected_failure_files": {
+      "at_most_one_listed_case_or_control_id": true,
+      "per_id_exact_suffixes": [
+        "input.bin",
+        "raw-physical.bin",
+        "retained-unfaded.bin",
+        "baked-physical.bin",
+        "logical.bin",
+        "project-read.bin",
+        "context-witness.bin",
+        "receipt.json"
+      ],
+      "path": "unexpected-failure/<one listed id>/<one listed suffix>",
+      "aggregate_pool": 134217728,
+      "preserve_and_stop": true
+    },
+    "stage_files": {
+      "ids": [
+        "DefinitionFreeze",
+        "OracleFreeze",
+        "PlanPreflight",
+        "AnalyticSelfCheck",
+        "CandidateBaseline",
+        "ActualOwnGateControls"
+      ],
+      "per_stage_exact_suffixes": [
+        "stdout.log",
+        "stderr.log",
+        "receipt.json",
+        "bundle.json",
+        "consumed.json"
+      ],
+      "path": "stages/<one listed stage>/<one listed suffix>",
+      "aggregate_pool": "interstage/log64MiB including any transfer/temporary overlap"
+    },
+    "temporary_output_rule": "at most one .part version of a listed output; same payload renamed without full-copy overlap, otherwise charge both first",
+    "unknown_output_or_helper": "HOLD_BEFORE_WRITING_OR_EXECUTING"
+  }
+}

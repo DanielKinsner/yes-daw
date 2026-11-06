@@ -1,0 +1,19 @@
+{
+  "children": [
+    {
+      "name": "freeze",
+      "raw_exit_code": 0,
+      "timed_out": false
+    }
+  ],
+  "freeze_bundle_sha256": "f5f981826bba93b49d1e103d60916a60ac81959f7721a4c7fc508b527966e071",
+  "freeze_dir": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-waveform-quality-prep\\quality-calibration-r5\\root-runs\\Freeze-20261105T131446.163733Z-53d8220c\\freeze",
+  "native_or_device_invoked": false,
+  "run": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-waveform-quality-prep\\quality-calibration-r5\\root-runs\\Freeze-20261105T131446.163733Z-53d8220c",
+  "source_execution_before_this_root_invocation": false,
+  "source_manifest_sha256": "f48b3b5683b881c9dc6d7112e65cde42250ff0977a4dcf0dca3d2e0634946b67",
+  "stage": "Freeze",
+  "status": "FREEZE_COMPLETED_REVIEW_REQUIRED",
+  "toolchain_env_sha256": null,
+  "vendor_candidate_invoked": false
+}

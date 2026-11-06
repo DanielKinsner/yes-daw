@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "scope": "Exact unchanged upstream primary files for the two R5 critic corrections only",
+  "source_binary_equivalence_certificate": false,
+  "mapping": "Previously pinned installed ProductVersion commit association and exact binary hashes are separate evidence. These source reads do not certify reproduced binaries, feature compilation or executed behavior.",
+  "authored_import_helper_parser_compile_or_execution": false,
+  "old_R5_primary_source_namespace_modified": false,
+  "files": [
+    {"path": "newtonsoft-JsonTextReader.cs", "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/JsonTextReader.cs", "commit": "4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a", "bytes": 101923, "sha256": "A9F79EBF4527275D5DE362DD9160F8B246CF34A5D1F767B4A978ECF420C36039", "license": "MIT; original license and copyright headers retained"},
+    {"path": "powershell-CommandDiscovery.cs", "url": "https://raw.githubusercontent.com/PowerShell/PowerShell/ea554a8f9c6085f54fb2828f7ea286c65c35599f/src/System.Management.Automation/engine/CommandDiscovery.cs", "commit": "ea554a8f9c6085f54fb2828f7ea286c65c35599f", "bytes": 72388, "sha256": "922F32B3C221A0B2B74F7140A245CDD98A0AA6FF06163D9EC56ED3C20D184EBA", "license": "MIT; original license and copyright headers retained"}
+  ]
+}

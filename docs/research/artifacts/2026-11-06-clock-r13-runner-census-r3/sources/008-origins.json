@@ -1,0 +1,15 @@
+{
+  "schema":1,
+  "scope":"Exact upstream primary source downloads for source behavior inspection only",
+  "source_binary_equivalence_certificate":false,
+  "mapping":"Installed ProductVersion names these commits; independent hash pins identify actual installed binaries. Metadata and source behavior do not certify a reproduced binary or runtime result.",
+  "import_compile_or_execution":false,
+  "files":[
+    {"path":"powershell-JsonObject.cs","url":"https://raw.githubusercontent.com/PowerShell/PowerShell/ea554a8f9c6085f54fb2828f7ea286c65c35599f/src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/JsonObject.cs","commit":"ea554a8f9c6085f54fb2828f7ea286c65c35599f","bytes":37049,"sha256":"B0673F6376217F1104293297F0B2E3C7C9F928045F8435CD93865EF024E287B0","license":"MIT; original source license/copyright headers retained"},
+    {"path":"powershell-ConvertToJsonCommand.cs","url":"https://raw.githubusercontent.com/PowerShell/PowerShell/ea554a8f9c6085f54fb2828f7ea286c65c35599f/src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/ConvertToJsonCommand.cs","commit":"ea554a8f9c6085f54fb2828f7ea286c65c35599f","bytes":5210,"sha256":"110FB32101AA117D90F9DCF95037B5B6C16E4F7C55A593FA066034D77F964723","license":"MIT; original source license/copyright headers retained"},
+    {"path":"powershell-TypeTable_Types.cs","url":"https://raw.githubusercontent.com/PowerShell/PowerShell/ea554a8f9c6085f54fb2828f7ea286c65c35599f/src/System.Management.Automation/engine/TypeTable_Types_Ps1Xml.cs","commit":"ea554a8f9c6085f54fb2828f7ea286c65c35599f","bytes":361303,"sha256":"C96DFBFCDD9C11C9D0608BBF0E4162D168FF817F05E263D4ABA3C045A33630C5","license":"MIT; original source license/copyright headers retained"},
+    {"path":"powershell-TypeTable_TypesV3.cs","url":"https://raw.githubusercontent.com/PowerShell/PowerShell/ea554a8f9c6085f54fb2828f7ea286c65c35599f/src/System.Management.Automation/engine/TypeTable_TypesV3_Ps1Xml.cs","commit":"ea554a8f9c6085f54fb2828f7ea286c65c35599f","bytes":17171,"sha256":"643623D2EC5E75C4438393308FBD56C56B9AA0F4C008FC6DB7F1DC3B08D7A952","license":"MIT; original source license/copyright headers retained"},
+    {"path":"newtonsoft-JsonConvert.cs","url":"https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/JsonConvert.cs","commit":"4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a","bytes":55576,"sha256":"DAEB3FEF0BCDE2E756CB0CBCAA92FB8A7782727CDB4ADDBA7B8C66E94B5A6205","license":"MIT; original source license/copyright headers retained"},
+    {"path":"newtonsoft-JavaScriptUtils.cs","url":"https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Utilities/JavaScriptUtils.cs","commit":"4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a","bytes":25775,"sha256":"93131CB6065F06AC6DA30CC15C77F7E2A96EF2D3DC171FEC34C227590D930A1A","license":"MIT; original source license/copyright headers retained"}
+  ]
+}

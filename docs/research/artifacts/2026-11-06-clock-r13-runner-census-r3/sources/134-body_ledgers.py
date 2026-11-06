@@ -1,0 +1,314 @@
+"""New R2 source-role ledgers. Own integer arithmetic; no subject import/runtime.
+
+This is an unfinished authorship worksheet until all74 bodies, main/callers and
+the six composition schedules pass the complete builder. No price is accepted.
+Every number is a source action under344408/DE33/268597, not a CPU/byte tariff.
+"""
+
+MODELS={}
+
+def group(label, span, **terms):
+    return dict(label=label,source_lines=list(span),terms=terms,units=sum(terms.values()))
+
+def vector(label, span, **roles):
+    return group(label,span,**roles)
+
+def model(name, formula, groups, *, coefficients=None, alternatives=None, excluded=None, note=''):
+    assert name not in MODELS
+    MODELS[name]=dict(formula=formula,fixed_groups=groups,fixed=sum(g['units'] for g in groups),
+                      coefficients=coefficients or {},alternatives=alternatives or {},
+                      separately_composed=excluded or [],note=note,
+                      source_count_status='NEW_R2_UNACCEPTED_SOURCE_PROPOSAL')
+
+# Literal and named reads are counted. Primitive callers initialize parameters
+# once; direct result destinations fuse with the caller's real slot. The role
+# calculators below denote actual source forms, not a new primitive category.
+INDEX=group('one indexed source cell',(1,1),base_R=1,key_R=1,index_O=1,selected_R=1)['units']
+CHAINED_INDEX=INDEX+3
+GETTER=group('named instance getter without destination',(1,1),receiver_R=1,receiver_W=1,D=1,E=1,T=1)['units']
+GETTER_LOCAL=GETTER+1
+STATIC_GETTER_ARGUMENT=group('static getter direct argument',(1,1),type_R=1,D=1,E=1,T=1,parameter_W=1)['units']
+CTOR_RESULT=group('zero-argument constructor result',(1,1),type_R=1,D=1,E=1,T=1,result_W=1)['units']
+FOREACH_FIXED_NAMED=group('foreach named enumerable fixed',(1,1),enumerable_R=1,S=1,terminal_K=1,exit_K=1)['units']
+FOREACH_FIXED_INDEXED=INDEX+3
+FOREACH_BODY=group('foreach body/advance/condition',(1,1),element_R=1,element_W=1,condition_K=1,body_K=1,advance_K=1)['units']
+
+model('Spend-Task','17+C_long',[
+ vector('complete normal source',(62,62),R=7,W=2,O=5,B=1,E=1,T=1)],
+ alternatives=dict(negative=dict(R=3,W=1,O=2,B=1,E=1,K=1),remaining=dict(R=6,W=1,O=4,B=1,E=1,K=1)),
+ note='C_long=1 only actual nonidentity Int32->Int64 caller argument; parameter W already here. Source Spend debit is not this operation price.')
+model('Test-TaskPathCatalogueContext','26',[
+ group('entry and source return',(63,65),E=1,T=1),
+ group('null test',(64,64),null_R=1,catalogue_R=1,ne_O=1),
+ group('three context equalities',(64,64),three_indexed_cells=3*INDEX,three_context_R=3,three_ceq_O=3),
+ group('three written conjunctions',(64,64),and_O=3)],
+ note='Short-circuit prefixes cannot exceed the complete true context path.')
+
+add_common=[
+ group('entry parameters',(66,66),E=1,param_W=2),
+ group('catalogue local',(67,67),R=1,W=1),
+ group('derived row count guard',(68,68),rows_index=INDEX,Count_receiver_W_D_E_T_result=5,maximum_index=INDEX,ge_O=1,B=1),
+ group('five-field entry literal',(69,69),S=1,key_R=5,value_R=5,field_W=5,local_W=1),
+ group('rows.Add',(70,70),rows_index=INDEX,receiver_W=1,Entry_R=1,param_W=1,D_E_T=3),
+ group('RepoInput branch',(71,71),R=1,B=1),
+]
+add_true=[group('inputs.Add',(71,71),inputs_index=INDEX,receiver_W=1,two_argument_R=2,two_param_W=2,D_E_T=3),group('normal return',(80,80),T=1)]
+drive=group('ordinary drive alias branch',(75,75),Name_Length=GETTER_LOCAL,literal3_R=1,ge_O=1,Name_index=INDEX,char_type_R=1,literal58_R=1,cast_O=1,ceq_O=1,and_O=1,B=1)
+add_false=[
+ group('aliases.Add',(72,72),aliases_index=INDEX,receiver_W=1,two_argument_R=2,two_param_W=2,D_E_T=3),
+ drive,
+ group('replace separator fields',(76,76),Name_receiver_R_W=2,two_static_char_fields=6,two_param_W=2,D_E_T=3,local_W=1),
+ group('alias ContainsKey and not/branch',(77,77),aliases_index=INDEX,receiver_W=1,Slashes_R=1,param_W=1,D_E_T=3,operand_W=1,not_O=1,B=1),
+ group('separator alias Add',(77,77),aliases_index=INDEX,receiver_W=1,two_argument_R=2,two_param_W=2,D_E_T=3),
+ group('normal return',(80,80),T=1)]
+model('Add-TaskPathCatalogueEntry','true62 / false119',add_common,
+ alternatives=dict(repo_input=add_true,ordinary_alias=add_false),
+ note='The type read in [char]58 is actual. UNC/device/shorter-name alternatives are prefixes; no filesystem fact is cached.')
+
+init_max=group('derived maximum expression',(84,84),inputs_index=INDEX,input_Count_tail=5,long_type_R=1,cast_O=1,OwnNames_Count=GETTER_LOCAL,literal1_R=1,two_profile_cells=2*CHAINED_INDEX,four_add_O=4,local_W=1)
+init_guard=group('checked profile bounds',(85,85),maximum_reads=4,profile_index=CHAINED_INDEX,integer_type_member_reads=6,literal_reads=2,comparisons=4,multiply=1,ors=3,B=1)
+init_map=group('catalogue ten-field literal',(86,86),S=1,key_R=10,field_W=10,local_W=1,
+               repo_base_root_R=3,maximum_type_R=1,maximum_R=1,maximum_cast_O=1,
+               alias_expr_literal_R=2,alias_expr_Count_cells=2*(INDEX+5),alias_expr_maximum_R=1,
+               alias_expr_arithmetic=4,
+               rows_List_type_R=1,rows_int_type_R=1,rows_max_R=1,rows_cast_O=1,rows_param_W=1,rows_D_E_T=3,
+               four_dictionary_ctor_types_boundaries=4*4,four_static_getter_arguments=4*STATIC_GETTER_ARGUMENT)
+model('Initialize-TaskPathCatalogue','fixed+73I+own4*134+119+137*(56+3+4)+134*6',[
+ group('entry',(81,81),E=1),init_max,init_guard,init_map,
+ group('inputs foreach fixed',(87,87),indexed_expression_and_control=FOREACH_FIXED_INDEXED),
+ group('own foreach fixed',(88,88),named_expression_and_control=FOREACH_FIXED_NAMED),
+ group('manifest Add caller',(89,89),path_R=1,false_R=1,D=1),
+ group('four indexed foreach fixed',(90,93),source_and_control=4*FOREACH_FIXED_INDEXED),
+ group('final derived recipe guard',(94,94),rows_index=INDEX,Count_tail=5,Maximum_R=1,ne_O=1,B=1),
+ group('normal return',(95,95),T=1)],
+ coefficients=dict(input_row=dict(foreach=5,path_index=4,true_R=1,D=1,Add_true=62),
+                   own_or_stage_row=dict(foreach=5,Join_type=1,two_arg_R=2,two_arg_W=2,Join_D_E_T=3,false_R=1,Add_D=1,Add_false=119),
+                   descriptor_row=dict(foreach=5,Join_type=1,root_R=1,path_index=4,two_arg_W=2,Join_D_E_T=3,false_R=1,Add_D=1,Add_false=119)),
+ note='All13static comparer sites are reconciled individually; four occur in this literal. Dictionary result destinations fuse with the four map field writes. No metadata/trust caching.')
+
+model('Get-TaskCatalogueString','hit21 / miss41',[
+ group('entry/parameter',(96,96),E=1,W=1),
+ group('strings local',(97,97),indexed=INDEX,local_W=1),
+ group('ContainsKey branch',(98,98),receiver_R_W=2,Path_R=1,param_W=1,D_E_T=3,operand_W=1,B=1)],
+ alternatives=dict(hit=[group('return indexed reference',(98,98),index=INDEX,T=1)],
+                   miss=[group('bounded count guard',(99,99),Count=GETTER_LOCAL,literal65_R=1,maximum_index=INDEX,multiply_O=1,ge_O=1,B=1),
+                         group('Add same reference twice',(100,100),receiver_R_W=2,two_Path_R=2,two_param_W=2,D_E_T=3),
+                         group('return Path',(100,100),R=1,T=1)]),
+ note='No referent cell copy; ContainsKey primitive body opaque. Full miss must use actual chained maximum index; source equations are regenerated rather than miss41 inherited.')
+
+model('Get-TaskHashHex','15',[
+ group('entry and parameter',(157,157),E=1,W=1),
+ group('implicit Item2 getter',(157,157),receiver_R_W=2,D_E_T=3),
+ group('typed direct argument',(157,157),byte_array_type_R=1,conversion_O=1,fused_parameter_W=1),
+ group('Convert boundary and function return',(157,157),Convert_type_R=1,D_E_T=3,T=1)])
+model('Test-TaskHashValue','hex1509 / binary647',[
+ group('entry/parameters',(158,158),E=1,W=2),
+ group('digest32 guard',(159,159),Length=GETTER_LOCAL,literal32_R=1,ne_O=1,B=1)],
+ alternatives=dict(hex=[group('string kind',(160,160),Expected_R=1,string_type_R=1,is_O=1,B=1),
+                         group('expected64 guard',(161,161),Length=GETTER_LOCAL,literal64_R=1,ne_O=1,B=1),
+                         group('alphabet literal',(162,162),R=1,W=1),
+                         group('32-loop fixed and return',(163,168),for_fixed=8,true_R=1,T=1)],
+                   binary=[group('both kind tests',(160,169),two_Expected_R=2,two_type_R=2,two_is_O=2,two_B=2),
+                           group('expected32 guard',(170,170),Length=GETTER_LOCAL,literal32_R=1,ne_O=1,B=1),
+                           group('32-loop fixed and return',(171,172),for_fixed=8,true_R=1,T=1)]),
+ coefficients=dict(hex_body=dict(loop=9,Digest_index=INDEX,int_type_R=1,cast_O=1,local_W=1,
+                                 expected_high=6,alphabet_high=6,high_compare=1,or_O=1,expected_low=8,alphabet_low=6,low_compare=1,B=1),
+                   binary_body=dict(loop=9,Digest_index=INDEX,Expected_index=INDEX,compare=1,B=1)),
+ note='Exactly32iterations. Early mismatch/wrong kind/extent paths are bounded by their own source prefixes; no fabricated throwing normalreturn.')
+model('Assert-TaskFreshHashIdentity','normal27+Test; refusal group85 replaces return1',[
+ group('entry/parameters',(176,176),E=1,W=4),
+ group('byte-count comparison',(177,177),Expected_R=1,Observed_Item1=GETTER_LOCAL,ne_O=1),
+ group('written Boolean operators',(177,177),or_O=1,not_O=1,B=1),
+ group('Test caller',(177,177),Item2_getter=GETTER,byte_array_type_R=1,cast_O=1,ExpectedHash_R=1,D=1,bool_operand_W=1),
+ group('normal return',(182,182),T=1)],
+ alternatives=dict(refusal=[group('expected hash projection',(178,178),kind_predicate=4,Convert_type_R=1,Expected_R=1,byte_array_type_R=1,cast_O=1,param_W=1,D_E_T=3,local_W=1),
+                           group('observed hash projection',(179,179),Observed_R=1,D=1,local_W=1,GetHashHex=15),
+                           group('five-field witness',(180,180),S=1,key_R=5,field_W=5,four_plain_value_R=4,Item1_getter=GETTER),
+                           group('Reject caller/body',(180,180),reason_R=1,D=1,Reject=32)]),
+ excluded=['Test-TaskHashValue'],note='Use four joined refusal opportunities, not3. Refusal witness actual getter result fuses with its map slot.')
+
+model('Assert-TaskPollAdmission','admit11; reject59',[
+ vector('normal checked domain',(183,185),R=4,W=1,O=3,B=1,E=1,T=1)],
+ alternatives=dict(refusal_prefix=dict(R=12,W=7,O=4,B=1,S=1,D=1,E=1,Reject=32)),
+ note='Normal count0..7199; actual7200refusal control and possible later boundary refusal have their own witness branches.')
+model('Reject-TaskGate','32',[
+ vector('exception constructor, two Data writes, throw',(294,294),R=9,W=10,O=2,D=3,E=4,T=3,K=1)],
+ note='Caller literal/read/witness construction separate. No CLR Exception object CPU/field expansion.')
+model('Add-TaskJsonVisit','17+C_long',[
+ vector('finite whole visit cap update',(302,302),R=7,W=2,O=5,B=1,E=1,T=1)],
+ note='Same written scalar form as Spend; default/conversion caller once, no bulk byte CPU tariff.')
+model('Get-TaskRuntimeType','actual16/null8',[
+ group('entry/parameter',(303,303),E=1,W=1),
+ group('null guard',(303,303),null_R=1,Value_R=1,eq_O=1,B=1),
+ group('Invoke actual receiver/arguments/return',(303,303),method_receiver_R=1,Value_R=1,null_R=1,receiver_W=1,parameter_W=2,D_E_T=3,function_T=1)],
+ alternatives=dict(null=dict(E=1,W=1,null_R_twice=2,Value_R=1,eq_O=1,B=1,T=1)),
+ note='Actual Type result destination is supplied once by each source caller, not by this helper return.')
+model('Assert-TaskString','49+64N+D; ASCII49+53N+D',[
+ group('entry/parameters',(357,357),E=1,W=3),
+ group('RuntimeType operator caller and body',(358,358),Value_R=1,D=1,result_W=1,body=16),
+ group('kind/or',(358,358),string_type_R=1,ne_O=1,or_O=1),
+ group('length guard',(358,358),Length=GETTER_LOCAL,Maximum_R=1,gt_O=1,B=1),
+ group('for fixed and normal return',(359,365),for_fixed=13,T=1)],
+ coefficients=dict(ASCII_body=dict(framework=14,int_local=7,ASCII_guard=10,high_surrogate_call_guard=11,low_surrogate_call_guard=11),
+                   general_surrogate_body=dict(framework=14,int_local=7,ASCII_false_guard=3,high_or_low_outer=11,inner_range_and_matching_call=29)),
+ note='Explicit default literal is charged only at omitted actual Maximum/Ascii sites. Named getter results remain once.64N is a source upper over actual general UTF16 branches.')
+model('Assert-TaskIntegral','61 upper',[
+ group('entry/parameters',(372,372),E=1,W=2),
+ group('RuntimeType local',(373,373),Value_R=1,D=1,local_W=1,body=16),
+ group('eight kind tests',(374,374),type_and_T_reads=16,ne_O=8,and_O=7,B=1),
+ group('nonnegative branch',(375,375),Nonnegative_R=1,Value_R=1,zero_R=1,lt_O=1,and_O=1,B=1),
+ group('normal return',(376,376),T=1)],
+ note='Selected Int64/default-false56 and UInt64/default-false59 include their actual short-circuit type prefix plus omitted default literal; do not mechanically use61 at every caller.')
+model('Get-TaskIntegerDigits','negative309 / unsigned307',[
+ group('negative fixed source',(416,427),entry_parameters=2,Integral_caller_R_D=2,digits_literal_and_W=2,
+       negative_test=4,initial_increment=3,foreach_named_fixed=4,return_R_T=2,Integral_Int64_default_false=56)],
+ coefficients=dict(negative_threshold=dict(bodies=18,each=13),unsigned_threshold=dict(bodies=19,each=12)),
+ alternatives=dict(unsigned_fixed=dict(entry_parameters=2,Integral_caller_R_D=2,digits_init=2,unsigned_test=4,foreach_named_fixed=4,return_R_T=2,Integral_UInt64_default_false=59,extra_nonnegative_selection=4)),
+ note='Decimal thresholds are fixed representation literals, not prices. Actual full-negative18 and unsigned19 comparisons; no division/floating/stringification.')
+model('Get-TaskEscapedStringBytes','75+148N',[
+ group('entry and parameter',(428,428),E=1,W=1),
+ group('String validation fixed/default/caller',(429,429),Value_R=1,profile_cell=INDEX,D=1,Ascii_default_R=1,String_fixed=49),
+ group('bytes initialization',(430,430),literal_R=1,W=1),
+ group('for fixed and return',(431,438),for_fixed=13,return_R_T=2)],
+ coefficients=dict(UTF16=dict(String_validation=64,for_framework=14,Spend1_with_conversion=20,int_local=7,all_false_short_escape_guard=28,nonASCII_or_control_guard=8,add6=4,stringUnits_increment=3)),
+ note='All70body actions are source owned. Short escapes and safeASCII are bounded alternatives, no external encoding CPU fee.')
+model('Add-TaskJsonBound','27+C_long',[
+ vector('typed long state indexed check/update',(439,439),R=13,W=3,O=8,B=1,E=1,T=1)],
+ note='State[0]/[2] physical Int64 cells; Bytes argument has one actual nonidentity conversion only where needed; no general VM boxing tariff.')
+
+visitor_common=[group('entry/parameters',(440,440),E=1,W=3),
+                group('depth guard',(441,441),Depth_R=1,profile_index=INDEX,gt_O=1,B=1),
+                group('finite visits',(444,444),two_state_indices=2*INDEX,ge_O=1,B=1),
+                group('state/node counters and Spend',(445,445),State_increment=6,global_increment=3,Spend_caller_and_body=20),
+                group('null branch predicate',(446,446),null_R=1,Value_R=1,eq_O=1,B=1)]
+visitor_types=group('nonnull runtime type local',(447,447),Value_R=1,D=1,local_W=1,RuntimeType=16)
+model('Visit-TaskJsonValue','null86; string184+148N; bool115; integer455; map185+223K+31sep+212keyUnits+children; array199+21E+31sep+children',visitor_common,
+ alternatives=dict(nonnull_type=visitor_types,
+                   null=dict(State_R=1,literal4_R=1,Int32_Long_O=1,D=1,AddBound=27,T=1),
+                   string=dict(prefix=77,State_R=1,Value_R=1,GetEscaped_D=1,Add_D=1,Escaped_fixed=75,AddBound=27,T=1),
+                   boolean=dict(prefix=81,State_R=1,Value_R=1,B=1,selected_literal_R=1,Int32_Long_O=1,Add_D=1,AddBound=27,T=1),
+                   integer=dict(prefix=113,State_R=1,Value_R=1,Digits_D=1,Add_D=1,Digits_max=309,Int32_Long_O=1,AddBound=27,T=1),
+                   map_fixed=dict(prefix=121,extent=12,AddBound=31,Seen_init=2,foreach_fixed=9,unchanged_count_guard=9,T=1),
+                   array_fixed=dict(prefix=137,Count_local=6,extent=7,AddBound=31,for_fixed=8,unchanged_count_guard=9,T=1)),
+ coefficients=dict(map_entry=dict(foreach=5,Seen_increment=3,Count_guard=9,finite_node_guard=10,State_increment=6,global_node_increment=3,key_String_fixed_caller=60,key_Escaped_Add_fixed=113,separator_guard=4,recursive_caller=10),
+                   map_key_UTF16=dict(String=64,Escape=148),map_separator=dict(AddBound_with_literal=31),
+                   array_entry=dict(for_framework=9,separator_condition=2,Value_index=INDEX,Depth_R=1,literal1_R=1,add_O=1,State_R=1,D=1),
+                   array_separator=dict(AddBound_with_literal=31)),
+ excluded=['recursive Visit-TaskJsonValue children'],
+ note='Array fixed199 includes final unchanged Count guard9; old190 was not an authority. Integer455 uses independent maxima guard32 and digit309 as explicit upper, not a purported joint path.')
+
+model('Get-TaskCatalogueEntryPath','hit14/tilde71/first9529',[
+ group('entry and canonical guard',(102,103),E=1,parameter_W=1,null_R=1,canonical_index=INDEX,ne_O=1,B=1)],
+ alternatives=dict(hit=[group('return canonical cell',(103,103),index=INDEX,T=1)],
+                   tilde=[group('name/raw locals',(104,104),name_index=INDEX,name_W=1,name_R=1,Raw_W=1),
+                          group('relative repository normalization guard',(105,105),repo_input_index=INDEX,Path_type_R=1,Name_R=1,param_W=1,D_E_T=3,bool_operand_W=1,not_O=1,and_O=1,B=1),
+                          group('Join and local',(105,105),Repo_R=1,Name_R=1,two_param_W=2,D_E_T=3,Raw_W=1),
+                          group('raw tilde guard',(108,108),raw_receiver_R_W=2,char_type_R=1,literal126_R=1,cast_O=1,param_W=1,D_E_T=3,operand_W=1,zero_R=1,ge_O=1),
+                          group('GetFullPath result',(109,109),Path_type_R=1,Raw_R=1,param_W=1,D_E_T=3,local_W=1),
+                          group('canonical tilde guard',(110,110),canonical_receiver_R_W=2,char_type_R=1,literal126_R=1,cast_O=1,param_W=1,D_E_T=3,operand_W=1,zero_R=1,ge_O=1),
+                          group('return produced canonical',(110,110),R=1,T=1)],
+                   first=[group('name/raw locals',(104,104),name_index=INDEX,name_W=1,name_R=1,Raw_W=1),
+                          group('repo guard and optional Join',(105,105),repo_guard=14,Join=8),
+                          group('two tilde guards and normalization',(108,110),raw_tilde=12,FullPath=7,canonical_tilde=12),
+                          group('canonical String miss/caller',(111,111),Canonical_R=1,D=1,local_W=1,String_miss=41),
+                          group('parent array and locals',(112,112),string_array_type_R=1,literal65_R=1,param_W=1,D_E_T=3,array_W=1,count_literal_R_W=2,canonical_R=1,At_W=1),
+                          group('parent while fixed',(113,122),initial_or_terminal_and_setup=8),
+                          group('65 actual admitted parent upper',(113,122),rows=65*143),
+                          group('aliases local',(123,123),index=INDEX,W=1),
+                          group('two-value-array foreach fixed',(124,124),array_S=1,two_value_R=2,two_slot_W=2,foreach_S=1,terminal_K=1,exit_K=1),
+                          group('two alias source rows',(124,129),rows=2*36),
+                          group('three catalogue field writes',(130,130),three_bases_R=3,three_keys_R=3,three_values_R=3,three_index_O=3,three_field_W=3),
+                          group('return canonical',(131,131),R=1,T=1)]),
+ coefficients=dict(parent_row=dict(while_condition_control=8,String_miss_and_caller=44,indexed_store=5,Count_increment=3,depth_branch=4,parent_contains=12,miss_GetDirectoryName=7,nonnull_branch=2,parent_String_miss_and_caller=44,parent_Add=12,At_write=2),
+                   alias_row=dict(foreach=5,ContainsKey_not_branch=10,derived_count_guard=12,Add=9)),
+ note='First-use1297 upper remains a conditional profile count, never a trace. Parent loop stop at65 precedes the next filesystem operation. Explicit array11 plus foreach8 replace unsupported12/7, leaving the complete positive first upper9529.')
+model('Get-TaskCanonicalPath','76+EntryPath when selected',[
+ group('entry/parameter',(133,133),E=1,W=1),
+ group('context caller/result and body',(134,134),D=1,result_W=1,Context=26),
+ group('Path tilde comparison',(134,134),receiver_R_W=2,char_type_R=1,literal126_R=1,cast_O=1,param_W=1,D_E_T=3,result_W=1,zero_R=1,lt_O=1),
+ group('and and source branch',(134,134),and_O=1,B=1),
+ group('aliases ContainsKey',(135,135),index=INDEX,receiver_W=1,Path_R=1,param_W=1,D_E_T=3,result_W=1,B=1),
+ group('strings ContainsKey',(136,136),index=INDEX,receiver_W=1,Path_R=1,param_W=1,D_E_T=3,result_W=1,B=1),
+ group('maximal selected return/caller',(135,139),indexed=CHAINED_INDEX,T=1)],
+ excluded=['Get-TaskCatalogueEntryPath'],note='Unknown/context-changed/tilde alternatives retain GetFullPath; branch upper76 bounds actual selected return caller, not a cached filesystem result.')
+model('Assert-NoLink','fixed+64*parent_body+Canonical',[
+ group('entry/parameter',(141,141),E=1,W=1),
+ group('length guard',(142,142),Length=GETTER_LOCAL,literal512_R=1,gt_O=1,B=1),
+ group('Canonical caller/local and Depth initialization',(143,143),Path_R=1,D=1,At_W=1,zero_R=1,Depth_W=1),
+ group('while fixed and implicit return',(144,145),terminal_At_R=1,terminal_K=1,loop_setup_S=1,exit_K=1,T=1)],
+ coefficients=dict(parent_body=dict(while_At_R=1,condition_body_advance_K=3,Spend_literal_R=1,D=1,Int32_Long_O=1,Spend=17,
+                                   depth_increment=3,depth_guard=4,File_Exists=8,Directory_Exists=8,exists_or_branch=2,
+                                   GetAttributes=7,reparse_enum=3,band_O=1,zero_R=1,ne_O=1,B=1,
+                                   Context_caller_result_body=28,parent_contains=11,and_branch=2,parent_selected_reference_write=8)),
+ excluded=['Get-TaskCanonicalPath'],
+ note='At most64 admitted filesystem parent bodies;65th guard refuses before filesystem checks. Full source alternatives and both existence calls are an explicit positive upper, no FS-trust cache.')
+model('Resolve-TaskInput','64NameN+135+EntryPath when selected',[
+ group('entry/parameter',(803,803),E=1,W=1),
+ group('String validation fixed/caller/default',(804,804),Name_R=1,literal512_R=1,D=1,defaultAscii_R=1,String_fixed=49),
+ group('IsPathRooted and branch',(805,805),Path_type_R=1,Name_R=1,param_W=1,D_E_T=3,operand_W=1,B=1),
+ group('derived relative path guard',(810,810),Repo_Length=GETTER_LOCAL,literal1_R=1,Name_Length=GETTER_LOCAL,two_add_O=2,literal512_R=1,gt_O=1,B=1),
+ group('context ContainsKey branch',(811,811),Context_D_result=2,Context=26,inputs_index=INDEX,receiver_W=1,Name_R=1,param_W=1,D_E_T=3,result_W=1,and_O=1,B=1),
+ group('selected caller/return upper',(806,812),fallback_type_R=1,Join_Repo_Name=8,GetFullPath_param_W=1,D_E_T=3,T=1)],
+ coefficients=dict(Name_UTF16=dict(String_general=64)),excluded=['Get-TaskCatalogueEntryPath'],
+ note='Relative rooted and fully-qualified branches are re-expanded; source upper may sum positive branch envelopes but is not an executed trace. No copied referent bytes.')
+
+model('Get-TaskSafePrefix','ASCII51/general54',[
+ group('entry/parameters',(366,366),E=1,W=2),
+ group('maximum domain',(367,367),two_Maximum_R=2,two_literal_R=2,two_compare_O=2,or_O=1,B=1),
+ group('Math.Min local',(368,368),Math_type_R=1,Maximum_R=1,Length_getter=GETTER,two_param_W=2,D_E_T=3,local_W=1),
+ group('surrogate boundary guard',(369,369),N_R=1,zero_R=1,gt_O=1,and_O=1,char_type_R=1,indexed_Value_Nminus1=6,param_W=1,D_E_T=3,operand_W=1,B=1),
+ group('Substring return',(370,370),Value_receiver_R_W=2,zero_R=1,N_R=1,two_param_W=2,D_E_T=3,function_T=1)],
+ alternatives=dict(general_extra_decrement=dict(R=1,O=1,W=1)),note='Sole current caller root ASCII proves decrement unreachable; generic form retained separately.')
+model('Assert-TaskExactKeys','72+81K+64keyUnits',[
+ group('entry/parameters',(389,389),E=1,W=2),
+ group('RuntimeType local',(390,390),Map_R=1,D=1,local_W=1,RuntimeType=16),
+ group('three kinds',(391,391),three_T_R=3,three_type_R=3,three_ne_O=3,two_and_O=2,B=1),
+ group('actual count/length',(392,392),Map_Count=GETTER_LOCAL,Keys_Length=GETTER_LOCAL,ne_O=1,B=1),
+ group('HashSet with static comparer',(393,393),static_getter_argument=STATIC_GETTER_ARGUMENT,constructor=CTOR_RESULT),
+ group('two foreach fixed',(394,395),Keys_fixed=FOREACH_FIXED_NAMED,Map_Keys_getter_control=9),
+ group('normal return',(396,396),T=1)],
+ coefficients=dict(declared_key=dict(foreach=5,Add_receiver_R_W=2,key_R=1,param_W=1,D_E_T=3,null_result_W=1),
+                   observed_key=dict(foreach=5,String_fixed_default_caller=53,ContainsKey_not_branch=10),key_UTF16=dict(String_general=64)),
+ note='Static property/getter and constructor10, not9. Exact builtin map types only; no reflection/binder body expansion.')
+model('Set-TaskSecondary','44 maximal first-unsaturated',[
+ vector('all three actual guards/conditional writes',(397,401),R=19,W=6,O=11,B=3,D=1,E=2,T=2)],
+ note='Slot length and Int64.MaxValue static field retained. No raw exception serialization or fictitious per-exception clone.')
+model('Close-TaskOwner','null7/normal12/firstFailure17/secondaryFailure62',[
+ group('entry/parameter and nonnull branch',(402,404),E=1,W=1,null_R=1,Owner_R=1,ne_O=1,B=1)],
+ alternatives=dict(null=dict(T=1),normal=dict(Owner_R=1,receiver_W=1,D_E_T=3,T=1),
+                   firstFailure=dict(Dispose=5,primary_null_test=4,raw_primary_assignment=2),
+                   secondaryFailure=dict(Dispose=5,primary_nonnull_test=4,secondary_literal_R=1,raw_R=1,D=1,SetSecondary=44,T=1)),
+ note='Dispose error K/catch transfer replaces primitive normalreturn at the opaque boundary; no physical reclaim credit. The62 path includes actual secondary helper, not all outcomes summed as a trace.')
+model('Complete-TaskOwnerClose','normal16/propagate17',[
+ vector('complete three predicate normal',(405,405),R=6,W=2,O=5,B=1,E=1,T=1)],
+ alternatives=dict(propagate=dict(R=7,W=2,O=5,B=1,E=1,K=1)),
+ note='PriorPrimary/Body arguments are read/dispatched at caller; no additional scalar destination for void result.')
+model('Get-TaskSecondaryCodes','506',[
+ group('entry and List constructor',(406,407),E=1,List_type_R=1,Length=GETTER,param_W=1,D_E_T=3,local_W=1),
+ group('for Length framework',(408,408),for_fixed=13,eleven_condition_increment_bodies=11*14),
+ group('eleven maximum retained slots',(408,408),eleven_source_rows=11*29),
+ group('ToArray comma and return',(409,409),receiver_R_W=2,D_E_T=3,array_S=1,element_W=1,T=1)],
+ note='Each row29=nonnull indexed guard7+three-field map14+Add receiver/parameter/dispatch8. Comma's element W is explicit.11 is actual source sites, not padded metadata.')
+model('Assert-TaskCodecBinding','normal18/refusal19',[
+ vector('bound codecs and null DefaultSettings',(411,415),R=6,W=1,O=4,B=2,D=1,E=2,T=2)],
+ alternatives=dict(default_refusal=dict(R=7,W=1,O=4,B=2,D=1,E=2,T=1,K=1)),
+ note='DefaultSettings is static property; getter invoked, delegate not invoked. No static field/enum shortcut.')
+model('Measure-TaskJson','104+Ddefault+Visitor',[
+ group('entry/parameters',(474,474),E=1,W=2),
+ group('Codec caller and body',(475,475),D=1,Codec=18),
+ group('document profile gate',(476,476),Maximum_R_twice=2,two_literal_R=2,two_compare_O=2,two_or_O=2,null_R=1,profile_R=1,eq_O=1,B=1),
+ group('private long3 and cap',(478,478),long_array_type_R=1,literal3_R=1,param_W=1,D_E_T=3,State_W=1,State_index_store=5),
+ group('Visitor caller',(479,479),Value_R=1,literal0_R=1,State_R=1,D=1),
+ group('final LF bound',(479,479),State_R=1,literal1_R=1,Int32_Long_O=1,D=1,AddBound=27),
+ group('four-field measurement map and return',(480,480),map_S=1,key_R=4,field_W=4,three_state_index_reads=3*INDEX,literal_R=1,T=1)],
+ excluded=['Visit-TaskJsonValue'],note='Omitted Maximum literal once at actual caller only. Typed state creation12, no managed scalar box assumption.')
+model('Join-TaskBoundedNames','67+87K+64nameUnits',[
+ group('entry/parameters',(482,482),E=1,W=2),
+ group('extent before copy',(483,483),Count=GETTER_LOCAL,Maximum_R_twice=2,zero_R=1,two_compare_O=2,or_O=1,B=1),
+ group('length init',(484,484),literal_R=1,W=1),
+ group('indexed for fixed',(485,485),fixed=13),
+ group('512Maximum Math.Max upper',(486,486),literal512_R=1,Maximum_R=1,mul_O=1,Math_type_R=1,zero_R=1,Maximum_R_again=1,one_R=1,sub_O=1,two_param_W=2,D_E_T=3,result_W=1,add_O=1,local_W=1),
+ group('before allocation test',(487,487),two_Length_R=2,Upper_R=1,int_type_member=3,two_gt_O=2,or_O=1,B=1),
+ group('Join explicit cast and return',(488,488),string_type_R=1,separator_R=1,IEnumerable_type_R=1,Names_R=1,cast_O=1,two_param_W=2,D_E_T=3,T=1)],
+ coefficients=dict(name_row=dict(for_framework=14,String_fixed_default_caller=56,indexed_length_sum=12,separator_guard_and_increment=5),name_UTF16=dict(String_general=64)),
+ note='Empty/singleton alias result branches are capacity facts for P, not a scalar shortcut. Exact IEnumerable type read is included.')

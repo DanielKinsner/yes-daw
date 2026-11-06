@@ -1,0 +1,67 @@
+{
+  "status": "exact_24_setup_profile_and_reached_lifecycle_records",
+  "cases": 24,
+  "request_records": 4392,
+  "snapshot_records": 1584,
+  "pcm_bit_compares": 209667,
+  "counted_probe_and_oracle_units": 25545276,
+  "setup_library_call_bound": 2373412,
+  "reached_record_sensitivity_controls": {
+    "omit_constructor_record": {
+      "gate": "RequestInventoryMismatch",
+      "reached_record": 0,
+      "kind": "actual-record sensitivity only"
+    },
+    "omit_fft_plane_snapshot": {
+      "gate": "SnapshotInventoryMismatch",
+      "reached_record": 39,
+      "kind": "actual-record sensitivity only"
+    },
+    "omit_input_ring_guard_sample_record": {
+      "gate": "OwnedCapacityMismatch",
+      "reached_record": 155,
+      "kind": "actual-record sensitivity only"
+    },
+    "duplicate_allocation_identity_record": {
+      "gate": "DuplicateAllocationIdentity",
+      "reached_record": 0,
+      "kind": "actual-record sensitivity only"
+    },
+    "understate_requested_byte": {
+      "gate": "RequestedByteMismatch",
+      "reached_record": 883,
+      "kind": "actual-record sensitivity only"
+    },
+    "underreport_registry_visit": {
+      "gate": "CountedWorkMismatch",
+      "reached_record": 0,
+      "kind": "actual-record sensitivity only"
+    },
+    "release_before_allocation_record": {
+      "gate": "UnknownOwnerRelease",
+      "reached_record": 0,
+      "kind": "actual-record sensitivity only"
+    },
+    "alias_two_vector_owner_records": {
+      "gate": "UniqueVectorOwnerMismatch",
+      "reached_record": 14,
+      "kind": "actual-record sensitivity only"
+    }
+  },
+  "physical_lifetime_controls_run": false,
+  "full_wrapper_batch_cache_proved": false,
+  "full_vendor_processing_work_certified": false,
+  "hidden_malloc_or_RSS_certificate": false,
+  "full_resource_certificate": false,
+  "waveform_run": false,
+  "production_accepted": false,
+  "public_pcm_samples": 0,
+  "pending": [
+    "actual extra-owner/cancellation/batch/cache lifetime driver",
+    "full wrapper/view/PCM/fade/peaks graph",
+    "general configuration profile",
+    "complete vendor DSP work accounting",
+    "hidden direct allocation/RSS",
+    "waveform/context/renderer/RT/integration"
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "scope": "unfinished own model data selector summary; not complete census check",
+  "raw_exit": 1,
+  "reason": "Exact group label lookup used catch raw primary instead of existing catch raw primary path for ReadBounded. Own selector assertion stopped before emitting output. No subject/target/old helper executed."
+}

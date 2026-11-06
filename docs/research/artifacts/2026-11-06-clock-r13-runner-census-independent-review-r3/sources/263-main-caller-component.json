@@ -1,0 +1,4093 @@
+{
+  "source": {
+    "path": "build-ci/20261106-r13-main-caller-ledger-r3/caller-ledger.json",
+    "bytes": 155738,
+    "sha256": "6FB853C6244C0C5EEEC68F114471B75953C4A959944F3B44C3D5F61EB7A59BF3"
+  },
+  "status": "CALLER_ONLY_UNACCEPTED_DATA",
+  "rows": [
+    {
+      "lines": [
+        1,
+        7
+      ],
+      "label": "script entry/four actually supplied string parameter destinations",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "script entry/inputs",
+          "roles": {
+            "E": 1,
+            "W": 4
+          },
+          "units": 5
+        }
+      ],
+      "units": 5,
+      "note": "Exact fresh-controller argv supplies all four strings; metadata/compiler/binder internals stay at the existing runtime boundary, not expanded source loops."
+    },
+    {
+      "lines": [
+        8,
+        8
+      ],
+      "label": "typed ErrorActionPreference Stop assignment",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "string-to-public enum preference",
+          "roles": {
+            "R": 1,
+            "O": 1,
+            "W": 1
+          },
+          "units": 3
+        }
+      ],
+      "units": 3,
+      "note": "Selected InitialSessionState.cs4551\u20134556 gives this automatic variable ArgumentTypeConverterAttribute(ActionPreference)."
+    },
+    {
+      "lines": [
+        9,
+        16
+      ],
+      "label": "eight source gates/tracking flags",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "literal Boolean destinations",
+          "roles": {
+            "R": 8,
+            "W": 8
+          },
+          "units": 16
+        }
+      ],
+      "units": 16,
+      "note": ""
+    },
+    {
+      "lines": [
+        17,
+        17
+      ],
+      "label": "complete six-operand entry guard with refusal",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "six written negations and disjunctions",
+          "roles": {
+            "R": 6,
+            "O": 11,
+            "B": 1
+          },
+          "units": 18
+        },
+        {
+          "label": "throw site",
+          "roles": {
+            "R": 1,
+            "K": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 20,
+      "note": "Positive source upper over all written operands; exact frozen false guards terminate, not a claimed reached bootstrap trace."
+    },
+    {
+      "lines": [
+        20,
+        24
+      ],
+      "label": "three admitted caller path scans",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "three-element literal array and foreach fixed",
+          "roles": {
+            "element_R": 3,
+            "element_W": 3,
+            "array_S": 1,
+            "foreach_S": 1,
+            "terminal_K": 1,
+            "exit_K": 1
+          },
+          "units": 10
+        },
+        {
+          "label": "three foreach input/condition/body/advance groups",
+          "roles": {
+            "units": 15
+          },
+          "units": 15
+        },
+        {
+          "label": "three complete null/length guards",
+          "roles": {
+            "units": 66
+          },
+          "units": 66
+        },
+        {
+          "label": "three property-bound512 for frameworks",
+          "roles": {
+            "units": 21543
+          },
+          "units": 21543
+        },
+        {
+          "label": "two actual Char-to-Int32 source operands per ASCII test",
+          "roles": {
+            "units": 27648
+          },
+          "units": 27648
+        },
+        {
+          "label": "three fully qualified API/not/branch groups",
+          "roles": {
+            "units": 27
+          },
+          "units": 27
+        },
+        {
+          "label": "three written refusal sites, each at most once per outer row",
+          "roles": {
+            "R": 9,
+            "K": 9
+          },
+          "units": 18
+        }
+      ],
+      "units": 49327,
+      "note": "Length getter6; indexed4+typeR+Char-to-Int32 O for each cast. ASCII body18=two casts12+two literals2+comparisons2+or1+branch1. No hidden VM-byte fee."
+    },
+    {
+      "lines": [
+        25,
+        25
+      ],
+      "label": "manifest length guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Length/64/ne/branch",
+          "roles": {
+            "getter": 6,
+            "literal_R": 1,
+            "O": 1,
+            "B": 1
+          },
+          "units": 9
+        },
+        {
+          "label": "throw",
+          "roles": {
+            "R": 1,
+            "K": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 11,
+      "note": ""
+    },
+    {
+      "lines": [
+        26,
+        26
+      ],
+      "label": "64 manifest hexadecimal source checks",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "literal-bound for framework",
+          "roles": {
+            "units": 584
+          },
+          "units": 584
+        },
+        {
+          "label": "indexed character/pattern/notmatch/branch",
+          "roles": {
+            "units": 448
+          },
+          "units": 448
+        },
+        {
+          "label": "single written throw site",
+          "roles": {
+            "R": 1,
+            "K": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 1034,
+      "note": ""
+    },
+    {
+      "lines": [
+        27,
+        27
+      ],
+      "label": "seven literal suffixes",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "array and named destination",
+          "roles": {
+            "R": 7,
+            "W": 8,
+            "S": 1
+          },
+          "units": 16
+        }
+      ],
+      "units": 16,
+      "note": ""
+    },
+    {
+      "lines": [
+        28,
+        28
+      ],
+      "label": "seven derived suffix guards",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "named foreach fixed",
+          "roles": {
+            "units": 4
+          },
+          "units": 4
+        },
+        {
+          "label": "per suffix foreach and complete expression",
+          "roles": {
+            "units": 147
+          },
+          "units": 147
+        },
+        {
+          "label": "written throw at most once per suffix",
+          "roles": {
+            "R": 7,
+            "K": 7
+          },
+          "units": 14
+        }
+      ],
+      "units": 165,
+      "note": ""
+    },
+    {
+      "lines": [
+        29,
+        29
+      ],
+      "label": "source manifest derived suffix guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "complete expression",
+          "roles": {
+            "getter": 12,
+            "literal_R": 1,
+            "O": 2,
+            "B": 1
+          },
+          "units": 16
+        },
+        {
+          "label": "throw",
+          "roles": {
+            "R": 1,
+            "K": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 18,
+      "note": ""
+    },
+    {
+      "lines": [
+        30,
+        30
+      ],
+      "label": "three GetFullPath produced locals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "three Type/argument/parameter/DET/destination ports",
+          "roles": {
+            "units": 21
+          },
+          "units": 21
+        }
+      ],
+      "units": 21,
+      "note": ""
+    },
+    {
+      "lines": [
+        31,
+        31
+      ],
+      "label": "manifest path and uppercase digest locals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "static Join2",
+          "roles": {
+            "units": 9
+          },
+          "units": 9
+        },
+        {
+          "label": "instance ToUpperInvariant",
+          "roles": {
+            "units": 6
+          },
+          "units": 6
+        }
+      ],
+      "units": 15,
+      "note": ""
+    },
+    {
+      "lines": [
+        32,
+        32
+      ],
+      "label": "four derived directory locals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "static Join2 four times",
+          "roles": {
+            "units": 36
+          },
+          "units": 36
+        }
+      ],
+      "units": 36,
+      "note": ""
+    },
+    {
+      "lines": [
+        33,
+        33
+      ],
+      "label": "four own names literal array",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "array/local/element slots",
+          "roles": {
+            "R": 4,
+            "W": 5,
+            "S": 1
+          },
+          "units": 10
+        }
+      ],
+      "units": 10,
+      "note": ""
+    },
+    {
+      "lines": [
+        34,
+        34
+      ],
+      "label": "catalogue null local",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "null/read destination",
+          "roles": {
+            "R": 1,
+            "W": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 2,
+      "note": ""
+    },
+    {
+      "lines": [
+        35,
+        35
+      ],
+      "label": "manifest and five integer state locals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "six source values and destinations",
+          "roles": {
+            "R": 6,
+            "W": 6
+          },
+          "units": 12
+        }
+      ],
+      "units": 12,
+      "note": ""
+    },
+    {
+      "lines": [
+        37,
+        37
+      ],
+      "label": "rooted byte hash buffer constructor",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "array Type/length/param/DET/local",
+          "roles": {
+            "type_R": 1,
+            "length_R": 1,
+            "param_W": 1,
+            "D": 1,
+            "E": 1,
+            "T": 1,
+            "local_W": 1
+          },
+          "units": 7
+        }
+      ],
+      "units": 7,
+      "note": "CLR array internal zeroing CPU is primitive; all65536 controlled bytes remain a resource owner."
+    },
+    {
+      "lines": [
+        40,
+        41
+      ],
+      "label": "poll maximum and JSON bytes locals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "two typed Int64 literals and destinations",
+          "roles": {
+            "R": 2,
+            "W": 2
+          },
+          "units": 4
+        }
+      ],
+      "units": 4,
+      "note": ""
+    },
+    {
+      "lines": [
+        46,
+        46
+      ],
+      "label": "finite JSON visit cap expression",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "nine Int64 literals/eight operators/destination",
+          "roles": {
+            "R": 9,
+            "O": 8,
+            "W": 1
+          },
+          "units": 18
+        }
+      ],
+      "units": 18,
+      "note": ""
+    },
+    {
+      "lines": [
+        47,
+        47
+      ],
+      "label": "five raw/log/quarantine/receipt state locals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "values and destinations",
+          "roles": {
+            "R": 5,
+            "W": 5
+          },
+          "units": 10
+        }
+      ],
+      "units": 10,
+      "note": ""
+    },
+    {
+      "lines": [
+        48,
+        48
+      ],
+      "label": "integer domain and reviewed limit",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "MaxValue static data and local",
+          "roles": {
+            "type_R": 1,
+            "field_selection_O": 1,
+            "field_R": 1,
+            "W": 1
+          },
+          "units": 4
+        },
+        {
+          "label": "null local",
+          "roles": {
+            "R": 1,
+            "W": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 6,
+      "note": ""
+    },
+    {
+      "lines": [
+        49,
+        49
+      ],
+      "label": "wrong represented static-field receiver \u2014 functionality HOLD",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "object Type receiver",
+          "roles": {
+            "type_R": 1,
+            "receiver_W": 1
+          },
+          "units": 2
+        },
+        {
+          "label": "method-name argument",
+          "roles": {
+            "R": 1,
+            "param_W": 1
+          },
+          "units": 2
+        },
+        {
+          "label": "written Type[] static-field source and argument",
+          "roles": {
+            "type_R": 1,
+            "field_selection_O": 1,
+            "field_R": 1,
+            "param_W": 1
+          },
+          "units": 4
+        },
+        {
+          "label": "nominal GetMethod boundary and local",
+          "roles": {
+            "D": 1,
+            "E": 1,
+            "T": 1,
+            "W": 1
+          },
+          "units": 4
+        }
+      ],
+      "units": 12,
+      "note": "This source upper is not a successful field/method observation. The separate static-adapter finding blocks functional promotion; no runtime failure was fabricated."
+    },
+    {
+      "lines": [
+        50,
+        51
+      ],
+      "label": "three null and three Int64 zero locals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "six values and destinations",
+          "roles": {
+            "R": 6,
+            "W": 6
+          },
+          "units": 12
+        }
+      ],
+      "units": 12,
+      "note": ""
+    },
+    {
+      "lines": [
+        52,
+        52
+      ],
+      "label": "eleven fixed secondary site strings",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "literal array/local/slots",
+          "roles": {
+            "R": 11,
+            "W": 12,
+            "S": 1
+          },
+          "units": 24
+        }
+      ],
+      "units": 24,
+      "note": ""
+    },
+    {
+      "lines": [
+        53,
+        54
+      ],
+      "label": "two fixed secondary arrays",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Type/Length receiver-boundary/constructor-boundary/local each",
+          "roles": {
+            "units": 22
+          },
+          "units": 22
+        }
+      ],
+      "units": 22,
+      "note": "Length getter result initializes constructor parameter once; no duplicate parameter destination."
+    },
+    {
+      "lines": [
+        55,
+        55
+      ],
+      "label": "raw primary null",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "literal and local",
+          "roles": {
+            "R": 1,
+            "W": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 2,
+      "note": ""
+    },
+    {
+      "lines": [
+        56,
+        56
+      ],
+      "label": "thirty-field ordered receipt literal",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "one selected map/key/slot/local formation",
+          "roles": {
+            "S": 1,
+            "key_R": 30,
+            "field_W": 30,
+            "local_W": 1
+          },
+          "units": 62
+        },
+        {
+          "label": "27 scalar values",
+          "roles": {
+            "R": 27
+          },
+          "units": 27
+        },
+        {
+          "label": "empty List and two empty array produced fields",
+          "roles": {
+            "Type_and_DET": 4,
+            "two_Type_zero_param_DET": 12
+          },
+          "units": 16
+        }
+      ],
+      "units": 105,
+      "note": "Ctor result destinations fuse with the three field writes. Exactly30 literal fields here; later dynamic schema growth is separate. No phantom ordered Type value/cast."
+    },
+    {
+      "lines": [
+        59,
+        59
+      ],
+      "label": "eighteen signed threshold literals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "typed array literal/whole conversion/local",
+          "roles": {
+            "type_R": 1,
+            "array_S": 1,
+            "array_conversion_O": 1,
+            "local_W": 1
+          },
+          "units": 4
+        },
+        {
+          "label": "literal source elements",
+          "roles": {
+            "R": 18,
+            "W": 18
+          },
+          "units": 36
+        }
+      ],
+      "units": 40,
+      "note": ""
+    },
+    {
+      "lines": [
+        60,
+        60
+      ],
+      "label": "nineteen unsigned thresholds including Parse",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "typed array literal/whole conversion/local",
+          "roles": {
+            "type_R": 1,
+            "array_S": 1,
+            "array_conversion_O": 1,
+            "local_W": 1
+          },
+          "units": 4
+        },
+        {
+          "label": "first18 literal source elements",
+          "roles": {
+            "R": 18,
+            "W": 18
+          },
+          "units": 36
+        },
+        {
+          "label": "UInt64 Parse into final element",
+          "roles": {
+            "type_R": 1,
+            "string_R": 1,
+            "string_param_W": 1,
+            "InvariantCulture_Type_DET_param": 5,
+            "Parse_D_E_T": 3,
+            "element_W": 1
+          },
+          "units": 12
+        }
+      ],
+      "units": 52,
+      "note": "The fixed UInt64 Parse output writes its literal-array slot once. Typed array coercion is one semantic operation, not hidden per-cell CPU."
+    },
+    {
+      "lines": [
+        61,
+        61
+      ],
+      "label": "twelve summary field strings",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "literal array/local/slots",
+          "roles": {
+            "R": 12,
+            "W": 13,
+            "S": 1
+          },
+          "units": 26
+        }
+      ],
+      "units": 26,
+      "note": ""
+    },
+    {
+      "lines": [
+        62,
+        928
+      ],
+      "label": "74 source function registrations only",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "one source function-slot registration each",
+          "roles": {
+            "S": 74
+          },
+          "units": 74
+        }
+      ],
+      "units": 74,
+      "note": "The source body/call inventory is74. No helper body, per-invocation signature Type read or hidden compiler/VM construction is charged here."
+    },
+    {
+      "lines": [
+        929,
+        932
+      ],
+      "label": "bootstrap manifest read/hash/identity prefix",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "ReadBounded caller",
+          "roles": {
+            "Path_R": 1,
+            "literal_R": 1,
+            "Int32_Long_O": 1,
+            "D": 1,
+            "local_W": 1
+          },
+          "units": 5
+        },
+        {
+          "label": "nested SHA and hex/expected guard",
+          "roles": {
+            "two_Type_R": 2,
+            "bootstrap_R": 1,
+            "two_param_W": 2,
+            "two_D_E_T": 6,
+            "operand_W": 1,
+            "Expected_R": 1,
+            "compare_O": 1,
+            "B": 1
+          },
+          "units": 15
+        },
+        {
+          "label": "throw",
+          "roles": {
+            "R": 1,
+            "K": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 22,
+      "note": "Try/handler metadata is not an additional source loop or hidden CLR unwind expansion."
+    },
+    {
+      "lines": [
+        933,
+        933
+      ],
+      "label": "initialize trusted controller caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "own D",
+          "roles": {
+            "D": 1
+          },
+          "units": 1
+        }
+      ],
+      "units": 1,
+      "note": ""
+    },
+    {
+      "lines": [
+        934,
+        934
+      ],
+      "label": "visit and raw JSON caller ports",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Length into AddVisit(long)",
+          "roles": {
+            "getter_without_dest": 5,
+            "Int32_Long_O": 1,
+            "D": 1
+          },
+          "units": 7
+        },
+        {
+          "label": "raw byte guard caller/local",
+          "roles": {
+            "Bytes_R": 1,
+            "three_literal_R": 3,
+            "D": 1,
+            "local_W": 1
+          },
+          "units": 6
+        }
+      ],
+      "units": 13,
+      "note": ""
+    },
+    {
+      "lines": [
+        935,
+        935
+      ],
+      "label": "UTF8 decoder and GetString produced local",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "encoding into receiver",
+          "roles": {
+            "type_R": 1,
+            "two_boolean_R": 2,
+            "two_param_W": 2,
+            "D_E_T": 3,
+            "receiver_W": 1
+          },
+          "units": 9
+        },
+        {
+          "label": "GetString actual args/result",
+          "roles": {
+            "three_R": 3,
+            "three_param_W": 3,
+            "D_E_T": 3,
+            "local_W": 1
+          },
+          "units": 10
+        }
+      ],
+      "units": 19,
+      "note": ""
+    },
+    {
+      "lines": [
+        936,
+        936
+      ],
+      "label": "computed trusted JSON cmdlet and released source references",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "computed command and declared boundary",
+          "roles": {
+            "command_R": 1,
+            "D_E_T": 3
+          },
+          "units": 4
+        },
+        {
+          "label": "InputObject and presence switch",
+          "roles": {
+            "string_R": 1,
+            "param_W": 1,
+            "switch_W": 1
+          },
+          "units": 3
+        },
+        {
+          "label": "Depth and DateKind enum",
+          "roles": {
+            "depth_literal_R": 1,
+            "depth_param_W": 1,
+            "DateKind_literal_R": 1,
+            "string_enum_O": 1,
+            "DateKind_param_W": 1
+          },
+          "units": 5
+        },
+        {
+          "label": "result and two explicit null writes",
+          "roles": {
+            "manifest_W": 1,
+            "null_R": 2,
+            "null_W": 2
+          },
+          "units": 5
+        }
+      ],
+      "units": 17,
+      "note": ""
+    },
+    {
+      "lines": [
+        939,
+        939
+      ],
+      "label": "bound Catalogue shape guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "binding state operand",
+          "roles": {
+            "chained_index": 7,
+            "literal_R": 1,
+            "compare_O": 1
+          },
+          "units": 9
+        },
+        {
+          "label": "definition count operand",
+          "roles": {
+            "chained_index": 7,
+            "Count_tail": 5,
+            "zero_R": 1,
+            "compare_O": 1
+          },
+          "units": 14
+        },
+        {
+          "label": "or/branch/refusal",
+          "roles": {
+            "or_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 4
+        }
+      ],
+      "units": 27,
+      "note": ""
+    },
+    {
+      "lines": [
+        940,
+        940
+      ],
+      "label": "four source-work field helper callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "literal array/foreach fixed",
+          "roles": {
+            "R": 4,
+            "W": 4,
+            "array_S": 1,
+            "foreach_fixed": 3
+          },
+          "units": 12
+        },
+        {
+          "label": "four caller rows",
+          "roles": {
+            "units": 56
+          },
+          "units": 56
+        }
+      ],
+      "units": 68,
+      "note": ""
+    },
+    {
+      "lines": [
+        941,
+        941
+      ],
+      "label": "four explicit Int64 work locals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Type/chained field/destination four times",
+          "roles": {
+            "units": 40
+          },
+          "units": 40
+        }
+      ],
+      "units": 40,
+      "note": ""
+    },
+    {
+      "lines": [
+        942,
+        942
+      ],
+      "label": "checked disjoint work overflow guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "first subtraction/comparison",
+          "roles": {
+            "R": 2,
+            "MaxValue_type_select_value": 3,
+            "O": 2
+          },
+          "units": 7
+        },
+        {
+          "label": "second two subtractions/comparison",
+          "roles": {
+            "R": 3,
+            "MaxValue_type_select_value": 3,
+            "O": 3
+          },
+          "units": 9
+        },
+        {
+          "label": "or/branch/refusal",
+          "roles": {
+            "or_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 4
+        }
+      ],
+      "units": 20,
+      "note": ""
+    },
+    {
+      "lines": [
+        943,
+        943
+      ],
+      "label": "exact work composition guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "four values/two sums/comparison",
+          "roles": {
+            "R": 4,
+            "O": 3,
+            "B": 1
+          },
+          "units": 8
+        },
+        {
+          "label": "throw",
+          "roles": {
+            "R": 1,
+            "K": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 10,
+      "note": ""
+    },
+    {
+      "lines": [
+        944,
+        944
+      ],
+      "label": "reviewed limit assignment and reservation caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "assignment",
+          "roles": {
+            "R": 1,
+            "W": 1
+          },
+          "units": 2
+        },
+        {
+          "label": "two args/own dispatch",
+          "roles": {
+            "R": 2,
+            "D": 1
+          },
+          "units": 3
+        }
+      ],
+      "units": 5,
+      "note": ""
+    },
+    {
+      "lines": [
+        945,
+        945
+      ],
+      "label": "exact input array kind/count guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "RuntimeType caller and Type comparison",
+          "roles": {
+            "index": 4,
+            "D": 1,
+            "result_operand_W": 1,
+            "type_R": 1,
+            "ne_O": 1
+          },
+          "units": 8
+        },
+        {
+          "label": "count/profile comparison",
+          "roles": {
+            "index": 4,
+            "Count_tail": 5,
+            "profile_index": 7,
+            "ne_O": 1
+          },
+          "units": 17
+        },
+        {
+          "label": "or/branch/refusal",
+          "roles": {
+            "or_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 4
+        }
+      ],
+      "units": 29,
+      "note": ""
+    },
+    {
+      "lines": [
+        946,
+        946
+      ],
+      "label": "checked output array profile",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "complete count/int bound expression",
+          "roles": {
+            "input_index": 4,
+            "Count_tail": 5,
+            "int_MaxValue": 3,
+            "OwnNames_Count": 6,
+            "one_R": 1,
+            "two_sub_O": 2,
+            "gt_O": 1,
+            "B": 1
+          },
+          "units": 23
+        },
+        {
+          "label": "throw",
+          "roles": {
+            "R": 1,
+            "K": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 25,
+      "note": ""
+    },
+    {
+      "lines": [
+        949,
+        949
+      ],
+      "label": "four-field JSON profile map",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "map/keys/slots/local",
+          "roles": {
+            "S": 1,
+            "key_R": 4,
+            "field_W": 4,
+            "local_W": 1
+          },
+          "units": 10
+        },
+        {
+          "label": "actual array extent expression",
+          "roles": {
+            "input_Count": 9,
+            "own_Count": 6,
+            "one_R": 1,
+            "two_add_O": 2
+          },
+          "units": 18
+        },
+        {
+          "label": "other values",
+          "roles": {
+            "receipt_Count": 6,
+            "two_literal_R": 2
+          },
+          "units": 8
+        }
+      ],
+      "units": 36,
+      "note": ""
+    },
+    {
+      "lines": [
+        950,
+        950
+      ],
+      "label": "initialize path catalogue caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "own dispatch",
+          "roles": {
+            "D": 1
+          },
+          "units": 1
+        }
+      ],
+      "units": 1,
+      "note": ""
+    },
+    {
+      "lines": [
+        951,
+        951
+      ],
+      "label": "predecessor descriptor caller/local",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "indexed value/dispatch/destination",
+          "roles": {
+            "index": 4,
+            "D": 1,
+            "W": 1
+          },
+          "units": 6
+        }
+      ],
+      "units": 6,
+      "note": ""
+    },
+    {
+      "lines": [
+        952,
+        952
+      ],
+      "label": "input dictionary and1220 source rows",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "dictionary comparer constructor and indexed foreach fixed",
+          "roles": {
+            "ctor": 10,
+            "foreach_fixed": 7
+          },
+          "units": 17
+        },
+        {
+          "label": "per actual input source row",
+          "roles": {
+            "units": 48800
+          },
+          "units": 48800
+        }
+      ],
+      "units": 48817,
+      "note": "Per row: foreach5; Resolve path index4+D+localW6; full Length/ContainsKey/or/branch/refusal20; actual Dictionary.Add9. No Resolve body is included."
+    },
+    {
+      "lines": [
+        953,
+        953
+      ],
+      "label": "closed input count guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Count/profile/ne/branch/refusal",
+          "roles": {
+            "Count": 6,
+            "profile_index": 7,
+            "ne_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 17
+        }
+      ],
+      "units": 17,
+      "note": ""
+    },
+    {
+      "lines": [
+        954,
+        954
+      ],
+      "label": "include dictionary copy1220 rows",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "constructor and explicit GetEnumerator foreach fixed",
+          "roles": {
+            "ctor": 10,
+            "enumerator_result": 6,
+            "foreach_fixed": 3
+          },
+          "units": 19
+        },
+        {
+          "label": "per pair foreach/Add with two direct getter arguments",
+          "roles": {
+            "units": 26840
+          },
+          "units": 26840
+        }
+      ],
+      "units": 26859,
+      "note": ""
+    },
+    {
+      "lines": [
+        955,
+        955
+      ],
+      "label": "one current header include and four FilterScript callbacks",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "indexed current-include foreach fixed",
+          "roles": {
+            "units": 7
+          },
+          "units": 7
+        },
+        {
+          "label": "row foreach and source-name guard",
+          "roles": {
+            "foreach": 5,
+            "R": 2,
+            "compare_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 11
+        },
+        {
+          "label": "source pipeline/literal callback/array capture/local",
+          "roles": {
+            "source_index": 4,
+            "scriptblock_S": 1,
+            "FilterScript_param_W": 1,
+            "Where_D_E_T": 3,
+            "capture_S": 1,
+            "local_W": 1
+          },
+          "units": 11
+        },
+        {
+          "label": "four source callbacks",
+          "roles": {
+            "units": 44
+          },
+          "units": 44
+        },
+        {
+          "label": "exact one captured pin guard",
+          "roles": {
+            "Count": 6,
+            "one_R": 1,
+            "ne_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 11
+        },
+        {
+          "label": "include Add with JoinPath and indexed pin arguments",
+          "roles": {
+            "receiver_R_W": 2,
+            "Join_args_and_boundary": 8,
+            "first_param_W": 1,
+            "pin_index": 4,
+            "second_param_W": 1,
+            "Add_D_E_T": 3
+          },
+          "units": 19
+        }
+      ],
+      "units": 103,
+      "note": "Callback11=DET3+automatic inputW1+indexed4+NameR1+ceqO1+predicate destinationW1. Actual one current_include_input/four source rows must be checked against exact manifest."
+    },
+    {
+      "lines": [
+        956,
+        956
+      ],
+      "label": "closed include count guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Count/profile/ne/branch/refusal",
+          "roles": {
+            "Count": 6,
+            "profile_index": 7,
+            "ne_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 17
+        }
+      ],
+      "units": 17,
+      "note": ""
+    },
+    {
+      "lines": [
+        957,
+        957
+      ],
+      "label": "authored byte count over own4",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "GetItem/Length/long Type local",
+          "roles": {
+            "cmdlet_args_and_boundary": 6,
+            "produced_receiver_W": 1,
+            "Length_D_E_T": 3,
+            "local_W": 1,
+            "long_type_R": 1,
+            "explicit_cast_O": 1
+          },
+          "units": 13
+        },
+        {
+          "label": "indexed foreach fixed",
+          "roles": {
+            "units": 7
+          },
+          "units": 7
+        },
+        {
+          "label": "four add/cast source rows",
+          "roles": {
+            "units": 56
+          },
+          "units": 56
+        },
+        {
+          "label": "1MiB guard/refusal",
+          "roles": {
+            "R": 2,
+            "gt_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 6
+        }
+      ],
+      "units": 82,
+      "note": ""
+    },
+    {
+      "lines": [
+        958,
+        958
+      ],
+      "label": "control and retained reservation source",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "zero local and indexed foreach fixed",
+          "roles": {
+            "R": 1,
+            "W": 1,
+            "foreach_fixed": 7
+          },
+          "units": 9
+        },
+        {
+          "label": "four control additions",
+          "roles": {
+            "units": 56
+          },
+          "units": 56
+        },
+        {
+          "label": "complete retained expression",
+          "roles": {
+            "long_Type_R": 1,
+            "explicit_cast_O": 1,
+            "profile_index": 7,
+            "authored_R": 1,
+            "three_literal_R": 3,
+            "control_R": 1,
+            "five_add_O": 5,
+            "local_W": 1
+          },
+          "units": 20
+        },
+        {
+          "label": "retained helper caller",
+          "roles": {
+            "variable_R": 1,
+            "Int64_literal_R": 1,
+            "D": 1
+          },
+          "units": 3
+        }
+      ],
+      "units": 88,
+      "note": ""
+    },
+    {
+      "lines": [
+        959,
+        959
+      ],
+      "label": "direct owned-root shape predicate",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "complete StartsWith/not source",
+          "roles": {
+            "units": 25
+          },
+          "units": 25
+        },
+        {
+          "label": "complete Substring/Contains source",
+          "roles": {
+            "units": 30
+          },
+          "units": 30
+        },
+        {
+          "label": "or/branch/refusal",
+          "roles": {
+            "or_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 4
+        }
+      ],
+      "units": 59,
+      "note": "Each JoinPath scalar Path has O1; static separator/comparison fields have TypeR/accessO/valueR; actual parameters/results are once. Detailed predicate port expansion is retained in the accompanying source argument."
+    },
+    {
+      "lines": [
+        960,
+        960
+      ],
+      "label": "root ASCII helper caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "three actual arguments and own D",
+          "roles": {
+            "R": 3,
+            "D": 1
+          },
+          "units": 4
+        }
+      ],
+      "units": 4,
+      "note": ""
+    },
+    {
+      "lines": [
+        961,
+        961
+      ],
+      "label": "NoLink and TestPath/Attempt callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "NoLink caller",
+          "roles": {
+            "R": 1,
+            "D": 1
+          },
+          "units": 2
+        },
+        {
+          "label": "TestPath into bool formal and remaining Attempt caller",
+          "roles": {
+            "path_R": 1,
+            "path_param_W": 1,
+            "scalar_array_O": 1,
+            "TestPath_D_E_T": 3,
+            "Attempt_D": 1,
+            "root_R": 1
+          },
+          "units": 8
+        }
+      ],
+      "units": 10,
+      "note": "TestPath result initializes the own Attempt bool formal W in its body; do not add another caller result write."
+    },
+    {
+      "lines": [
+        962,
+        962
+      ],
+      "label": "sole run-attempt prefix",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "JoinPath local",
+          "roles": {
+            "units": 9
+          },
+          "units": 9
+        },
+        {
+          "label": "TestPath operand",
+          "roles": {
+            "R": 1,
+            "param_W": 1,
+            "array_O": 1,
+            "D_E_T": 3,
+            "operand_W": 1
+          },
+          "units": 7
+        },
+        {
+          "label": "GetEntries caller/default and captured Count",
+          "roles": {
+            "three_argument_R": 3,
+            "own_D": 1,
+            "Destination_default_null_R": 1,
+            "capture_S": 1,
+            "Count_receiver_W": 1,
+            "Count_D_E_T": 3,
+            "Count_operand_W": 1
+          },
+          "units": 11
+        },
+        {
+          "label": "literal/comparison/and/branch/refusal",
+          "roles": {
+            "zero_R": 1,
+            "gt_O": 1,
+            "and_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 6
+        }
+      ],
+      "units": 33,
+      "note": ""
+    },
+    {
+      "lines": [
+        963,
+        963
+      ],
+      "label": "Pins and authenticated predecessor callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Pins own dispatch",
+          "roles": {
+            "D": 1
+          },
+          "units": 1
+        },
+        {
+          "label": "Resolve/ReadJson produced local",
+          "roles": {
+            "path_index": 4,
+            "Resolve_D": 1,
+            "max_literal_R": 1,
+            "Int32_Long_O": 1,
+            "hash_index": 4,
+            "ReadJson_D": 1,
+            "local_W": 1
+          },
+          "units": 13
+        },
+        {
+          "label": "Predecessor caller",
+          "roles": {
+            "R": 1,
+            "D": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 16,
+      "note": ""
+    },
+    {
+      "lines": [
+        964,
+        964
+      ],
+      "label": "56 reference caps dictionary rows",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "comparer constructor and indexed foreach fixed",
+          "roles": {
+            "ctor": 10,
+            "foreach_fixed": 7
+          },
+          "units": 17
+        },
+        {
+          "label": "each descriptor source row",
+          "roles": {
+            "units": 1232
+          },
+          "units": 1232
+        }
+      ],
+      "units": 1249,
+      "note": ""
+    },
+    {
+      "lines": [
+        965,
+        965
+      ],
+      "label": "three compiler-output caps dictionary rows",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "comparer constructor and indexed foreach fixed",
+          "roles": {
+            "ctor": 10,
+            "foreach_fixed": 7
+          },
+          "units": 17
+        },
+        {
+          "label": "each descriptor source row",
+          "roles": {
+            "units": 66
+          },
+          "units": 66
+        }
+      ],
+      "units": 83,
+      "note": ""
+    },
+    {
+      "lines": [
+        966,
+        966
+      ],
+      "label": "new owned root and created flag",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "NewItem declared arguments/boundary/sink",
+          "roles": {
+            "ItemType_R": 1,
+            "ItemType_W": 1,
+            "Path_R": 1,
+            "Path_W": 1,
+            "array_O": 1,
+            "D_E_T": 3,
+            "sink_W": 1
+          },
+          "units": 9
+        },
+        {
+          "label": "created Boolean assignment",
+          "roles": {
+            "R": 1,
+            "W": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 11,
+      "note": ""
+    },
+    {
+      "lines": [
+        967,
+        967
+      ],
+      "label": "six derived directories",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "literal collection and foreach fixed",
+          "roles": {
+            "three_value_R_W": 6,
+            "three_JoinPath_element_results": 27,
+            "array_S": 1,
+            "foreach_fixed": 3
+          },
+          "units": 37
+        },
+        {
+          "label": "six iteration/NewItem source rows",
+          "roles": {
+            "units": 84
+          },
+          "units": 84
+        }
+      ],
+      "units": 121,
+      "note": ""
+    },
+    {
+      "lines": [
+        968,
+        968
+      ],
+      "label": "marker path and six-field value",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "JoinPath local",
+          "roles": {
+            "units": 9
+          },
+          "units": 9
+        },
+        {
+          "label": "six-field literal map",
+          "roles": {
+            "S": 1,
+            "key_R": 6,
+            "value_R": 6,
+            "field_W": 6,
+            "local_W": 1
+          },
+          "units": 20
+        }
+      ],
+      "units": 29,
+      "note": ""
+    },
+    {
+      "lines": [
+        969,
+        969
+      ],
+      "label": "marker measure/admission/encode caller ports",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Measure caller/default/local",
+          "roles": {
+            "R": 2,
+            "Int32_Long_O": 1,
+            "D": 1,
+            "W": 1
+          },
+          "units": 5
+        },
+        {
+          "label": "DocumentWrite caller",
+          "roles": {
+            "path_R": 1,
+            "bytes_index": 4,
+            "D": 1
+          },
+          "units": 6
+        },
+        {
+          "label": "Encode caller/local",
+          "roles": {
+            "R": 3,
+            "Int32_Long_O": 1,
+            "D": 1,
+            "W": 1
+          },
+          "units": 6
+        }
+      ],
+      "units": 17,
+      "note": ""
+    },
+    {
+      "lines": [
+        970,
+        970
+      ],
+      "label": "three marker owner/primary/body locals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "values and destinations",
+          "roles": {
+            "R": 3,
+            "W": 3
+          },
+          "units": 6
+        }
+      ],
+      "units": 6,
+      "note": ""
+    },
+    {
+      "lines": [
+        971,
+        971
+      ],
+      "label": "marker stream source/catch/finally callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "File.Open source",
+          "roles": {
+            "type_R": 1,
+            "path_R": 1,
+            "path_param_W": 1,
+            "CreateNew_static_field": 3,
+            "mode_param_W": 1,
+            "D_E_T": 3,
+            "local_W": 1
+          },
+          "units": 11
+        },
+        {
+          "label": "Write body source",
+          "roles": {
+            "receiver_R_W": 2,
+            "two_argument_R_W": 4,
+            "Length_into_parameter": 6,
+            "D_E_T": 3
+          },
+          "units": 15
+        },
+        {
+          "label": "catch selected/input/primary/rethrow",
+          "roles": {
+            "catch_K": 1,
+            "caught_input_W": 1,
+            "Body_assignment": 2,
+            "primary_guard": 4,
+            "primary_assignment": 2,
+            "rethrow_K": 1
+          },
+          "units": 11
+        },
+        {
+          "label": "two finally own caller ports",
+          "roles": {
+            "Close_R_D": 2,
+            "Complete_two_R_D": 3
+          },
+          "units": 5
+        }
+      ],
+      "units": 42,
+      "note": "All close/Complete bodies stay outside this caller ledger. Try/finally runtime metadata/unwinding is not expanded."
+    },
+    {
+      "lines": [
+        972,
+        972
+      ],
+      "label": "control list and source reservation caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "capacity10 constructor",
+          "roles": {
+            "type_R": 1,
+            "literal_R": 1,
+            "param_W": 1,
+            "D_E_T": 3,
+            "local_W": 1
+          },
+          "units": 7
+        },
+        {
+          "label": "reservation caller",
+          "roles": {
+            "R": 2,
+            "D": 1
+          },
+          "units": 3
+        }
+      ],
+      "units": 10,
+      "note": ""
+    },
+    {
+      "lines": [
+        973,
+        973
+      ],
+      "label": "two boundary grammar own callers with actual UTF8 sources",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "two sources",
+          "roles": {
+            "units": 38
+          },
+          "units": 38
+        }
+      ],
+      "units": 38,
+      "note": "Per source19: encoding ctor/receiver9, GetBytes literal/param/DET5, three Int32 literal own args+own D+sink W5. Own raw grammar body/typed formal byte[] W stay separate."
+    },
+    {
+      "lines": [
+        974,
+        974
+      ],
+      "label": "JSON overlength negative-control caller/action",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "List/Expect/map formation",
+          "roles": {
+            "Expect_Add_ports": 10,
+            "two_field_map": 7
+          },
+          "units": 17
+        },
+        {
+          "label": "callback E/T and actual UTF8/raw caller",
+          "roles": {
+            "E_T": 2,
+            "action_source": 19
+          },
+          "units": 21
+        }
+      ],
+      "units": 38,
+      "note": ""
+    },
+    {
+      "lines": [
+        975,
+        975
+      ],
+      "label": "last admitted poll caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "literal subtraction argument and own dispatch",
+          "roles": {
+            "R": 2,
+            "sub_O": 1,
+            "D": 1
+          },
+          "units": 4
+        }
+      ],
+      "units": 4,
+      "note": ""
+    },
+    {
+      "lines": [
+        976,
+        976
+      ],
+      "label": "poll-limit negative-control caller/action",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "List/Expect/three-field map",
+          "roles": {
+            "Expect_Add_ports": 10,
+            "three_field_map": 12
+          },
+          "units": 22
+        },
+        {
+          "label": "callback E/T and own caller",
+          "roles": {
+            "E_T": 2,
+            "Polls_R": 1,
+            "D": 1
+          },
+          "units": 4
+        }
+      ],
+      "units": 26,
+      "note": ""
+    },
+    {
+      "lines": [
+        977,
+        977
+      ],
+      "label": "work-one-below negative-control caller/action",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "List/Expect/three-field map",
+          "roles": {
+            "Expect_Add_ports": 10,
+            "three_field_map": 12
+          },
+          "units": 22
+        },
+        {
+          "label": "callback E/T and complete two-argument caller",
+          "roles": {
+            "E_T": 2,
+            "R": 3,
+            "sub_O": 1,
+            "D": 1
+          },
+          "units": 7
+        }
+      ],
+      "units": 29,
+      "note": ""
+    },
+    {
+      "lines": [
+        978,
+        978
+      ],
+      "label": "bytes-one-below negative-control caller/action",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "List/Expect/three-field map",
+          "roles": {
+            "Expect_Add_ports": 10,
+            "three_field_map": 12
+          },
+          "units": 22
+        },
+        {
+          "label": "callback E/T and complete two-argument caller",
+          "roles": {
+            "E_T": 2,
+            "R": 3,
+            "sub_O": 1,
+            "D": 1
+          },
+          "units": 7
+        }
+      ],
+      "units": 29,
+      "note": ""
+    },
+    {
+      "lines": [
+        979,
+        979
+      ],
+      "label": "one-use negative-control caller/action",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "List/Expect/two-field map",
+          "roles": {
+            "Expect_Add_ports": 10,
+            "two_field_map": 7
+          },
+          "units": 17
+        },
+        {
+          "label": "callback E/T and TestPath/Attempt caller",
+          "roles": {
+            "E_T": 2,
+            "action_source": 8
+          },
+          "units": 10
+        }
+      ],
+      "units": 27,
+      "note": ""
+    },
+    {
+      "lines": [
+        980,
+        980
+      ],
+      "label": "predecessor copy setup callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Resolve path/local",
+          "roles": {
+            "index": 4,
+            "D": 1,
+            "W": 1
+          },
+          "units": 6
+        },
+        {
+          "label": "initial hash caller/local",
+          "roles": {
+            "R": 2,
+            "Int32_Long_O": 1,
+            "D": 1,
+            "W": 1
+          },
+          "units": 5
+        },
+        {
+          "label": "mutant JoinPath local",
+          "roles": {
+            "units": 9
+          },
+          "units": 9
+        },
+        {
+          "label": "Copy actual args",
+          "roles": {
+            "two_path_R": 2,
+            "two_literal_R": 2,
+            "two_Int32_Long_O": 2,
+            "D": 1
+          },
+          "units": 7
+        }
+      ],
+      "units": 27,
+      "note": ""
+    },
+    {
+      "lines": [
+        981,
+        981
+      ],
+      "label": "predecessor identity map and Fresh caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "three-field named identity map",
+          "roles": {
+            "S": 1,
+            "key_R": 3,
+            "field_W": 3,
+            "local_W": 1,
+            "two_scalar_R": 2,
+            "sha_index": 4
+          },
+          "units": 14
+        },
+        {
+          "label": "Fresh caller and nested GetHash caller",
+          "roles": {
+            "three_indices": 12,
+            "Hash_Path_R": 1,
+            "Hash_literal_R": 1,
+            "Int32_Long_O": 1,
+            "Hash_D": 1,
+            "Fresh_D": 1
+          },
+          "units": 17
+        }
+      ],
+      "units": 31,
+      "note": ""
+    },
+    {
+      "lines": [
+        982,
+        982
+      ],
+      "label": "predecessor read owner/primary/body locals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "three values and destinations",
+          "roles": {
+            "R": 3,
+            "W": 3
+          },
+          "units": 6
+        }
+      ],
+      "units": 6,
+      "note": ""
+    },
+    {
+      "lines": [
+        983,
+        983
+      ],
+      "label": "predecessor OpenRead/ReadByte/catch/finally callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "OpenRead local",
+          "roles": {
+            "type_R": 1,
+            "path_R": 1,
+            "param_W": 1,
+            "D_E_T": 3,
+            "local_W": 1
+          },
+          "units": 7
+        },
+        {
+          "label": "ReadByte local",
+          "roles": {
+            "receiver_R_W": 2,
+            "D_E_T": 3,
+            "local_W": 1
+          },
+          "units": 6
+        },
+        {
+          "label": "catch selected/input/primary/rethrow",
+          "roles": {
+            "catch_K": 1,
+            "caught_input_W": 1,
+            "Body_assignment": 2,
+            "primary_guard": 4,
+            "primary_assignment": 2,
+            "rethrow_K": 1
+          },
+          "units": 11
+        },
+        {
+          "label": "finally two own callers",
+          "roles": {
+            "Close_R_D": 2,
+            "Complete_two_R_D": 3
+          },
+          "units": 5
+        }
+      ],
+      "units": 29,
+      "note": ""
+    },
+    {
+      "lines": [
+        984,
+        984
+      ],
+      "label": "owned first-byte mutation and corrupt hash callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Mutate path/offset/caller/local",
+          "roles": {
+            "Path_R": 1,
+            "offset_literal_R": 1,
+            "offset_Int32_Long_O": 1,
+            "D": 1,
+            "W": 1
+          },
+          "units": 5
+        },
+        {
+          "label": "typed one-element byte replacement array",
+          "roles": {
+            "outer_type_R": 1,
+            "array_S": 1,
+            "array_coercion_O": 1,
+            "byte_type_R": 1,
+            "First_R": 1,
+            "one_R": 1,
+            "bxor_O": 1,
+            "Int32_Byte_O": 1,
+            "element_W": 1
+          },
+          "units": 9
+        },
+        {
+          "label": "corrupt hash caller/local",
+          "roles": {
+            "R": 2,
+            "Int32_Long_O": 1,
+            "D": 1,
+            "W": 1
+          },
+          "units": 5
+        }
+      ],
+      "units": 19,
+      "note": ""
+    },
+    {
+      "lines": [
+        985,
+        985
+      ],
+      "label": "changed-predecessor control and provenance updates",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "List/Expect five-field witness formation",
+          "roles": {
+            "Expect_Add_ports": 10,
+            "map_S": 1,
+            "key_R": 5,
+            "field_W": 5,
+            "path_R": 1,
+            "bytes_literal_R": 1,
+            "Item1_without_dest": 5,
+            "hash_index": 4,
+            "HashHex_R_D": 2
+          },
+          "units": 34
+        },
+        {
+          "label": "callback E/T and Fresh caller",
+          "roles": {
+            "E_T": 2,
+            "three_indices": 12,
+            "Corrupt_R": 1,
+            "D": 1
+          },
+          "units": 16
+        },
+        {
+          "label": "two last-control assignments",
+          "roles": {
+            "two_LHS": 28,
+            "Mutation_R": 1,
+            "InitialHashHex_R_D": 2
+          },
+          "units": 31
+        }
+      ],
+      "units": 81,
+      "note": "Each last-control LHS14 includes both written taskControls reads, Count getter, subtraction, both selections and actual field destination. Getter/hash results fuse with map/field destinations."
+    },
+    {
+      "lines": [
+        986,
+        986
+      ],
+      "label": "compiler-start receipt fields and save caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "three scalar indexed writes",
+          "roles": {
+            "units": 15
+          },
+          "units": 15
+        },
+        {
+          "label": "ToArray produced indexed write",
+          "roles": {
+            "LHS": 4,
+            "receiver_R_W": 2,
+            "D_E_T": 3
+          },
+          "units": 9
+        },
+        {
+          "label": "Save own dispatch",
+          "roles": {
+            "D": 1
+          },
+          "units": 1
+        }
+      ],
+      "units": 25,
+      "note": ""
+    },
+    {
+      "lines": [
+        987,
+        987
+      ],
+      "label": "compiler resolution and console-PE callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Resolve nested compiler path/local",
+          "roles": {
+            "index": 7,
+            "D": 1,
+            "W": 1
+          },
+          "units": 9
+        },
+        {
+          "label": "nested PE/console own callers",
+          "roles": {
+            "Path_R": 1,
+            "PE_D": 1,
+            "Console_D": 1
+          },
+          "units": 3
+        }
+      ],
+      "units": 12,
+      "note": ""
+    },
+    {
+      "lines": [
+        988,
+        988
+      ],
+      "label": "exact compiler argument count guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "chained Count/28/ne/branch/refusal",
+          "roles": {
+            "index": 7,
+            "Count_tail": 5,
+            "literal_R": 1,
+            "ne_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 17
+        }
+      ],
+      "units": 17,
+      "note": ""
+    },
+    {
+      "lines": [
+        989,
+        989
+      ],
+      "label": "capacity28 string argument list local",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "constructor source",
+          "roles": {
+            "type_R": 1,
+            "literal_R": 1,
+            "param_W": 1,
+            "D_E_T": 3,
+            "local_W": 1
+          },
+          "units": 7
+        }
+      ],
+      "units": 7,
+      "note": ""
+    },
+    {
+      "lines": [
+        990,
+        990
+      ],
+      "label": "28 compiler argument validation/three replacements/Add callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "chained enumerable foreach fixed",
+          "roles": {
+            "units": 10
+          },
+          "units": 10
+        },
+        {
+          "label": "28 source rows",
+          "roles": {
+            "units": 868
+          },
+          "units": 868
+        }
+      ],
+      "units": 878,
+      "note": "Each row has foreach5, String caller4, three Replace caller/local5 and List.Add7. All String/Replace bodies and84 replacement loops are separately owned."
+    },
+    {
+      "lines": [
+        991,
+        991
+      ],
+      "label": "compiler fenced call and raw exit guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Fenced actual args/default/local",
+          "roles": {
+            "two_string_R": 2,
+            "ToArray_without_destination": 5,
+            "ExpectedBinary_default_null_R": 1,
+            "D": 1,
+            "local_W": 1
+          },
+          "units": 10
+        },
+        {
+          "label": "raw exit comparison/refusal",
+          "roles": {
+            "index": 4,
+            "zero_R": 1,
+            "ne_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 9
+        }
+      ],
+      "units": 19,
+      "note": ""
+    },
+    {
+      "lines": [
+        992,
+        992
+      ],
+      "label": "compiler build/dependency receipt fields",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "GetBuild/local",
+          "roles": {
+            "D": 1,
+            "W": 1
+          },
+          "units": 2
+        },
+        {
+          "label": "scalar indexed field write",
+          "roles": {
+            "units": 5
+          },
+          "units": 5
+        },
+        {
+          "label": "Dependencies into indexed field",
+          "roles": {
+            "LHS": 4,
+            "Build_R": 1,
+            "D": 1
+          },
+          "units": 6
+        },
+        {
+          "label": "admitted Boolean write",
+          "roles": {
+            "R": 1,
+            "W": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 15,
+      "note": ""
+    },
+    {
+      "lines": [
+        993,
+        993
+      ],
+      "label": "native target path/PE/initial hash callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "JoinPath local",
+          "roles": {
+            "units": 9
+          },
+          "units": 9
+        },
+        {
+          "label": "PE local",
+          "roles": {
+            "R": 1,
+            "D": 1,
+            "W": 1
+          },
+          "units": 3
+        },
+        {
+          "label": "Console caller",
+          "roles": {
+            "R": 1,
+            "D": 1
+          },
+          "units": 2
+        },
+        {
+          "label": "hash local",
+          "roles": {
+            "R": 2,
+            "Int32_Long_O": 1,
+            "D": 1,
+            "W": 1
+          },
+          "units": 5
+        }
+      ],
+      "units": 19,
+      "note": ""
+    },
+    {
+      "lines": [
+        994,
+        994
+      ],
+      "label": "GUI-subsystem mutant copy and identity/console callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "JoinPath local",
+          "roles": {
+            "units": 9
+          },
+          "units": 9
+        },
+        {
+          "label": "Copy args",
+          "roles": {
+            "two_path_R": 2,
+            "Item1_without_destination": 5,
+            "literal_R": 1,
+            "Int32_Long_O": 1,
+            "D": 1
+          },
+          "units": 10
+        },
+        {
+          "label": "Fresh args and nested hash",
+          "roles": {
+            "Path_R": 1,
+            "two_getters_without_dest": 10,
+            "Hash_R": 2,
+            "Hash_Int32_Long_O": 1,
+            "Hash_D": 1,
+            "Fresh_D": 1
+          },
+          "units": 16
+        },
+        {
+          "label": "nested PE/console callers",
+          "roles": {
+            "Path_R": 1,
+            "PE_D": 1,
+            "Console_D": 1
+          },
+          "units": 3
+        }
+      ],
+      "units": 38,
+      "note": ""
+    },
+    {
+      "lines": [
+        995,
+        995
+      ],
+      "label": "subsystem mutation and PE callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Mutate path/offset/replacement/local",
+          "roles": {
+            "Path_R": 1,
+            "offset_long_type_R": 1,
+            "offset_index": 4,
+            "offset_Int32_Long_O": 1,
+            "two_offset_literal_R": 2,
+            "two_add_O": 2,
+            "BitConverter_type_R": 1,
+            "uint16_type_R": 1,
+            "two_R": 1,
+            "Int32_UInt16_O": 1,
+            "GetBytes_param_W": 1,
+            "GetBytes_D_E_T": 3,
+            "Mutate_D": 1,
+            "local_W": 1
+          },
+          "units": 21
+        },
+        {
+          "label": "PE local caller",
+          "roles": {
+            "R": 1,
+            "D": 1,
+            "W": 1
+          },
+          "units": 3
+        }
+      ],
+      "units": 24,
+      "note": ""
+    },
+    {
+      "lines": [
+        996,
+        996
+      ],
+      "label": "GUI refusal control and three provenance fields",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "List/Expect/four-field witness",
+          "roles": {
+            "Expect_Add_ports": 10,
+            "map_S": 1,
+            "key_R": 4,
+            "field_W": 4,
+            "three_indices": 12,
+            "subsystem_literal_R": 1
+          },
+          "units": 32
+        },
+        {
+          "label": "callback E/T and Console caller",
+          "roles": {
+            "E_T": 2,
+            "Gui_R": 1,
+            "D": 1
+          },
+          "units": 4
+        },
+        {
+          "label": "three last-control provenance assignments",
+          "roles": {
+            "three_LHS": 42,
+            "Mutation_R": 1,
+            "InitialHashHex_R_D": 2,
+            "ActualHashHex_nested_caller": 5
+          },
+          "units": 50
+        }
+      ],
+      "units": 86,
+      "note": ""
+    },
+    {
+      "lines": [
+        997,
+        997
+      ],
+      "label": "captured target hash caller/local",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "actual args/conversion/dispatch/destination",
+          "roles": {
+            "R": 2,
+            "Int32_Long_O": 1,
+            "D": 1,
+            "W": 1
+          },
+          "units": 5
+        }
+      ],
+      "units": 5,
+      "note": ""
+    },
+    {
+      "lines": [
+        998,
+        998
+      ],
+      "label": "producer fenced-call arguments",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "name/target/hash/caller/local",
+          "roles": {
+            "R": 3,
+            "D": 1,
+            "W": 1
+          },
+          "units": 5
+        },
+        {
+          "label": "six written argument elements",
+          "roles": {
+            "three_plain_R": 3,
+            "three_plain_W": 3,
+            "three_LongString_type_R": 3,
+            "three_Long_R": 3,
+            "three_LongString_O": 3,
+            "three_element_W": 3,
+            "array_S": 1,
+            "objectarray_stringarray_O": 1
+          },
+          "units": 20
+        }
+      ],
+      "units": 25,
+      "note": ""
+    },
+    {
+      "lines": [
+        999,
+        999
+      ],
+      "label": "producer result caller and full ledger guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "result caller/local",
+          "roles": {
+            "R": 1,
+            "D": 1,
+            "W": 1
+          },
+          "units": 3
+        },
+        {
+          "label": "four comparison operands",
+          "roles": {
+            "units": 29
+          },
+          "units": 29
+        },
+        {
+          "label": "or/branch/refusal",
+          "roles": {
+            "three_or_O": 3,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 6
+        }
+      ],
+      "units": 38,
+      "note": ""
+    },
+    {
+      "lines": [
+        1000,
+        1000
+      ],
+      "label": "before-reference result and exact set callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "GetReferences/local",
+          "roles": {
+            "D": 1,
+            "W": 1
+          },
+          "units": 2
+        },
+        {
+          "label": "Observed/Expected/dispatch",
+          "roles": {
+            "Observed_index": 4,
+            "Keys_getter": 6,
+            "capture_S": 1,
+            "objectarray_stringarray_O": 1,
+            "D": 1
+          },
+          "units": 13
+        }
+      ],
+      "units": 15,
+      "note": "GetReferences returns only after its own AssertFileSet proves56 unique names; pre-return60-entry failure work stays in its helper/family, not the later main loops."
+    },
+    {
+      "lines": [
+        1001,
+        1001
+      ],
+      "label": "missing-reference capture and control",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Where/capture/local prefix",
+          "roles": {
+            "index": 4,
+            "scriptblock_S": 1,
+            "FilterScript_param_W": 1,
+            "Where_D_E_T": 3,
+            "capture_S": 1,
+            "local_W": 1
+          },
+          "units": 11
+        },
+        {
+          "label": "56 authored filter callbacks",
+          "roles": {
+            "units": 448
+          },
+          "units": 448
+        },
+        {
+          "label": "List/Expect/five-field witness",
+          "roles": {
+            "Expect_Add_ports": 10,
+            "map_S": 1,
+            "key_R": 5,
+            "field_W": 5,
+            "value_R": 5
+          },
+          "units": 26
+        },
+        {
+          "label": "action E/T and FileSet actual caller",
+          "roles": {
+            "E_T": 2,
+            "Observed_R": 1,
+            "Observed_stringarray_O": 1,
+            "Keys_getter": 6,
+            "capture_S": 1,
+            "Expected_stringarray_O": 1,
+            "D": 1
+          },
+          "units": 13
+        }
+      ],
+      "units": 498,
+      "note": ""
+    },
+    {
+      "lines": [
+        1002,
+        1002
+      ],
+      "label": "extra-reference capture and control",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "two captures/concatenation/local",
+          "roles": {
+            "Before_names_index": 4,
+            "first_capture_S": 1,
+            "literal_R": 1,
+            "element_W": 1,
+            "second_array_S": 1,
+            "concat_O": 1,
+            "local_W": 1
+          },
+          "units": 10
+        },
+        {
+          "label": "List/Expect/five-field witness",
+          "roles": {
+            "Expect_Add_ports": 10,
+            "map_S": 1,
+            "key_R": 5,
+            "field_W": 5,
+            "value_R": 5
+          },
+          "units": 26
+        },
+        {
+          "label": "action E/T and FileSet actual caller",
+          "roles": {
+            "E_T": 2,
+            "Observed_R": 1,
+            "Observed_stringarray_O": 1,
+            "Keys_getter": 6,
+            "capture_S": 1,
+            "Expected_stringarray_O": 1,
+            "D": 1
+          },
+          "units": 13
+        }
+      ],
+      "units": 49,
+      "note": ""
+    },
+    {
+      "lines": [
+        1003,
+        1003
+      ],
+      "label": "duplicate-reference capture and control",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "two captures/concatenation/local",
+          "roles": {
+            "Before_names_index": 4,
+            "first_capture_S": 1,
+            "selected_scalar_index": 7,
+            "selected_element_W": 1,
+            "second_array_S": 1,
+            "concat_O": 1,
+            "local_W": 1
+          },
+          "units": 16
+        },
+        {
+          "label": "List/Expect/five-field witness",
+          "roles": {
+            "Expect_Add_ports": 10,
+            "map_S": 1,
+            "key_R": 5,
+            "field_W": 5,
+            "four_plain_value_R": 4,
+            "duplicate_value_index": 7
+          },
+          "units": 32
+        },
+        {
+          "label": "action E/T and FileSet actual caller",
+          "roles": {
+            "E_T": 2,
+            "Observed_R": 1,
+            "Observed_stringarray_O": 1,
+            "Keys_getter": 6,
+            "capture_S": 1,
+            "Expected_stringarray_O": 1,
+            "D": 1
+          },
+          "units": 13
+        }
+      ],
+      "units": 61,
+      "note": ""
+    },
+    {
+      "lines": [
+        1004,
+        1004
+      ],
+      "label": "producer receipt/save callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "two scalar indexed fields",
+          "roles": {
+            "units": 10
+          },
+          "units": 10
+        },
+        {
+          "label": "own save dispatch",
+          "roles": {
+            "D": 1
+          },
+          "units": 1
+        }
+      ],
+      "units": 11,
+      "note": ""
+    },
+    {
+      "lines": [
+        1005,
+        1005
+      ],
+      "label": "verifier prior local",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "two values/add/destination",
+          "roles": {
+            "R": 2,
+            "O": 1,
+            "W": 1
+          },
+          "units": 4
+        }
+      ],
+      "units": 4,
+      "note": ""
+    },
+    {
+      "lines": [
+        1006,
+        1006
+      ],
+      "label": "verifier fenced-call arguments",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "name/target/hash/caller/local",
+          "roles": {
+            "R": 3,
+            "D": 1,
+            "W": 1
+          },
+          "units": 5
+        },
+        {
+          "label": "six written argument elements",
+          "roles": {
+            "three_plain_R": 3,
+            "three_plain_W": 3,
+            "three_LongString_type_R": 3,
+            "three_Long_R": 3,
+            "three_LongString_O": 3,
+            "three_element_W": 3,
+            "array_S": 1,
+            "objectarray_stringarray_O": 1
+          },
+          "units": 20
+        }
+      ],
+      "units": 25,
+      "note": ""
+    },
+    {
+      "lines": [
+        1007,
+        1007
+      ],
+      "label": "verifier result caller and full ledger guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "result caller/local",
+          "roles": {
+            "R": 1,
+            "D": 1,
+            "W": 1
+          },
+          "units": 3
+        },
+        {
+          "label": "five comparison operands",
+          "roles": {
+            "units": 36
+          },
+          "units": 36
+        },
+        {
+          "label": "or/branch/refusal",
+          "roles": {
+            "four_or_O": 4,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 7
+        }
+      ],
+      "units": 46,
+      "note": ""
+    },
+    {
+      "lines": [
+        1008,
+        1008
+      ],
+      "label": "after-reference/same/build callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "two produced locals",
+          "roles": {
+            "D": 2,
+            "W": 2
+          },
+          "units": 4
+        },
+        {
+          "label": "SameReferences args/dispatch",
+          "roles": {
+            "R": 2,
+            "D": 1
+          },
+          "units": 3
+        }
+      ],
+      "units": 7,
+      "note": ""
+    },
+    {
+      "lines": [
+        1009,
+        1009
+      ],
+      "label": "three build identity rows with property-mode Where",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "indexed foreach fixed",
+          "roles": {
+            "units": 7
+          },
+          "units": 7
+        },
+        {
+          "label": "three source rows",
+          "roles": {
+            "units": 117
+          },
+          "units": 117
+        }
+      ],
+      "units": 124,
+      "note": "Property-mode Where17 has source index4, property R/W2, CEQ switchW1, indexed value/param5, DET3, captureS1, localW1. It has no authored FilterScript callback or fictitious per-item runtime loop."
+    },
+    {
+      "lines": [
+        1010,
+        1010
+      ],
+      "label": "four control-file artifact rows",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "list constructor and indexed foreach fixed",
+          "roles": {
+            "ctor": 5,
+            "foreach_fixed": 7
+          },
+          "units": 12
+        },
+        {
+          "label": "four source rows",
+          "roles": {
+            "units": 284
+          },
+          "units": 284
+        }
+      ],
+      "units": 296,
+      "note": "Per row: foreach5, JoinPath local12, GetHash caller7, complete Contains/optional exact-length guard/refusal23, four-field map/Add24. Getter outputs fuse with map field writes."
+    },
+    {
+      "lines": [
+        1011,
+        1011
+      ],
+      "label": "complete67 expected prebundle file names",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "string list constructor",
+          "roles": {
+            "units": 5
+          },
+          "units": 5
+        },
+        {
+          "label": "reference Keys foreach",
+          "roles": {
+            "fixed": 9,
+            "rows": 784
+          },
+          "units": 793
+        },
+        {
+          "label": "build Keys foreach",
+          "roles": {
+            "fixed": 9,
+            "rows": 42
+          },
+          "units": 51
+        },
+        {
+          "label": "four control names",
+          "roles": {
+            "fixed": 7,
+            "rows": 60
+          },
+          "units": 67
+        },
+        {
+          "label": "four stage literal names",
+          "roles": {
+            "literal_array": 9,
+            "foreach_fixed": 3,
+            "rows": 56
+          },
+          "units": 68
+        }
+      ],
+      "units": 984,
+      "note": ""
+    },
+    {
+      "lines": [
+        1012,
+        1012
+      ],
+      "label": "at most78 current root entries",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "list/own GetEntries actual caller/foreach fixed",
+          "roles": {
+            "ctor": 5,
+            "Root_R": 1,
+            "true_R": 1,
+            "int_type_R": 1,
+            "profile_index": 7,
+            "Int64_Int32_O": 1,
+            "Entries_D": 1,
+            "Destination_default_null_R": 1,
+            "collection_result_W": 1,
+            "foreach_fixed": 3
+          },
+          "units": 22
+        },
+        {
+          "label": "complete per-entry caller source",
+          "roles": {
+            "units": 3822
+          },
+          "units": 3822
+        }
+      ],
+      "units": 3844,
+      "note": "Per entry: foreach5, Item1 into NoLink/dispatch6, Item3/not/branch8, complete GetRelativePath/Replace into List.Add30. GetEntries/NoLink bodies are excluded.78 bounds refusal prefixes too, not only normal67 files."
+    },
+    {
+      "lines": [
+        1013,
+        1013
+      ],
+      "label": "observed/expected final set caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "two ToArray into own formals and dispatch",
+          "roles": {
+            "two_receiver_R_W": 4,
+            "two_D_E_T": 6,
+            "D": 1
+          },
+          "units": 11
+        }
+      ],
+      "units": 11,
+      "note": ""
+    },
+    {
+      "lines": [
+        1014,
+        1014
+      ],
+      "label": "final pins/primary guard/receipt fields/save callers",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "Pins D",
+          "roles": {
+            "D": 1
+          },
+          "units": 1
+        },
+        {
+          "label": "primary null guard/rethrow",
+          "roles": {
+            "R": 2,
+            "ne_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 6
+        },
+        {
+          "label": "three scalar indexed fields and one ToArray field",
+          "roles": {
+            "three_scalar_fields": 15,
+            "ToArray_field": 9
+          },
+          "units": 24
+        },
+        {
+          "label": "Save D",
+          "roles": {
+            "D": 1
+          },
+          "units": 1
+        }
+      ],
+      "units": 32,
+      "note": ""
+    },
+    {
+      "lines": [
+        1015,
+        1015
+      ],
+      "label": "63 successful reference/build/control artifact rows",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "list/three captures/two concatenations/foreach fixed",
+          "roles": {
+            "ctor": 5,
+            "two_indexed_captures": 10,
+            "ToArray_result_capture": 7,
+            "two_concat_O": 2,
+            "foreach_fixed": 3
+          },
+          "units": 27
+        },
+        {
+          "label": "63 foreach/Add rows",
+          "roles": {
+            "units": 756
+          },
+          "units": 756
+        }
+      ],
+      "units": 783,
+      "note": ""
+    },
+    {
+      "lines": [
+        1016,
+        1016
+      ],
+      "label": "four stage artifact rows",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "literal array and foreach fixed",
+          "roles": {
+            "literal_array": 9,
+            "foreach_fixed": 3
+          },
+          "units": 12
+        },
+        {
+          "label": "four source rows",
+          "roles": {
+            "units": 172
+          },
+          "units": 172
+        }
+      ],
+      "units": 184,
+      "note": ""
+    },
+    {
+      "lines": [
+        1017,
+        1017
+      ],
+      "label": "admitted bytes over67 artifacts",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "initial explicit Long expression",
+          "roles": {
+            "long_type_R": 1,
+            "explicit_cast_O": 1,
+            "profile_index": 7,
+            "Authored_R": 1,
+            "add_O": 1,
+            "local_W": 1
+          },
+          "units": 12
+        },
+        {
+          "label": "named foreach fixed",
+          "roles": {
+            "units": 4
+          },
+          "units": 4
+        },
+        {
+          "label": "67 source rows",
+          "roles": {
+            "units": 938
+          },
+          "units": 938
+        }
+      ],
+      "units": 954,
+      "note": ""
+    },
+    {
+      "lines": [
+        1018,
+        1018
+      ],
+      "label": "1225 transitive source rows",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "list constructor",
+          "roles": {
+            "units": 5
+          },
+          "units": 5
+        },
+        {
+          "label": "1220 input rows",
+          "roles": {
+            "foreach_fixed": 7,
+            "rows": 41480
+          },
+          "units": 41487
+        },
+        {
+          "label": "four own rows",
+          "roles": {
+            "foreach_fixed": 7,
+            "rows": 160
+          },
+          "units": 167
+        },
+        {
+          "label": "manifest row",
+          "roles": {
+            "receiver_R_W": 2,
+            "map_S": 1,
+            "key_R": 4,
+            "field_W": 4,
+            "Path_R": 1,
+            "GetItem_Length_without_mapdest": 10,
+            "two_sha_origin_R": 2,
+            "Map_param_W": 1,
+            "Add_D_E_T": 3
+          },
+          "units": 28
+        }
+      ],
+      "units": 41687,
+      "note": "Input map values are Resolve caller5, bytes index4, hash index4, originR1. Own map substitutes JoinPath caller11 for Resolve5. Manifest GetItem scalar Path array coercion remains counted."
+    },
+    {
+      "lines": [
+        1019,
+        1019
+      ],
+      "label": "21-field ordered bundle value",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "map/key/slot/local",
+          "roles": {
+            "S": 1,
+            "key_R": 21,
+            "field_W": 21,
+            "local_W": 1
+          },
+          "units": 44
+        },
+        {
+          "label": "nineteen scalar values and two ToArray field sources",
+          "roles": {
+            "scalar_R": 19,
+            "two_receiver_R_W": 4,
+            "two_D_E_T": 6
+          },
+          "units": 29
+        }
+      ],
+      "units": 73,
+      "note": ""
+    },
+    {
+      "lines": [
+        1020,
+        1020
+      ],
+      "label": "fixed-point stable/measure locals",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "two values and destinations",
+          "roles": {
+            "R": 2,
+            "W": 2
+          },
+          "units": 4
+        }
+      ],
+      "units": 4,
+      "note": ""
+    },
+    {
+      "lines": [
+        1021,
+        1025
+      ],
+      "label": "at most five fixed-point passes",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "literal bound for framework",
+          "roles": {
+            "units": 53
+          },
+          "units": 53
+        },
+        {
+          "label": "five complete positive pass prefixes",
+          "roles": {
+            "units": 225
+          },
+          "units": 225
+        },
+        {
+          "label": "at most one reached true assignment/break",
+          "roles": {
+            "Boolean_R": 1,
+            "W": 1,
+            "break_K": 1
+          },
+          "units": 3
+        }
+      ],
+      "units": 281,
+      "note": "Pass source45=Measure caller/default/local5+full condition22+two updates8/10. A reached break may omit later updates; this positive sum is an upper, not a trace. Measure bodies and encodes remain outside."
+    },
+    {
+      "lines": [
+        1026,
+        1026
+      ],
+      "label": "fixed-point success guard",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "not/branch/refusal",
+          "roles": {
+            "R": 1,
+            "not_O": 1,
+            "B": 1,
+            "throw_R": 1,
+            "throw_K": 1
+          },
+          "units": 5
+        }
+      ],
+      "units": 5,
+      "note": ""
+    },
+    {
+      "lines": [
+        1027,
+        1027
+      ],
+      "label": "final retained helper caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "indexed amount/Int64 limit/own dispatch",
+          "roles": {
+            "index": 4,
+            "literal_R": 1,
+            "D": 1
+          },
+          "units": 6
+        }
+      ],
+      "units": 6,
+      "note": ""
+    },
+    {
+      "lines": [
+        1028,
+        1028
+      ],
+      "label": "bundle write caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "JoinPath into own formal",
+          "roles": {
+            "units": 8
+          },
+          "units": 8
+        },
+        {
+          "label": "remaining WriteJson args/dispatch",
+          "roles": {
+            "Bundle_R": 1,
+            "max_literal_R": 1,
+            "Int32_Long_O": 1,
+            "Measurement_R": 1,
+            "D": 1
+          },
+          "units": 5
+        }
+      ],
+      "units": 13,
+      "note": ""
+    },
+    {
+      "lines": [
+        1029,
+        1029
+      ],
+      "label": "controlled final output caller",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "nested JoinPath/Hash/HashHex result operand",
+          "roles": {
+            "JoinPath_into_formal": 8,
+            "max_literal_R": 1,
+            "Int32_Long_O": 1,
+            "Hash_D": 1,
+            "HashHex_D": 1,
+            "operand_W": 1
+          },
+          "units": 13
+        },
+        {
+          "label": "prefix/concat/public WriteOutput",
+          "roles": {
+            "prefix_R": 1,
+            "concat_O": 1,
+            "PSObject_coercion_O": 1,
+            "param_W": 1,
+            "D_E_T": 3
+          },
+          "units": 7
+        }
+      ],
+      "units": 20,
+      "note": "Selected Write-Object.cs21 declares InputObject PSObject (not PSObject[]). A source String result requires the semantic String-to-PSObject wrapper; its hidden implementation CPU is not expanded."
+    },
+    {
+      "lines": [
+        1030,
+        1031
+      ],
+      "label": "outer caught-input and primary",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "selected catch/input",
+          "roles": {
+            "catch_K": 1,
+            "caught_input_W": 1
+          },
+          "units": 2
+        },
+        {
+          "label": "null guard/first assignment",
+          "roles": {
+            "guard": 4,
+            "assignment": 2
+          },
+          "units": 6
+        }
+      ],
+      "units": 8,
+      "note": ""
+    },
+    {
+      "lines": [
+        1032,
+        1032
+      ],
+      "label": "four failure receipt fields",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "four scalar indexed writes",
+          "roles": {
+            "units": 20
+          },
+          "units": 20
+        }
+      ],
+      "units": 20,
+      "note": ""
+    },
+    {
+      "lines": [
+        1033,
+        1033
+      ],
+      "label": "created-prefix condition",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "source value/branch",
+          "roles": {
+            "R": 1,
+            "B": 1
+          },
+          "units": 2
+        }
+      ],
+      "units": 2,
+      "note": ""
+    },
+    {
+      "lines": [
+        1034,
+        1034
+      ],
+      "label": "failure inventory caller and failed-inventory secondary",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "SaveFailure D",
+          "roles": {
+            "D": 1
+          },
+          "units": 1
+        },
+        {
+          "label": "selected catch/automatic input",
+          "roles": {
+            "catch_K": 1,
+            "caught_input_W": 1
+          },
+          "units": 2
+        },
+        {
+          "label": "SetSecondary actual args/dispatch",
+          "roles": {
+            "R": 2,
+            "D": 1
+          },
+          "units": 3
+        }
+      ],
+      "units": 6,
+      "note": ""
+    },
+    {
+      "lines": [
+        1035,
+        1035
+      ],
+      "label": "failure receipt caller/secondary/public WriteError",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "SaveReceipt D",
+          "roles": {
+            "D": 1
+          },
+          "units": 1
+        },
+        {
+          "label": "selected catch/automatic input",
+          "roles": {
+            "catch_K": 1,
+            "caught_input_W": 1
+          },
+          "units": 2
+        },
+        {
+          "label": "SetSecondary args/dispatch",
+          "roles": {
+            "R": 2,
+            "D": 1
+          },
+          "units": 3
+        },
+        {
+          "label": "public WriteError actual parameters/boundary",
+          "roles": {
+            "message_R": 1,
+            "message_param_W": 1,
+            "Continue_R": 1,
+            "string_enum_O": 1,
+            "ErrorAction_param_W": 1,
+            "D_E_T": 3
+          },
+          "units": 8
+        }
+      ],
+      "units": 14,
+      "note": ""
+    },
+    {
+      "lines": [
+        1036,
+        1038
+      ],
+      "label": "outer failure rethrow and structural closes",
+      "multiplicity": 1,
+      "groups": [
+        {
+          "label": "raw primary/rethrow",
+          "roles": {
+            "R": 1,
+            "K": 1
+          },
+          "units": 2
+        },
+        {
+          "label": "normal script exit alternative",
+          "roles": {
+            "T": 1
+          },
+          "units": 1
+        }
+      ],
+      "units": 3,
+      "note": ""
+    }
+  ],
+  "units": 180799,
+  "own_bodies_included": false
+}

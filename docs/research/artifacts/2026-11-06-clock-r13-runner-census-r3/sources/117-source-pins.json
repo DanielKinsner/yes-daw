@@ -1,0 +1,23 @@
+{
+  "status": "READ_ONLY_SOURCE_PINS_NOT_EXECUTION",
+  "workspace": "C:/Users/SM - Dan/Documents/GitHub/yes-daw",
+  "sources": [
+    { "path": "AGENTS.md", "bytes": 6331, "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77" },
+    { "path": "CLAUDE.md", "bytes": 6331, "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77" },
+    { "path": "docs/adr/0083-musical-audio-prepared-lane.md", "bytes": 31387, "sha256": "7C45C564AC86079A82E487E8AE6AD510A34FCC6AB630663C2B56F8EFEF6FC646" },
+    { "path": "docs/plans/2026-11-04-musical-audio-prepared-lane-plan.md", "bytes": 14255, "sha256": "6A2087759DCE5A89BCF472589C3C94F822E41C0132077AAFACB3BC642FB4E95F" },
+    { "path": "src/engine/Time.h", "bytes": 49489, "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590" },
+    { "path": "src/engine/ClipEnvelope.h", "bytes": 5221, "sha256": "1375368503D68E8BCFB09014687B4A84CBF72F92FC1548FC5AB281EE19A89B9D" },
+    { "path": "src/engine/MusicalAudioWindow.h", "bytes": 19572, "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D" },
+    { "path": "src/engine/TimeStretch.h", "bytes": 7540, "sha256": "7F759B9A8015E8C020F4EA0EE6E0F7283CBC0D563A20CED6CC5A219D5A761227" },
+    { "path": "tests/time_stretch_tests.cpp", "bytes": 21740, "sha256": "966C0CDC77F2A5DEFBA9E0BF5B1D2A9B503D168A0AD4C0F2B25473C13B1C20C1" },
+    { "path": "build-ci/_deps/signalsmith_stretch-src/signalsmith-stretch.h", "bytes": 22145, "sha256": "E7BD5C4E35AE05DE34ADE0CFC0E0C2285598543BEDB91420AC863812AF2A035E" },
+    { "path": "build-ci/_deps/signalsmith_stretch-src/dsp/spectral.h", "bytes": 17009, "sha256": "8B15F3E710BDEB2F7DDF9DA9DB10C0123FE0B0C675726202A6770F18ECFAED96" },
+    { "path": "build-ci/20261104-musical-audio-contract-draft.md", "bytes": 57086, "sha256": "524B712E047A5DE818B7D13F40A9C633AC8E04AAF5342BC488CA3BBF2CE3314D", "role": "HISTORICAL_UNACCEPTED_NOT_NORMATIVE" }
+  ],
+  "mutable_root_status": "STATUS.md was read first as handoff; root owns it and its changing execution facts are not certified here",
+  "ignored_directory_rule": ".gitignore build-*/",
+  "git_writes": false,
+  "native_or_device_actions": false,
+  "candidate_or_oracle_execution": false
+}

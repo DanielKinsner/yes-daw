@@ -1,0 +1,18 @@
+{
+  "status": "ANALYTIC_REFERENCES_ONLY_CALIBRATION_UNRUN",
+  "cases": 6,
+  "windows": 3564,
+  "windows_per_channel": 396,
+  "case_budget_reset_per_window": false,
+  "work_cap": 17179869184,
+  "scratch_cap": 67108864,
+  "source_error_premise_measured": false,
+  "fixed_coefficient_objective_source_authored": true,
+  "transform_proof_independently_accepted": true,
+  "whole_case_preflight_closed": true,
+  "source_readiness_acceptance": "R4_NUMERIC_COST_ACCEPTED_R5_STORAGE_PROFILE_ASSERTED_ROOT_STAGES_REQUIRED",
+  "execution_gate": "ROOT_ACTUAL_FREEZE_OUTPUT_REVIEW_THEN_SEPARATE_COMPILE_GO_REQUIRED",
+  "new_transform_and_ranking_controls_executed": false,
+  "vendor_invoked": false,
+  "production_admission": false
+}

@@ -1,0 +1,711 @@
+{
+  "schema": "YESDAW_WAVEFORM_CLOCK_ORACLE_STAGE_PREPARATION_V1",
+  "status": "SOURCE_ONLY_PLAN_HOLD",
+  "recommendation": "A_STANDARD_FILES_NEW_EXPLICITLY_DERIVED_STAGE_PROFILE_AFTER_REAL_CLOSURE",
+  "authorized_new_writes": [
+    "packet.md",
+    "proof-plan.json",
+    "source-pins.json",
+    "resource-and-lifetime.md"
+  ],
+  "execution_authority": {
+    "source_authoring_go": false,
+    "import": false,
+    "compiler": false,
+    "oracle": false,
+    "independent_replay": false,
+    "tests": false,
+    "DSP": false,
+    "environment": false,
+    "Git": false,
+    "native_window": false,
+    "audio_device": false
+  },
+  "permanent_admissions": {
+    "vendor": false,
+    "context": false,
+    "queried_layout": false,
+    "physical_center_owner": false,
+    "quality": false,
+    "complete_production_resources": false,
+    "Ready": false,
+    "renderer": false
+  },
+  "predecessor": {
+    "manifest_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/authored-manifest.json",
+    "manifest_sha256": "6822A96025D6EEADD79642AB50B0A30224A35429B0577D3246BBC173AC630E88",
+    "run": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/runs/20261105-171222-6659395",
+    "bundle_sha256": "28909B793046C026890456FA59A841DA2B75450B60AAD5E8DD3888DFCCB23E71",
+    "root_review_path": "build-ci/20261105-waveform-r4-first-stage-root-review.json",
+    "root_review_sha256": "D71F2FB42B6C267FB52468C63BE697E38C699CD6C753229C2E1DF40FB45ADDD1",
+    "actual_exit_parent_generation_replay": [
+      0,
+      0,
+      0
+    ],
+    "root_relayed_fresh_measured_critic": "ACCEPT_LIMITED_FIRST_DEFINITION_DOMAIN",
+    "immutable_root_review_critic_field": "PENDING_RETAINED_AS_WRITTEN",
+    "artifacts": 96,
+    "transitive": 147,
+    "with_bundle_unique_paths": 244,
+    "union_bytes": 74499159,
+    "run_files": 97,
+    "run_tree_bytes": 69798868,
+    "current_own5_bytes": 225572,
+    "defined_first_pool_bytes": 70024440,
+    "all92_first_stage_outputs_preserved": true,
+    "request_ids": 294,
+    "future_physical_control_ids": 13,
+    "protected_pins": 141,
+    "first_stage_256_and_two_1Mi_source_guards": "IMMUTABLE_FIRST_STAGE_PROFILE_NOT_FUTURE_UNIVERSAL_ADMISSION"
+  },
+  "actual_old_sources": {
+    "oracle": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/clock_oracle.cpp",
+    "oracle_sha256": "A4BE16AB07DAF5DB627C7B1779587746E3792A2554D2D27C25BA33FBFB47666F",
+    "independent_header": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+    "header_sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+    "production_time": "src/engine/Time.h",
+    "production_time_sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+    "old_guards": [
+      "exactSourceReviewAccepted=false",
+      "fullOracleCostAccepted=false",
+      "stageOutputReservationAccepted=false"
+    ],
+    "edit_or_run_old_sources": false,
+    "actual_old_files_written_if_ever_enabled": 55,
+    "original_required_files": 56,
+    "missing_output": "references/native-inverse/r48000-map5.json"
+  },
+  "numeric_contract": {
+    "decision": "ADR0083_NUMERIC_A_COMPUTED_CLOCK_NO_EPSILON",
+    "PPQ": 15360,
+    "S": 46081,
+    "L": 153600,
+    "N": "10*R",
+    "rates": [
+      {
+        "rate": 44100,
+        "N": 441000,
+        "gcd": 600,
+        "residue_rows": 735,
+        "q_files": 9,
+        "q_entries": 3969009,
+        "q_bytes": 31752072
+      },
+      {
+        "rate": 48000,
+        "N": 480000,
+        "gcd": 19200,
+        "residue_rows": 25,
+        "q_files": 9,
+        "q_entries": 4320009,
+        "q_bytes": 34560072
+      },
+      {
+        "rate": 96000,
+        "N": 960000,
+        "gcd": 38400,
+        "residue_rows": 25,
+        "q_files": 9,
+        "q_entries": 8640009,
+        "q_bytes": 69120072
+      }
+    ],
+    "maps": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "q_entries": 16929027,
+    "q_bytes": 135432216,
+    "cache_rows": 785,
+    "cache_pair_payload_bytes": 12560,
+    "fraction_cache_bit_identity": "HOLD_INDEPENDENT_ALL_RESIDUE_REPLAY_REQUIRED",
+    "frames_require": "finite ordered; width<=1/1024; same integer floor; checked carry high=1; exact zero-fraction whole-Tick path",
+    "whole_prefix": "90BPM before S, complete original order and cumulative binary64 prefixes; no local origin substitute",
+    "fractional_ramp": "original nearest-endpoint BPM and scaled frexp/ldexp/log1p grouping",
+    "inverse": "actual checked native whole/fraction bits; every j in[0,D) for48k/map5; residual<=1/1024; exact descriptor binding",
+    "inverse_record_cap": 960000,
+    "inverse_record_bytes": 16,
+    "inverse_bytes_cap": 15360000,
+    "windows": "All original starts step R/20,length R/4; original W=int(double(float(R))*0.12); original edges/min/max; no exclusions",
+    "window_count_max_per_map": 396,
+    "window_count_max_total": 10692,
+    "compiler_profile": "Proposed pinned MSVC C++20 /fp:strict /O2 /W4 /WX /permissive- /MD, explicit console/no incremental; actual full command/toolchain remains HOLD",
+    "runtime_FP": "FE_TONEAREST and original exact MXCSR condition; no fast-math/contraction/reassociation",
+    "libm_opaque_CPU_RSS": "UNQUALIFIED_NOT_REAL_ANALYTIC_NUMERIC_B"
+  },
+  "reference_artifacts": [
+    {
+      "path": "references/clock/r44100-map0-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map0-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map1-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map1-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map2-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map2-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map3-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map3-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map4-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map4-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map5-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map5-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map6-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map6-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map7-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map7-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r44100-map8-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3528008,
+      "records": 441001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r44100-map8-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map0-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map0-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map1-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map1-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map2-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map2-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map3-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map3-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map4-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map4-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map5-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map5-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map6-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map6-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map7-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map7-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r48000-map8-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 3840008,
+      "records": 480001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r48000-map8-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map0-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map0-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map1-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map1-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map2-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map2-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map3-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map3-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map4-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map4-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map5-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map5-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map6-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map6-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map7-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map7-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/clock/r96000-map8-q.bin",
+      "kind": "dense int64 NumericA cuts",
+      "bytes_cap": 7680008,
+      "records": 960001,
+      "record_bytes": 8
+    },
+    {
+      "path": "references/clock/r96000-map8-metadata.json",
+      "kind": "clock eligibility center metadata",
+      "bytes_cap": 65536
+    },
+    {
+      "path": "references/native-inverse/r48000-map5.bin",
+      "kind": "shared bake-clock native inverse records",
+      "bytes_cap": 15360000,
+      "records": 960000,
+      "record_bytes": 16
+    },
+    {
+      "path": "references/native-inverse/r48000-map5.json",
+      "kind": "shared exact clock key and bounds",
+      "bytes_cap": 65536
+    }
+  ],
+  "reference_artifact_count": 56,
+  "reference_caps_sum": 152627224,
+  "source_unit_proposal": {
+    "directory": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-clock-r1",
+    "exact_tentative_files": [
+      "clock_stage.cpp",
+      "run-clock.ps1",
+      "README.md",
+      "authored-manifest.json"
+    ],
+    "OWN_excluding_manifest": 3,
+    "guards": "LITERAL_FALSE_UNTIL_NEW_SOURCE_CRITICS_AND_ROOT_PROMOTION",
+    "header_use": "Include unchanged R3 independent_clock.h and actual production Time.h by exact pinned paths; no old source edits",
+    "one_program_two_modes": "produce via independent port; verify every real record against independent brackets and actual production CompiledTempoMap APIs",
+    "writer_proposal": "bounded64KiB little-endian chunks; no huge Q vector; explicit close/flush/hash/EOF gates; bounded integer metadata formatting",
+    "one_command": "future run-clock.ps1 -Stage ClockOracle with explicit exact reviewed manifest/R4 bundle/compiler/toolchain hashes and new owned root",
+    "compiler_invocations": 1,
+    "oracle_produce_invocations": 1,
+    "independent_verify_invocations": 1,
+    "automatic_retries": 0,
+    "code_authored_now": false
+  },
+  "cardinality": {
+    "known_projected_components": {
+      "r4_closed_paths": 244,
+      "root_review": 1,
+      "this_preparation_docs": 4,
+      "inspected_msvc_cost_headers": 6,
+      "proposed_new_authored_files": 4,
+      "one_compiler": 1,
+      "exe_and_obj": 2,
+      "reference_files": 56,
+      "combined_stage_files": 5
+    },
+    "known_projected_total": 323,
+    "actual_future_inventory_closed": false,
+    "selected_future_profile": null,
+    "profile_status": "HOLD_DERIVE_AFTER_REAL_CLOSED_DISTINCT_PATH_INVENTORY",
+    "additional_unknowns": [
+      "linker and frontend support",
+      "MSVC/UCRT/SDK complete include/helper closure",
+      "runtime libraries/DLLs actually selected",
+      "explicit environment/response/dependency inputs",
+      "compiler temporaries/byproducts"
+    ],
+    "first_stage_256": "PRESERVED_NOT_REINTERPRETED_OR_AMENDED",
+    "packed_option": "Hold: keep all244 old physical paths and all56 logical output members, count index/parser/hash/I-O/extraction/lifetimes; no format authored",
+    "no_bytes_only_dedup": true
+  },
+  "whole_work": {
+    "unchanged_cap": 17179869184,
+    "one_unreset_stage_ledger": true,
+    "canonical_whole_upper": null,
+    "status": "HOLD_UNCLOSED_ACTUAL_NEW_BODIES_AND_HELPER_TOOLCHAIN_COSTS",
+    "old_256_per_cut": "NOT_ACCEPTED_COMPLETE_CALLGRAPH_BOUND",
+    "old_declared_counter_max": 6435062016,
+    "older_proposed_whole": 15095572736,
+    "older_actual_callgraph_closed": false,
+    "port_cut_calls": 16929297,
+    "port_frame_calls_in_cuts": 33858594,
+    "port_frame_calls_plus_inverse_upper": 34818594,
+    "port_segment_and_inverse_searches_upper": 35778594,
+    "port_search_comparisons_upper": 107335782,
+    "q_byte_put_calls": 135432216,
+    "q_and_inverse_byte_put_calls_upper": 150792216,
+    "fraction_nextBit_calls_per_nonzero_residue_upper": 62,
+    "binary_gcd_nonterminal_reductions_upper": 38,
+    "upper_bound_iterations_size4_upper": 3,
+    "omitted_terms_must_close": [
+      "actual helper bodies and STL iterator/countr-zero paths",
+      "complete production replay including extra nonzero-fraction binary search",
+      "full stream/metadata/path/hash/EOF/close loops",
+      "normal-gate controls/witness capture",
+      "all old/new toolchain fences and transitive full closure",
+      "bounded compiler/child/raw-read/cancel/reap/quarantine/footer/lifetime operations"
+    ],
+    "source_API_model": "Same accepted elementary source/API convention; no coefficient/reset/cap change; compiler/libm primitive CPU/internal heap/RSS separately unqualified"
+  },
+  "retention": {
+    "unchanged_future_840Mi_envelope": 880803840,
+    "production_1GiB_cap_unchanged": 1073741824,
+    "known_old_union": 74499159,
+    "root_review": 1719,
+    "new_prep_sources_cap": 1048576,
+    "new_authored_unit_cap": 1048576,
+    "all56_reference_caps": 152627224,
+    "all_objects_binaries_cap": 67108864,
+    "stage_logs_receipts_overlap_cap": 67108864,
+    "unexpected_failure_quarantine_cap": 134217728,
+    "subtotal_before_new_tools": 497660710,
+    "remaining_before_new_tools": 383143130,
+    "new_toolchain_bytes": null,
+    "compiler_prewrite_bound": "HOLD_INHERITED_RESERVATION_NOT_A_PROOF",
+    "whole_admission": "HOLD",
+    "predecessor_data_exact_run_pool": 69798868,
+    "immutable_source_tool_pool_8Mi": "Needs explicit actual complete new profile; R4 run data must not be hidden inside it",
+    "no_old_path_omitted": true,
+    "no_full_Q_clone_for_controls": true
+  },
+  "controlled_lifetime": {
+    "scratch_cap_unchanged": 33554432,
+    "fraction_pair_payload": 12560,
+    "record_buffers": {
+      "count": 2,
+      "each": 65536
+    },
+    "metadata_buffer_cap": 65536,
+    "small_control_mutations_reports_cap": 262144,
+    "launcher_payload_cap": 2097152,
+    "whole_controlled_payload_upper": null,
+    "status": "HOLD_ACTUAL_SIZEOF_CAPACITY_HELPER_LIBRARY_AND_RETIREMENT_BODY_REVIEW",
+    "no_dense_Q_vector": true,
+    "no_complete_inverse_vector": true,
+    "internal_compiler_library_heap_RSS": "UNQUALIFIED",
+    "ownership": "process creation/read setup in guarded try/finally; bounded kill/reap/cancellable read settlement; rooted quarantine blocks next child; exact raw exits and footer failures retained"
+  },
+  "normal_gate_controls": [
+    {
+      "id": "q-off-by-one",
+      "normal_gate": "EXACT_Q_WORD",
+      "mutation": "Change one actually decoded Q word by1 in owned storage",
+      "witness": "rate/map/actual file hash/index/observed word/actual production low-high floors/A"
+    },
+    {
+      "id": "fraction-carry",
+      "normal_gate": "EXACT_NORMALIZED_FRACTION_ENDPOINT",
+      "mutation": "Use exact rational(uint64_max-1)/uint64_max to reach high=1; mutate the actual constructed high endpoint to omit checked Tick carry",
+      "witness": "exact numerator/denominator/bracket bits/evaluated whole+frac/expected normalized whole+frac/actual forward result"
+    },
+    {
+      "id": "full-prefix",
+      "normal_gate": "EXACT_CLOCK_ENDPOINTS_AND_PREFIX",
+      "mutation": "Build a real owned clock with preclip90 changed to120; pass its actually computed A through the normal metadata gate for the unchanged frozen fixture",
+      "witness": "actual map entries/queried S/observed A/production frozen-map A"
+    },
+    {
+      "id": "ramp-law",
+      "normal_gate": "EXACT_Q_WORD",
+      "mutation": "Construct real map5 with its ramp flag replaced by Jump; compute its endpoint Q(N) and pass through the normal word gate",
+      "witness": "N/observed endpoint/production original-ramp endpoint/actual map fields"
+    },
+    {
+      "id": "inverse-whole",
+      "normal_gate": "EXACT_INVERSE_NATIVE_BITS",
+      "mutation": "Change whole by1 in one actual decoded inverse record",
+      "witness": "actual inverse file/index/observed whole+frac bits/production musicalTimeForFrame whole+frac bits/forward residual"
+    },
+    {
+      "id": "inverse-fraction",
+      "normal_gate": "EXACT_INVERSE_NATIVE_BITS",
+      "mutation": "Xor low fraction bit in actual decoded inverse record; retain exact-bit comparison even when residual tolerance alone could pass",
+      "witness": "index/observed and expected fraction bits/whole/actual round-trip result"
+    },
+    {
+      "id": "missing-inverse-descriptor",
+      "normal_gate": "COMPLETE_EXACT_REFERENCE_FILE_SET",
+      "mutation": "Remove native-inverse JSON from an owned copy of the actual reached inventory",
+      "witness": "complete actual expected/observed path sets and missing path"
+    },
+    {
+      "id": "extra-or-duplicate-file",
+      "normal_gate": "COMPLETE_EXACT_REFERENCE_FILE_SET",
+      "mutation": "Add unknown path or duplicate a row in an owned actual-inventory copy",
+      "witness": "observed paths/counts/duplicate or unknown name"
+    },
+    {
+      "id": "truncated-record-or-trailing-byte",
+      "normal_gate": "EXACT_RECORD_LENGTH_AND_EOF",
+      "mutation": "Pass a short/trailing actual-record byte copy through the same bounded record/EOF validator normal stream reads use",
+      "witness": "actual supplied byte count/required count/cursor/file record count/EOF state"
+    },
+    {
+      "id": "work-one-below",
+      "normal_gate": "WHOLE_STAGE_WORK_RESERVATION",
+      "mutation": "Use the actual ledger constructor with limit W_closed-1 before any child; W_closed remains HOLD until actual source closure",
+      "witness": "whole composed reservation/actual lower limit/unchanged2^34 cap"
+    },
+    {
+      "id": "bytes-one-below",
+      "normal_gate": "WHOLE_STAGE_RETAINED_RESERVATION",
+      "mutation": "Use actual complete-pool admission with its closed reservation minus1; no after-fact size comparison substitute",
+      "witness": "every pool component/full sum/lower limit/840Mi envelope"
+    },
+    {
+      "id": "pe-gui-subsystem",
+      "normal_gate": "ACTUAL_PE_CONSOLE_BEFORE_LAUNCH",
+      "mutation": "Mutate subsystem to2 in an owned copy of actual compiled PE header; normal parser must reject before launch",
+      "witness": "actual MZ/e_lfanew/PE/machine/optional magic/subsystem bytes"
+    },
+    {
+      "id": "own-tool-or-predecessor-changed",
+      "normal_gate": "BEFORE_AFTER_COMPLETE_INPUT_IDENTITY",
+      "mutation": "Feed one changed actual observed digest through the normal identity validator without modifying the old file/tool",
+      "witness": "actual canonical path/size/observed and expected digest"
+    },
+    {
+      "id": "one-use-already-consumed",
+      "normal_gate": "ONE_ATTEMPT_ALREADY_CONSUMED",
+      "mutation": "Invoke the normal attempt-state validator with the actual existing consumed marker; no second compiler/process launch",
+      "witness": "actual marker path/hash/presence/stage/manifest"
+    }
+  ],
+  "controls_authored_or_run": false,
+  "closure_steps_before_source_GO": [
+    "Root/fresh critic review these four documents and preserve all sealed input identities",
+    "Inventory exact compiler/linker/frontend/headers/SDK/runtime/environment/response/byproduct paths and bytes without executing a candidate; derive future finite cardinality from actual union",
+    "Close exact required56 descriptors/names/record layouts and full-file read/close/EOF gates",
+    "Derive source-supported whole2^34 work and controlled lifetime/retention including all real helpers, loops, controls and failures; unknown terms remain HOLD",
+    "Root may then authorize only the exact narrow new source unit; existing source guards/files stay immutable",
+    "Fresh numeric and engine/cost critics plus root read final exact source/manifest before any guard promotion and separate one-attempt compiler/oracle GO",
+    "After one actual attempt, root and fresh measured critic verify all raw exits, outputs, hashes, byte/work sums and holds before any downstream use"
+  ],
+  "unchanged_primary_limits": {
+    "production_work": 268435456,
+    "production_scratch": 536870912,
+    "production_bytes": 1073741824
+  },
+  "remaining_exclusions": [
+    "vendor",
+    "physical C1/C2/varying context",
+    "queried C/K",
+    "retained physical center owner",
+    "old mono BURST count8 issue",
+    "bake-case/window/qualified-unfaded binding",
+    "full13 physical controls",
+    "full waveform estimator/candidate proof",
+    "complete production resource graph",
+    "model/renderer activation"
+  ]
+}

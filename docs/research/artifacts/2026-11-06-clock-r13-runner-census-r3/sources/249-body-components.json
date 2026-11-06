@@ -1,0 +1,307 @@
+{
+  "prices": {
+    "Spend-Task": 17,
+    "Test-TaskPathCatalogueContext": 26,
+    "Get-TaskHashHex": 15,
+    "Set-TaskRawExit": 21,
+    "Reject-TaskGate": 32,
+    "Add-TaskJsonVisit": 17,
+    "Get-TaskRuntimeType": 16,
+    "Assert-TaskIntegral": 61,
+    "Set-TaskSecondary": 44,
+    "Get-TaskSecondaryCodes": 506,
+    "Measure-TaskJson": 104,
+    "Add-TaskJsonBound": 27,
+    "Read-TaskBoundedBytes": 201,
+    "Read-TaskDependencyJson": 369,
+    "Write-TaskJsonBytes": 34,
+    "Save-TaskReceipt": 79,
+    "Get-TaskPredecessorDescriptor": 41637,
+    "Get-TaskPEHeader": 340,
+    "Add-TaskPathCatalogueEntry": {
+      "repo_input": 62,
+      "ordinary_alias": 119
+    },
+    "Get-TaskCatalogueString": {
+      "hit": 21,
+      "miss": 41
+    },
+    "Get-TaskCatalogueEntryPath": {
+      "hit": 14,
+      "tilde": 74,
+      "first": 9532
+    },
+    "Convert-TaskControlOperand": {
+      "builtin": 90,
+      "biginteger": 55
+    },
+    "Read-TaskJson": {
+      "dependency": 328,
+      "predecessor": 339
+    },
+    "Get-TaskCanonicalPath": 76,
+    "Initialize-TaskPathCatalogue": 99368,
+    "Assert-NoLink": {
+      "normal": 7061,
+      "depth65": 7091,
+      "upper": 7091
+    },
+    "Get-TaskHash": {
+      "fixed": 295,
+      "per_chunk": 65
+    },
+    "Get-TaskBootstrapHash": {
+      "fixed": 285,
+      "per_parent": 48,
+      "per_chunk": 45
+    },
+    "Test-TaskHashValue": {
+      "hex": 1509,
+      "binary": 647
+    },
+    "Assert-TaskFreshHashIdentity": {
+      "normal": 27,
+      "refusal_body": 85,
+      "refusal_surplus": 84
+    },
+    "Assert-TaskPollAdmission": {
+      "normal": 11,
+      "refusal": 56
+    },
+    "Invoke-TaskChild": {
+      "fixed": 1047300,
+      "per_argument": 74,
+      "per_string_unit": 53,
+      "per_poll": 135,
+      "completion": 48,
+      "positive": 91
+    },
+    "Add-TaskChildCleanup": {
+      "fixed": 144,
+      "per_Code_unit": 53,
+      "max_Code43": 2423
+    },
+    "Replace-TaskBounded": {
+      "fixed": 235,
+      "per_aggregate_argument_unit": 53,
+      "per_occurrence": 48
+    },
+    "Expect-TaskGate": {
+      "fixed": 94,
+      "per_expected_key": 25
+    },
+    "Initialize-TaskController": {
+      "fixed": 2152,
+      "per_argument_unit": 53
+    },
+    "Assert-TaskString": {
+      "fixed": 49,
+      "ASCII": 53,
+      "general": 64
+    },
+    "Get-TaskEscapedStringBytes": {
+      "fixed": 75,
+      "per_unit": 148
+    },
+    "Join-TaskBoundedNames": {
+      "fixed": 68,
+      "per_name": 87,
+      "per_name_unit": 64
+    },
+    "Get-TaskEntries": {
+      "fixed": 52,
+      "per_directory": 161,
+      "per_candidate": 197,
+      "per_path_unit": 64,
+      "overflow": 127,
+      "replaced_ending": 24
+    },
+    "Copy-TaskOwned": {
+      "fixed": 291,
+      "per_chunk": 71
+    },
+    "Get-TaskDependencyString": {
+      "fixed": 98,
+      "per_unit": 64
+    },
+    "Encode-TaskJson": {
+      "fixed": 176,
+      "per_preLF_unit": 41
+    },
+    "Get-TaskStageBytes": {
+      "fixed": 22,
+      "per_row": 73
+    },
+    "Assert-TaskDocumentWrite": {
+      "fixed": 89,
+      "per_path_unit": 64
+    },
+    "Resolve-TaskInput": {
+      "fixed": 136,
+      "per_unit": 64
+    },
+    "Assert-TaskPins": {
+      "fixed": 97,
+      "per_namespace": 58,
+      "per_own": 54,
+      "per_input": 37,
+      "per_callback_pair": 41
+    },
+    "Get-TaskReferences": {
+      "fixed": 55,
+      "per_entry": 39,
+      "per_file": 104
+    },
+    "Read-TaskChildResult": {
+      "fixed": 21585,
+      "per_text_unit": 38,
+      "per_control": 12648,
+      "bad_ID_prefix": 11897
+    },
+    "Get-TaskBuildArtifacts": {
+      "fixed": 48,
+      "per_entry": 101
+    },
+    "Assert-TaskDependencies": {
+      "fixed": 349,
+      "per_include": 19,
+      "one_string_fixed": 98,
+      "per_string_unit": 64
+    },
+    "Save-TaskFailureInventory": {
+      "fixed": 199,
+      "per_file": 64
+    },
+    "Invoke-TaskFencedChild": {
+      "fixed": 109,
+      "binary": 71
+    },
+    "Get-TaskSafePrefix": {
+      "ASCII": 51,
+      "general": 54
+    },
+    "Close-TaskOwner": {
+      "null": 7,
+      "normal": 12,
+      "firstFailure": 20,
+      "secondaryFailure": 65,
+      "upper": 65
+    },
+    "Close-TaskJsonReader": {
+      "null": 7,
+      "normal": 12,
+      "firstFailure": 20,
+      "secondaryFailure": 65,
+      "upper": 65
+    },
+    "Complete-TaskOwnerClose": {
+      "normal": 16,
+      "propagate": 17
+    },
+    "Assert-TaskCodecBinding": {
+      "normal": 18,
+      "refusal": 19
+    },
+    "Get-TaskIntegerDigits": {
+      "negative": 309,
+      "unsigned": 307
+    },
+    "Assert-TaskExactKeys": {
+      "fixed": 72,
+      "per_key": 81,
+      "per_actual_key_unit": 64
+    },
+    "Visit-TaskJsonValue": {
+      "string": 184,
+      "boolean": 115,
+      "integer": 455,
+      "map_fixed": 185,
+      "array_fixed": 199,
+      "null": 86,
+      "string_per_unit": 148,
+      "map_per_entry": 223,
+      "map_per_key_unit": 212,
+      "map_separator": 31,
+      "array_per_entry": 20,
+      "array_separator": 31
+    },
+    "Mutate-TaskOwnedBytes": 268,
+    "Assert-TaskRawJson": {
+      "classes": {
+        "outer_integer_path": 241,
+        "string_body": 113,
+        "hex_body": 62,
+        "digits_body": 40,
+        "magnitude_body": 34,
+        "literal_body": 36
+      },
+      "per_input_upper": 526,
+      "fixed_upper": 103
+    },
+    "Assert-TaskRawJsonBytes": {
+      "classes": {
+        "outer_integer_path": 241,
+        "string_body": 136,
+        "hex_body": 62,
+        "digits_body": 40,
+        "magnitude_body": 34,
+        "literal_body": 38
+      },
+      "grammar": 551,
+      "common": 94,
+      "failure": 41,
+      "compaction": 51,
+      "compaction_fixed": 21,
+      "per_input_upper": 602,
+      "fixed_upper": 135
+    },
+    "Write-TaskJson": {
+      "measure_null": 63,
+      "measurement_supplied": 59
+    },
+    "Assert-TaskIdentity": {
+      "normal": 24,
+      "refusal": 88
+    },
+    "Assert-TaskReservation": {
+      "normal": 20,
+      "refusal": 63
+    },
+    "Assert-TaskRetainedReservation": {
+      "normal": 16,
+      "refusal": 59
+    },
+    "Assert-TaskAttempt": {
+      "normal": 6,
+      "refusal": 46
+    },
+    "Assert-TaskConsolePE": {
+      "normal": 31,
+      "refusal": 89
+    },
+    "Assert-TaskPredecessor": {
+      "normal": 3559,
+      "refusal": 3621
+    },
+    "Assert-TaskBoundSourceInteger": {
+      "normal": 54,
+      "kind": 90,
+      "nonpositive": 105
+    },
+    "Assert-TaskFileSet": {
+      "fixed": 102,
+      "expected": 83,
+      "observed": 78,
+      "per_name_unit": 64,
+      "refusal_fixed": 171,
+      "refusal_expected": 90,
+      "refusal_observed": 87
+    },
+    "Assert-TaskSameReferences": {
+      "fixed": 30,
+      "per_file": 51
+    }
+  },
+  "all_74_rebuilt": true,
+  "accepted_prices": false
+}

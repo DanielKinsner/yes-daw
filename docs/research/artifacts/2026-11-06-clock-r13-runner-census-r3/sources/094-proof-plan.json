@@ -1,0 +1,494 @@
+{
+  "status": "SOURCE_ONLY_CANDIDATE_EXECUTION_HOLD",
+  "new_authored_module_or_candidate_executed": false,
+  "tracked_edits": false,
+  "native_device_or_hardware": false,
+  "files_allowed": [
+    "packet.md",
+    "proof-plan.json",
+    "source-pins.json"
+  ],
+  "calibration": {
+    "manifest": "6D1A2126601CD490900A08272AFEECCD282CE77F49FFC41FA113090B40F9F4EC",
+    "receipt": "05F51815B86583568499FB41CB5525C62454F3E2FB11D3408E137FCC2F60B202",
+    "rows": 1125,
+    "expected_refusals": 45,
+    "clock_queries": 690,
+    "scope": "analytic instrument only",
+    "source_error_premise": "conditional unmeasured"
+  },
+  "unchanged_caps": {
+    "checker_per_complete_case": 17179869184,
+    "checker_scratch": 67108864,
+    "production_work_per_clip": 268435456,
+    "production_payload_per_clip": 536870912,
+    "batch_payload": 1073741824,
+    "cache_payload": 1073741824
+  },
+  "cost_formulas": {
+    "fit_only_lower": "384*M*T*eligibleWindows*channels",
+    "T": "ceil((4*rate/K)/0.02)+1",
+    "r2_library_upper": "M+2*log2(K)+203*(4+4*ceil(M/128))+128",
+    "r2_work_upper": "16*M+4*K+20*(K/2)*log2(K)+12*(K/2)+203*(384*M+500)+8*M+libraryUpper+65536",
+    "case_budget_reset_per_window_forbidden": true,
+    "constant_counts": "source-derived constant edge/grid arithmetic; actual Numeric A freeze still required",
+    "varying_counts": "analytic cost-design estimates only; not Numeric A floor evidence"
+  },
+  "rate_geometry": [
+    {
+      "rate": 44100,
+      "M": 11025,
+      "K": 65536,
+      "trials": 136,
+      "fit_only_lower_per_window": 575769600,
+      "current_r2_preflight_upper_per_window": 871076197
+    },
+    {
+      "rate": 48000,
+      "M": 12000,
+      "K": 65536,
+      "trials": 148,
+      "fit_only_lower_per_window": 681984000,
+      "current_r2_preflight_upper_per_window": 947109456
+    },
+    {
+      "rate": 96000,
+      "M": 24000,
+      "K": 131072,
+      "trials": 148,
+      "fit_only_lower_per_window": 1363968000,
+      "current_r2_preflight_upper_per_window": 1895361626
+    }
+  ],
+  "cost_design_rows": [
+    {
+      "rate": 44100,
+      "map": 0,
+      "name": "constant0.5",
+      "source_cost_design_windows": 90,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 51819264000,
+      "stereo_fit_only_lower": 103638528000,
+      "mono_repeated_r2_preflight_upper": 78396857730,
+      "stereo_repeated_r2_preflight_upper": 156793715460,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 44100,
+      "map": 1,
+      "name": "constant0.75",
+      "source_cost_design_windows": 140,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 80607744000,
+      "stereo_fit_only_lower": 161215488000,
+      "mono_repeated_r2_preflight_upper": 121950667580,
+      "stereo_repeated_r2_preflight_upper": 243901335160,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 44100,
+      "map": 2,
+      "name": "constant1",
+      "source_cost_design_windows": 190,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 109396224000,
+      "stereo_fit_only_lower": 218792448000,
+      "mono_repeated_r2_preflight_upper": 165504477430,
+      "stereo_repeated_r2_preflight_upper": 331008954860,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 44100,
+      "map": 3,
+      "name": "constant1.5",
+      "source_cost_design_windows": 288,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 165821644800,
+      "stereo_fit_only_lower": 331643289600,
+      "mono_repeated_r2_preflight_upper": 250869944736,
+      "stereo_repeated_r2_preflight_upper": 501739889472,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 44100,
+      "map": 4,
+      "name": "constant2",
+      "source_cost_design_windows": 386,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 222247065600,
+      "stereo_fit_only_lower": 444494131200,
+      "mono_repeated_r2_preflight_upper": 336235412042,
+      "stereo_repeated_r2_preflight_upper": 672470824084,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 44100,
+      "map": 5,
+      "name": "linear120to30",
+      "source_cost_design_windows": 173,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 99608140800,
+      "stereo_fit_only_lower": 199216281600,
+      "mono_repeated_r2_preflight_upper": 150696182081,
+      "stereo_repeated_r2_preflight_upper": 301392364162,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 44100,
+      "map": 6,
+      "name": "linear30to120",
+      "source_cost_design_windows": 173,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 99608140800,
+      "stereo_fit_only_lower": 199216281600,
+      "mono_repeated_r2_preflight_upper": 150696182081,
+      "stereo_repeated_r2_preflight_upper": 301392364162,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 44100,
+      "map": 7,
+      "name": "jump120to30",
+      "source_cost_design_windows": 268,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 154306252800,
+      "stereo_fit_only_lower": 308612505600,
+      "mono_repeated_r2_preflight_upper": 233448420796,
+      "stereo_repeated_r2_preflight_upper": 466896841592,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 44100,
+      "map": 8,
+      "name": "jump30to120",
+      "source_cost_design_windows": 208,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 119760076800,
+      "stereo_fit_only_lower": 239520153600,
+      "mono_repeated_r2_preflight_upper": 181183848976,
+      "stereo_repeated_r2_preflight_upper": 362367697952,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 48000,
+      "map": 0,
+      "name": "constant0.5",
+      "source_cost_design_windows": 90,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 61378560000,
+      "stereo_fit_only_lower": 122757120000,
+      "mono_repeated_r2_preflight_upper": 85239851040,
+      "stereo_repeated_r2_preflight_upper": 170479702080,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 48000,
+      "map": 1,
+      "name": "constant0.75",
+      "source_cost_design_windows": 140,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 95477760000,
+      "stereo_fit_only_lower": 190955520000,
+      "mono_repeated_r2_preflight_upper": 132595323840,
+      "stereo_repeated_r2_preflight_upper": 265190647680,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 48000,
+      "map": 2,
+      "name": "constant1",
+      "source_cost_design_windows": 190,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 129576960000,
+      "stereo_fit_only_lower": 259153920000,
+      "mono_repeated_r2_preflight_upper": 179950796640,
+      "stereo_repeated_r2_preflight_upper": 359901593280,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 48000,
+      "map": 3,
+      "name": "constant1.5",
+      "source_cost_design_windows": 288,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 196411392000,
+      "stereo_fit_only_lower": 392822784000,
+      "mono_repeated_r2_preflight_upper": 272767523328,
+      "stereo_repeated_r2_preflight_upper": 545535046656,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 48000,
+      "map": 4,
+      "name": "constant2",
+      "source_cost_design_windows": 386,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 263245824000,
+      "stereo_fit_only_lower": 526491648000,
+      "mono_repeated_r2_preflight_upper": 365584250016,
+      "stereo_repeated_r2_preflight_upper": 731168500032,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 48000,
+      "map": 5,
+      "name": "linear120to30",
+      "source_cost_design_windows": 173,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 117983232000,
+      "stereo_fit_only_lower": 235966464000,
+      "mono_repeated_r2_preflight_upper": 163849935888,
+      "stereo_repeated_r2_preflight_upper": 327699871776,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 48000,
+      "map": 6,
+      "name": "linear30to120",
+      "source_cost_design_windows": 173,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 117983232000,
+      "stereo_fit_only_lower": 235966464000,
+      "mono_repeated_r2_preflight_upper": 163849935888,
+      "stereo_repeated_r2_preflight_upper": 327699871776,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 48000,
+      "map": 7,
+      "name": "jump120to30",
+      "source_cost_design_windows": 268,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 182771712000,
+      "stereo_fit_only_lower": 365543424000,
+      "mono_repeated_r2_preflight_upper": 253825334208,
+      "stereo_repeated_r2_preflight_upper": 507650668416,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 48000,
+      "map": 8,
+      "name": "jump30to120",
+      "source_cost_design_windows": 208,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 141852672000,
+      "stereo_fit_only_lower": 283705344000,
+      "mono_repeated_r2_preflight_upper": 196998766848,
+      "stereo_repeated_r2_preflight_upper": 393997533696,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 96000,
+      "map": 0,
+      "name": "constant0.5",
+      "source_cost_design_windows": 90,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 122757120000,
+      "stereo_fit_only_lower": 245514240000,
+      "mono_repeated_r2_preflight_upper": 170582546340,
+      "stereo_repeated_r2_preflight_upper": 341165092680,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 96000,
+      "map": 1,
+      "name": "constant0.75",
+      "source_cost_design_windows": 140,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 190955520000,
+      "stereo_fit_only_lower": 381911040000,
+      "mono_repeated_r2_preflight_upper": 265350627640,
+      "stereo_repeated_r2_preflight_upper": 530701255280,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 96000,
+      "map": 2,
+      "name": "constant1",
+      "source_cost_design_windows": 190,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 259153920000,
+      "stereo_fit_only_lower": 518307840000,
+      "mono_repeated_r2_preflight_upper": 360118708940,
+      "stereo_repeated_r2_preflight_upper": 720237417880,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 96000,
+      "map": 3,
+      "name": "constant1.5",
+      "source_cost_design_windows": 288,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 392822784000,
+      "stereo_fit_only_lower": 785645568000,
+      "mono_repeated_r2_preflight_upper": 545864148288,
+      "stereo_repeated_r2_preflight_upper": 1091728296576,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 96000,
+      "map": 4,
+      "name": "constant2",
+      "source_cost_design_windows": 386,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 526491648000,
+      "stereo_fit_only_lower": 1052983296000,
+      "mono_repeated_r2_preflight_upper": 731609587636,
+      "stereo_repeated_r2_preflight_upper": 1463219175272,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 96000,
+      "map": 5,
+      "name": "linear120to30",
+      "source_cost_design_windows": 173,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 235966464000,
+      "stereo_fit_only_lower": 471932928000,
+      "mono_repeated_r2_preflight_upper": 327897561298,
+      "stereo_repeated_r2_preflight_upper": 655795122596,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 96000,
+      "map": 6,
+      "name": "linear30to120",
+      "source_cost_design_windows": 173,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 235966464000,
+      "stereo_fit_only_lower": 471932928000,
+      "mono_repeated_r2_preflight_upper": 327897561298,
+      "stereo_repeated_r2_preflight_upper": 655795122596,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 96000,
+      "map": 7,
+      "name": "jump120to30",
+      "source_cost_design_windows": 268,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 365543424000,
+      "stereo_fit_only_lower": 731086848000,
+      "mono_repeated_r2_preflight_upper": 507956915768,
+      "stereo_repeated_r2_preflight_upper": 1015913831536,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    },
+    {
+      "rate": 96000,
+      "map": 8,
+      "name": "jump30to120",
+      "source_cost_design_windows": 208,
+      "actual_numeric_a_edge_freeze": "UNRUN_REQUIRED",
+      "mono_fit_only_lower": 283705344000,
+      "stereo_fit_only_lower": 567410688000,
+      "mono_repeated_r2_preflight_upper": 394235218208,
+      "stereo_repeated_r2_preflight_upper": 788470436416,
+      "once_only_case_work_included": false,
+      "current_checker_whole_case_status": "HOLD_WORK_CAP_EXCEEDED"
+    }
+  ],
+  "replacement_hypothesis": {
+    "status": "UNIMPLEMENTED_COST_AND_ROUNDOFF_UNCLOSED",
+    "method": "independent packed-real FFT seed, chirp-Z all-grid correlations, certified RSS ranking, direct uncertain finalists, precise resource/numeric refusal",
+    "window_channel_design_target": 16000000,
+    "once_only_design_target": 1000000000,
+    "largest_case_design_target": 13352000000,
+    "design_target_is_certificate": false,
+    "requires_new_all1125_calibration": true,
+    "requires_actual_whole96k20second_distinct_stereo": true,
+    "old_calibration_inherited": false
+  },
+  "future_stages": [
+    {
+      "stage": "fresh cost/numeric critique",
+      "status": "UNRUN"
+    },
+    {
+      "stage": "new source revision",
+      "status": "UNRUN"
+    },
+    {
+      "stage": "independent Freeze",
+      "status": "UNRUN"
+    },
+    {
+      "stage": "new calibration including whole-case cap",
+      "status": "UNRUN"
+    },
+    {
+      "stage": "varying state/context and complete resources",
+      "status": "UNRUN"
+    },
+    {
+      "stage": "independent waveform freeze",
+      "status": "UNRUN"
+    },
+    {
+      "stage": "private baseline",
+      "status": "UNRUN"
+    },
+    {
+      "stage": "actual own-gate controls",
+      "status": "UNRUN"
+    },
+    {
+      "stage": "production integration",
+      "status": "UNRUN"
+    }
+  ],
+  "no_quality_or_resource_or_production_credit": true,
+  "preparation_arithmetic_correction": {
+    "status": "source-analysis message corrected before final packet",
+    "final_factor2_mono_fit_only_lower_by_rate": {
+      "44100": 222247065600,
+      "48000": 263245824000,
+      "96000": 526491648000
+    },
+    "basis": "exact stdlib integer evaluation of384*M*T*386; earlier mental figures in parent message are superseded",
+    "candidate_executed": false
+  },
+  "measured_stereo_identity_blocker": {
+    "actual_run": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114929-3203284",
+    "execution_receipt": "D97C1F19ACBBC584C80BC0A664DB182B3F1A5B522AD65DC3B170D9595AE8C283",
+    "verifier_receipt": "D3A6B7F699E6717789EE44AE8D77521FEB45194571AC6D896DC963C198E4EAFF",
+    "context_compile_candidate_verifier_exits": [
+      0,
+      0,
+      0
+    ],
+    "raw_channel_pairs": 2304,
+    "numeric_unequal": 2144,
+    "max_abs_difference": 0.000536702573299408,
+    "author_independent_read_only_RO_parse": true,
+    "current_C2_exact_identical_stereo_waveform_contract": "NOT_PROVED_CONTRADICTING_REACHED_WITNESS",
+    "causal_source_lead": "winner and nonwinner take separate normalization/fallback paths; not established universal cause",
+    "corrected_renderer_hypothesis": "NONE_ESTABLISHED_NO_IMPLEMENTATION_GO",
+    "source_or_backend_or_output_repair_authority": false
+  }
+}

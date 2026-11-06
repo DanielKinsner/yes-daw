@@ -1,0 +1,4985 @@
+// YES DAW - Project data-model value surface (ADR-0011).
+//
+// Storage-facing, JUCE-free value types for the non-destructive Asset -> Clip -> Project indirection.
+// Persistence code will serialize these later; this header only locks the ID shape and semantic
+// invariants that schema v1 will depend on.
+
+#pragma once
+
+#include "engine/Automation.h"
+#include "engine/MixerValue.h"
+#include "engine/ParamSpec.h"
+#include "engine/Time.h"
+#include "engine/nodes/CompressorNode.h"
+#include "engine/InstrumentState.h"
+#include "engine/nodes/EqNode.h"
+#include "engine/nodes/SimpleSynthNode.h"
+#include "engine/nodes/SamplerNode.h"   // G3.9 / ADR-0048
+#include "engine/nodes/FaderNode.h"
+#include "engine/nodes/FxDelayNode.h"
+#include "engine/nodes/LimiterNode.h"
+#include "engine/nodes/MidiEffectNode.h"   // G3.8
+#include "engine/nodes/PanNode.h"
+#include "engine/nodes/ReverbNode.h"
+
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+
+namespace yesdaw::engine {
+
+struct EntityId
+{
+    static constexpr std::size_t kNumBytes = 16;
+    using StorageBytes = std::array<std::uint8_t, kNumBytes>;
+
+    StorageBytes bytes {};
+
+    static constexpr EntityId fromBytes (StorageBytes value) noexcept
+    {
+        return EntityId { value };
+    }
+
+    static constexpr EntityId fromBigEndianParts (std::uint64_t high, std::uint64_t low) noexcept
+    {
+        StorageBytes out {};
+
+        for (std::size_t i = 0; i < 8; ++i)
+            out[i] = static_cast<std::uint8_t> ((high >> ((7u - i) * 8u)) & 0xFFu);
+
+        for (std::size_t i = 0; i < 8; ++i)
+            out[8u + i] = static_cast<std::uint8_t> ((low >> ((7u - i) * 8u)) & 0xFFu);
+
+        return EntityId { out };
+    }
+
+    [[nodiscard]] constexpr bool isZero() const noexcept
+    {
+        for (const std::uint8_t b : bytes)
+            if (b != 0u)
+                return false;
+
+        return true;
+    }
+
+    [[nodiscard]] constexpr bool isValid() const noexcept
+    {
+        return ! isZero();
+    }
+
+    [[nodiscard]] constexpr std::uint64_t ulidTimestampMs() const noexcept
+    {
+        std::uint64_t value = 0;
+        for (std::size_t i = 0; i < 6; ++i)
+            value = (value << 8u) | static_cast<std::uint64_t> (bytes[i]);
+
+        return value;
+    }
+
+    friend constexpr bool operator== (const EntityId&, const EntityId&) noexcept = default;
+
+    friend constexpr bool operator< (const EntityId& a, const EntityId& b) noexcept
+    {
+        for (std::size_t i = 0; i < kNumBytes; ++i)
+        {
+            if (a.bytes[i] < b.bytes[i])
+                return true;
+            if (a.bytes[i] > b.bytes[i])
+                return false;
+        }
+
+        return false;
+    }
+};
+
+static_assert (sizeof (EntityId) == EntityId::kNumBytes, "EntityId must stay a fixed 16-byte value");
+
+using UlidEntropy = std::array<std::uint8_t, 10>;
+constexpr std::uint64_t kMaxUlidTimestampMs = (1ull << 48u) - 1ull;
+
+class EntityIdAllocator final
+{
+public:
+    explicit constexpr EntityIdAllocator (UlidEntropy seed = {}) noexcept : entropy_ (seed) {}
+
+    [[nodiscard]] EntityId allocate (std::uint64_t unixTimeMs) noexcept
+    {
+        if (unixTimeMs > kMaxUlidTimestampMs)
+            return {};
+
+        std::uint64_t timestamp = unixTimeMs;
+
+        if (! haveLastTimestamp_)
+        {
+            haveLastTimestamp_ = true;
+            lastTimestampMs_ = timestamp;
+        }
+        else if (timestamp <= lastTimestampMs_)
+        {
+            timestamp = lastTimestampMs_;
+            if (! incrementEntropy())
+                return {};
+        }
+        else
+        {
+            lastTimestampMs_ = timestamp;
+        }
+
+        EntityId id = makeUlid (timestamp, entropy_);
+        if (! id.isValid())
+        {
+            if (! incrementEntropy())
+                return {};
+
+            id = makeUlid (timestamp, entropy_);
+        }
+
+        return id;
+    }
+
+private:
+    static constexpr EntityId makeUlid (std::uint64_t timestampMs, const UlidEntropy& entropy) noexcept
+    {
+        EntityId::StorageBytes out {};
+
+        for (std::size_t i = 0; i < 6; ++i)
+            out[i] = static_cast<std::uint8_t> ((timestampMs >> ((5u - i) * 8u)) & 0xFFu);
+
+        for (std::size_t i = 0; i < entropy.size(); ++i)
+            out[6u + i] = entropy[i];
+
+        return EntityId { out };
+    }
+
+    bool incrementEntropy() noexcept
+    {
+        std::size_t index = entropy_.size();
+        while (index > 0 && entropy_[index - 1u] == 0xFFu)
+            --index;
+
+        if (index == 0)
+            return false;
+
+        ++entropy_[index - 1u];
+        for (std::size_t i = index; i < entropy_.size(); ++i)
+        {
+            entropy_[i] = 0u;
+        }
+
+        return true;
+    }
+
+    bool          haveLastTimestamp_ = false;
+    std::uint64_t lastTimestampMs_ = 0;
+    UlidEntropy   entropy_ {};
+};
+
+struct AssetContentHash
+{
+    static constexpr std::size_t kNumBytes = 32;
+    using StorageBytes = std::array<std::uint8_t, kNumBytes>;
+
+    StorageBytes bytes {};
+
+    friend constexpr bool operator== (const AssetContentHash&, const AssetContentHash&) noexcept = default;
+};
+
+struct Asset
+{
+    EntityId   id;
+    AssetContentHash contentHash;
+    std::uint64_t frames = 0;
+    SampleRate    sampleRate;
+    std::uint16_t channels = 0;
+
+    [[nodiscard]] constexpr bool isValid() const noexcept
+    {
+        return id.isValid() && frames > 0 && sampleRate.isValid() && channels > 0;
+    }
+
+    friend constexpr bool operator== (const Asset&, const Asset&) noexcept = default;
+};
+
+enum class FxKind : std::uint8_t
+{
+    Eq = 0,
+    Compressor,
+    Delay,
+    Reverb,
+    Limiter,
+    // G3.8: the MIDI FX — inserts on a TRACK's chain that sit on the MIDI path between the Track's
+    // merged clips and its instrument (in chain order, before every audio insert). Track-only: a Bus
+    // or the master has no MIDI path (addFxInsert refuses).
+    MidiTranspose,
+    MidiScaleMap,
+    MidiArpeggiator,
+    MidiChord
+};
+
+[[nodiscard]] constexpr bool fxKindIsKnown (FxKind kind) noexcept
+{
+    return kind == FxKind::Eq
+           || kind == FxKind::Compressor
+           || kind == FxKind::Delay
+           || kind == FxKind::Reverb
+           || kind == FxKind::Limiter
+           || kind == FxKind::MidiTranspose
+           || kind == FxKind::MidiScaleMap
+           || kind == FxKind::MidiArpeggiator
+           || kind == FxKind::MidiChord;
+}
+
+[[nodiscard]] constexpr bool fxKindIsMidi (FxKind kind) noexcept
+{
+    return kind == FxKind::MidiTranspose
+           || kind == FxKind::MidiScaleMap
+           || kind == FxKind::MidiArpeggiator
+           || kind == FxKind::MidiChord;
+}
+
+[[nodiscard]] inline ParamSpec fxParamSpecForKind (FxKind kind, std::uint32_t paramId) noexcept
+{
+    switch (kind)
+    {
+        case FxKind::Eq:
+            return EqNode::parameterSpec (paramId);
+        case FxKind::Compressor:
+            return CompressorNode::parameterSpec (paramId);
+        case FxKind::Delay:
+            return FxDelayNode::parameterSpec (paramId);
+        case FxKind::Reverb:
+            return ReverbNode::parameterSpec (paramId);
+        case FxKind::Limiter:
+            return LimiterNode::parameterSpec (paramId);
+        case FxKind::MidiTranspose:
+            return MidiTransposeNode::parameterSpec (paramId);
+        case FxKind::MidiScaleMap:
+            return MidiScaleMapNode::parameterSpec (paramId);
+        case FxKind::MidiArpeggiator:
+            return MidiArpeggiatorNode::parameterSpec (paramId);
+        case FxKind::MidiChord:
+            return MidiChordNode::parameterSpec (paramId);
+    }
+
+    return {};
+}
+
+[[nodiscard]] inline bool fxKindAcceptsParameterId (FxKind kind, std::uint32_t paramId) noexcept
+{
+    if (! fxKindIsKnown (kind))
+        return false;
+
+    const ParamSpec spec = fxParamSpecForKind (kind, paramId);
+    return spec.id == paramId
+           && spec.name != nullptr
+           && spec.name[0] != '\0'
+           && paramSpecHasUsableRange (spec);
+}
+
+[[nodiscard]] inline bool normalizedFxParamValueIsValid (double value) noexcept
+{
+    return std::isfinite (value) && value >= 0.0 && value <= 1.0;
+}
+
+struct FxInsert
+{
+    EntityId id;
+    FxKind kind = FxKind::Eq;
+    bool enabled = true;
+    std::vector<std::pair<std::uint32_t, double>> normalizedParams;
+    // ADR-0051: the Track or Bus whose pre-fader signal keys this Compressor (invalid = no key: it
+    // detects on its own audio). Only a Compressor carries one.
+    EntityId sidechainSourceId {};
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! id.isValid() || ! fxKindIsKnown (kind))
+            return false;
+
+        if (sidechainSourceId.isValid() && kind != FxKind::Compressor)
+            return false;
+
+        for (std::size_t i = 0; i < normalizedParams.size(); ++i)
+        {
+            if (! normalizedFxParamValueIsValid (normalizedParams[i].second))
+                return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (normalizedParams[i].first == normalizedParams[j].first)
+                    return false;
+        }
+
+        return true;
+    }
+
+    friend bool operator== (const FxInsert&, const FxInsert&) = default;
+};
+
+struct MixerStripState
+{
+    std::string name;
+    float linearGain = 1.0f;
+    float pan = 0.0f;
+    bool muted = false;
+    bool soloed = false;
+    bool soloSafe = false;
+    std::vector<FxInsert> fxChain;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! mixerGainIsValid (linearGain) || ! mixerPanIsValid (pan))
+            return false;
+
+        for (const FxInsert& insert : fxChain)
+            if (! insert.isValid())
+                return false;
+
+        return true;
+    }
+
+    friend bool operator== (const MixerStripState&, const MixerStripState&) = default;
+};
+
+// ADR-0044: persisted send routing. Sends are rows on the owning Track; the mixer projection's
+// runtime routes derive from these (tap maps 1:1 onto MixerSendTap at the projection boundary).
+enum class SendTap : std::uint8_t
+{
+    PreFader = 0,
+    PostFader
+};
+
+[[nodiscard]] constexpr bool sendTapIsKnown (SendTap tap) noexcept
+{
+    return tap == SendTap::PreFader || tap == SendTap::PostFader;
+}
+
+struct SendRow
+{
+    EntityId id;
+    EntityId busId;
+    SendTap tap = SendTap::PostFader;
+    float linearGain = 1.0f;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return id.isValid() && busId.isValid() && sendTapIsKnown (tap) && mixerGainIsValid (linearGain);
+    }
+
+    friend bool operator== (const SendRow&, const SendRow&) = default;
+};
+
+// N6: the legible band a persisted track height must fall in. 0 is reserved (not in-band) to
+// mean "no override — this row shares equally in its panel's available space", so a Project with
+// no customized track ever diverges from the historical stretch-to-fill layout.
+inline constexpr int kTrackHeightMinPx = 56;
+inline constexpr int kTrackHeightMaxPx = 400;
+
+[[nodiscard]] constexpr bool trackHeightIsValid (int heightPx) noexcept
+{
+    return heightPx == 0 || (heightPx >= kTrackHeightMinPx && heightPx <= kTrackHeightMaxPx);
+}
+
+// N7: persisted per-track colour, applied to the rail row, the mixer strip nameplate, and the
+// clips on that track. Packed 0xAARRGGBB. 0 (the default, fully transparent) is reserved to mean
+// "no override — every surface keeps painting its historical, colour-less appearance", so a
+// Project with no customized track colour never diverges from today's rendering. A SET colour
+// must be fully opaque (alpha byte 0xFF) so it can never collide with the unset sentinel and can
+// never paint semi-transparent by accident.
+inline constexpr std::uint32_t kTrackColourUnset = 0;
+
+[[nodiscard]] constexpr bool trackColourIsValid (std::uint32_t colour) noexcept
+{
+    return colour == kTrackColourUnset || (colour >> 24) == 0xFFu;
+}
+
+// G3.1 / ADR-0047: the persisted per-Track instrument slot. None (the default) means "whatever the
+// projection picks for a Track holding MIDI" — SimpleSynth today — so every bundle saved before
+// the slot existed opens and renders exactly as it did. Later kinds (sampler, plugin) append.
+enum class TrackInstrumentKind : std::uint8_t
+{
+    None = 0,
+    SimpleSynth = 1,
+    Sampler = 2   // G3.9 / ADR-0048: pads on the Track referencing Project Assets
+};
+
+[[nodiscard]] constexpr bool trackInstrumentKindIsValid (std::uint8_t raw) noexcept
+{
+    return raw <= static_cast<std::uint8_t> (TrackInstrumentKind::Sampler);
+}
+
+// G3.9 / ADR-0048: one Sampler pad — a trigger key, the Project Asset it plays, the root key (the key
+// at which the sample plays at unity rate), one-shot (ignores NoteOff, never answers to other keys)
+// or pitched (releases on NoteOff, the nearest lower pitched pad answers to unclaimed keys), a gain,
+// and a display name (the drum-mode roll's key label; a fixed field so the edit command stays flat).
+struct SamplerPad
+{
+    static constexpr std::size_t kNameCapacity = 64;   // holds kMaxNameLength + NUL
+    static constexpr std::size_t kMaxNameLength = 63;
+
+    std::int16_t key = -1;
+    EntityId     assetId;
+    std::int16_t rootKey = 60;
+    bool         oneShot = true;
+    double       gain = 1.0;
+    char         name[kNameCapacity] = {};
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (key < 0 || key > 127 || rootKey < 0 || rootKey > 127 || ! assetId.isValid()
+            || ! std::isfinite (gain) || gain < 0.0 || gain > 2.0)
+            return false;
+        for (std::size_t i = 0; i < kNameCapacity; ++i)
+            if (name[i] == '\0')
+                return true;
+        return false;   // no terminator
+    }
+
+    [[nodiscard]] std::string_view nameView() const noexcept
+    {
+        std::size_t length = 0;
+        while (length < kNameCapacity && name[length] != '\0')
+            ++length;
+        return std::string_view (name, length);
+    }
+
+    void setName (std::string_view text) noexcept
+    {
+        const std::size_t length = text.size() < kMaxNameLength ? text.size() : kMaxNameLength;
+        for (std::size_t i = 0; i < kNameCapacity; ++i)
+            name[i] = i < length ? text[i] : '\0';
+    }
+
+    friend bool operator== (const SamplerPad& a, const SamplerPad& b) noexcept
+    {
+        return a.key == b.key && a.assetId == b.assetId && a.rootKey == b.rootKey && a.oneShot == b.oneShot
+            && a.gain == b.gain && a.nameView() == b.nameView();
+    }
+};
+
+// ADR-0047: None resolves to the built-in synth for a Track holding MIDI — the kind that actually plays.
+[[nodiscard]] constexpr TrackInstrumentKind effectiveTrackInstrumentKind (TrackInstrumentKind kind) noexcept
+{
+    return kind == TrackInstrumentKind::None ? TrackInstrumentKind::SimpleSynth : kind;
+}
+
+[[nodiscard]] inline ParamSpec instrumentParamSpecForKind (TrackInstrumentKind kind, std::uint32_t paramId) noexcept
+{
+    switch (effectiveTrackInstrumentKind (kind))
+    {
+        case TrackInstrumentKind::SimpleSynth:
+            return SimpleSynthNode::parameterSpec (paramId);
+        case TrackInstrumentKind::Sampler:   // G3.9
+            return SamplerNode::parameterSpec (paramId);
+        case TrackInstrumentKind::None:
+            break;
+    }
+    return {};
+}
+
+[[nodiscard]] inline bool instrumentKindAcceptsParameterId (TrackInstrumentKind kind, std::uint32_t paramId) noexcept
+{
+    const ParamSpec spec = instrumentParamSpecForKind (kind, paramId);
+    return spec.id == paramId && spec.name != nullptr && spec.name[0] != '\0' && paramSpecHasUsableRange (spec);
+}
+
+struct Track
+{
+    EntityId id;
+    MixerStripState strip;
+    std::vector<SendRow> sends;   // ordered; ordinal = index (ADR-0039 SendLevel paramId)
+    // M3: where this Track's MAIN output lands. Invalid (the default) = straight to master, the
+    // historical law; a valid id must name a Bus, and the Track's post-pan signal feeds THAT Bus's
+    // sum instead — the submix/group workflow sends alone cannot express.
+    EntityId outputBusId;
+    // N6: persisted row height, honoured by the rail, the timeline lanes, the clip geometry, and
+    // the automation lane. 0 (the default) means no override — the row keeps sharing equally in
+    // its panel's available space exactly like every Track did before this field existed.
+    int heightPx = 0;
+    // N7: persisted row colour, honoured by the rail, the mixer strip nameplate, and this
+    // Track's clips. kTrackColourUnset (the default) means no override.
+    std::uint32_t colour = kTrackColourUnset;
+    // G3.1: the instrument slot — which instrument this Track plays and its persisted state (an
+    // opaque, kind-versioned parameter blob; empty = the kind's defaults).
+    TrackInstrumentKind instrumentKind = TrackInstrumentKind::None;
+    std::vector<std::uint8_t> instrumentState;
+    // G3.9 / ADR-0048: the Sampler's pads (sorted by key, one per key); inert unless the kind is Sampler.
+    std::vector<SamplerPad> samplerPads;
+
+    [[nodiscard]] const SamplerPad* findSamplerPad (std::int16_t key) const noexcept
+    {
+        for (const SamplerPad& pad : samplerPads)
+            if (pad.key == key)
+                return &pad;
+        return nullptr;
+    }
+
+    // G3.1: the decoded instrument parameter overrides (empty = every ParamSpec default).
+    [[nodiscard]] InstrumentParamValues instrumentParams() const
+    {
+        InstrumentParamValues values;
+        (void) decodeInstrumentParams (instrumentState, values);
+        return values;
+    }
+
+    [[nodiscard]] double instrumentParamNormalized (std::uint32_t paramId) const
+    {
+        for (const auto& [id_, value] : instrumentParams())
+            if (id_ == paramId)
+                return value;
+        return normalizedDefault (instrumentParamSpecForKind (instrumentKind, paramId));
+    }
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! id.isValid() || ! strip.isValid())
+            return false;
+
+        if (! trackInstrumentKindIsValid (static_cast<std::uint8_t> (instrumentKind)))
+            return false;
+
+        {
+            InstrumentParamValues values;
+            if (! decodeInstrumentParams (instrumentState, values))
+                return false;
+            for (const auto& [paramId, value] : values)
+                if (! instrumentKindAcceptsParameterId (instrumentKind, paramId))
+                    return false;
+        }
+
+        if (! trackHeightIsValid (heightPx))
+            return false;
+
+        if (! trackColourIsValid (colour))
+            return false;
+
+        for (const SendRow& send : sends)
+            if (! send.isValid())
+                return false;
+
+        return true;
+    }
+
+    friend bool operator== (const Track&, const Track&) = default;
+};
+
+struct Bus
+{
+    EntityId id;
+    MixerStripState strip;
+    // R13: buses route and send like tracks. Ordered send rows (ordinal = index, the ADR-0039
+    // SendLevel paramId law) and a MAIN output: invalid (the default) = straight to master, a
+    // valid id must name another Bus. Unlike tracks, bus→bus edges can form a cycle — the
+    // routing verbs refuse one honestly (RoutingCycle), the DAG law, never clamp. Both members
+    // carry explicit default initializers so existing aggregate inits stay warning-clean under
+    // GCC/AppleClang -Wmissing-field-initializers (which exempts only NSDMI'd members).
+    std::vector<SendRow> sends {};
+    EntityId outputBusId {};
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! id.isValid() || ! strip.isValid())
+            return false;
+
+        for (const SendRow& send : sends)
+            if (! send.isValid())
+                return false;
+
+        return true;
+    }
+
+    friend bool operator== (const Bus&, const Bus&) = default;
+};
+
+inline constexpr EntityId kDefaultAudioTrackId = EntityId::fromBytes ({
+    0x59u, 0x45u, 0x53u, 0x44u, 0x41u, 0x57u, 0x5Fu, 0x41u,
+    0x55u, 0x44u, 0x49u, 0x4Fu, 0x5Fu, 0x30u, 0x30u, 0x31u,
+});
+
+struct ClipName
+{
+    static constexpr std::size_t kMaxLength = 127;
+
+    constexpr ClipName() noexcept = default;
+    constexpr ClipName (std::string_view text) noexcept : value {} { (void) assign (text); }
+
+    [[nodiscard]] constexpr bool assign (std::string_view text) noexcept
+    {
+        if (text.empty() || text.size() > kMaxLength)
+            return false;
+
+        value = {};
+        for (std::size_t i = 0; i < text.size(); ++i)
+            value[i] = text[i];
+        return true;
+    }
+
+    constexpr ClipName& operator= (std::string_view text) noexcept
+    {
+        (void) assign (text);
+        return *this;
+    }
+
+    [[nodiscard]] constexpr std::string_view asView() const noexcept
+    {
+        std::size_t length = 0;
+        while (length < value.size() && value[length] != '\0')
+            ++length;
+        return { value.data(), length };
+    }
+
+    [[nodiscard]] constexpr bool empty() const noexcept { return asView().empty(); }
+    [[nodiscard]] constexpr std::size_t size() const noexcept { return asView().size(); }
+    [[nodiscard]] constexpr const char* c_str() const noexcept { return value.data(); }
+    [[nodiscard]] constexpr operator std::string_view() const noexcept { return asView(); }
+
+    friend constexpr bool operator== (const ClipName&, const ClipName&) noexcept = default;
+    friend constexpr bool operator== (const ClipName& name, std::string_view text) noexcept { return name.asView() == text; }
+    friend constexpr bool operator== (std::string_view text, const ClipName& name) noexcept { return text == name.asView(); }
+
+    std::array<char, kMaxLength + 1u> value { 'A', 'u', 'd', 'i', 'o', ' ', 'C', 'l', 'i', 'p' };
+};
+
+// G2.10: a fade's shape (Logic / Pro Tools: linear, equal-power, S-curve, logarithmic) and a curve
+// amount in -1..1 that bends it (0 = the shape as drawn; + rises faster, - rises slower). ONE
+// evaluator (ClipEnvelope.h) turns these into gain for the renderer AND the painted curve.
+enum class FadeShape : std::uint8_t
+{
+    Linear = 0,
+    EqualPower,
+    SCurve,
+    Log
+};
+
+struct Clip
+{
+    EntityId id;
+    EntityId assetId;
+    EntityId trackId;
+    Tick timelineStart = 0;
+    Tick timelineLength = 0;
+    std::uint64_t srcOffset = 0; // schema: clip.src_offset, measured in Asset frames
+    std::uint64_t srcLen = 0;    // schema: clip.src_len, measured in Asset frames
+    float gain = 1.0f;
+    Tick fadeIn = 0;
+    Tick fadeOut = 0;
+    TimeBase timeBase = TimeBase::SampleLocked;
+    ClipName name;
+    float stretchFactor = 1.0f;   // G2.9 (ADR-0030): output / source frames, 0.5..2.0; 1 = unstretched
+    FadeShape fadeInShape = FadeShape::EqualPower;    // G2.10
+    FadeShape fadeOutShape = FadeShape::EqualPower;
+    float fadeInCurve = 0.0f;                         // -1..1 bends the shape
+    float fadeOutCurve = 0.0f;
+    std::uint32_t colour = kTrackColourUnset;         // G2.12: 0 = follow the track's colour
+    bool muted = false;                               // G2.12: silent in the mix, painted dim
+    bool reversed = false;                            // G2.13: the source window plays backwards
+
+    [[nodiscard]] constexpr bool references (const Asset& asset) const noexcept
+    {
+        return assetId.isValid() && asset.id == assetId;
+    }
+
+    [[nodiscard]] constexpr bool sourceWindowFits (const Asset& asset) const noexcept
+    {
+        return references (asset) && srcOffset <= asset.frames && srcLen <= asset.frames - srcOffset;
+    }
+
+    friend constexpr bool operator== (const Clip&, const Clip&) noexcept = default;
+};
+
+struct Marker
+{
+    EntityId    id;
+    Tick        tick = 0;
+    std::string name;
+    std::uint32_t colour = kTrackColourUnset;   // G2.14: 0 = the ruler's default; else fully opaque
+
+    [[nodiscard]] bool isValid() const noexcept { return id.isValid(); }
+
+    friend bool operator== (const Marker&, const Marker&) = default;
+};
+
+struct Note
+{
+    EntityId     id;
+    Tick         startTick = 0;          // clip-relative
+    Tick         lengthTicks = 0;        // zero-length is legal: On and Off at the same sample
+    std::int16_t key = 60;
+    double       pitchNote = 60.0;
+    double       normalizedVelocity = 1.0;
+    std::int16_t portIndex = -1;
+    std::int16_t channel = -1;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return id.isValid()
+            && startTick >= 0
+            && lengthTicks >= 0
+            && lengthTicks <= std::numeric_limits<Tick>::max() - startTick
+            && key >= 0
+            && key <= 127
+            && std::isfinite (pitchNote)
+            && std::isfinite (normalizedVelocity)
+            && normalizedVelocity >= 0.0
+            && normalizedVelocity <= 1.0
+            && portIndex >= -1
+            && channel >= -1
+            && channel <= 15;
+    }
+
+    friend constexpr bool operator== (const Note&, const Note&) noexcept = default;
+};
+
+// G3.3: the MIDI channel messages that are not notes, stored per MIDI Clip as editable points in
+// clip-relative ticks (the edit object; the wire bytes exist only at render - the Note law).
+enum class MidiControlKind : std::uint8_t
+{
+    ControlChange   = 0,   // number = controller 0..127; value 0..1 (CC64 sustain, CC1 mod, ...)
+    PitchBend       = 1,   // value -1..1, 0 = centre; number unused (0)
+    ChannelPressure = 2,   // value 0..1 (aftertouch); number unused (0)
+    PolyPressure    = 3,   // number = key 0..127; value 0..1
+    ProgramChange   = 4    // number = program 0..127; value unused (0)
+};
+
+[[nodiscard]] constexpr bool midiControlKindIsValid (MidiControlKind kind) noexcept
+{
+    return kind == MidiControlKind::ControlChange
+        || kind == MidiControlKind::PitchBend
+        || kind == MidiControlKind::ChannelPressure
+        || kind == MidiControlKind::PolyPressure
+        || kind == MidiControlKind::ProgramChange;
+}
+
+// Does the kind carry a number (controller / key / program)? Bend and channel pressure do not.
+[[nodiscard]] constexpr bool midiControlKindHasNumber (MidiControlKind kind) noexcept
+{
+    return kind == MidiControlKind::ControlChange
+        || kind == MidiControlKind::PolyPressure
+        || kind == MidiControlKind::ProgramChange;
+}
+
+[[nodiscard]] constexpr double midiControlValueMin (MidiControlKind kind) noexcept
+{
+    return kind == MidiControlKind::PitchBend ? -1.0 : 0.0;
+}
+
+struct MidiControlEvent
+{
+    EntityId        id;
+    Tick            tick = 0;                          // clip-relative
+    MidiControlKind kind = MidiControlKind::ControlChange;
+    std::int16_t    number = 0;                        // controller / key / program; 0 where the kind has none
+    double          value = 0.0;                       // normalized: 0..1, or -1..1 for a bend
+    std::int16_t    portIndex = -1;
+    std::int16_t    channel = -1;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return id.isValid()
+            && tick >= 0
+            && midiControlKindIsValid (kind)
+            && number >= 0
+            && number <= 127
+            && (midiControlKindHasNumber (kind) || number == 0)
+            && std::isfinite (value)
+            && value >= midiControlValueMin (kind)
+            && value <= 1.0
+            && (kind != MidiControlKind::ProgramChange || value == 0.0)
+            && portIndex >= -1
+            && channel >= -1
+            && channel <= 15;
+    }
+
+    // Two events address the same LANE when kind, number, port and channel agree (one value per
+    // tick per lane is the edit law: adding at an occupied tick replaces).
+    [[nodiscard]] constexpr bool sameLane (const MidiControlEvent& other) const noexcept
+    {
+        return kind == other.kind && number == other.number
+            && portIndex == other.portIndex && channel == other.channel;
+    }
+
+    friend constexpr bool operator== (const MidiControlEvent&, const MidiControlEvent&) noexcept = default;
+};
+
+struct MidiClip
+{
+    EntityId          id;
+    EntityId          trackId;
+    Tick              timelineStart = 0;
+    Tick              timelineLength = 0;
+    TimeBase          timeBase = TimeBase::TempoLocked;
+    std::vector<Note> notes;
+    std::vector<MidiControlEvent> controlEvents;   // G3.3: CC / bend / pressure / program points
+    // G3.5: the Clip's own playback settings (Logic's region inspector): silent in the mix; every
+    // note shifted by semitones at render (a note pushed past 0..127 drops); a velocity offset added
+    // to every note's normalized velocity (clamped); and a loop length in ticks — 0 = the content
+    // plays once, else the content window [0, loop) repeats to fill the Clip (Logic's region loop).
+    bool         muted = false;
+    std::int8_t  transposeSemitones = 0;
+    double       velocityOffset = 0.0;
+    Tick         loopLengthTicks = 0;
+
+    static constexpr std::int8_t kMaxTransposeSemitones = 48;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! id.isValid()
+            || ! trackId.isValid()
+            || timelineLength < 0
+            || (timeBase != TimeBase::TempoLocked && timeBase != TimeBase::SampleLocked)
+            || transposeSemitones < -kMaxTransposeSemitones
+            || transposeSemitones > kMaxTransposeSemitones
+            || ! std::isfinite (velocityOffset)
+            || velocityOffset < -1.0
+            || velocityOffset > 1.0
+            || loopLengthTicks < 0
+            || loopLengthTicks > timelineLength)
+            return false;
+
+        for (const Note& note : notes)
+        {
+            if (! note.isValid() || note.startTick > timelineLength)
+                return false;
+
+            const Tick maxLength = timelineLength - note.startTick;
+            if (note.lengthTicks > maxLength)
+                return false;
+        }
+
+        for (const MidiControlEvent& control : controlEvents)
+            if (! control.isValid() || control.tick > timelineLength)
+                return false;
+
+        return true;
+    }
+
+    friend bool operator== (const MidiClip&, const MidiClip&) = default;
+};
+
+enum class RecordingMonitoringPolicy : std::uint8_t
+{
+    Off = 0,
+    DirectInput,
+    LatencyCompensated
+};
+
+struct RecordingTake
+{
+    EntityId id;
+    EntityId assetId;
+    EntityId trackId;
+    EntityId clipId;
+    Tick timelineStart = 0;
+    std::uint64_t frameCount = 0;
+    std::uint32_t takeOrdinal = 0;
+    std::uint16_t inputChannel = 0;
+    std::uint32_t deviceStableId = 0;
+    RecordingMonitoringPolicy monitoringPolicy = RecordingMonitoringPolicy::Off;
+
+    [[nodiscard]] constexpr bool isValid() const noexcept
+    {
+        return id.isValid()
+            && assetId.isValid()
+            && trackId.isValid()
+            && clipId.isValid()
+            && timelineStart >= 0
+            && frameCount > 0
+            && (monitoringPolicy == RecordingMonitoringPolicy::Off
+                || monitoringPolicy == RecordingMonitoringPolicy::DirectInput
+                || monitoringPolicy == RecordingMonitoringPolicy::LatencyCompensated);
+    }
+
+    friend constexpr bool operator== (const RecordingTake&, const RecordingTake&) noexcept = default;
+};
+
+struct ProjectRecordingCompSegment
+{
+    EntityId id;
+    EntityId takeId;
+    Tick timelineStart = 0;
+    Tick timelineLength = 0;
+    std::uint64_t sourceOffset = 0;
+
+    [[nodiscard]] constexpr bool isValid() const noexcept
+    {
+        return id.isValid()
+            && takeId.isValid()
+            && timelineStart >= 0
+            && timelineLength > 0;
+    }
+
+    friend constexpr bool operator== (const ProjectRecordingCompSegment&, const ProjectRecordingCompSegment&) noexcept = default;
+};
+
+enum class AutomationTargetRole : std::uint8_t
+{
+    TrackFader = 0,
+    TrackPan,
+    SendLevel,
+    BusFader,
+    BusPan,
+    FxInsertParam,
+    InstrumentParam   // G3.1 / ADR-0047: owner = the Track, paramId = the instrument's ParamSpec id
+};
+
+[[nodiscard]] constexpr bool automationTargetRoleIsKnown (AutomationTargetRole role) noexcept
+{
+    return role == AutomationTargetRole::TrackFader
+           || role == AutomationTargetRole::TrackPan
+           || role == AutomationTargetRole::SendLevel
+           || role == AutomationTargetRole::BusFader
+           || role == AutomationTargetRole::BusPan
+           || role == AutomationTargetRole::FxInsertParam
+           || role == AutomationTargetRole::InstrumentParam;
+}
+
+// N5: a per-project automation write mode. Read (the historical, only behaviour) plays back
+// existing breakpoints and never writes; Touch/Latch write new breakpoints from a live control
+// move while the transport rolls. Latch shares Touch's write-while-moving semantics today — full
+// "keep writing after release until playback stops" behaviour is deferred (honest subset, logged
+// in STATUS.md rather than faked).
+enum class AutomationMode : std::uint8_t
+{
+    Read = 0,
+    Touch = 1,
+    Latch = 2,
+    // R15: Off — lanes stay stored and editable, but playback/render IGNORE them (the
+    // projection compiles no lanes) and no ride ever arms.
+    Off = 3,
+    // G4.6 / ADR-0052: Write — a pass writes from play to stop on the selected track's laned or touched
+    // targets, replacing the span; the mode returns to Touch after the pass.
+    Write = 4
+};
+
+[[nodiscard]] constexpr bool automationModeIsKnown (AutomationMode mode) noexcept
+{
+    return mode == AutomationMode::Read
+           || mode == AutomationMode::Touch
+           || mode == AutomationMode::Latch
+           || mode == AutomationMode::Off
+           || mode == AutomationMode::Write;
+}
+
+// N8: a persisted punch region for recording. Disabled (the default) reproduces today's
+// behaviour bit-identically: no punch bounds gate the capture window beyond count-in. Frames are
+// raw sample frames at the project's sample rate (the same domain RecordingWindow already uses),
+// NOT musical ticks — Tick is reused here as the codebase's existing plain int64 alias, exactly
+// how a SampleLocked Clip's timelineStart already reuses it for raw frame positions.
+struct PunchRegion
+{
+    bool enabled = false;
+    Tick startFrame = 0;
+    Tick endFrame = 0;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! enabled)
+            return true;
+        return startFrame >= 0 && endFrame > startFrame;
+    }
+
+    friend bool operator== (const PunchRegion&, const PunchRegion&) = default;
+};
+
+// R3: the persisted transport loop region — the punch region's twin (raw sample frames, same
+// Tick-as-int64 reuse). Disabled (the default, a missing row) reproduces the historical
+// behaviour: the loop lived only in the PlaybackEngine and died on save/reopen.
+// G3.8: the project's key and scale (Logic's key signature; the roll's scale assist shades the keys
+// outside it and the pencil lands on the nearest key inside it). scale 0 = off (every key). Persisted
+// like the loop region: one row, a missing row means off.
+struct ProjectScale
+{
+    static constexpr int kScaleOff = 0;
+    static constexpr int kScaleMajor = 1;
+    static constexpr int kScaleMinor = 2;
+    static constexpr int kScaleCount = 3;
+
+    int rootKey = 0;   // 0..11, C = 0
+    int scale = kScaleOff;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return rootKey >= 0 && rootKey < 12 && scale >= 0 && scale < kScaleCount;
+    }
+
+    friend bool operator== (const ProjectScale&, const ProjectScale&) = default;
+};
+
+struct LoopRegion
+{
+    bool enabled = false;
+    Tick startFrame = 0;
+    Tick endFrame = 0;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! enabled)
+            return true;
+        return startFrame >= 0 && endFrame > startFrame;
+    }
+
+    friend bool operator== (const LoopRegion&, const LoopRegion&) = default;
+};
+
+[[nodiscard]] constexpr bool automationStripParameterIdIsValid (AutomationTargetRole role, std::uint32_t paramId) noexcept
+{
+    switch (role)
+    {
+        case AutomationTargetRole::TrackFader:
+        case AutomationTargetRole::BusFader:
+            return paramId == FaderNode::kGainParameterId;
+        case AutomationTargetRole::TrackPan:
+        case AutomationTargetRole::BusPan:
+            return paramId == PanNode::kPanParameterId;
+        case AutomationTargetRole::SendLevel:
+            // Send rows do not exist yet in CP1. For now paramId remains the target send ordinal.
+            return true;
+        case AutomationTargetRole::FxInsertParam:
+        case AutomationTargetRole::InstrumentParam:
+            return true;
+    }
+
+    return false;
+}
+
+[[nodiscard]] inline bool automationBreakpointValueIsValid (double value) noexcept
+{
+    return std::isfinite (value) && value >= 0.0 && value <= 1.0;
+}
+
+[[nodiscard]] constexpr bool automationCurveIsStorageSafe (AutomationCurveType curve) noexcept
+{
+    // R16: all four evaluated shapes persist (schema v21 widened the CHECK from Linear/Hold).
+    return curve == AutomationCurveType::Linear
+           || curve == AutomationCurveType::Hold
+           || curve == AutomationCurveType::Bezier
+           || curve == AutomationCurveType::Log;
+}
+
+struct AutomationBreakpoint
+{
+    Tick tick = 0;
+    double value = 0.0;
+    AutomationCurveType curveType = AutomationCurveType::Linear;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return tick >= 0
+               && automationBreakpointValueIsValid (value)
+               && automationCurveIsStorageSafe (curveType);
+    }
+
+    friend constexpr bool operator== (const AutomationBreakpoint&, const AutomationBreakpoint&) noexcept = default;
+};
+
+struct AutomationLaneData
+{
+    EntityId id;
+    EntityId ownerEntity;
+    AutomationTargetRole role = AutomationTargetRole::TrackFader;
+    std::uint32_t paramId = 0;
+    std::vector<AutomationBreakpoint> points;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (! id.isValid() || ! ownerEntity.isValid() || ! automationTargetRoleIsKnown (role))
+            return false;
+
+        for (std::size_t i = 0; i < points.size(); ++i)
+        {
+            if (! points[i].isValid())
+                return false;
+
+            if (i > 0 && points[i].tick <= points[i - 1u].tick)
+                return false;
+        }
+
+        return true;
+    }
+
+    friend bool operator== (const AutomationLaneData&, const AutomationLaneData&) = default;
+};
+
+enum class ProjectEditStatus : std::uint8_t
+{
+    Applied = 0,
+    InvalidProject,
+    InvalidClipId,
+    ClipNotFound,
+    DuplicateEntityId,
+    InvalidTimelineWindow,
+    InvalidSourceWindow,
+    InvalidClipEnvelope,
+    InvalidClipStretch,   // G2.9: the stretch factor is outside ADR-0030's 0.5..2.0 (or not finite)
+    InvalidClipFadeShape, // G2.10: an unknown shape or a curve amount outside -1..1
+    InvalidClipColour,    // G2.12: a clip colour that is neither unset nor fully opaque
+    InvalidMidiClipId,
+    MidiClipNotFound,
+    InvalidNoteId,
+    NoteNotFound,
+    InvalidNoteWindow,
+    InvalidNoteValue,
+    InvalidQuantizeSettings,     // G3.4: strength / swing / humanize outside their ranges
+    InvalidMidiClipValue,        // G3.5: a Clip setting (transpose / velocity offset / loop length) out of range, or a join that does not fit
+    InvalidMidiControlEventId,   // G3.3
+    MidiControlEventNotFound,
+    InvalidMidiControlEvent,
+    InvalidSnapGrid,
+    InvalidRecordingTakeId,
+    RecordingTakeNotFound,
+    InvalidRecordingCompSegmentId,
+    InvalidRecordingCompWindow,
+    InvalidFxOwnerId,
+    FxOwnerNotFound,
+    InvalidFxInsertId,
+    FxInsertNotFound,
+    InvalidFxKind,
+    MidiFxNeedsTrack,   // G3.8: a MIDI FX insert on a Bus or the master strip
+    InvalidFxPosition,
+    InvalidFxParamValue,
+    InvalidAutomationLaneId,
+    AutomationLaneNotFound,
+    InvalidAutomationTarget,
+    InvalidAutomationBreakpoint,
+    InvalidTrackId,
+    TrackNotFound,
+    TrackNotEmpty,
+    InvalidTrackPosition,
+    InvalidTrackName,
+    InvalidTempo,
+    InvalidMeter,
+    InvalidMarkerId,
+    MarkerNotFound,
+    InvalidBusId,
+    BusNotFound,
+    BusInUse,
+    InvalidSendId,
+    SendNotFound,
+    DuplicateSendRoute,
+    InvalidSendLevel,
+    InvalidClipName,
+    InvalidTrackMixState,
+    RoutingCycle,   // R13: a bus send/output that would loop signal back into its own path
+    InvalidSamplerPad,        // G3.9: a pad outside the value range
+    SamplerPadNotFound,       // G3.9: no pad on that key to clear
+    SamplerPadAssetNotFound,  // G3.9: the pad names an Asset the Project does not hold
+    InvalidSidechainSource,   // ADR-0051: not a Compressor, or the key names no Track/Bus, the master or its own strip
+    SidechainSourceInUse      // ADR-0051: a Track/Bus that keys a Compressor cannot be removed until cleared
+};
+
+struct Project
+{
+    static constexpr std::size_t kLocatePointCount = 5;
+
+    EntityId id;
+    SampleRate sampleRate;
+    std::vector<Asset> assets;
+    std::vector<Track> tracks;
+    std::vector<Bus> buses;
+    std::vector<Clip> clips;
+    // Time-model surface (ADR-0010): tempo map, meter map, and markers round-trip with the Project (H1
+    // exit clause). Stored in canonical tick order; the bundle reads them back ORDER BY tick.
+    std::vector<TempoChange> tempoMap;
+    std::vector<MeterChange> meterMap;
+    std::vector<Marker>      markers;
+    // Persisted memory locations for the transport. Empty slots migrate additively and do not appear
+    // as Timeline Markers; the UI stores/recalls them through the declared locate-point actions.
+    std::array<std::optional<Tick>, kLocatePointCount> locatePoints {};
+    // H4 MIDI edit surface (ADR-0017): MIDI Clips own editable Notes. They flatten to Events only at the
+    // render boundary; persistence keeps the stable Note IDs intact for piano-roll edits and MPE.
+    std::vector<MidiClip>    midiClips;
+    // H13 recording surface (ADR-0036): Takes identify recorded passes and link immutable recorded audio
+    // Assets to their Track/Clip placement without making Clip identity carry recording history.
+    std::vector<RecordingTake> recordingTakes;
+    // H13 basic Comp surface (ADR-0036): ordered non-destructive segments choose source windows from Takes.
+    std::vector<ProjectRecordingCompSegment> recordingCompSegments;
+    // H15 automation surface (ADR-0039): normalized Breakpoints target stable Project entities by role.
+    // Runtime NodeId resolution, schema v8 persistence, and undo verbs land in later CP1/CP3 slices.
+    std::vector<AutomationLaneData> automationLanes;
+    // E19: persisted master strip gain (schema v12, locate-points pattern: a missing row means
+    // the historical unity default). Honest scope: gain only — no master FX chain, no master pan.
+    float masterLinearGain = 1.0f;
+    // R11: the master strip — ONLY its fxChain is honored by the engine (gain stays
+    // masterLinearGain per E19; master has no pan/mute/solo and no verb can edit those
+    // fields here). Reached through findMixerStrip via kMasterStripOwnerId, so the whole
+    // strip FX law (add/remove/reorder/params/bypass, undo, persistence) works unchanged.
+    MixerStripState masterStrip;
+    // N5: persisted automation write mode (schema v14, locate-points pattern: a missing row
+    // means the historical Read-only default).
+    AutomationMode automationMode = AutomationMode::Read;
+    // G4.6 / ADR-0052: moving a clip in time on its own track carries the automation in its span.
+    bool automationFollowsClips = false;
+    // N8: persisted punch region (schema v17, locate-points pattern: a missing row means
+    // disabled, the historical no-punch default).
+    PunchRegion punchRegion;
+    // R3: persisted transport loop region (schema v18, locate-points pattern: a missing row
+    // means disabled — not undoable, exactly like locate points).
+    LoopRegion loopRegion;
+    ProjectScale scale;   // G3.8: schema v30, one row, missing = off
+
+    [[nodiscard]] const Asset* findAsset (EntityId assetId) const noexcept
+    {
+        for (const Asset& asset : assets)
+            if (asset.id == assetId)
+                return &asset;
+
+        return nullptr;
+    }
+
+    [[nodiscard]] const Track* findTrack (EntityId trackId) const noexcept
+    {
+        for (const Track& track : tracks)
+            if (track.id == trackId)
+                return &track;
+
+        return nullptr;
+    }
+
+    [[nodiscard]] const Bus* findBus (EntityId busId) const noexcept
+    {
+        for (const Bus& bus : buses)
+            if (bus.id == busId)
+                return &bus;
+
+        return nullptr;
+    }
+
+    [[nodiscard]] const FxInsert* findFxInsert (EntityId insertId) const noexcept
+    {
+        for (const Track& track : tracks)
+            for (const FxInsert& insert : track.strip.fxChain)
+                if (insert.id == insertId)
+                    return &insert;
+
+        for (const Bus& bus : buses)
+            for (const FxInsert& insert : bus.strip.fxChain)
+                if (insert.id == insertId)
+                    return &insert;
+
+        for (const FxInsert& insert : masterStrip.fxChain)   // R11
+            if (insert.id == insertId)
+                return &insert;
+
+        return nullptr;
+    }
+
+    [[nodiscard]] const RecordingTake* findRecordingTake (EntityId takeId) const noexcept
+    {
+        for (const RecordingTake& take : recordingTakes)
+            if (take.id == takeId)
+                return &take;
+
+        return nullptr;
+    }
+
+    [[nodiscard]] bool hasValidEntityIds() const noexcept
+    {
+        if (! id.isValid())
+            return false;
+
+        for (const Asset& asset : assets)
+            if (! asset.id.isValid())
+                return false;
+
+        for (const Track& track : tracks)
+            if (! track.isValid())
+                return false;
+
+        for (const Bus& bus : buses)
+            if (! bus.isValid())
+                return false;
+
+        for (const Clip& clip : clips)
+            if (! clip.id.isValid() || ! clip.assetId.isValid() || ! clip.trackId.isValid())
+                return false;
+
+        for (const MidiClip& midiClip : midiClips)
+            if (! midiClip.isValid())
+                return false;
+
+        for (const RecordingTake& take : recordingTakes)
+            if (! take.isValid())
+                return false;
+
+        for (const ProjectRecordingCompSegment& segment : recordingCompSegments)
+            if (! segment.isValid())
+                return false;
+
+        for (const AutomationLaneData& lane : automationLanes)
+            if (! lane.isValid())
+                return false;
+
+        return true;
+    }
+
+    [[nodiscard]] bool tracksAreValid() const noexcept
+    {
+        for (const Track& track : tracks)
+            if (! track.isValid())
+                return false;
+
+        return true;
+    }
+
+    [[nodiscard]] bool busesAreValid() const noexcept
+    {
+        for (const Bus& bus : buses)
+            if (! bus.isValid())
+                return false;
+
+        return true;
+    }
+
+    [[nodiscard]] bool assetsAreValid() const noexcept
+    {
+        for (const Asset& asset : assets)
+            if (! asset.isValid())
+                return false;
+
+        return true;
+    }
+
+    [[nodiscard]] bool hasUniqueEntityIds() const noexcept
+    {
+        for (std::size_t i = 0; i < assets.size(); ++i)
+        {
+            if (assets[i].id == id)
+                return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (assets[i].id == assets[j].id)
+                    return false;
+        }
+
+        for (std::size_t i = 0; i < tracks.size(); ++i)
+        {
+            if (tracks[i].id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (tracks[i].id == asset.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (tracks[i].id == tracks[j].id)
+                    return false;
+        }
+
+        for (std::size_t i = 0; i < buses.size(); ++i)
+        {
+            if (buses[i].id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (buses[i].id == asset.id)
+                    return false;
+
+            for (const Track& track : tracks)
+                if (buses[i].id == track.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (buses[i].id == buses[j].id)
+                    return false;
+        }
+
+        for (std::size_t i = 0; i < clips.size(); ++i)
+        {
+            if (clips[i].id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (clips[i].id == asset.id)
+                    return false;
+
+            for (const Track& track : tracks)
+                if (clips[i].id == track.id)
+                    return false;
+
+            for (const Bus& bus : buses)
+                if (clips[i].id == bus.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (clips[i].id == clips[j].id)
+                    return false;
+        }
+
+        for (std::size_t i = 0; i < midiClips.size(); ++i)
+        {
+            const MidiClip& midiClip = midiClips[i];
+
+            if (midiClip.id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (midiClip.id == asset.id)
+                    return false;
+
+            for (const Track& track : tracks)
+                if (midiClip.id == track.id)
+                    return false;
+
+            for (const Bus& bus : buses)
+                if (midiClip.id == bus.id)
+                    return false;
+
+            for (const Clip& clip : clips)
+                if (midiClip.id == clip.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (midiClip.id == midiClips[j].id)
+                    return false;
+        }
+
+        for (std::size_t i = 0; i < recordingTakes.size(); ++i)
+        {
+            const RecordingTake& take = recordingTakes[i];
+
+            if (take.id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (take.id == asset.id)
+                    return false;
+
+            for (const Track& track : tracks)
+                if (take.id == track.id)
+                    return false;
+
+            for (const Bus& bus : buses)
+                if (take.id == bus.id)
+                    return false;
+
+            for (const Clip& clip : clips)
+                if (take.id == clip.id)
+                    return false;
+
+            for (const MidiClip& midiClip : midiClips)
+                if (take.id == midiClip.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (take.id == recordingTakes[j].id)
+                    return false;
+        }
+
+        for (std::size_t i = 0; i < recordingCompSegments.size(); ++i)
+        {
+            const ProjectRecordingCompSegment& segment = recordingCompSegments[i];
+
+            if (segment.id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (segment.id == asset.id)
+                    return false;
+
+            for (const Track& track : tracks)
+                if (segment.id == track.id)
+                    return false;
+
+            for (const Bus& bus : buses)
+                if (segment.id == bus.id)
+                    return false;
+
+            for (const Clip& clip : clips)
+                if (segment.id == clip.id)
+                    return false;
+
+            for (const MidiClip& midiClip : midiClips)
+                if (segment.id == midiClip.id)
+                    return false;
+
+            for (const RecordingTake& take : recordingTakes)
+                if (segment.id == take.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (segment.id == recordingCompSegments[j].id)
+                    return false;
+        }
+
+        for (std::size_t i = 0; i < automationLanes.size(); ++i)
+        {
+            const AutomationLaneData& lane = automationLanes[i];
+
+            if (lane.id == id)
+                return false;
+
+            for (const Asset& asset : assets)
+                if (lane.id == asset.id)
+                    return false;
+
+            for (const Track& track : tracks)
+                if (lane.id == track.id)
+                    return false;
+
+            for (const Bus& bus : buses)
+                if (lane.id == bus.id)
+                    return false;
+
+            for (const Clip& clip : clips)
+                if (lane.id == clip.id)
+                    return false;
+
+            for (const MidiClip& midiClip : midiClips)
+                if (lane.id == midiClip.id)
+                    return false;
+
+            for (const RecordingTake& take : recordingTakes)
+                if (lane.id == take.id)
+                    return false;
+
+            for (const ProjectRecordingCompSegment& segment : recordingCompSegments)
+                if (lane.id == segment.id)
+                    return false;
+
+            for (std::size_t j = 0; j < i; ++j)
+                if (lane.id == automationLanes[j].id)
+                    return false;
+        }
+
+        const auto isNonFxProjectEntity = [this] (EntityId entity) noexcept
+        {
+            if (entity == id)
+                return true;
+
+            for (const Asset& asset : assets)
+                if (entity == asset.id)
+                    return true;
+
+            for (const Track& track : tracks)
+                if (entity == track.id)
+                    return true;
+
+            for (const Bus& bus : buses)
+                if (entity == bus.id)
+                    return true;
+
+            for (const Clip& clip : clips)
+                if (entity == clip.id)
+                    return true;
+
+            for (const MidiClip& midiClip : midiClips)
+                if (entity == midiClip.id)
+                    return true;
+
+            for (const RecordingTake& take : recordingTakes)
+                if (entity == take.id)
+                    return true;
+
+            for (const ProjectRecordingCompSegment& segment : recordingCompSegments)
+                if (entity == segment.id)
+                    return true;
+
+            for (const AutomationLaneData& lane : automationLanes)
+                if (entity == lane.id)
+                    return true;
+
+            return false;
+        };
+
+        const auto fxInsertIdSeenBefore = [this] (bool busOwner, std::size_t ownerIndex, std::size_t insertIndex, EntityId insertId) noexcept
+        {
+            for (std::size_t trackIndex = 0; trackIndex < tracks.size(); ++trackIndex)
+            {
+                const std::vector<FxInsert>& chain = tracks[trackIndex].strip.fxChain;
+                for (std::size_t fxIndex = 0; fxIndex < chain.size(); ++fxIndex)
+                {
+                    if (! busOwner && trackIndex == ownerIndex && fxIndex >= insertIndex)
+                        return false;
+
+                    if (chain[fxIndex].id == insertId)
+                        return true;
+                }
+            }
+
+            for (std::size_t busIndex = 0; busIndex < buses.size(); ++busIndex)
+            {
+                const std::vector<FxInsert>& chain = buses[busIndex].strip.fxChain;
+                for (std::size_t fxIndex = 0; fxIndex < chain.size(); ++fxIndex)
+                {
+                    if (busOwner && busIndex == ownerIndex && fxIndex >= insertIndex)
+                        return false;
+
+                    if (chain[fxIndex].id == insertId)
+                        return true;
+                }
+            }
+
+            return false;
+        };
+
+        for (std::size_t trackIndex = 0; trackIndex < tracks.size(); ++trackIndex)
+        {
+            const std::vector<FxInsert>& chain = tracks[trackIndex].strip.fxChain;
+            for (std::size_t fxIndex = 0; fxIndex < chain.size(); ++fxIndex)
+            {
+                const FxInsert& insert = chain[fxIndex];
+                if (! insert.isValid()
+                    || isNonFxProjectEntity (insert.id)
+                    || fxInsertIdSeenBefore (false, trackIndex, fxIndex, insert.id))
+                    return false;
+            }
+        }
+
+        for (std::size_t busIndex = 0; busIndex < buses.size(); ++busIndex)
+        {
+            const std::vector<FxInsert>& chain = buses[busIndex].strip.fxChain;
+            for (std::size_t fxIndex = 0; fxIndex < chain.size(); ++fxIndex)
+            {
+                const FxInsert& insert = chain[fxIndex];
+                if (! insert.isValid()
+                    || isNonFxProjectEntity (insert.id)
+                    || fxInsertIdSeenBefore (true, busIndex, fxIndex, insert.id))
+                    return false;
+            }
+        }
+
+        const auto isExistingProjectEntity = [this, isNonFxProjectEntity] (EntityId entity) noexcept
+        {
+            if (isNonFxProjectEntity (entity))
+                return true;
+
+            for (const Track& track : tracks)
+                for (const FxInsert& insert : track.strip.fxChain)
+                    if (entity == insert.id)
+                        return true;
+
+            for (const Bus& bus : buses)
+                for (const FxInsert& insert : bus.strip.fxChain)
+                    if (entity == insert.id)
+                        return true;
+
+            return false;
+        };
+
+        for (std::size_t clipIndex = 0; clipIndex < midiClips.size(); ++clipIndex)
+        {
+            const MidiClip& midiClip = midiClips[clipIndex];
+            for (std::size_t noteIndex = 0; noteIndex < midiClip.notes.size(); ++noteIndex)
+            {
+                const Note& note = midiClip.notes[noteIndex];
+                if (isExistingProjectEntity (note.id))
+                    return false;
+
+                for (std::size_t earlierClip = 0; earlierClip <= clipIndex; ++earlierClip)
+                {
+                    const MidiClip& otherClip = midiClips[earlierClip];
+                    const std::size_t endNote = earlierClip == clipIndex ? noteIndex : otherClip.notes.size();
+                    for (std::size_t earlierNote = 0; earlierNote < endNote; ++earlierNote)
+                        if (note.id == otherClip.notes[earlierNote].id)
+                            return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    [[nodiscard]] bool clipsReferenceAssets() const noexcept
+    {
+        for (const Clip& clip : clips)
+        {
+            const Asset* const asset = findAsset (clip.assetId);
+            if (asset == nullptr || ! clip.sourceWindowFits (*asset))
+                return false;
+        }
+
+        return true;
+    }
+
+    // G3.9 / ADR-0048: every Sampler pad is valid, one per key in key order, and names an Asset.
+    [[nodiscard]] bool samplerPadsReferenceAssets() const noexcept
+    {
+        for (const Track& track : tracks)
+            for (std::size_t i = 0; i < track.samplerPads.size(); ++i)
+            {
+                const SamplerPad& pad = track.samplerPads[i];
+                if (! pad.isValid() || findAsset (pad.assetId) == nullptr)
+                    return false;
+                if (i > 0 && track.samplerPads[i - 1].key >= pad.key)
+                    return false;
+            }
+        return true;
+    }
+
+    // ADR-0051: does `from`'s signal reach strip `to` along every routing edge the Project has — a Track's
+    // or Bus's main output, its sends (pre- or post-fader) and each Compressor key it feeds? Control-side
+    // DFS over the Tracks and Buses (the master feeds nothing). Shared by the routing verbs, the key verb
+    // and validation, so no edit and no opened bundle can close a loop.
+    [[nodiscard]] bool stripSignalReaches (EntityId from, EntityId to) const
+    {
+        if (! from.isValid() || ! to.isValid())
+            return false;
+
+        std::vector<EntityId> pending { from };
+        std::vector<EntityId> visited;
+        const auto pushKeyedBy = [this, &pending] (EntityId source)
+        {
+            for (const Track& track : tracks)
+                for (const FxInsert& insert : track.strip.fxChain)
+                    if (insert.sidechainSourceId == source)
+                        pending.push_back (track.id);
+            for (const Bus& bus : buses)
+                for (const FxInsert& insert : bus.strip.fxChain)
+                    if (insert.sidechainSourceId == source)
+                        pending.push_back (bus.id);
+        };
+        while (! pending.empty())
+        {
+            const EntityId at = pending.back();
+            pending.pop_back();
+            if (std::find (visited.begin(), visited.end(), at) != visited.end())
+                continue;
+            visited.push_back (at);
+            if (at == to)
+                return true;
+
+            if (const Track* const track = findTrack (at))
+            {
+                if (track->outputBusId.isValid())
+                    pending.push_back (track->outputBusId);
+                for (const SendRow& send : track->sends)
+                    pending.push_back (send.busId);
+            }
+            else if (const Bus* const bus = findBus (at))
+            {
+                if (bus->outputBusId.isValid())
+                    pending.push_back (bus->outputBusId);
+                for (const SendRow& send : bus->sends)
+                    pending.push_back (send.busId);
+            }
+            pushKeyedBy (at);
+        }
+        return false;
+    }
+
+    // ADR-0051: does any Compressor listen to `source`? (A keyed strip cannot be removed until cleared.)
+    [[nodiscard]] bool keysAnyCompressor (EntityId source) const noexcept
+    {
+        if (! source.isValid())
+            return false;
+        const auto keyed = [source] (const MixerStripState& strip)
+        {
+            return std::any_of (strip.fxChain.begin(), strip.fxChain.end(),
+                                [source] (const FxInsert& insert) { return insert.sidechainSourceId == source; });
+        };
+        return std::any_of (tracks.begin(), tracks.end(), [&keyed] (const Track& track) { return keyed (track.strip); })
+            || std::any_of (buses.begin(), buses.end(), [&keyed] (const Bus& bus) { return keyed (bus.strip); })
+            || keyed (masterStrip);
+    }
+
+    // ADR-0051: every key names a Track or Bus other than its own strip, and never closes a loop.
+    [[nodiscard]] bool sidechainKeysAreValid() const
+    {
+        const auto keysOk = [this] (EntityId ownerId, const MixerStripState& strip)
+        {
+            for (const FxInsert& insert : strip.fxChain)
+            {
+                const EntityId source = insert.sidechainSourceId;
+                if (! source.isValid())
+                    continue;
+                if (source == ownerId || (findTrack (source) == nullptr && findBus (source) == nullptr))
+                    return false;
+                if (stripSignalReaches (ownerId, source))   // the master (invalid owner here) feeds nothing
+                    return false;
+            }
+            return true;
+        };
+        for (const Track& track : tracks)
+            if (! keysOk (track.id, track.strip))
+                return false;
+        for (const Bus& bus : buses)
+            if (! keysOk (bus.id, bus.strip))
+                return false;
+        return keysOk (EntityId {}, masterStrip);
+    }
+
+    // M3: a Track's main output either goes to master (invalid id, the default) or names a real Bus.
+    [[nodiscard]] bool trackOutputsReferenceBuses() const noexcept
+    {
+        for (const Track& track : tracks)
+            if (track.outputBusId.isValid() && findBus (track.outputBusId) == nullptr)
+                return false;
+
+        return true;
+    }
+
+    [[nodiscard]] bool clipsReferenceTracks() const noexcept
+    {
+        for (const Clip& clip : clips)
+            if (findTrack (clip.trackId) == nullptr)
+                return false;
+
+        for (const MidiClip& midiClip : midiClips)
+            if (findTrack (midiClip.trackId) == nullptr)
+                return false;
+
+        return true;
+    }
+
+    [[nodiscard]] bool recordingTakesReferenceProjectRows() const noexcept
+    {
+        for (const RecordingTake& take : recordingTakes)
+        {
+            const Asset* const asset = findAsset (take.assetId);
+            const Track* const track = findTrack (take.trackId);
+            if (asset == nullptr || track == nullptr || take.frameCount > asset->frames)
+                return false;
+
+            const Clip* clip = nullptr;
+            for (const Clip& candidate : clips)
+            {
+                if (candidate.id == take.clipId)
+                {
+                    clip = &candidate;
+                    break;
+                }
+            }
+
+            if (clip == nullptr
+                || clip->assetId != take.assetId
+                || clip->trackId != take.trackId
+                || clip->timelineStart != take.timelineStart
+                || clip->srcLen != take.frameCount)
+                return false;
+        }
+
+        return true;
+    }
+
+    [[nodiscard]] bool recordingCompSegmentsReferenceTakes() const noexcept
+    {
+        for (const ProjectRecordingCompSegment& segment : recordingCompSegments)
+        {
+            const RecordingTake* const take = findRecordingTake (segment.takeId);
+            if (take == nullptr || segment.sourceOffset > take->frameCount)
+                return false;
+
+            const auto remaining = take->frameCount - segment.sourceOffset;
+            if (static_cast<std::uint64_t> (segment.timelineLength) > remaining)
+                return false;
+        }
+
+        return true;
+    }
+
+    [[nodiscard]] bool automationTargetsReferenceProjectRows() const noexcept
+    {
+        for (std::size_t i = 0; i < automationLanes.size(); ++i)
+        {
+            const AutomationLaneData& lane = automationLanes[i];
+
+            switch (lane.role)
+            {
+                case AutomationTargetRole::TrackFader:
+                case AutomationTargetRole::TrackPan:
+                    if (findTrack (lane.ownerEntity) == nullptr)
+                        return false;
+                    if (! automationStripParameterIdIsValid (lane.role, lane.paramId))
+                        return false;
+                    break;
+
+                // R13/R14: send rows live on a Track OR a Bus, so a SendLevel lane may own
+                // either — the projection registers both through the same owner-generic law.
+                case AutomationTargetRole::SendLevel:
+                    if (findTrack (lane.ownerEntity) == nullptr && findBus (lane.ownerEntity) == nullptr)
+                        return false;
+                    if (! automationStripParameterIdIsValid (lane.role, lane.paramId))
+                        return false;
+                    break;
+
+                case AutomationTargetRole::BusFader:
+                case AutomationTargetRole::BusPan:
+                    if (findBus (lane.ownerEntity) == nullptr)
+                        return false;
+                    if (! automationStripParameterIdIsValid (lane.role, lane.paramId))
+                        return false;
+                    break;
+
+                case AutomationTargetRole::FxInsertParam:
+                {
+                    const FxInsert* const insert = findFxInsert (lane.ownerEntity);
+                    if (insert == nullptr || ! fxKindAcceptsParameterId (insert->kind, lane.paramId))
+                        return false;
+                    break;
+                }
+
+                case AutomationTargetRole::InstrumentParam:   // G3.1
+                {
+                    const Track* const owner = findTrack (lane.ownerEntity);
+                    if (owner == nullptr || ! instrumentKindAcceptsParameterId (owner->instrumentKind, lane.paramId))
+                        return false;
+                    break;
+                }
+            }
+
+            for (std::size_t j = 0; j < i; ++j)
+            {
+                const AutomationLaneData& earlier = automationLanes[j];
+                if (lane.ownerEntity == earlier.ownerEntity
+                    && lane.role == earlier.role
+                    && lane.paramId == earlier.paramId)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    [[nodiscard]] bool hasValidAssetClipIndirection() const noexcept
+    {
+        return sampleRate.isValid()
+               && hasValidEntityIds()
+               && assetsAreValid()
+               && tracksAreValid()
+               && busesAreValid()
+               && hasUniqueEntityIds()
+               && clipsReferenceAssets()
+               && samplerPadsReferenceAssets()
+               && clipsReferenceTracks()
+               && trackOutputsReferenceBuses()
+               && sidechainKeysAreValid()
+               && recordingTakesReferenceProjectRows()
+               && recordingCompSegmentsReferenceTakes()
+               && automationTargetsReferenceProjectRows();
+    }
+};
+
+// R11: the master strip's FX-ownership identity — a reserved all-ones sentinel the ULID
+// allocator can never produce (its high bytes carry a real timestamp).
+inline constexpr EntityId kMasterStripOwnerId =
+    EntityId::fromBigEndianParts (0xFFFFFFFFFFFFFFFFull, 0xFFFFFFFFFFFFFFFFull);
+
+namespace detail {
+
+[[nodiscard]] inline bool addTickChecked (Tick a, Tick b, Tick& out) noexcept
+{
+    if (b > 0 && a > std::numeric_limits<Tick>::max() - b)
+        return false;
+
+    if (b < 0 && a < std::numeric_limits<Tick>::min() - b)
+        return false;
+
+    out = a + b;
+    return true;
+}
+
+[[nodiscard]] inline Clip* findClip (Project& project, EntityId clipId) noexcept
+{
+    for (Clip& clip : project.clips)
+        if (clip.id == clipId)
+            return &clip;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline MidiClip* findMidiClip (Project& project, EntityId midiClipId) noexcept
+{
+    for (MidiClip& midiClip : project.midiClips)
+        if (midiClip.id == midiClipId)
+            return &midiClip;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline MixerStripState* findMixerStrip (Project& project, EntityId ownerId) noexcept
+{
+    for (Track& track : project.tracks)
+        if (track.id == ownerId)
+            return &track.strip;
+
+    for (Bus& bus : project.buses)
+        if (bus.id == ownerId)
+            return &bus.strip;
+
+    if (ownerId == kMasterStripOwnerId)   // R11
+        return &project.masterStrip;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline const MixerStripState* findMixerStrip (const Project& project, EntityId ownerId) noexcept
+{
+    for (const Track& track : project.tracks)
+        if (track.id == ownerId)
+            return &track.strip;
+
+    for (const Bus& bus : project.buses)
+        if (bus.id == ownerId)
+            return &bus.strip;
+
+    if (ownerId == kMasterStripOwnerId)   // R11
+        return &project.masterStrip;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline FxInsert* findFxInsert (MixerStripState& strip, EntityId insertId) noexcept
+{
+    for (FxInsert& insert : strip.fxChain)
+        if (insert.id == insertId)
+            return &insert;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline bool findFxInsertIndex (const MixerStripState& strip, EntityId insertId, std::size_t& out) noexcept
+{
+    for (std::size_t i = 0; i < strip.fxChain.size(); ++i)
+    {
+        if (strip.fxChain[i].id == insertId)
+        {
+            out = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+[[nodiscard]] inline AutomationLaneData* findAutomationLane (Project& project, EntityId laneId) noexcept
+{
+    for (AutomationLaneData& lane : project.automationLanes)
+        if (lane.id == laneId)
+            return &lane;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline bool findAutomationLaneIndex (const Project& project, EntityId laneId, std::size_t& out) noexcept
+{
+    for (std::size_t i = 0; i < project.automationLanes.size(); ++i)
+    {
+        if (project.automationLanes[i].id == laneId)
+        {
+            out = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+[[nodiscard]] inline bool findAutomationBreakpointIndex (const AutomationLaneData& lane, Tick tick, std::size_t& out) noexcept
+{
+    for (std::size_t i = 0; i < lane.points.size(); ++i)
+    {
+        if (lane.points[i].tick == tick)
+        {
+            out = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+[[nodiscard]] inline Note* findNote (MidiClip& midiClip, EntityId noteId) noexcept
+{
+    for (Note& note : midiClip.notes)
+        if (note.id == noteId)
+            return &note;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline bool findNoteIndex (const MidiClip& midiClip, EntityId noteId, std::size_t& out) noexcept
+{
+    for (std::size_t i = 0; i < midiClip.notes.size(); ++i)
+    {
+        if (midiClip.notes[i].id == noteId)
+        {
+            out = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+[[nodiscard]] inline bool projectContainsEntityId (const Project& project, EntityId id) noexcept
+{
+    if (! id.isValid())
+        return false;
+
+    if (project.id == id)
+        return true;
+
+    for (const Asset& asset : project.assets)
+        if (asset.id == id)
+            return true;
+
+    for (const Track& track : project.tracks)
+        if (track.id == id)
+            return true;
+
+    for (const Bus& bus : project.buses)
+        if (bus.id == id)
+            return true;
+
+    for (const Clip& clip : project.clips)
+        if (clip.id == id)
+            return true;
+
+    for (const MidiClip& midiClip : project.midiClips)
+    {
+        if (midiClip.id == id)
+            return true;
+
+        for (const Note& note : midiClip.notes)
+            if (note.id == id)
+                return true;
+
+        for (const MidiControlEvent& control : midiClip.controlEvents)   // G3.3
+            if (control.id == id)
+                return true;
+    }
+
+    for (const RecordingTake& take : project.recordingTakes)
+        if (take.id == id)
+            return true;
+
+    for (const ProjectRecordingCompSegment& segment : project.recordingCompSegments)
+        if (segment.id == id)
+            return true;
+
+    for (const AutomationLaneData& lane : project.automationLanes)
+        if (lane.id == id)
+            return true;
+
+    for (const Marker& marker : project.markers)
+        if (marker.id == id)
+            return true;
+
+    for (const Track& track : project.tracks)
+        for (const FxInsert& insert : track.strip.fxChain)
+            if (insert.id == id)
+                return true;
+
+    for (const Bus& bus : project.buses)
+        for (const FxInsert& insert : bus.strip.fxChain)
+            if (insert.id == id)
+                return true;
+
+    for (const FxInsert& insert : project.masterStrip.fxChain)   // R11
+        if (insert.id == id)
+            return true;
+
+    for (const Track& track : project.tracks)
+        for (const SendRow& send : track.sends)
+            if (send.id == id)
+                return true;
+
+    for (const Bus& bus : project.buses)   // R13
+        for (const SendRow& send : bus.sends)
+            if (send.id == id)
+                return true;
+
+    return false;
+}
+
+[[nodiscard]] inline const RecordingTake* findRecordingTake (const Project& project, EntityId takeId) noexcept
+{
+    return project.findRecordingTake (takeId);
+}
+
+[[nodiscard]] inline bool clipSourceWindowFitsProject (const Project& project, const Clip& clip) noexcept
+{
+    const Asset* const asset = project.findAsset (clip.assetId);
+    return asset != nullptr && clip.sourceWindowFits (*asset);
+}
+
+[[nodiscard]] inline bool clipGainIsStorageSafe (float gain) noexcept
+{
+    return gain >= 0.0f && gain <= std::numeric_limits<float>::max();
+}
+
+[[nodiscard]] inline bool clipFadesAreStorageSafe (Tick fadeIn, Tick fadeOut) noexcept
+{
+    return fadeIn >= 0 && fadeOut >= 0;
+}
+
+// G2.10: a known shape and a finite curve amount in [-1, 1].
+[[nodiscard]] inline bool clipFadeShapeIsStorageSafe (FadeShape shape, float curve) noexcept
+{
+    return static_cast<std::uint8_t> (shape) <= static_cast<std::uint8_t> (FadeShape::Log)
+        && std::isfinite (curve) && curve >= -1.0f && curve <= 1.0f;
+}
+
+// G2.9: ADR-0030 supports finite factors in [0.5, 2.0]; 1 means unstretched.
+[[nodiscard]] inline bool clipStretchIsStorageSafe (float stretchFactor) noexcept
+{
+    return std::isfinite (stretchFactor) && stretchFactor >= 0.5f && stretchFactor <= 2.0f;
+}
+
+[[nodiscard]] inline bool clipEditMetadataIsStorageSafe (const Clip& clip) noexcept
+{
+    return ! clip.name.empty()
+           && clip.name.size() <= ClipName::kMaxLength
+           && clip.timelineLength >= 0
+           && clipGainIsStorageSafe (clip.gain)
+           && clipFadesAreStorageSafe (clip.fadeIn, clip.fadeOut)
+           && clipStretchIsStorageSafe (clip.stretchFactor)
+           && clipFadeShapeIsStorageSafe (clip.fadeInShape, clip.fadeInCurve)
+           && clipFadeShapeIsStorageSafe (clip.fadeOutShape, clip.fadeOutCurve)
+           && trackColourIsValid (clip.colour)
+           && (clip.timeBase == TimeBase::TempoLocked || clip.timeBase == TimeBase::SampleLocked);
+}
+
+[[nodiscard]] inline bool projectCanApplyClipEdit (const Project& project) noexcept
+{
+    if (! project.hasValidAssetClipIndirection())
+        return false;
+
+    for (const Clip& clip : project.clips)
+        if (! clipEditMetadataIsStorageSafe (clip))
+            return false;
+
+    return true;
+}
+
+[[nodiscard]] inline bool noteFitsMidiClip (const MidiClip& midiClip, const Note& note) noexcept
+{
+    if (! note.isValid() || note.startTick > midiClip.timelineLength)
+        return false;
+
+    return note.lengthTicks <= midiClip.timelineLength - note.startTick;
+}
+
+[[nodiscard]] inline bool projectCanApplyMidiEdit (const Project& project) noexcept
+{
+    return project.hasValidAssetClipIndirection();
+}
+
+[[nodiscard]] inline bool projectCanApplyFxEdit (const Project& project) noexcept
+{
+    return project.hasValidAssetClipIndirection();
+}
+
+[[nodiscard]] inline bool projectCanApplyAutomationEdit (const Project& project) noexcept
+{
+    return project.hasValidAssetClipIndirection();
+}
+
+[[nodiscard]] inline bool findNormalizedFxParamIndex (const FxInsert& insert, std::uint32_t paramId, std::size_t& out) noexcept
+{
+    for (std::size_t i = 0; i < insert.normalizedParams.size(); ++i)
+    {
+        if (insert.normalizedParams[i].first == paramId)
+        {
+            out = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+[[nodiscard]] inline bool compSegmentWindowFitsTake (const ProjectRecordingCompSegment& segment,
+                                                     const RecordingTake& take) noexcept
+{
+    return segment.isValid()
+           && segment.sourceOffset <= take.frameCount
+           && static_cast<std::uint64_t> (segment.timelineLength) <= take.frameCount - segment.sourceOffset;
+}
+
+} // namespace detail
+
+[[nodiscard]] inline ProjectEditStatus moveClip (Project& project, EntityId clipId, Tick newTimelineStart) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    clip->timelineStart = newTimelineStart;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus renameClip (Project& project,
+                                                    EntityId clipId,
+                                                    std::string_view newName) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    if (newName.empty() || newName.size() > ClipName::kMaxLength)
+        return ProjectEditStatus::InvalidClipName;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    (void) clip->name.assign (newName);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setClipGain (Project& project, EntityId clipId, float newGain) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (! detail::clipGainIsStorageSafe (newGain))
+        return ProjectEditStatus::InvalidClipEnvelope;
+
+    clip->gain = newGain;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setClipFades (Project& project,
+                                                     EntityId clipId,
+                                                     Tick newFadeIn,
+                                                     Tick newFadeOut) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (! detail::clipFadesAreStorageSafe (newFadeIn, newFadeOut))
+        return ProjectEditStatus::InvalidClipEnvelope;
+
+    clip->fadeIn = newFadeIn;
+    clip->fadeOut = newFadeOut;
+    return ProjectEditStatus::Applied;
+}
+
+// G2.9: the stretch edit sets the factor and the timeline length together (the caller's law is
+// length = round (srcLen * factor)); the factor must sit inside ADR-0030's bounds and the window
+// must stay legal. The source window is untouched — stretching never re-slices the asset.
+[[nodiscard]] inline ProjectEditStatus setClipStretch (Project& project,
+                                                       EntityId clipId,
+                                                       float newStretchFactor,
+                                                       Tick newTimelineLength) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (! detail::clipStretchIsStorageSafe (newStretchFactor))
+        return ProjectEditStatus::InvalidClipStretch;
+
+    if (newTimelineLength < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    Clip edited = *clip;
+    edited.stretchFactor = newStretchFactor;
+    edited.timelineLength = newTimelineLength;
+    if (! detail::clipSourceWindowFitsProject (project, edited))
+        return ProjectEditStatus::InvalidSourceWindow;
+
+    *clip = edited;
+    return ProjectEditStatus::Applied;
+}
+
+// G2.10: the fade shapes and curve amounts, both ends at once (a crossfade sets the pair).
+[[nodiscard]] inline ProjectEditStatus setClipFadeShapes (Project& project,
+                                                          EntityId clipId,
+                                                          FadeShape newFadeInShape,
+                                                          float newFadeInCurve,
+                                                          FadeShape newFadeOutShape,
+                                                          float newFadeOutCurve) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (! detail::clipFadeShapeIsStorageSafe (newFadeInShape, newFadeInCurve)
+        || ! detail::clipFadeShapeIsStorageSafe (newFadeOutShape, newFadeOutCurve))
+        return ProjectEditStatus::InvalidClipFadeShape;
+
+    clip->fadeInShape = newFadeInShape;
+    clip->fadeInCurve = newFadeInCurve;
+    clip->fadeOutShape = newFadeOutShape;
+    clip->fadeOutCurve = newFadeOutCurve;
+    return ProjectEditStatus::Applied;
+}
+
+// G2.12: a Clip's own colour (0 = follow the track; a set colour is fully opaque, like a track's).
+[[nodiscard]] inline ProjectEditStatus setClipColour (Project& project, EntityId clipId, std::uint32_t newColour) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+    if (! trackColourIsValid (newColour))
+        return ProjectEditStatus::InvalidClipColour;
+    clip->colour = newColour;
+    return ProjectEditStatus::Applied;
+}
+
+// G2.12: clip mute — the Clip stays where it is and plays nothing.
+[[nodiscard]] inline ProjectEditStatus setClipMuted (Project& project, EntityId clipId, bool newMuted) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+    clip->muted = newMuted;
+    return ProjectEditStatus::Applied;
+}
+
+// G2.13: reverse — the source window plays backwards; nothing in the asset changes.
+[[nodiscard]] inline ProjectEditStatus setClipReversed (Project& project, EntityId clipId, bool newReversed) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+    clip->reversed = newReversed;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus trimClip (Project& project,
+                                                 EntityId clipId,
+                                                 Tick newTimelineStart,
+                                                 Tick newTimelineLength,
+                                                 std::uint64_t newSrcOffset,
+                                                 std::uint64_t newSrcLen) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (newTimelineLength < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    Clip edited = *clip;
+    edited.timelineStart = newTimelineStart;
+    edited.timelineLength = newTimelineLength;
+    edited.srcOffset = newSrcOffset;
+    edited.srcLen = newSrcLen;
+
+    if (! detail::clipSourceWindowFitsProject (project, edited))
+        return ProjectEditStatus::InvalidSourceWindow;
+
+    *clip = edited;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus splitClip (Project& project,
+                                                  EntityId clipId,
+                                                  EntityId rightClipId,
+                                                  Tick leftTimelineLength,
+                                                  std::uint64_t leftSourceLength)
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid() || ! rightClipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    if (detail::projectContainsEntityId (project, rightClipId))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    std::size_t clipIndex = project.clips.size();
+    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    {
+        if (project.clips[i].id == clipId)
+        {
+            clipIndex = i;
+            break;
+        }
+    }
+
+    if (clipIndex == project.clips.size())
+        return ProjectEditStatus::ClipNotFound;
+
+    const Clip original = project.clips[clipIndex];
+    if (leftTimelineLength <= 0 || leftTimelineLength >= original.timelineLength)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    Tick rightTimelineStart = 0;
+    if (! detail::addTickChecked (original.timelineStart, leftTimelineLength, rightTimelineStart))
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    if (leftSourceLength == 0 || leftSourceLength >= original.srcLen)
+        return ProjectEditStatus::InvalidSourceWindow;
+
+    // A linked Take requires this Clip's complete source window and original placement.
+    for (const RecordingTake& take : project.recordingTakes)
+        if (take.clipId == clipId)
+            return ProjectEditStatus::InvalidSourceWindow;
+
+    Clip left = original;
+    left.timelineLength = leftTimelineLength;
+    left.srcLen = leftSourceLength;
+
+    Clip right = original;
+    right.id = rightClipId;
+    right.timelineStart = rightTimelineStart;
+    right.timelineLength = original.timelineLength - leftTimelineLength;
+    right.srcOffset = original.srcOffset + leftSourceLength;
+    right.srcLen = original.srcLen - leftSourceLength;
+
+    if (original.reversed)
+    {
+        // Keep rows in ascending source order (and the original ID first). Reversed playback
+        // reaches the higher source window first, so its new ID occupies the temporal left.
+        left.timelineStart = rightTimelineStart;
+        left.timelineLength = original.timelineLength - leftTimelineLength;
+        left.srcLen = original.srcLen - leftSourceLength;
+        right.timelineStart = original.timelineStart;
+        right.timelineLength = leftTimelineLength;
+        right.srcOffset = original.srcOffset + left.srcLen;
+        right.srcLen = leftSourceLength;
+    }
+
+    if (! detail::clipSourceWindowFitsProject (project, left) || ! detail::clipSourceWindowFitsProject (project, right))
+        return ProjectEditStatus::InvalidSourceWindow;
+
+    project.clips.insert (project.clips.begin() + static_cast<std::ptrdiff_t> (clipIndex + 1u), right);
+    project.clips[clipIndex] = left;
+    project.clips[clipIndex + 1u] = right;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus moveNote (Project& project,
+                                                 EntityId midiClipId,
+                                                 EntityId noteId,
+                                                 Tick newStartTick) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    Note edited = *note;
+    edited.startTick = newStartTick;
+    if (! detail::noteFitsMidiClip (*midiClip, edited))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    *note = edited;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setNoteLength (Project& project,
+                                                      EntityId midiClipId,
+                                                      EntityId noteId,
+                                                      Tick newLengthTicks) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    Note edited = *note;
+    edited.lengthTicks = newLengthTicks;
+    if (! detail::noteFitsMidiClip (*midiClip, edited))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    *note = edited;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus splitNote (Project& project,
+                                                  EntityId midiClipId,
+                                                  EntityId noteId,
+                                                  EntityId rightNoteId,
+                                                  Tick leftLengthTicks)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid() || ! rightNoteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    if (detail::projectContainsEntityId (project, rightNoteId))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    std::size_t noteIndex = midiClip->notes.size();
+    if (! detail::findNoteIndex (*midiClip, noteId, noteIndex))
+        return ProjectEditStatus::NoteNotFound;
+
+    const Note original = midiClip->notes[noteIndex];
+    if (leftLengthTicks <= 0 || leftLengthTicks >= original.lengthTicks)
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    Tick rightStartTick = 0;
+    if (! detail::addTickChecked (original.startTick, leftLengthTicks, rightStartTick))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    Note left = original;
+    left.lengthTicks = leftLengthTicks;
+
+    Note right = original;
+    right.id = rightNoteId;
+    right.startTick = rightStartTick;
+    right.lengthTicks = original.lengthTicks - leftLengthTicks;
+
+    if (! detail::noteFitsMidiClip (*midiClip, left) || ! detail::noteFitsMidiClip (*midiClip, right))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    midiClip->notes.insert (midiClip->notes.begin() + static_cast<std::ptrdiff_t> (noteIndex + 1u), right);
+    midiClip->notes[noteIndex] = left;
+    midiClip->notes[noteIndex + 1u] = right;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus cutNote (Project& project,
+                                                EntityId midiClipId,
+                                                EntityId noteId)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    std::size_t noteIndex = midiClip->notes.size();
+    if (! detail::findNoteIndex (*midiClip, noteId, noteIndex))
+        return ProjectEditStatus::NoteNotFound;
+
+    midiClip->notes.erase (midiClip->notes.begin() + static_cast<std::ptrdiff_t> (noteIndex));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus deleteNote (Project& project,
+                                                   EntityId midiClipId,
+                                                   EntityId noteId)
+{
+    return cutNote (project, midiClipId, noteId);
+}
+
+[[nodiscard]] inline ProjectEditStatus quantizeNote (Project& project,
+                                                     EntityId midiClipId,
+                                                     EntityId noteId,
+                                                     SnapGrid grid) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    if (! grid.isValid())
+        return ProjectEditStatus::InvalidSnapGrid;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    Tick snappedStart = 0;
+    if (! snapTick (note->startTick, grid, snappedStart))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    Note edited = *note;
+    edited.startTick = snappedStart;
+    if (! detail::noteFitsMidiClip (*midiClip, edited))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    *note = edited;
+    return ProjectEditStatus::Applied;
+}
+
+// G3.4: quantize one Note with the v2 settings — start toward its swung target by strength %, the
+// end toward the straight grid when noteEnds, then a deterministic humanize offset. Plain settings
+// (100 / 0 / off / 0) reproduce quantizeNote exactly; the command apply routes them there.
+[[nodiscard]] inline ProjectEditStatus quantizeNoteWith (Project& project,
+                                                         EntityId midiClipId,
+                                                         EntityId noteId,
+                                                         const QuantizeSettings& settings) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    if (! settings.grid.isValid())
+        return ProjectEditStatus::InvalidSnapGrid;
+
+    if (! settings.isValid())
+        return ProjectEditStatus::InvalidQuantizeSettings;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    Tick target = 0;
+    if (! quantizeTargetTick (note->startTick, settings, target))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    Note edited = *note;
+    edited.startTick = quantizeTowards (note->startTick, target, settings.strengthPercent);
+
+    if (settings.noteEnds && note->lengthTicks > 0)
+    {
+        Tick end = 0;
+        if (! detail::addTickChecked (note->startTick, note->lengthTicks, end))
+            return ProjectEditStatus::InvalidNoteWindow;
+        Tick endTarget = 0;
+        if (! snapTick (end, settings.grid, endTarget))
+            return ProjectEditStatus::InvalidNoteWindow;
+        const Tick movedEnd = quantizeTowards (end, endTarget, settings.strengthPercent);
+        // A note never collapses: an end that lands at or before its start keeps one grid step.
+        edited.lengthTicks = movedEnd > edited.startTick ? movedEnd - edited.startTick : settings.grid.intervalTicks;
+    }
+
+    edited.startTick += quantizeHumanizeOffset (settings, note->id.bytes.data(), note->id.bytes.size());
+    if (edited.startTick < 0)
+        edited.startTick = 0;
+
+    if (! detail::noteFitsMidiClip (*midiClip, edited))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    *note = edited;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus transposeNote (Project& project,
+                                                      EntityId midiClipId,
+                                                      EntityId noteId,
+                                                      int semitones) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    const int transposedKey = static_cast<int> (note->key) + semitones;
+    if (transposedKey < 0 || transposedKey > 127)
+        return ProjectEditStatus::InvalidNoteValue;
+
+    Note edited = *note;
+    edited.key = static_cast<std::int16_t> (transposedKey);
+    edited.pitchNote += static_cast<double> (semitones);
+    if (! edited.isValid())
+        return ProjectEditStatus::InvalidNoteValue;
+
+    *note = edited;
+    return ProjectEditStatus::Applied;
+}
+
+// Set one Note's normalized velocity (B33 piano-roll velocity editing). Same contract as every
+// note edit helper above: validate, mutate, Applied.
+[[nodiscard]] inline ProjectEditStatus setNoteVelocity (Project& project,
+                                                        EntityId midiClipId,
+                                                        EntityId noteId,
+                                                        double normalizedVelocity) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    if (! std::isfinite (normalizedVelocity) || normalizedVelocity < 0.0 || normalizedVelocity > 1.0)
+        return ProjectEditStatus::InvalidNoteValue;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    note->normalizedVelocity = normalizedVelocity;
+    return ProjectEditStatus::Applied;
+}
+
+// --- G3.3: MIDI control events (CC / pitch bend / aftertouch / program change) per MIDI Clip.
+// --- One value per tick per lane: an add at an occupied tick REPLACES that point (Logic's MIDI
+// --- Draw law); the id must be fresh. Same contract as every edit helper: validate, mutate, Applied.
+
+namespace detail {
+
+[[nodiscard]] inline MidiControlEvent* findMidiControlEvent (MidiClip& midiClip, EntityId eventId) noexcept
+{
+    for (MidiControlEvent& control : midiClip.controlEvents)
+        if (control.id == eventId)
+            return &control;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline const MidiControlEvent* findMidiControlEvent (const MidiClip& midiClip, EntityId eventId) noexcept
+{
+    for (const MidiControlEvent& control : midiClip.controlEvents)
+        if (control.id == eventId)
+            return &control;
+
+    return nullptr;
+}
+
+} // namespace detail
+
+[[nodiscard]] inline ProjectEditStatus addMidiControlEvent (Project& project,
+                                                            EntityId midiClipId,
+                                                            const MidiControlEvent& control) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! control.id.isValid())
+        return ProjectEditStatus::InvalidMidiControlEventId;
+
+    if (! control.isValid())
+        return ProjectEditStatus::InvalidMidiControlEvent;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    if (control.tick > midiClip->timelineLength)
+        return ProjectEditStatus::InvalidMidiControlEvent;
+
+    if (detail::findMidiControlEvent (*midiClip, control.id) != nullptr)
+        return ProjectEditStatus::DuplicateEntityId;
+
+    // The lane holds one value per tick: an existing point at this tick is replaced.
+    for (std::size_t i = 0; i < midiClip->controlEvents.size(); ++i)
+    {
+        const MidiControlEvent& existing = midiClip->controlEvents[i];
+        if (existing.tick == control.tick && existing.sameLane (control))
+        {
+            midiClip->controlEvents[i] = control;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    midiClip->controlEvents.push_back (control);
+    return ProjectEditStatus::Applied;
+}
+
+// Move a point in time and / or set its value (a drag; the kind, number and voice address stay).
+// Moving onto another point of the same lane replaces that point.
+[[nodiscard]] inline ProjectEditStatus setMidiControlEvent (Project& project,
+                                                            EntityId midiClipId,
+                                                            EntityId eventId,
+                                                            Tick tick,
+                                                            double value) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! eventId.isValid())
+        return ProjectEditStatus::InvalidMidiControlEventId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    MidiControlEvent* const control = detail::findMidiControlEvent (*midiClip, eventId);
+    if (control == nullptr)
+        return ProjectEditStatus::MidiControlEventNotFound;
+
+    MidiControlEvent edited = *control;
+    edited.tick = tick;
+    edited.value = value;
+    if (! edited.isValid() || edited.tick > midiClip->timelineLength)
+        return ProjectEditStatus::InvalidMidiControlEvent;
+
+    for (std::size_t i = 0; i < midiClip->controlEvents.size(); ++i)
+    {
+        const MidiControlEvent& other = midiClip->controlEvents[i];
+        if (other.id != eventId && other.tick == edited.tick && other.sameLane (edited))
+        {
+            midiClip->controlEvents.erase (midiClip->controlEvents.begin() + static_cast<std::ptrdiff_t> (i));
+            break;
+        }
+    }
+
+    MidiControlEvent* const target = detail::findMidiControlEvent (*midiClip, eventId);
+    if (target == nullptr)
+        return ProjectEditStatus::MidiControlEventNotFound;
+    *target = edited;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeMidiControlEvent (Project& project,
+                                                               EntityId midiClipId,
+                                                               EntityId eventId) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! eventId.isValid())
+        return ProjectEditStatus::InvalidMidiControlEventId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    for (std::size_t i = 0; i < midiClip->controlEvents.size(); ++i)
+    {
+        if (midiClip->controlEvents[i].id == eventId)
+        {
+            midiClip->controlEvents.erase (midiClip->controlEvents.begin() + static_cast<std::ptrdiff_t> (i));
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MidiControlEventNotFound;
+}
+
+// --- Arrangement verbs (usable-DAW P0, 2026-08-09): clip delete / cross-track move, note add, and
+// --- the Track lifecycle. Same contract as every edit helper above: validate, mutate, Applied.
+
+// Insert a fully-specified Clip row referencing an EXISTING Asset and Track (paste/duplicate,
+// usable-DAW P1). The same storage-safety rules as import apply; identity must be fresh.
+// Insert an empty (or pre-filled) MIDI Clip on an existing Track (usable-DAW P1: sequence MIDI
+// without recording).
+[[nodiscard]] inline ProjectEditStatus addMidiClip (Project& project, const MidiClip& midiClip)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClip.id.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (detail::projectContainsEntityId (project, midiClip.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (project.findTrack (midiClip.trackId) == nullptr)
+        return ProjectEditStatus::TrackNotFound;
+
+    if (! midiClip.isValid() || midiClip.timelineStart < 0 || midiClip.timelineLength <= 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    project.midiClips.push_back (midiClip);
+    return ProjectEditStatus::Applied;
+}
+
+// E8: MIDI clips move, change tracks, and delete like audio clips.
+[[nodiscard]] inline ProjectEditStatus moveMidiClip (Project& project, EntityId midiClipId, Tick newTimelineStart)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (newTimelineStart < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    for (MidiClip& midiClip : project.midiClips)
+    {
+        if (midiClip.id == midiClipId)
+        {
+            midiClip.timelineStart = newTimelineStart;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MidiClipNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus moveMidiClipToTrack (Project& project,
+                                                            EntityId midiClipId,
+                                                            EntityId targetTrackId,
+                                                            Tick newTimelineStart)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (project.findTrack (targetTrackId) == nullptr)
+        return ProjectEditStatus::TrackNotFound;
+
+    if (newTimelineStart < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    for (MidiClip& midiClip : project.midiClips)
+    {
+        if (midiClip.id == midiClipId)
+        {
+            midiClip.trackId = targetTrackId;
+            midiClip.timelineStart = newTimelineStart;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MidiClipNotFound;
+}
+
+// --- G3.5: MIDI Clip settings and shape verbs. Same contract as every helper: validate, mutate, Applied.
+
+namespace detail {
+
+[[nodiscard]] inline MidiClip* findMidiClipForSetting (Project& project, EntityId midiClipId, ProjectEditStatus& status) noexcept
+{
+    if (! projectCanApplyMidiEdit (project))
+    {
+        status = ProjectEditStatus::InvalidProject;
+        return nullptr;
+    }
+    if (! midiClipId.isValid())
+    {
+        status = ProjectEditStatus::InvalidMidiClipId;
+        return nullptr;
+    }
+    MidiClip* const midiClip = findMidiClip (project, midiClipId);
+    status = midiClip == nullptr ? ProjectEditStatus::MidiClipNotFound : ProjectEditStatus::Applied;
+    return midiClip;
+}
+
+// The right half's id for a note the split cuts: the left note's bytes folded with the right
+// Clip's — deterministic (undo / redo rebuild the same ids) and unique in practice; a collision is
+// refused, never silently overwritten.
+[[nodiscard]] inline EntityId derivedSplitEntityId (EntityId source, EntityId rightClipId) noexcept
+{
+    EntityId::StorageBytes bytes = source.bytes;
+    for (std::size_t i = 0; i < bytes.size(); ++i)
+        bytes[i] = static_cast<std::uint8_t> (bytes[i] ^ rightClipId.bytes[(i * 7 + 3) % rightClipId.bytes.size()]);
+    return EntityId::fromBytes (bytes);
+}
+
+} // namespace detail
+
+[[nodiscard]] inline ProjectEditStatus setMidiClipMuted (Project& project, EntityId midiClipId, bool muted) noexcept
+{
+    ProjectEditStatus status = ProjectEditStatus::Applied;
+    MidiClip* const midiClip = detail::findMidiClipForSetting (project, midiClipId, status);
+    if (midiClip == nullptr)
+        return status;
+    midiClip->muted = muted;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setMidiClipTranspose (Project& project, EntityId midiClipId, std::int32_t semitones) noexcept
+{
+    ProjectEditStatus status = ProjectEditStatus::Applied;
+    MidiClip* const midiClip = detail::findMidiClipForSetting (project, midiClipId, status);
+    if (midiClip == nullptr)
+        return status;
+    if (semitones < -MidiClip::kMaxTransposeSemitones || semitones > MidiClip::kMaxTransposeSemitones)
+        return ProjectEditStatus::InvalidMidiClipValue;
+    midiClip->transposeSemitones = static_cast<std::int8_t> (semitones);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setMidiClipVelocityOffset (Project& project, EntityId midiClipId, double offset) noexcept
+{
+    ProjectEditStatus status = ProjectEditStatus::Applied;
+    MidiClip* const midiClip = detail::findMidiClipForSetting (project, midiClipId, status);
+    if (midiClip == nullptr)
+        return status;
+    if (! std::isfinite (offset) || offset < -1.0 || offset > 1.0)
+        return ProjectEditStatus::InvalidMidiClipValue;
+    midiClip->velocityOffset = offset;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setMidiClipLoopLength (Project& project, EntityId midiClipId, Tick loopLengthTicks) noexcept
+{
+    ProjectEditStatus status = ProjectEditStatus::Applied;
+    MidiClip* const midiClip = detail::findMidiClipForSetting (project, midiClipId, status);
+    if (midiClip == nullptr)
+        return status;
+    if (loopLengthTicks < 0 || loopLengthTicks > midiClip->timelineLength)
+        return ProjectEditStatus::InvalidMidiClipValue;
+    midiClip->loopLengthTicks = loopLengthTicks;
+    return ProjectEditStatus::Applied;
+}
+
+// Split at leftLengthTicks (clip-relative, strictly inside): the right Clip (a fresh id, inserted
+// right after the left in the row order) takes every note and control point from the split on,
+// re-based; a note crossing the split is cut in two (the left half keeps the id, the right half
+// gets a derived one). Both halves lose the loop (Logic splits a looped region into plain ones).
+[[nodiscard]] inline ProjectEditStatus splitMidiClip (Project& project,
+                                                      EntityId midiClipId,
+                                                      EntityId rightClipId,
+                                                      Tick leftLengthTicks)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+    if (! rightClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+    if (detail::projectContainsEntityId (project, rightClipId))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    std::size_t index = project.midiClips.size();
+    for (std::size_t i = 0; i < project.midiClips.size(); ++i)
+        if (project.midiClips[i].id == midiClipId)
+            index = i;
+    if (index == project.midiClips.size())
+        return ProjectEditStatus::MidiClipNotFound;
+
+    const MidiClip original = project.midiClips[index];
+    if (leftLengthTicks <= 0 || leftLengthTicks >= original.timelineLength)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    MidiClip left = original;
+    left.timelineLength = leftLengthTicks;
+    left.loopLengthTicks = 0;
+    left.notes.clear();
+    left.controlEvents.clear();
+
+    MidiClip right = original;
+    right.id = rightClipId;
+    right.timelineStart = original.timelineStart + leftLengthTicks;
+    right.timelineLength = original.timelineLength - leftLengthTicks;
+    right.loopLengthTicks = 0;
+    right.notes.clear();
+    right.controlEvents.clear();
+
+    for (const Note& note : original.notes)
+    {
+        const Tick end = note.startTick + note.lengthTicks;
+        if (note.startTick >= leftLengthTicks)
+        {
+            Note moved = note;
+            moved.startTick = note.startTick - leftLengthTicks;
+            right.notes.push_back (moved);
+        }
+        else if (end <= leftLengthTicks)
+        {
+            left.notes.push_back (note);
+        }
+        else
+        {
+            Note head = note;
+            head.lengthTicks = leftLengthTicks - note.startTick;
+            left.notes.push_back (head);
+            Note tail = note;
+            tail.id = detail::derivedSplitEntityId (note.id, rightClipId);
+            tail.startTick = 0;
+            tail.lengthTicks = end - leftLengthTicks;
+            if (! tail.id.isValid() || detail::projectContainsEntityId (project, tail.id))
+                return ProjectEditStatus::DuplicateEntityId;
+            for (const Note& other : right.notes)
+                if (other.id == tail.id)
+                    return ProjectEditStatus::DuplicateEntityId;
+            right.notes.push_back (tail);
+        }
+    }
+    for (const MidiControlEvent& control : original.controlEvents)
+    {
+        if (control.tick >= leftLengthTicks)
+        {
+            MidiControlEvent moved = control;
+            moved.tick = control.tick - leftLengthTicks;
+            right.controlEvents.push_back (moved);
+        }
+        else
+        {
+            left.controlEvents.push_back (control);
+        }
+    }
+
+    if (! left.isValid() || ! right.isValid())
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    project.midiClips[index] = left;
+    project.midiClips.insert (project.midiClips.begin() + static_cast<std::ptrdiff_t> (index + 1u), right);
+    return ProjectEditStatus::Applied;
+}
+
+// Join the right Clip onto the left: same track, the right starts exactly where the left ends, the
+// right sits right after the left in the row order (a split's shape). The right's notes carry its
+// transpose and velocity offset baked in, so the render does not change; the left's settings win;
+// the loop is dropped.
+[[nodiscard]] inline ProjectEditStatus joinMidiClips (Project& project, EntityId leftClipId, EntityId rightClipId)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+    if (! leftClipId.isValid() || ! rightClipId.isValid() || leftClipId == rightClipId)
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    std::size_t leftIndex = project.midiClips.size();
+    std::size_t rightIndex = project.midiClips.size();
+    for (std::size_t i = 0; i < project.midiClips.size(); ++i)
+    {
+        if (project.midiClips[i].id == leftClipId) leftIndex = i;
+        if (project.midiClips[i].id == rightClipId) rightIndex = i;
+    }
+    if (leftIndex == project.midiClips.size() || rightIndex == project.midiClips.size())
+        return ProjectEditStatus::MidiClipNotFound;
+    if (rightIndex != leftIndex + 1u)
+        return ProjectEditStatus::InvalidMidiClipValue;
+
+    const MidiClip& left = project.midiClips[leftIndex];
+    const MidiClip& right = project.midiClips[rightIndex];
+    if (left.trackId != right.trackId
+        || right.timelineStart != left.timelineStart + left.timelineLength)
+        return ProjectEditStatus::InvalidMidiClipValue;
+
+    MidiClip joined = left;
+    joined.timelineLength = left.timelineLength + right.timelineLength;
+    joined.loopLengthTicks = 0;
+    const int transposeDelta = static_cast<int> (right.transposeSemitones) - static_cast<int> (left.transposeSemitones);
+    const double velocityDelta = right.velocityOffset - left.velocityOffset;
+    for (const Note& note : right.notes)
+    {
+        Note moved = note;
+        moved.startTick = note.startTick + left.timelineLength;
+        const int key = static_cast<int> (note.key) + transposeDelta;
+        if (key < 0 || key > 127)
+            continue;   // a note the right's transpose pushed off the keyboard never sounded
+        moved.key = static_cast<std::int16_t> (key);
+        moved.pitchNote = note.pitchNote + static_cast<double> (transposeDelta);
+        moved.normalizedVelocity = std::clamp (note.normalizedVelocity + velocityDelta, 0.0, 1.0);
+        joined.notes.push_back (moved);
+    }
+    for (const MidiControlEvent& control : right.controlEvents)
+    {
+        MidiControlEvent moved = control;
+        moved.tick = control.tick + left.timelineLength;
+        joined.controlEvents.push_back (moved);
+    }
+    if (! joined.isValid())
+        return ProjectEditStatus::InvalidMidiClipValue;
+
+    project.midiClips[leftIndex] = joined;
+    project.midiClips.erase (project.midiClips.begin() + static_cast<std::ptrdiff_t> (rightIndex));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeMidiClip (Project& project, EntityId midiClipId)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    for (std::size_t i = 0; i < project.midiClips.size(); ++i)
+    {
+        if (project.midiClips[i].id == midiClipId)
+        {
+            project.midiClips.erase (project.midiClips.begin() + static_cast<std::ptrdiff_t> (i));
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MidiClipNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus addClip (Project& project, const Clip& clip)
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clip.id.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    if (detail::projectContainsEntityId (project, clip.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (project.findAsset (clip.assetId) == nullptr)
+        return ProjectEditStatus::InvalidProject;
+
+    if (project.findTrack (clip.trackId) == nullptr)
+        return ProjectEditStatus::TrackNotFound;
+
+    if (clip.timelineStart < 0 || clip.timelineLength <= 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    if (clip.name.empty() || clip.name.size() > ClipName::kMaxLength)
+        return ProjectEditStatus::InvalidClipName;
+
+    if (! detail::clipEditMetadataIsStorageSafe (clip))
+        return ProjectEditStatus::InvalidClipEnvelope;
+
+    if (! detail::clipSourceWindowFitsProject (project, clip))
+        return ProjectEditStatus::InvalidSourceWindow;
+
+    project.clips.push_back (clip);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus deleteClip (Project& project, EntityId clipId)
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    for (std::size_t i = 0; i < project.clips.size(); ++i)
+    {
+        if (project.clips[i].id == clipId)
+        {
+            project.clips.erase (project.clips.begin() + static_cast<std::ptrdiff_t> (i));
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::ClipNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus moveClipToTrack (Project& project,
+                                                        EntityId clipId,
+                                                        EntityId targetTrackId,
+                                                        Tick newTimelineStart)
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    if (! targetTrackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (project.findTrack (targetTrackId) == nullptr)
+        return ProjectEditStatus::TrackNotFound;
+
+    if (newTimelineStart < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    clip->trackId = targetTrackId;
+    clip->timelineStart = newTimelineStart;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addNote (Project& project,
+                                                EntityId midiClipId,
+                                                const Note& note)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! note.id.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    if (detail::projectContainsEntityId (project, note.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (! note.isValid())
+        return ProjectEditStatus::InvalidNoteValue;
+
+    if (! detail::noteFitsMidiClip (*midiClip, note))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    midiClip->notes.push_back (note);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addTrack (Project& project, const Track& track)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! track.id.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (detail::projectContainsEntityId (project, track.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (! track.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (track.strip.name.empty())
+        return ProjectEditStatus::InvalidTrackName;
+
+    project.tracks.push_back (track);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus renameTrack (Project& project,
+                                                    EntityId trackId,
+                                                    const std::string& newName)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (newName.empty())
+        return ProjectEditStatus::InvalidTrackName;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id == trackId)
+        {
+            track.strip.name = newName;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// Set the scalar mixer strip state of one Track as an undoable edit. Interactive fader/pan/mute
+// gestures stay direct strip edits; this verb exists for whole-strip copies (duplicate track).
+[[nodiscard]] inline ProjectEditStatus setTrackMixScalars (Project& project,
+                                                           EntityId trackId,
+                                                           float linearGain,
+                                                           float pan,
+                                                           bool muted,
+                                                           bool soloed,
+                                                           bool soloSafe)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! mixerGainIsValid (linearGain) || ! mixerPanIsValid (pan))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id == trackId)
+        {
+            track.strip.linearGain = linearGain;
+            track.strip.pan = pan;
+            track.strip.muted = muted;
+            track.strip.soloed = soloed;
+            track.strip.soloSafe = soloSafe;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// E19: the persisted master strip gain — one scalar, validated like every strip gain.
+[[nodiscard]] inline ProjectEditStatus setMasterGain (Project& project, float linearGain)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! mixerGainIsValid (linearGain))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    project.masterLinearGain = linearGain;
+    return ProjectEditStatus::Applied;
+}
+
+// N5: the persisted automation write mode — one scalar, like the master strip gain.
+[[nodiscard]] inline ProjectEditStatus setAutomationMode (Project& project, AutomationMode mode)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! automationModeIsKnown (mode))
+        return ProjectEditStatus::InvalidProject;
+
+    project.automationMode = mode;
+    return ProjectEditStatus::Applied;
+}
+
+// G4.6 / ADR-0052: the "automation follows clips" setting (an automation-mode-family scalar).
+[[nodiscard]] inline ProjectEditStatus setAutomationFollowsClips (Project& project, bool follows)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    project.automationFollowsClips = follows;
+    return ProjectEditStatus::Applied;
+}
+
+// N8: the persisted punch region — one scalar-ish struct, like the automation mode.
+[[nodiscard]] inline ProjectEditStatus setPunchRegion (Project& project, PunchRegion region)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! region.isValid())
+        return ProjectEditStatus::InvalidProject;
+
+    project.punchRegion = region;
+    return ProjectEditStatus::Applied;
+}
+
+// E17: the bus twin of renameTrack — empty names are refused before dispatch reaches here.
+[[nodiscard]] inline ProjectEditStatus renameBus (Project& project,
+                                                  EntityId busId,
+                                                  const std::string& newName)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! busId.isValid())
+        return ProjectEditStatus::InvalidBusId;
+
+    if (newName.empty())
+        return ProjectEditStatus::InvalidTrackName;
+
+    for (Bus& bus : project.buses)
+    {
+        if (bus.id == busId)
+        {
+            bus.strip.name = newName;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::BusNotFound;
+}
+
+// E16: the bus twin of setTrackMixScalars — same validation, targeting a Bus strip.
+[[nodiscard]] inline ProjectEditStatus setBusMixScalars (Project& project,
+                                                         EntityId busId,
+                                                         float linearGain,
+                                                         float pan,
+                                                         bool muted,
+                                                         bool soloed,
+                                                         bool soloSafe)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! busId.isValid())
+        return ProjectEditStatus::InvalidBusId;
+
+    if (! mixerGainIsValid (linearGain) || ! mixerPanIsValid (pan))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Bus& bus : project.buses)
+    {
+        if (bus.id == busId)
+        {
+            bus.strip.linearGain = linearGain;
+            bus.strip.pan = pan;
+            bus.strip.muted = muted;
+            bus.strip.soloed = soloed;
+            bus.strip.soloSafe = soloSafe;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::BusNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus reorderTrack (Project& project,
+                                                     EntityId trackId,
+                                                     std::size_t newIndex)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (newIndex >= project.tracks.size())
+        return ProjectEditStatus::InvalidTrackPosition;
+
+    std::size_t currentIndex = project.tracks.size();
+    for (std::size_t i = 0; i < project.tracks.size(); ++i)
+    {
+        if (project.tracks[i].id == trackId)
+        {
+            currentIndex = i;
+            break;
+        }
+    }
+
+    if (currentIndex >= project.tracks.size())
+        return ProjectEditStatus::TrackNotFound;
+
+    if (currentIndex == newIndex)
+        return ProjectEditStatus::Applied;
+
+    Track moved = project.tracks[currentIndex];
+    project.tracks.erase (project.tracks.begin() + static_cast<std::ptrdiff_t> (currentIndex));
+    project.tracks.insert (project.tracks.begin() + static_cast<std::ptrdiff_t> (newIndex), std::move (moved));
+    return ProjectEditStatus::Applied;
+}
+
+// Removing a Track requires it to be empty: no Clip, MIDI Clip, recording Take, or automation lane may
+// still reference it. Callers that want Pro Tools-style delete-with-contents issue the owned deletions
+// first (each its own undoable command), then remove the Track.
+[[nodiscard]] inline ProjectEditStatus removeTrack (Project& project, EntityId trackId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    std::size_t trackIndex = project.tracks.size();
+    for (std::size_t i = 0; i < project.tracks.size(); ++i)
+    {
+        if (project.tracks[i].id == trackId)
+        {
+            trackIndex = i;
+            break;
+        }
+    }
+
+    if (trackIndex >= project.tracks.size())
+        return ProjectEditStatus::TrackNotFound;
+
+    if (project.keysAnyCompressor (trackId))   // ADR-0051: clear the key first
+        return ProjectEditStatus::SidechainSourceInUse;
+
+    for (const Clip& clip : project.clips)
+        if (clip.trackId == trackId)
+            return ProjectEditStatus::TrackNotEmpty;
+
+    for (const MidiClip& midiClip : project.midiClips)
+        if (midiClip.trackId == trackId)
+            return ProjectEditStatus::TrackNotEmpty;
+
+    for (const RecordingTake& take : project.recordingTakes)
+        if (take.trackId == trackId)
+            return ProjectEditStatus::TrackNotEmpty;
+
+    for (const AutomationLaneData& lane : project.automationLanes)
+        if (lane.ownerEntity == trackId)
+            return ProjectEditStatus::TrackNotEmpty;
+
+    project.tracks.erase (project.tracks.begin() + static_cast<std::ptrdiff_t> (trackIndex));
+    return ProjectEditStatus::Applied;
+}
+
+// ADR-0044: persisted send routing verbs. Sends are rows on the owning Track; Buses are removable
+// only while nothing routes to or targets them (mirror of empty-only Track removal).
+[[nodiscard]] inline ProjectEditStatus addBus (Project& project, const Bus& bus)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! bus.id.isValid())
+        return ProjectEditStatus::InvalidBusId;
+
+    if (detail::projectContainsEntityId (project, bus.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (! bus.isValid() || bus.strip.name.empty())
+        return ProjectEditStatus::InvalidBusId;
+
+    project.buses.push_back (bus);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeBus (Project& project, EntityId busId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! busId.isValid())
+        return ProjectEditStatus::InvalidBusId;
+
+    std::size_t busIndex = project.buses.size();
+    for (std::size_t i = 0; i < project.buses.size(); ++i)
+    {
+        if (project.buses[i].id == busId)
+        {
+            busIndex = i;
+            break;
+        }
+    }
+
+    if (busIndex >= project.buses.size())
+        return ProjectEditStatus::BusNotFound;
+
+    for (const Track& track : project.tracks)
+        for (const SendRow& send : track.sends)
+            if (send.busId == busId)
+                return ProjectEditStatus::BusInUse;
+
+    // M3: a Bus that a Track's MAIN output lands on is in use exactly like a send destination.
+    for (const Track& track : project.tracks)
+        if (track.outputBusId == busId)
+            return ProjectEditStatus::BusInUse;
+
+    // R13: another Bus's send or main output referencing this Bus keeps it in use too. The bus
+    // being removed OWNING sends/an output does not block removal — its own rows die with it.
+    for (const Bus& bus : project.buses)
+    {
+        if (bus.id == busId)
+            continue;
+
+        for (const SendRow& send : bus.sends)
+            if (send.busId == busId)
+                return ProjectEditStatus::BusInUse;
+
+        if (bus.outputBusId == busId)
+            return ProjectEditStatus::BusInUse;
+    }
+
+    for (const AutomationLaneData& lane : project.automationLanes)
+        if (lane.ownerEntity == busId)
+            return ProjectEditStatus::BusInUse;
+
+    if (project.keysAnyCompressor (busId))   // ADR-0051: clear the key first
+        return ProjectEditStatus::SidechainSourceInUse;
+
+    project.buses.erase (project.buses.begin() + static_cast<std::ptrdiff_t> (busIndex));
+    return ProjectEditStatus::Applied;
+}
+
+// R13: would adding the routing edge ownerBus -> destBus create a cycle? Signal flows along
+// every bus->bus edge (sends AND main outputs); a path from destBus back to ownerBus — or a
+// self-edge — would loop the signal into its own path, which the routing DAG law refuses
+// honestly. Control-side DFS over at most |buses| nodes; shared by the edit verbs and the
+// bundle-open semantic validation so a hand-edited cycle can never reach the graph build.
+[[nodiscard]] inline bool busRoutingWouldCycle (const Project& project,
+                                                EntityId ownerBusId,
+                                                EntityId destBusId) noexcept
+{
+    if (! ownerBusId.isValid() || ! destBusId.isValid())
+        return false;
+
+    // ADR-0051: the walk follows sends, outputs AND Compressor keys (a key edge can feed a Track too).
+    return ownerBusId == destBusId || project.stripSignalReaches (destBusId, ownerBusId);
+}
+
+// R13: the five routing verbs take an OWNER — a Track (the historical shape) or a Bus. The
+// command plumbing and UI actions stay single-lawed; only the lookup widens. Bus owners add
+// the DAG refusals (self-send, RoutingCycle) tracks can never trigger.
+[[nodiscard]] inline ProjectEditStatus addSend (Project& project,
+                                                EntityId ownerId,
+                                                const SendRow& send)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! send.id.isValid() || ! send.isValid())
+        return ProjectEditStatus::InvalidSendId;
+
+    if (detail::projectContainsEntityId (project, send.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (project.findBus (send.busId) == nullptr)
+        return ProjectEditStatus::BusNotFound;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != ownerId)
+            continue;
+
+        for (const SendRow& existing : track.sends)
+            if (existing.busId == send.busId)
+                return ProjectEditStatus::DuplicateSendRoute;
+
+        // ADR-0051: a Track can now be fed — by a Compressor key — so its routing can loop too.
+        if (busRoutingWouldCycle (project, track.id, send.busId))
+            return ProjectEditStatus::RoutingCycle;
+
+        track.sends.push_back (send);
+        return ProjectEditStatus::Applied;
+    }
+
+    for (Bus& bus : project.buses)
+    {
+        if (bus.id != ownerId)
+            continue;
+
+        for (const SendRow& existing : bus.sends)
+            if (existing.busId == send.busId)
+                return ProjectEditStatus::DuplicateSendRoute;
+
+        if (busRoutingWouldCycle (project, bus.id, send.busId))
+            return ProjectEditStatus::RoutingCycle;
+
+        bus.sends.push_back (send);
+        return ProjectEditStatus::Applied;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeSend (Project& project,
+                                                   EntityId ownerId,
+                                                   EntityId sendId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! sendId.isValid())
+        return ProjectEditStatus::InvalidSendId;
+
+    const auto eraseSend = [sendId] (std::vector<SendRow>& sends) -> bool
+    {
+        for (std::size_t i = 0; i < sends.size(); ++i)
+        {
+            if (sends[i].id == sendId)
+            {
+                sends.erase (sends.begin() + static_cast<std::ptrdiff_t> (i));
+                return true;
+            }
+        }
+        return false;
+    };
+
+    for (Track& track : project.tracks)
+        if (track.id == ownerId)
+            return eraseSend (track.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
+
+    for (Bus& bus : project.buses)   // R13
+        if (bus.id == ownerId)
+            return eraseSend (bus.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// E18: change a send's tap point (pre/post fader) — the tap column has been persisted since
+// schema v9; this is its first mutating verb. R13: the owner may be a Track or a Bus.
+[[nodiscard]] inline ProjectEditStatus setSendTap (Project& project,
+                                                   EntityId ownerId,
+                                                   EntityId sendId,
+                                                   SendTap tap)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! sendId.isValid())
+        return ProjectEditStatus::InvalidSendId;
+
+    const auto retap = [sendId, tap] (std::vector<SendRow>& sends) -> bool
+    {
+        for (SendRow& send : sends)
+        {
+            if (send.id == sendId)
+            {
+                send.tap = tap;
+                return true;
+            }
+        }
+        return false;
+    };
+
+    for (Track& track : project.tracks)
+        if (track.id == ownerId)
+            return retap (track.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
+
+    for (Bus& bus : project.buses)   // R13
+        if (bus.id == ownerId)
+            return retap (bus.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// M3: route an owner's MAIN output. An invalid busId means master (the historical default); a
+// valid one must name an existing Bus. A Track owner cannot make a cycle (nothing feeds a
+// Track); R13 lets a Bus own its output too, where a bus→bus edge that loops back is refused
+// as RoutingCycle — the DAG law, refused honestly, never clamped.
+[[nodiscard]] inline ProjectEditStatus setTrackOutput (Project& project,
+                                                       EntityId ownerId,
+                                                       EntityId busId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (busId.isValid() && project.findBus (busId) == nullptr)
+        return ProjectEditStatus::BusNotFound;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != ownerId)
+            continue;
+
+        if (busId.isValid() && busRoutingWouldCycle (project, track.id, busId))   // ADR-0051: via a key
+            return ProjectEditStatus::RoutingCycle;
+
+        track.outputBusId = busId;
+        return ProjectEditStatus::Applied;
+    }
+
+    for (Bus& bus : project.buses)   // R13
+    {
+        if (bus.id != ownerId)
+            continue;
+
+        if (busId.isValid() && busRoutingWouldCycle (project, bus.id, busId))
+            return ProjectEditStatus::RoutingCycle;
+
+        bus.outputBusId = busId;
+        return ProjectEditStatus::Applied;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// N6: persisted row height — 0 clears back to the auto-shared default.
+[[nodiscard]] inline ProjectEditStatus setTrackHeight (Project& project,
+                                                       EntityId trackId,
+                                                       int heightPx)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! trackHeightIsValid (heightPx))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        track.heightPx = heightPx;
+        return ProjectEditStatus::Applied;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// N7: persisted row colour — kTrackColourUnset clears back to the historical colour-less default.
+[[nodiscard]] inline ProjectEditStatus setTrackColour (Project& project,
+                                                       EntityId trackId,
+                                                       std::uint32_t colour)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! trackColourIsValid (colour))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        track.colour = colour;
+        return ProjectEditStatus::Applied;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// G3.1 / ADR-0047: the instrument slot's edits. Changing the kind keeps the state blob only when the
+// new kind accepts every stored id (otherwise the state resets to the defaults).
+// G3.9 / ADR-0048: set (replace or add) a Sampler pad on a Track by its key; clear one by key.
+[[nodiscard]] inline ProjectEditStatus setSamplerPad (Project& project, EntityId trackId, const SamplerPad& pad)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+    if (! pad.isValid())
+        return ProjectEditStatus::InvalidSamplerPad;
+    if (project.findAsset (pad.assetId) == nullptr)
+        return ProjectEditStatus::SamplerPadAssetNotFound;
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+        for (SamplerPad& existing : track.samplerPads)
+            if (existing.key == pad.key)
+            {
+                existing = pad;
+                return ProjectEditStatus::Applied;
+            }
+        const auto at = std::lower_bound (track.samplerPads.begin(), track.samplerPads.end(), pad.key,
+                                          [] (const SamplerPad& a, std::int16_t key) { return a.key < key; });
+        track.samplerPads.insert (at, pad);
+        return ProjectEditStatus::Applied;
+    }
+    return ProjectEditStatus::TrackNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus clearSamplerPad (Project& project, EntityId trackId, std::int16_t key)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+        for (auto it = track.samplerPads.begin(); it != track.samplerPads.end(); ++it)
+            if (it->key == key)
+            {
+                track.samplerPads.erase (it);
+                return ProjectEditStatus::Applied;
+            }
+        return ProjectEditStatus::SamplerPadNotFound;
+    }
+    return ProjectEditStatus::TrackNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus setTrackInstrument (Project& project,
+                                                           EntityId trackId,
+                                                           TrackInstrumentKind kind)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! trackInstrumentKindIsValid (static_cast<std::uint8_t> (kind)))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        track.instrumentKind = kind;
+        InstrumentParamValues values;
+        if (! decodeInstrumentParams (track.instrumentState, values))
+            values.clear();
+        for (const auto& [paramId, value] : values)
+            if (! instrumentKindAcceptsParameterId (kind, paramId))
+            {
+                track.instrumentState.clear();
+                break;
+            }
+        return ProjectEditStatus::Applied;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus setTrackInstrumentParam (Project& project,
+                                                                EntityId trackId,
+                                                                std::uint32_t paramId,
+                                                                double normalizedValue)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! normalizedFxParamValueIsValid (normalizedValue))
+        return ProjectEditStatus::InvalidTrackMixState;
+
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+
+        if (! instrumentKindAcceptsParameterId (track.instrumentKind, paramId))
+            return ProjectEditStatus::InvalidTrackMixState;
+
+        InstrumentParamValues values;
+        if (! decodeInstrumentParams (track.instrumentState, values))
+            return ProjectEditStatus::InvalidTrackMixState;
+        setInstrumentParamValue (values, paramId, normalizedValue);
+        track.instrumentState = encodeInstrumentParams (values);
+        return ProjectEditStatus::Applied;
+    }
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus setSendLevel (Project& project,
+                                                     EntityId trackId,
+                                                     EntityId sendId,
+                                                     float linearGain)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+
+    if (! sendId.isValid())
+        return ProjectEditStatus::InvalidSendId;
+
+    if (! mixerGainIsValid (linearGain))
+        return ProjectEditStatus::InvalidSendLevel;
+
+    const auto relevel = [sendId, linearGain] (std::vector<SendRow>& sends) -> bool
+    {
+        for (SendRow& send : sends)
+        {
+            if (send.id == sendId)
+            {
+                send.linearGain = linearGain;
+                return true;
+            }
+        }
+        return false;
+    };
+
+    for (Track& track : project.tracks)
+        if (track.id == trackId)
+            return relevel (track.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
+
+    for (Bus& bus : project.buses)   // R13: the owner may be a Bus
+        if (bus.id == trackId)
+            return relevel (bus.sends) ? ProjectEditStatus::Applied : ProjectEditStatus::SendNotFound;
+
+    return ProjectEditStatus::TrackNotFound;
+}
+
+// Timeline markers (usable-DAW P1): named positions on the ruler, stored in canonical tick order.
+[[nodiscard]] inline ProjectEditStatus addMarker (Project& project, const Marker& marker)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! marker.id.isValid())
+        return ProjectEditStatus::InvalidMarkerId;
+
+    if (detail::projectContainsEntityId (project, marker.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (marker.tick < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    const auto insertAt = std::find_if (project.markers.begin(), project.markers.end(),
+                                        [&marker] (const Marker& existing) { return existing.tick > marker.tick; });
+    project.markers.insert (insertAt, marker);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeMarker (Project& project, EntityId markerId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! markerId.isValid())
+        return ProjectEditStatus::InvalidMarkerId;
+
+    for (std::size_t i = 0; i < project.markers.size(); ++i)
+    {
+        if (project.markers[i].id == markerId)
+        {
+            project.markers.erase (project.markers.begin() + static_cast<std::ptrdiff_t> (i));
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MarkerNotFound;
+}
+
+// E7: move a marker to a new tick, preserving addMarker's sorted-insert law.
+[[nodiscard]] inline ProjectEditStatus moveMarker (Project& project, EntityId markerId, Tick newTick)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! markerId.isValid())
+        return ProjectEditStatus::InvalidMarkerId;
+
+    if (newTick < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    for (std::size_t i = 0; i < project.markers.size(); ++i)
+    {
+        if (project.markers[i].id == markerId)
+        {
+            Marker moved = project.markers[i];
+            moved.tick = newTick;
+            project.markers.erase (project.markers.begin() + static_cast<std::ptrdiff_t> (i));
+            const auto insertAt = std::find_if (project.markers.begin(), project.markers.end(),
+                                                [&moved] (const Marker& existing) { return existing.tick > moved.tick; });
+            project.markers.insert (insertAt, moved);
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MarkerNotFound;
+}
+
+// E7: rename a marker; like renameTrack, the length cap lives at the command factory's shared
+// name buffer, so the engine only refuses empty names.
+// G2.14: a marker's colour (the track colour law: 0 clears, a set colour is fully opaque).
+[[nodiscard]] inline ProjectEditStatus setMarkerColour (Project& project, EntityId markerId, std::uint32_t colour)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (! markerId.isValid())
+        return ProjectEditStatus::InvalidMarkerId;
+    if (! trackColourIsValid (colour))
+        return ProjectEditStatus::InvalidClipColour;
+    for (Marker& marker : project.markers)
+    {
+        if (marker.id == markerId)
+        {
+            marker.colour = colour;
+            return ProjectEditStatus::Applied;
+        }
+    }
+    return ProjectEditStatus::MarkerNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus renameMarker (Project& project, EntityId markerId, std::string_view name)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! markerId.isValid())
+        return ProjectEditStatus::InvalidMarkerId;
+
+    if (name.empty())
+        return ProjectEditStatus::InvalidTrackName;
+
+    for (Marker& marker : project.markers)
+    {
+        if (marker.id == markerId)
+        {
+            marker.name = std::string { name };
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MarkerNotFound;
+}
+
+// Alpha time-map editing (usable-DAW P0): a single Project-wide tempo and meter — the head of each
+// map. Multi-segment tempo/meter editing arrives with the tempo-map UI later.
+[[nodiscard]] inline ProjectEditStatus setProjectTempo (Project& project, double bpm)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! std::isfinite (bpm) || bpm < 20.0 || bpm > 400.0)
+        return ProjectEditStatus::InvalidTempo;
+
+    if (project.tempoMap.empty())
+        project.tempoMap.push_back (TempoChange { 0, bpm, TempoCurve::Jump });
+    else
+        project.tempoMap.front().bpm = bpm;
+
+    return ProjectEditStatus::Applied;
+}
+
+// G2.15: the tempo and meter MAPS. A change at tick 0 is the head (never removed); every other
+// change keeps the map sorted by tick; adding on an existing tick replaces it.
+[[nodiscard]] inline ProjectEditStatus addTempoChange (Project& project, Tick tick, double bpm, TempoCurve curve)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (tick < 0 || ! std::isfinite (bpm) || bpm < 20.0 || bpm > 400.0)
+        return ProjectEditStatus::InvalidTempo;
+    if (project.tempoMap.empty())
+        project.tempoMap.push_back (TempoChange { 0, 120.0, TempoCurve::Jump });
+    auto it = std::lower_bound (project.tempoMap.begin(), project.tempoMap.end(), tick,
+                                [] (const TempoChange& change, Tick value) { return change.tick < value; });
+    if (it != project.tempoMap.end() && it->tick == tick)
+    {
+        it->bpm = bpm;
+        it->curveToNext = curve;
+    }
+    else
+        project.tempoMap.insert (it, TempoChange { tick, bpm, curve });
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeTempoChange (Project& project, Tick tick)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (tick <= 0)
+        return ProjectEditStatus::InvalidTempo;   // the head stays
+    const auto it = std::find_if (project.tempoMap.begin(), project.tempoMap.end(),
+                                  [tick] (const TempoChange& change) { return change.tick == tick; });
+    if (it == project.tempoMap.end())
+        return ProjectEditStatus::InvalidTempo;
+    project.tempoMap.erase (it);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addMeterChange (Project& project, Tick tick, std::uint16_t numerator, std::uint16_t denominator)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (tick < 0 || numerator == 0 || numerator > 32 || denominator == 0 || denominator > 64)
+        return ProjectEditStatus::InvalidMeter;
+    if (project.meterMap.empty())
+        project.meterMap.push_back (MeterChange { 0, 4, 4 });
+    auto it = std::lower_bound (project.meterMap.begin(), project.meterMap.end(), tick,
+                                [] (const MeterChange& change, Tick value) { return change.tick < value; });
+    if (it != project.meterMap.end() && it->tick == tick)
+    {
+        it->numerator = numerator;
+        it->denominator = denominator;
+    }
+    else
+        project.meterMap.insert (it, MeterChange { tick, numerator, denominator });
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeMeterChange (Project& project, Tick tick)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (tick <= 0)
+        return ProjectEditStatus::InvalidMeter;
+    const auto it = std::find_if (project.meterMap.begin(), project.meterMap.end(),
+                                  [tick] (const MeterChange& change) { return change.tick == tick; });
+    if (it == project.meterMap.end())
+        return ProjectEditStatus::InvalidMeter;
+    project.meterMap.erase (it);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setProjectMeter (Project& project,
+                                                        std::uint16_t numerator,
+                                                        std::uint16_t denominator)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    const bool denominatorIsPowerOfTwo = denominator > 0 && (denominator & (denominator - 1u)) == 0u;
+    if (numerator == 0 || numerator > 32 || ! denominatorIsPowerOfTwo || denominator > 32)
+        return ProjectEditStatus::InvalidMeter;
+
+    if (project.meterMap.empty())
+        project.meterMap.push_back (MeterChange { 0, numerator, denominator });
+    else
+    {
+        project.meterMap.front().numerator = numerator;
+        project.meterMap.front().denominator = denominator;
+    }
+
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setRecordingCompSelection (
+    Project& project,
+    EntityId firstSegmentId,
+    EntityId firstTakeId,
+    Tick firstTimelineStart,
+    Tick firstTimelineLength,
+    std::uint64_t firstSourceOffset,
+    EntityId secondSegmentId,
+    EntityId secondTakeId,
+    Tick secondTimelineStart,
+    Tick secondTimelineLength,
+    std::uint64_t secondSourceOffset)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! firstSegmentId.isValid() || ! secondSegmentId.isValid() || firstSegmentId == secondSegmentId)
+        return ProjectEditStatus::InvalidRecordingCompSegmentId;
+
+    if (detail::projectContainsEntityId (project, firstSegmentId)
+        || detail::projectContainsEntityId (project, secondSegmentId))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (! firstTakeId.isValid() || ! secondTakeId.isValid())
+        return ProjectEditStatus::InvalidRecordingTakeId;
+
+    const RecordingTake* const firstTake = detail::findRecordingTake (project, firstTakeId);
+    const RecordingTake* const secondTake = detail::findRecordingTake (project, secondTakeId);
+    if (firstTake == nullptr || secondTake == nullptr)
+        return ProjectEditStatus::RecordingTakeNotFound;
+
+    const ProjectRecordingCompSegment first {
+        firstSegmentId,
+        firstTakeId,
+        firstTimelineStart,
+        firstTimelineLength,
+        firstSourceOffset
+    };
+    const ProjectRecordingCompSegment second {
+        secondSegmentId,
+        secondTakeId,
+        secondTimelineStart,
+        secondTimelineLength,
+        secondSourceOffset
+    };
+
+    if (! detail::compSegmentWindowFitsTake (first, *firstTake)
+        || ! detail::compSegmentWindowFitsTake (second, *secondTake))
+        return ProjectEditStatus::InvalidRecordingCompWindow;
+
+    Project edited = project;
+    edited.recordingCompSegments = { first, second };
+    if (! edited.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    project = std::move (edited);
+    return ProjectEditStatus::Applied;
+}
+
+// E33: removes the take, its clip, and every comp segment referencing it in ONE edit, so
+// `recordingTakesReferenceProjectRows` and `recordingCompSegmentsReferenceTakes` stay green.
+// The take's asset stays (assets may be unreferenced); other takes are untouched.
+[[nodiscard]] inline ProjectEditStatus removeRecordingTake (Project& project, EntityId takeId)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    if (! takeId.isValid())
+        return ProjectEditStatus::InvalidRecordingTakeId;
+
+    const RecordingTake* const take = detail::findRecordingTake (project, takeId);
+    if (take == nullptr)
+        return ProjectEditStatus::RecordingTakeNotFound;
+
+    Project edited = project;
+    const EntityId clipId = take->clipId;
+    std::erase_if (edited.recordingTakes,
+                   [takeId] (const RecordingTake& row) { return row.id == takeId; });
+    std::erase_if (edited.clips,
+                   [clipId] (const Clip& row) { return row.id == clipId; });
+    std::erase_if (edited.recordingCompSegments,
+                   [takeId] (const ProjectRecordingCompSegment& row) { return row.takeId == takeId; });
+    if (! edited.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    project = std::move (edited);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addFxInsert (Project& project,
+                                                    EntityId ownerId,
+                                                    FxInsert insert,
+                                                    std::size_t position)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    if (! insert.id.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    if (! fxKindIsKnown (insert.kind))
+        return ProjectEditStatus::InvalidFxKind;
+
+    // G3.8: a MIDI FX needs a MIDI path — only a Track has one.
+    if (fxKindIsMidi (insert.kind) && project.findTrack (ownerId) == nullptr)
+        return ProjectEditStatus::MidiFxNeedsTrack;
+
+    if (! insert.isValid())
+        return ProjectEditStatus::InvalidFxParamValue;
+
+    if (insert.sidechainSourceId.isValid())   // ADR-0051: a key is set by its own verb, never smuggled in
+        return ProjectEditStatus::InvalidSidechainSource;
+
+    if (detail::projectContainsEntityId (project, insert.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    if (position > strip->fxChain.size())
+        return ProjectEditStatus::InvalidFxPosition;
+
+    strip->fxChain.insert (strip->fxChain.begin() + static_cast<std::ptrdiff_t> (position), std::move (insert));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeFxInsert (Project& project, EntityId ownerId, EntityId insertId)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    if (! insertId.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    std::size_t index = 0;
+    if (! detail::findFxInsertIndex (*strip, insertId, index))
+        return ProjectEditStatus::FxInsertNotFound;
+
+    strip->fxChain.erase (strip->fxChain.begin() + static_cast<std::ptrdiff_t> (index));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus reorderFxInsert (Project& project,
+                                                        EntityId ownerId,
+                                                        EntityId insertId,
+                                                        std::size_t newPosition)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    if (! insertId.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    if (newPosition >= strip->fxChain.size())
+        return ProjectEditStatus::InvalidFxPosition;
+
+    std::size_t oldPosition = 0;
+    if (! detail::findFxInsertIndex (*strip, insertId, oldPosition))
+        return ProjectEditStatus::FxInsertNotFound;
+
+    FxInsert insert = std::move (strip->fxChain[oldPosition]);
+    strip->fxChain.erase (strip->fxChain.begin() + static_cast<std::ptrdiff_t> (oldPosition));
+    strip->fxChain.insert (strip->fxChain.begin() + static_cast<std::ptrdiff_t> (newPosition), std::move (insert));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setFxInsertEnabled (Project& project,
+                                                           EntityId ownerId,
+                                                           EntityId insertId,
+                                                           bool enabled)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    if (! insertId.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    FxInsert* const insert = detail::findFxInsert (*strip, insertId);
+    if (insert == nullptr)
+        return ProjectEditStatus::FxInsertNotFound;
+
+    insert->enabled = enabled;
+    return ProjectEditStatus::Applied;
+}
+
+// ADR-0051: key a Compressor with a Track's or Bus's pre-fader signal, or clear its key (an invalid
+// source). Refused: another kind, an unknown source, the master, its own strip, and any loop.
+[[nodiscard]] inline ProjectEditStatus setFxInsertSidechain (Project& project,
+                                                             EntityId ownerId,
+                                                             EntityId insertId,
+                                                             EntityId sourceId)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    if (! insertId.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    FxInsert* const insert = detail::findFxInsert (*strip, insertId);
+    if (insert == nullptr)
+        return ProjectEditStatus::FxInsertNotFound;
+
+    if (insert->kind != FxKind::Compressor)
+        return ProjectEditStatus::InvalidSidechainSource;
+
+    if (sourceId.isValid())
+    {
+        if (sourceId == ownerId || (project.findTrack (sourceId) == nullptr && project.findBus (sourceId) == nullptr))
+            return ProjectEditStatus::InvalidSidechainSource;
+        if (project.stripSignalReaches (ownerId, sourceId))
+            return ProjectEditStatus::RoutingCycle;
+    }
+
+    insert->sidechainSourceId = sourceId;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setFxInsertParam (Project& project,
+                                                         EntityId ownerId,
+                                                         EntityId insertId,
+                                                         std::uint32_t paramId,
+                                                         double normalizedValue)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    if (! insertId.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    if (! normalizedFxParamValueIsValid (normalizedValue))
+        return ProjectEditStatus::InvalidFxParamValue;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    FxInsert* const insert = detail::findFxInsert (*strip, insertId);
+    if (insert == nullptr)
+        return ProjectEditStatus::FxInsertNotFound;
+
+    std::size_t paramIndex = 0;
+    if (detail::findNormalizedFxParamIndex (*insert, paramId, paramIndex))
+        insert->normalizedParams[paramIndex].second = normalizedValue;
+    else
+        insert->normalizedParams.push_back ({ paramId, normalizedValue });
+
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addAutomationLane (Project& project, AutomationLaneData lane)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! lane.id.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    if (! lane.ownerEntity.isValid() || ! automationTargetRoleIsKnown (lane.role))
+        return ProjectEditStatus::InvalidAutomationTarget;
+
+    if (! lane.isValid())
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    if (detail::projectContainsEntityId (project, lane.id))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    Project edited = project;
+    edited.automationLanes.push_back (std::move (lane));
+    if (! edited.automationTargetsReferenceProjectRows())
+        return ProjectEditStatus::InvalidAutomationTarget;
+
+    project = std::move (edited);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeAutomationLane (Project& project, EntityId laneId)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    std::size_t index = 0;
+    if (! detail::findAutomationLaneIndex (project, laneId, index))
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    project.automationLanes.erase (project.automationLanes.begin() + static_cast<std::ptrdiff_t> (index));
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addAutomationBreakpoint (Project& project,
+                                                                EntityId laneId,
+                                                                AutomationBreakpoint point)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    if (! point.isValid())
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    std::size_t laneIndex = 0;
+    if (! detail::findAutomationLaneIndex (project, laneId, laneIndex))
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    const AutomationLaneData& lane = project.automationLanes[laneIndex];
+    std::size_t existing = 0;
+    if (detail::findAutomationBreakpointIndex (lane, point.tick, existing))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    Project edited = project;
+    std::vector<AutomationBreakpoint>& points = edited.automationLanes[laneIndex].points;
+    std::size_t insertAt = 0;
+    while (insertAt < points.size() && points[insertAt].tick < point.tick)
+        ++insertAt;
+
+    points.insert (points.begin() + static_cast<std::ptrdiff_t> (insertAt), point);
+    if (! edited.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    project = std::move (edited);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus moveAutomationBreakpoint (Project& project,
+                                                                 EntityId laneId,
+                                                                 Tick oldTick,
+                                                                 Tick newTick)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    if (oldTick < 0 || newTick < 0)
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    std::size_t laneIndex = 0;
+    if (! detail::findAutomationLaneIndex (project, laneId, laneIndex))
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    const AutomationLaneData& lane = project.automationLanes[laneIndex];
+    std::size_t pointIndex = 0;
+    if (! detail::findAutomationBreakpointIndex (lane, oldTick, pointIndex))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    std::size_t duplicateIndex = 0;
+    if (oldTick != newTick && detail::findAutomationBreakpointIndex (lane, newTick, duplicateIndex))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    AutomationBreakpoint moved = lane.points[pointIndex];
+    moved.tick = newTick;
+
+    Project edited = project;
+    std::vector<AutomationBreakpoint>& points = edited.automationLanes[laneIndex].points;
+    points.erase (points.begin() + static_cast<std::ptrdiff_t> (pointIndex));
+
+    std::size_t insertAt = 0;
+    while (insertAt < points.size() && points[insertAt].tick < moved.tick)
+        ++insertAt;
+
+    points.insert (points.begin() + static_cast<std::ptrdiff_t> (insertAt), moved);
+    if (! edited.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    project = std::move (edited);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setAutomationBreakpointValue (Project& project,
+                                                                     EntityId laneId,
+                                                                     Tick tick,
+                                                                     double value)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    if (! automationBreakpointValueIsValid (value))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    AutomationLaneData* const lane = detail::findAutomationLane (project, laneId);
+    if (lane == nullptr)
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    std::size_t pointIndex = 0;
+    if (! detail::findAutomationBreakpointIndex (*lane, tick, pointIndex))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    lane->points[pointIndex].value = value;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setAutomationBreakpointCurve (Project& project,
+                                                                     EntityId laneId,
+                                                                     Tick tick,
+                                                                     AutomationCurveType curve)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    if (! automationCurveIsStorageSafe (curve))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    AutomationLaneData* const lane = detail::findAutomationLane (project, laneId);
+    if (lane == nullptr)
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    std::size_t pointIndex = 0;
+    if (! detail::findAutomationBreakpointIndex (*lane, tick, pointIndex))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    lane->points[pointIndex].curveType = curve;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeAutomationBreakpoint (Project& project,
+                                                                   EntityId laneId,
+                                                                   Tick tick)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    AutomationLaneData* const lane = detail::findAutomationLane (project, laneId);
+    if (lane == nullptr)
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    std::size_t pointIndex = 0;
+    if (! detail::findAutomationBreakpointIndex (*lane, tick, pointIndex))
+        return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    lane->points.erase (lane->points.begin() + static_cast<std::ptrdiff_t> (pointIndex));
+    return ProjectEditStatus::Applied;
+}
+
+// G4.6 / ADR-0052: one lane's points replaced wholesale — what a ride pass or a Pencil or Eraser sweep
+// commits. The span law lives in AutomationEdit.h; this refuses only a malformed result.
+[[nodiscard]] inline ProjectEditStatus replaceAutomationLanePoints (Project& project,
+                                                                    EntityId laneId,
+                                                                    std::vector<AutomationBreakpoint> points)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    AutomationLaneData* const lane = detail::findAutomationLane (project, laneId);
+    if (lane == nullptr)
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    for (std::size_t i = 0; i < points.size(); ++i)
+        if (! points[i].isValid() || (i > 0u && points[i].tick <= points[i - 1u].tick))
+            return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    lane->points = std::move (points);
+    return ProjectEditStatus::Applied;
+}
+
+} // namespace yesdaw::engine

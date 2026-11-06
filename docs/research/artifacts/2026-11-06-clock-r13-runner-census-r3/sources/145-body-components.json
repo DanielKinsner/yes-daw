@@ -1,0 +1,882 @@
+{
+  "prices": {
+    "Spend-Task": 17,
+    "Test-TaskPathCatalogueContext": 26,
+    "Add-TaskPathCatalogueEntry": {
+      "repo_input": 62,
+      "ordinary_alias": 119
+    },
+    "Initialize-TaskPathCatalogue": 99368,
+    "Get-TaskCatalogueString": {
+      "hit": 21,
+      "miss": 41
+    },
+    "Get-TaskCatalogueEntryPath": {
+      "hit": 14,
+      "tilde": 72,
+      "first": 9530
+    },
+    "Get-TaskCanonicalPath": 76,
+    "Assert-NoLink": {
+      "normal": 7061,
+      "depth65": 7091,
+      "upper": 7091
+    },
+    "Get-TaskHash": {
+      "fixed": 295,
+      "per_chunk": 65
+    },
+    "Get-TaskHashHex": 15,
+    "Test-TaskHashValue": {
+      "hex": 1509,
+      "binary": 647
+    },
+    "Assert-TaskFreshHashIdentity": {
+      "normal": 27,
+      "refusal_body": 85,
+      "refusal_surplus": 84
+    },
+    "Assert-TaskPollAdmission": {
+      "normal": 11,
+      "refusal": 56
+    },
+    "Invoke-TaskChild": {
+      "fixed": 1047300,
+      "per_argument": 74,
+      "per_string_unit": 53,
+      "per_poll": 135,
+      "completion": 48,
+      "positive": 91
+    },
+    "Add-TaskChildCleanup": {
+      "fixed": 144,
+      "per_Code_unit": 53,
+      "max_Code43": 2423
+    },
+    "Set-TaskRawExit": 21,
+    "Invoke-TaskFencedChild": {
+      "fixed": 109,
+      "binary": 71
+    },
+    "Replace-TaskBounded": {
+      "fixed": 235,
+      "per_aggregate_argument_unit": 53,
+      "per_occurrence": 48
+    },
+    "Reject-TaskGate": 32,
+    "Expect-TaskGate": {
+      "fixed": 94,
+      "per_expected_key": 25
+    },
+    "Add-TaskJsonVisit": 17,
+    "Get-TaskRuntimeType": 16,
+    "Get-TaskBootstrapHash": {
+      "fixed": 285,
+      "per_parent": 48,
+      "per_chunk": 45
+    },
+    "Initialize-TaskController": {
+      "fixed": 2152,
+      "per_argument_unit": 53
+    },
+    "Assert-TaskString": {
+      "fixed": 49,
+      "ASCII": 53,
+      "general": 64
+    },
+    "Get-TaskSafePrefix": {
+      "ASCII": 51,
+      "general": 54
+    },
+    "Assert-TaskIntegral": 61,
+    "Convert-TaskControlOperand": {
+      "builtin": 90,
+      "biginteger": 55
+    },
+    "Assert-TaskExactKeys": {
+      "fixed": 72,
+      "per_key": 81,
+      "per_actual_key_unit": 64
+    },
+    "Set-TaskSecondary": 44,
+    "Close-TaskOwner": {
+      "null": 7,
+      "normal": 12,
+      "firstFailure": 20,
+      "secondaryFailure": 65,
+      "upper": 65
+    },
+    "Close-TaskJsonReader": {
+      "null": 7,
+      "normal": 12,
+      "firstFailure": 20,
+      "secondaryFailure": 65,
+      "upper": 65
+    },
+    "Complete-TaskOwnerClose": {
+      "normal": 16,
+      "propagate": 17
+    },
+    "Get-TaskSecondaryCodes": 506,
+    "Assert-TaskCodecBinding": {
+      "normal": 18,
+      "refusal": 19
+    },
+    "Get-TaskIntegerDigits": {
+      "negative": 309,
+      "unsigned": 307
+    },
+    "Get-TaskEscapedStringBytes": {
+      "fixed": 75,
+      "per_unit": 148
+    },
+    "Add-TaskJsonBound": 27,
+    "Visit-TaskJsonValue": {
+      "string": 184,
+      "boolean": 115,
+      "integer": 455,
+      "map_fixed": 185,
+      "array_fixed": 199,
+      "null": 86,
+      "string_per_unit": 148,
+      "map_per_entry": 223,
+      "map_per_key_unit": 212,
+      "map_separator": 31,
+      "array_per_entry": 20,
+      "array_separator": 31
+    },
+    "Measure-TaskJson": 104,
+    "Join-TaskBoundedNames": {
+      "fixed": 68,
+      "per_name": 87,
+      "per_name_unit": 64
+    },
+    "Get-TaskEntries": {
+      "fixed": 52,
+      "per_directory": 161,
+      "per_candidate": 197,
+      "per_path_unit": 64,
+      "overflow": 127,
+      "replaced_ending": 24
+    },
+    "Copy-TaskOwned": {
+      "fixed": 291,
+      "per_chunk": 71
+    },
+    "Mutate-TaskOwnedBytes": 268,
+    "Assert-TaskRawJson": {
+      "classes": {
+        "outer_integer_path": 241,
+        "string_body": 113,
+        "hex_body": 62,
+        "digits_body": 40,
+        "magnitude_body": 34,
+        "literal_body": 35
+      },
+      "per_input_upper": 525,
+      "fixed_upper": 103
+    },
+    "Assert-TaskRawJsonBytes": {
+      "classes": {
+        "outer_integer_path": 241,
+        "string_body": 136,
+        "hex_body": 62,
+        "digits_body": 40,
+        "magnitude_body": 34,
+        "literal_body": 38
+      },
+      "grammar": 551,
+      "common": 94,
+      "failure": 41,
+      "compaction": 51,
+      "compaction_fixed": 21,
+      "per_input_upper": 602,
+      "fixed_upper": 135
+    },
+    "Read-TaskBoundedBytes": 201,
+    "Read-TaskDependencyJson": 369,
+    "Get-TaskDependencyString": {
+      "fixed": 98,
+      "per_unit": 64
+    },
+    "Read-TaskJson": {
+      "dependency": 328,
+      "predecessor": 339
+    },
+    "Encode-TaskJson": {
+      "fixed": 176,
+      "per_preLF_unit": 41
+    },
+    "Get-TaskStageBytes": {
+      "fixed": 22,
+      "per_row": 73
+    },
+    "Assert-TaskDocumentWrite": {
+      "fixed": 89,
+      "per_path_unit": 64
+    },
+    "Write-TaskJsonBytes": 34,
+    "Write-TaskJson": {
+      "measure_null": 63,
+      "measurement_supplied": 59
+    },
+    "Save-TaskReceipt": 79,
+    "Assert-TaskIdentity": {
+      "normal": 24,
+      "refusal": 88
+    },
+    "Assert-TaskBoundSourceInteger": {
+      "normal": 54,
+      "kind": 90,
+      "nonpositive": 105
+    },
+    "Assert-TaskReservation": {
+      "normal": 20,
+      "refusal": 63
+    },
+    "Assert-TaskRetainedReservation": {
+      "normal": 16,
+      "refusal": 59
+    },
+    "Assert-TaskAttempt": {
+      "normal": 6,
+      "refusal": 46
+    },
+    "Assert-TaskConsolePE": {
+      "normal": 31,
+      "refusal": 89
+    },
+    "Assert-TaskPredecessor": {
+      "normal": 3559,
+      "refusal": 3621
+    },
+    "Get-TaskPredecessorDescriptor": 41637,
+    "Resolve-TaskInput": {
+      "fixed": 136,
+      "per_unit": 64
+    },
+    "Assert-TaskPins": {
+      "fixed": 97,
+      "per_namespace": 58,
+      "per_callback_pair": 41,
+      "per_own": 54,
+      "per_input": 37
+    },
+    "Assert-TaskFileSet": {
+      "fixed": 102,
+      "expected": 83,
+      "observed": 78,
+      "per_name_unit": 64,
+      "refusal_fixed": 171,
+      "refusal_expected": 90,
+      "refusal_observed": 87
+    },
+    "Get-TaskReferences": {
+      "fixed": 55,
+      "per_entry": 39,
+      "per_file": 104
+    },
+    "Assert-TaskSameReferences": {
+      "fixed": 30,
+      "per_file": 51
+    },
+    "Get-TaskPEHeader": 340,
+    "Read-TaskChildResult": {
+      "fixed": 21585,
+      "per_text_unit": 38,
+      "per_control": 12648,
+      "bad_ID_prefix": 11897
+    },
+    "Get-TaskBuildArtifacts": {
+      "fixed": 48,
+      "per_entry": 101
+    },
+    "Assert-TaskDependencies": {
+      "fixed": 349,
+      "per_include": 19,
+      "one_string_fixed": 98,
+      "per_string_unit": 64
+    },
+    "Save-TaskFailureInventory": {
+      "fixed": 198,
+      "per_file": 64
+    }
+  },
+  "port_reconciliation": [
+    {
+      "helper": "Get-TaskHash",
+      "group": "catch raw primary",
+      "source_lines": [
+        152,
+        152
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Get-TaskBootstrapHash",
+      "group": "catch raw primary",
+      "source_lines": [
+        318,
+        318
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Initialize-TaskController",
+      "group": "self owner catch",
+      "source_lines": [
+        338,
+        338
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Read-TaskBoundedBytes",
+      "group": "catch raw primary path",
+      "source_lines": [
+        693,
+        693
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Read-TaskDependencyJson",
+      "group": "caught raw primary",
+      "source_lines": [
+        716,
+        716
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Copy-TaskOwned",
+      "group": "catch raw primary",
+      "source_lines": [
+        504,
+        504
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Mutate-TaskOwnedBytes",
+      "group": "catch raw primary",
+      "source_lines": [
+        508,
+        508
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Get-TaskPEHeader",
+      "group": "catch raw primary",
+      "source_lines": [
+        844,
+        844
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Read-TaskChildResult",
+      "group": "catch raw primary",
+      "source_lines": [
+        893,
+        893
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Invoke-TaskFencedChild",
+      "group": "body catch raw primary",
+      "source_lines": [
+        277,
+        277
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Invoke-TaskFencedChild",
+      "group": "mandatory finally Pins/catch",
+      "source_lines": [
+        279,
+        279
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Save-TaskFailureInventory",
+      "group": "walk catch state/secondary",
+      "source_lines": [
+        923,
+        923
+      ],
+      "reason": "CA608: actual selected handler K and caught-input W; any explicit bare rethrow remains its separate K.",
+      "terms": {
+        "selected_handler_K": 1,
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Expect-TaskGate",
+      "group": "catch Exception local",
+      "source_lines": [
+        296,
+        296
+      ],
+      "reason": "Existing catch_transfer_K is selected-handler K, not unwind machinery; add only missing automatic inputW.",
+      "terms": {
+        "caught_input_W": 1
+      }
+    },
+    {
+      "helper": "Get-TaskEntries",
+      "source_lines": [
+        496,
+        497
+      ],
+      "reason": "Directory selected handler K/W once per reached error upper; finally Close now65+caller2 andComplete20+IDisposableguard4=91."
+    },
+    {
+      "helper": "Close-TaskOwner",
+      "source_lines": [
+        402,
+        404
+      ],
+      "reason": "Every alternative owns functionT on normal catch completion, actual handler K/W and actual Primary/Secondary branch; no extra reference copy or CLR unwind cells."
+    },
+    {
+      "helper": "Close-TaskJsonReader",
+      "source_lines": [
+        695,
+        699
+      ],
+      "reason": "Every alternative owns functionT on normal catch completion, actual handler K/W and actual Primary/Secondary branch; no extra reference copy or CLR unwind cells."
+    },
+    {
+      "helper": "Read-TaskBoundedBytes",
+      "group": "close/complete finally",
+      "source_lines": [
+        693,
+        693
+      ],
+      "reason": "Actual Close source caller/body sponsor resolved to65, no duplicate delivery or scalar destination.",
+      "terms": {
+        "CloseOwner_max": 65
+      }
+    },
+    {
+      "helper": "Read-TaskDependencyJson",
+      "group": "complete finally",
+      "source_lines": [
+        717,
+        717
+      ],
+      "reason": "Actual Close source caller/body sponsor resolved to65, no duplicate delivery or scalar destination.",
+      "terms": {
+        "CloseJson_caller_and_max": 67,
+        "CloseText_caller_and_max": 67,
+        "CloseMemory_caller_and_max": 67
+      }
+    },
+    {
+      "helper": "Get-TaskHash",
+      "group": "two owned close calls",
+      "source_lines": [
+        153,
+        153
+      ],
+      "reason": "Actual Close source caller/body sponsor resolved to65, no duplicate delivery or scalar destination.",
+      "terms": {
+        "two_Close_max": 130
+      }
+    },
+    {
+      "helper": "Get-TaskBootstrapHash",
+      "group": "owner finally",
+      "source_lines": [
+        319,
+        319
+      ],
+      "reason": "Actual Close source caller/body sponsor resolved to65, no duplicate delivery or scalar destination.",
+      "terms": {
+        "two_Close_callers_and_max": 134
+      }
+    },
+    {
+      "helper": "Get-TaskPEHeader",
+      "group": "finally",
+      "source_lines": [
+        845,
+        845
+      ],
+      "reason": "Actual Close source caller/body sponsor resolved to65, no duplicate delivery or scalar destination.",
+      "terms": {
+        "Close_caller_and_max": 67
+      }
+    },
+    {
+      "helper": "Copy-TaskOwned",
+      "group": "two Close and Complete finally",
+      "source_lines": [
+        504,
+        504
+      ],
+      "reason": "Actual Close source caller/body sponsor resolved to65, no duplicate delivery or scalar destination.",
+      "terms": {
+        "two_Close_caller_and_max": 134
+      }
+    },
+    {
+      "helper": "Mutate-TaskOwnedBytes",
+      "group": "owner/Complete finally",
+      "source_lines": [
+        508,
+        508
+      ],
+      "reason": "Actual Close source caller/body sponsor resolved to65, no duplicate delivery or scalar destination.",
+      "terms": {
+        "Close_caller_and_max": 67
+      }
+    },
+    {
+      "helper": "Read-TaskChildResult",
+      "group": "owner finally",
+      "source_lines": [
+        894,
+        894
+      ],
+      "reason": "Actual Close source caller/body sponsor resolved to65, no duplicate delivery or scalar destination.",
+      "terms": {
+        "Close_caller_and_max": 67
+      }
+    },
+    {
+      "helper": "Initialize-TaskController",
+      "group": "self owner finally",
+      "source_lines": [
+        338,
+        338
+      ],
+      "reason": "Actual Close source caller/body sponsor resolved to65, no duplicate delivery or scalar destination.",
+      "terms": {
+        "Close_caller_and_max": 67
+      }
+    },
+    {
+      "helper": "Get-TaskCatalogueEntryPath",
+      "source_lines": [
+        105,
+        105
+      ],
+      "reason": "Join-Path.Path is string[]; scalar source Name/Repo path requires one source coercion, not hidden per-cell work."
+    },
+    {
+      "helper": "Resolve-TaskInput",
+      "group": "selected caller/return upper",
+      "source_lines": [
+        806,
+        812
+      ],
+      "reason": "Relative fallback Join-Path.Path scalar array argument; produced Join result destination remains fused.",
+      "terms": {
+        "Join_Path_scalar_to_array_O": 1
+      }
+    },
+    {
+      "helper": "Copy-TaskOwned",
+      "group": "declared cap and owned prefix",
+      "source_lines": [
+        502,
+        502
+      ],
+      "reason": "Join-Path root Path scalar->string[] before string concatenation.",
+      "terms": {
+        "Join_Path_scalar_to_array_O": 1
+      }
+    },
+    {
+      "helper": "Mutate-TaskOwnedBytes",
+      "group": "owned prefix and two-byte replacement cap",
+      "source_lines": [
+        507,
+        507
+      ],
+      "reason": "Join-Path root Path scalar->string[] before string concatenation.",
+      "terms": {
+        "Join_Path_scalar_to_array_O": 1
+      }
+    },
+    {
+      "helper": "Save-TaskReceipt",
+      "group": "path Join local",
+      "source_lines": [
+        771,
+        771
+      ],
+      "reason": "Join-Path.Path scalar->string[] actual argument.",
+      "terms": {
+        "Join_Path_scalar_to_array_O": 1
+      }
+    },
+    {
+      "helper": "Read-TaskChildResult",
+      "group": "Codec/path/owner locals",
+      "source_lines": [
+        849,
+        849
+      ],
+      "reason": "Join-Path.Path scalar->string[] actual argument.",
+      "terms": {
+        "Join_Path_scalar_to_array_O": 1
+      }
+    },
+    {
+      "helper": "Assert-TaskDependencies",
+      "group": "report Canonical/Join caller",
+      "source_lines": [
+        903,
+        903
+      ],
+      "reason": "Join-Path.Path scalar->string[] actual argument.",
+      "terms": {
+        "Join_Path_scalar_to_array_O": 1
+      }
+    },
+    {
+      "helper": "Assert-TaskDependencies",
+      "group": "resolved Source comparison caller",
+      "source_lines": [
+        910,
+        910
+      ],
+      "reason": "Join-Path.Path scalar->string[] actual argument.",
+      "terms": {
+        "Join_Path_scalar_to_array_O": 1
+      }
+    },
+    {
+      "helper": "Save-TaskFailureInventory",
+      "group": "WriteJson path argument",
+      "source_lines": [
+        926,
+        926
+      ],
+      "reason": "Join-Path.Path scalar->string[] actual argument.",
+      "terms": {
+        "Join_Path_scalar_to_array_O": 1
+      }
+    },
+    {
+      "helper": "Get-TaskPEHeader",
+      "group": "Get-Item literalPath",
+      "source_lines": [
+        842,
+        842
+      ],
+      "reason": "LiteralPath string[] receives scalar Path; Name designator is not a literal R.",
+      "terms": {
+        "string_to_LiteralPath_array_O": 1
+      }
+    },
+    {
+      "helper": "Get-TaskPredecessorDescriptor",
+      "group": "six exact key caller/body",
+      "source_lines": [
+        797,
+        797
+      ],
+      "reason": "Written object[] key literal becomes helper formal string[] once.",
+      "terms": {
+        "Keys_object_to_string_array_O": 1
+      }
+    },
+    {
+      "helper": "Read-TaskChildResult",
+      "group": "summary exact known keys caller/body",
+      "source_lines": [
+        882,
+        882
+      ],
+      "reason": "Source untyped summary literal array is object[]; Keys formal string[] conversion once.",
+      "terms": {
+        "Keys_object_to_string_array_O": 1
+      }
+    },
+    {
+      "helper": "Assert-TaskPins",
+      "source_lines": [
+        818,
+        823
+      ],
+      "reason": "One ForEach Process block->ScriptBlock[] O perNS; one Join Path string->string[] O perOwn4. Script literal setup and actual callback result/input slots remain distinct."
+    },
+    {
+      "helper": "Read-TaskJson",
+      "group": "entry/parameters and actual literal Maximum lift",
+      "source_lines": [
+        726,
+        726
+      ],
+      "reason": "Incoming literal Maximum coercion is owned by caller, not convenience entry price.",
+      "terms": {
+        "caller_Int32_Long_O": 0
+      }
+    },
+    {
+      "helper": "Read-TaskJson",
+      "group": "bounded byte read caller/body",
+      "source_lines": [
+        727,
+        727
+      ],
+      "reason": "Resolve the source-owned callee after its own handler and Close sponsorship:196+handler2+Close3=201.",
+      "terms": {
+        "ReadBounded_identity": 201
+      }
+    },
+    {
+      "helper": "Assert-TaskDependencies",
+      "group": "ReadJson caller/local",
+      "source_lines": [
+        906,
+        906
+      ],
+      "reason": "Actual literal4MiB Int32->ReadJson.Maximum Int64 caller port.",
+      "terms": {
+        "Maximum_Int32_Long_O": 1
+      }
+    },
+    {
+      "helper": "Assert-TaskPins",
+      "group": "manifest Hash caller/local",
+      "source_lines": [
+        821,
+        821
+      ],
+      "reason": "Actual literal1MiB Int32->Hash.Maximum Int64 caller port.",
+      "terms": {
+        "Maximum_Int32_Long_O": 1
+      }
+    },
+    {
+      "helper": "Invoke-TaskFencedChild",
+      "source_lines": [
+        280,
+        280
+      ],
+      "reason": "Actual written33554432 Int32 Hash.Maximum argument gets oneLong coercion at this caller; GetHash fixed base excludes incoming coercion."
+    },
+    {
+      "helper": "Replace-TaskBounded",
+      "group": "while fixed",
+      "source_lines": [
+        288,
+        288
+      ],
+      "reason": "Actual terminal/source loop setup/exit with two Length getters.",
+      "terms": {
+        "fixed": 18
+      }
+    },
+    {
+      "helper": "Replace-TaskBounded",
+      "source_lines": [
+        288,
+        288
+      ],
+      "reason": "IndexOf14=receiverR/W2+TokenR1+AtR1+enum3+threeParamW3+D/E/T3+FoundW1; normal body48; negative-break prefix37 is dominated."
+    },
+    {
+      "helper": "Get-TaskStageBytes",
+      "group": "walker caller/foreach fixed",
+      "source_lines": [
+        751,
+        751
+      ],
+      "reason": "Actual omitted GetEntries Destination default null read at this caller.",
+      "terms": {
+        "Destination_default_null_R": 1
+      }
+    },
+    {
+      "helper": "Get-TaskReferences",
+      "group": "walker caller and foreach fixed",
+      "source_lines": [
+        838,
+        838
+      ],
+      "reason": "Actual omitted GetEntries Destination default null read at this caller.",
+      "terms": {
+        "Destination_default_null_R": 1
+      }
+    },
+    {
+      "helper": "Get-TaskBuildArtifacts",
+      "group": "walker caller and foreach fixed",
+      "source_lines": [
+        899,
+        899
+      ],
+      "reason": "Actual omitted GetEntries Destination default null read at this caller.",
+      "terms": {
+        "Destination_default_null_R": 1
+      }
+    },
+    {
+      "helper": "Save-TaskFailureInventory",
+      "group": "seven-field failure payload/caller",
+      "source_lines": [
+        926,
+        926
+      ],
+      "reason": "Actual omitted WriteJson Maximum/Measurement source defaults once at this helper caller.",
+      "terms": {
+        "Maximum_default_literal_R": 1,
+        "Measurement_default_null_R": 1
+      }
+    }
+  ]
+}

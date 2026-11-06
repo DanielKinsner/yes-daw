@@ -1,0 +1,8 @@
+{
+  "scope": "read-only file request",
+  "attempt": "contract path incorrectly used 20261106 rather than pinned 20261105",
+  "requested": "build-ci/20261106-clock-oracle-separate-research-contract/contract.md",
+  "raw_exit": 1,
+  "result": "File not found; no contract contents obtained; corrected to actual pinned path",
+  "target_execution": false
+}

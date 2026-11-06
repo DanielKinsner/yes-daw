@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "scope": "ClockOracle R4 independent C++ census authoring only",
+  "prototype_manifest_sha256": "2D550D6DDDFF29DAC9BF589C3B23A52531A840E1BAFCC0B6AD5EA0591AF7E97B",
+  "execution": "NONE",
+  "binding": "NONE",
+  "source_review_only": true,
+  "pins": [
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype/clock_stage.cpp","sha256":"4F98DE66BFD720A5AA713D1B3075A3F46732F1F5855E86E0A6D356A53A8AA474","read_scope":"whole file"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype/source-costs.h","sha256":"F96AE41DEE24685EDE35B555676B095C5AD8BBEF8F4CC48A86751EB187527903","read_scope":"whole file"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype/run-clock.ps1","sha256":"B20DB319544BD879D2E132237A0518F4B2BEFAF510EF3142E2E8B57A0D33C8BF","read_scope":"identity only; whole PS census assigned separately"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype/README.md","sha256":"05C9D98BC3D0B496D5B46DAA76DD6EA11E9B35879F85F064498B8A194FA48CB9","read_scope":"whole file"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype/source-manifest.json","sha256":"2D550D6DDDFF29DAC9BF589C3B23A52531A840E1BAFCC0B6AD5EA0591AF7E97B","read_scope":"identity, relevant source-cost and compiler/profile declarations; no full input rehash claim"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/src/engine/Time.h","sha256":"FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590","read_scope":"types, finite-positive, append, scaled, CompiledTempoMap build/whole/checked/native inverse bodies"},
+    {"path":"C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h","sha256":"A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64","read_scope":"whole file"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vector","sha256":"351604D91A2CEAC79F9BD9448C0553CCCC22711E22955B5938EAF41DE98334A6","read_scope":"const iterator construction, dereference, compatibility, subtraction, unwrap/seek; vector begin/end/size/empty/subscript"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xutility","sha256":"D5959E0964EA09991888E5B45EECFD8C71C094034261489FBB450C2F2F450EF5","read_scope":"verify-range, unwrap, seek, advance/distance/next/_Next_iter, upper_bound"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory","sha256":"76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70","read_scope":"raw-pointer unfancy/refancy specializations, iterator/container base0"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/type_traits","sha256":"357E102B4E6AB85A864980A01BBA28440791311DF288B8987B580E577C928D5C","read_scope":"forward/move/addressof"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/array","sha256":"48D2C6C4926E08D0D96F41E59F69513737F76107530F68C94D5D9FE668689A15","read_scope":"size/data/subscript and backing scalar array"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/bit","sha256":"F08C873229E5C11B6E89A0D47C5CA5E2555947321AA382BF52224D041648D483","read_scope":"bit_cast wrapper"},
+    {"path":"C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cmath","sha256":"3F10507B4BCA07CD07B7B4AE1403377634A37E91459305094E9F8CBA34DD8CA5","read_scope":"math overload/export boundary"},
+    {"path":"C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_math.h","sha256":"CA2F0F25B2E07B3613984EFD1135DD9F1D0786FABAA56DA2BA3C83B1A23EB918","read_scope":"fpclassify/isfinite visible wrappers and double libm declarations"}
+  ],
+  "future_binding": {"present":false,"expected_logical_scalar_fields":156,"expected_logical_bytes_before_abi_padding":1248,"sizeof_alignment_link_and_constinit_mechanical_qualification":"PENDING_NOT_EXECUTED","identity_include_edge_and_profile":"PENDING_NO_FABRICATED_PATH_OR_HASH"},
+  "pin_boundary": "Hashes identify the read sources; they do not claim a completed transitive library-body census, a whole manifest input rehash, compilation or execution."
+}

@@ -1,0 +1,256 @@
+{
+  "schema": "YESDAW_CLOCK_R9_INDEPENDENT_NUMERIC_REVIEW_V1",
+  "reviewer": "/root/clock_r9_numeric_review",
+  "verdict": "SCALAR_CONDITIONAL_ACCEPT_WHOLE_PACKET_REVISE_PAYLOAD_HOLD",
+  "subject_files": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/census.md",
+      "bytes": 22548,
+      "sha256": "9F43A03908B5BDE7CC67AFE9EA48D46B18217AD6BCB903B804154FF21C368D78"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/census.json",
+      "bytes": 122330,
+      "sha256": "7F8425F9982EFEC1C5218AFD95F3A8E443C172DEC61112E5F9008306EA6A654E"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/source-pins.json",
+      "bytes": 14161,
+      "sha256": "840645DFD6FFD12177A915081C9757F1BB07943FC8384494A9F4C110D1AE3599"
+    }
+  ],
+  "scalar": {
+    "verdict": "CONDITIONAL_ACCEPT",
+    "runner_upper": 5041187603,
+    "composition_groups": 48,
+    "helper_names": 62,
+    "helper_rows": 72,
+    "historical_main_error_rows": 88,
+    "historical_main_units": 124455,
+    "current_main_delta": 1600,
+    "current_main_units": 126055,
+    "raw_formula": "512*L+106",
+    "raw_calls": 22,
+    "raw_text_units": 4900015,
+    "raw_total": 2508810012,
+    "all_source_coverage_reviewed": true,
+    "meaning": "source-derived scalar upper under the pinned prospective research primitive conventions, not measured visits or a selected/bound work allowance"
+  },
+  "coverage": {
+    "source_read": "All779 runner lines,72 helper price/path rows, all88 historical main/error rows and current deltas, all48 composition equations, graph/byte equations and conditional payload families reviewed. Body identity alone was not used to accept rejected historical numbers.",
+    "body_identity": {
+      "same_count": 58,
+      "changed": [
+        "Assert-TaskDependencyJsonShape",
+        "Read-TaskChildResult",
+        "Read-TaskJson"
+      ],
+      "added": [
+        "Assert-TaskRawJson"
+      ],
+      "same": [
+        "Add-TaskChildCleanup",
+        "Add-TaskJsonBound",
+        "Add-TaskJsonVisit",
+        "Assert-NoLink",
+        "Assert-TaskAttempt",
+        "Assert-TaskBoundSourceInteger",
+        "Assert-TaskCodecBinding",
+        "Assert-TaskConsolePE",
+        "Assert-TaskDependencies",
+        "Assert-TaskDocumentWrite",
+        "Assert-TaskExactKeys",
+        "Assert-TaskFileSet",
+        "Assert-TaskIdentity",
+        "Assert-TaskIntegral",
+        "Assert-TaskPins",
+        "Assert-TaskPollAdmission",
+        "Assert-TaskPredecessor",
+        "Assert-TaskReservation",
+        "Assert-TaskRetainedReservation",
+        "Assert-TaskSameReferences",
+        "Assert-TaskString",
+        "Close-TaskOwner",
+        "Complete-TaskOwnerClose",
+        "Convert-TaskControlOperand",
+        "Copy-TaskOwned",
+        "Encode-TaskJson",
+        "Expect-TaskGate",
+        "Get-TaskBootstrapHash",
+        "Get-TaskBuildArtifacts",
+        "Get-TaskEntries",
+        "Get-TaskEscapedStringBytes",
+        "Get-TaskHash",
+        "Get-TaskIntegerDigits",
+        "Get-TaskPEHeader",
+        "Get-TaskPredecessorDescriptor",
+        "Get-TaskReferences",
+        "Get-TaskRuntimeType",
+        "Get-TaskSafePrefix",
+        "Get-TaskSecondaryCodes",
+        "Get-TaskStageBytes",
+        "Initialize-TaskController",
+        "Invoke-TaskChild",
+        "Invoke-TaskFencedChild",
+        "Join-TaskBoundedNames",
+        "Measure-TaskJson",
+        "Mutate-TaskOwnedBytes",
+        "Read-TaskBoundedBytes",
+        "Reject-TaskGate",
+        "Replace-TaskBounded",
+        "Resolve-TaskInput",
+        "Save-TaskFailureInventory",
+        "Save-TaskReceipt",
+        "Set-TaskRawExit",
+        "Set-TaskSecondary",
+        "Spend-Task",
+        "Visit-TaskJsonValue",
+        "Write-TaskJson",
+        "Write-TaskJsonBytes"
+      ]
+    },
+    "fixed_parents": {
+      "identities": 1191,
+      "parent_requests": 11952,
+      "UTF16_units": 685912,
+      "eight_fence_payload_bytes": 10974592
+    },
+    "mechanical_checks": 1492,
+    "mechanical_failures": [],
+    "symbolic_graph_checks": 45,
+    "symbolic_exact_capacity_findings": [
+      {
+        "name": "receipt.clone_primes",
+        "actual": 362,
+        "packet_upper": 462,
+        "pass": false
+      }
+    ],
+    "source_primary_pins_rehashed": 11,
+    "additional_primary": "HashHelpers.cs at exact same .NET source commit, separately downloaded and pinned"
+  },
+  "source_schedule_review": [
+    "Eight complete fences1191identities/7807chunks each; source hash9664/72992chunk schedule, Resolve13267, outsideNoLink415, all namespace/ordinary/failure walker branches and their controlled overflow alternatives.",
+    "Namespace27/1058entries/1012files and guard1085rows/692directory-iteration upper re-derived from actual source manifest; all1186input files plus4own and manifest seals rehashed; no reparse or file-set discrepancy.",
+    "FileSet224 ordinary slots N=M8351, three expected refusalsN168/M169; at mosttwo outside-control refusal replacements. Replacement201+32862N+32864M, actual1191profile156559734, not old doubled row.",
+    "Child3 slots28/6/6 arguments, eight environment values,7200normalpolls/7201gateprefix,257positive stage checks,260completed-body upper,13cleanup obligations/quarantine alternative.784totalStageBytes including13document checks. No Sleep timing credit.",
+    "FourPEHeaders, three ordinaryConsolePE and one expectedGUI refusal; known GUI file is never launched. Four receipts and11measurements/7encodes; five bundle preflights are not five encodes.",
+    "Raw lexer all-token prefix, numeric/fraction-refusal boundary, string/escape/Unicode/surrogate, true/false/null loop and error alternatives priced.234+111+61+38+32+36=512; fixed106 and numeric112 independently sum; literals36L preserved.",
+    "ReadTaskJson captured predecessor hash path/defaults/typedconversions, bootstrap fused caller9, dependency wrapper19,14admittedcontrols/84operand normalizations, summary projections and one bad-ID refusal-prefix replacement.19normalSDKparses/22Raw calls; no fabricated extra summary/read capacity.",
+    "Old303 ReadJson/9425copy/2136controller fixed-group corrections retained. Mandatory source defaults and caller/callee destinations checked without extra incoming reads or duplicate direct-result destinations; no new optimizer/bulk/CLRCPU discount."
+  ],
+  "graph_review": {
+    "receipt": {
+      "source_counts_match": true,
+      "independent_string_units_upper": 7591,
+      "packet_string_units_upper": 7601,
+      "safe_difference": 10,
+      "initial_overconservative_candidate": 8359,
+      "reconciliation": "13*43 cleanup-code guess was replaced by the actual source obligation-family upper303/child (11+34+26+2*28+2*21+2*25+4*21). Quarantine43 replaces fourowner strings84. No defect from the larger conservative8359 candidate."
+    },
+    "bundle": "All counts and807965stringunits exactly re-derived, including all56relative_path fields.",
+    "failure": "All counts and42504stringunits exactly re-derived.",
+    "marker": "All counts and75stringunits exactly re-derived.",
+    "clone_capacity": "3*3+37*3+6*7+5*7+1*7+2*17+3*29+1*37 =362; 7+4*362+8836+553 =10844"
+  },
+  "payload": {
+    "verdict": "HOLD_UNQUALIFIED",
+    "scratch_cap": 33554432,
+    "known_requested_byte_subtotal": 6626082,
+    "normal_decode_storage_upper": 9799918,
+    "strongest_retained_reader_lower": 21037056,
+    "new_NOFIT": false,
+    "new_fit": false,
+    "conditional_equations_review": "Environment copy-before-Clear needs nativeblock+key/value strings+Hashtable+Dictionary retained capacities for each ofthreechildren. Eight outgoing entries do not bound the inherited capture. Bnative/entry/unit symbols, growth/rehash/FreeEnvironmentStringsW conditions and separate external startup/PSModulePath launch profile are explicit. No actual environment values/counts were read. StreamReader byte4096/char(GetMaxCharCount) pairs, command quoting/pool backings, reader/string-token growth and writer/source-container capacities remain conditional. The12primary source identities are source associations only, not binary certificates.",
+    "reader_review": "Strict lexer rejects the R7 long-number witness before SDK, but whitespace-paced false permits readergrowth65536 at32771bytes. The4MiB13false source candidate reaches char4194304, not8388608; four-owner21037056 is below cap. The finite loose array-request upper is not a simultaneous violation or a fit certificate.",
+    "remaining_obligations": [
+      "tight full reader/StringBuffer/JToken/parsed-map allocation schedule",
+      "all serialization writer/escape/number-format/chunk/output/clone joins and corrected exact clone sums",
+      "all original PowerShell containers/scalar/reference arrays/backings and selected cell/entry ABI",
+      "all normalized/short-name/path/walker/join/ArrayPool capacities and first-use failure prefixes",
+      "allthree exact inherited environment profiles and startup/modulepath changes",
+      "process command/pool/stream/console encoding capacity associations",
+      "all reached controlled raw-error/message/JSONPath/ErrorRecord copies and cleanup failures",
+      "native binary/source/ABI association and all actual physical release qualifications"
+    ],
+    "proposals": "Path/parent-string catalogue and original-token-aware in-place byte whitespace compaction remain proposals only. Compaction does not eliminate near4MiB inside-string Unicode escape input or guarantee32MiBfit. No source edits/expanded domains/cap changes authorized by this review."
+  },
+  "findings": [
+    {
+      "id": "R9-PAYLOAD-CLONE-PRIME-ARITHMETIC",
+      "severity": "P2",
+      "scope": "exact controlled-payload capacity derivation only; no scalar change",
+      "locations": [
+        {
+          "file": "census.json",
+          "line": 76
+        },
+        {
+          "file": "census.json",
+          "line": 2803
+        },
+        {
+          "file": "census.json",
+          "line": 2806
+        },
+        {
+          "file": "census.json",
+          "line": 2808
+        },
+        {
+          "file": "census.md",
+          "line": 114
+        }
+      ],
+      "problem": "The packet claims an exact receipt clone prime-capacity sum462 from its58-map field histogram. The selected Dictionary(capacity) calls Initialize(capacity), which allocates GetPrime(capacity) buckets and entries. The actual prime mapping yields362. The four receipt clones therefore sum1448 rather than1848 and all seven serialization clone capacity families sum10844 rather than11244.",
+      "histogram": {
+        "2": 3,
+        "3": 37,
+        "4": 6,
+        "5": 5,
+        "6": 1,
+        "13": 2,
+        "24": 3,
+        "30": 1
+      },
+      "prime_mapping": {
+        "2": 3,
+        "3": 3,
+        "4": 7,
+        "5": 7,
+        "6": 7,
+        "13": 17,
+        "24": 29,
+        "30": 37
+      },
+      "equation": "3*3+37*3+6*7+5*7+1*7+2*17+3*29+1*37 =362; 7+4*362+8836+553 =10844",
+      "source_evidence": [
+        "powershell-JsonObject.cs:743-770",
+        "primary-sources/Dictionary.cs:46-55",
+        "primary-sources/Dictionary.cs:489-503",
+        "primary-sources/HashHelpers.cs:28-34",
+        "primary-sources/HashHelpers.cs:50-59"
+      ],
+      "impact": "Conservative overestimate, not under-allocation or a proven32MiB violation. It does not change source scalar5,041,187,603 or resolve the payload HOLD. Whole-packet exact-arithmetic acceptance requires a separate narrow corrected successor/erratum and review; do not silently edit the sealed packet or adopt unexplained100-per-receipt slack.",
+      "recommended_correction": {
+        "receipt": 362,
+        "receipts_four": 1448,
+        "all_seven": 10844,
+        "map_clone_storage": "10844*(4+dictionary_entry_object_stride) plus separately unqualified source dictionary fields/ABI storage"
+      }
+    }
+  ],
+  "authorities": {
+    "selected_limit": false,
+    "combined_U": false,
+    "typed_literal_binding": false,
+    "guard_promotion": false,
+    "target_execution_GO": false,
+    "compiler": false,
+    "producer": false,
+    "verifier": false,
+    "hardware": false,
+    "production_DSP_or_Ready": false
+  },
+  "execution_boundary": "Only ordinary source/artifact text, JSON, file/hash/namespace reads, independent Python integer/symbolic models and exact primary-source HTTP reads. No target PowerShell parser/AST/import/helper, compiler, C++ program, child process, Catalogue, data generation, stage, app/UI, audio/MIDI device, Git/CI action or protected source mutation."
+}

@@ -1,0 +1,26 @@
+{
+  "scope": "FIRST_GREEN_LOSSLESS_SOURCE_INDEX_ONLY",
+  "files": [
+    {
+      "file": "builder.py",
+      "bytes": 4858,
+      "sha256": "F15AFB9DBB38DA545525B9921ECECA03F42883517189B2777F520DA5391B2644"
+    },
+    {
+      "file": "raw-payloads.json",
+      "bytes": 24644256,
+      "sha256": "699A2A84C742CFC72995F2048D9823730B9580C7D85F722BC12081132A0399D8"
+    },
+    {
+      "file": "README.md",
+      "bytes": 562,
+      "sha256": "8F339FCF369C971C0C58B4307C53ED5961C8052F0AE467EF3BD2EEE26CEDAAC7"
+    },
+    {
+      "file": "source-pins.json",
+      "bytes": 322547,
+      "sha256": "31F467BEF808135702A3485E463262723BACF167A943D396981AB61DC8DE3C7A"
+    }
+  ],
+  "target_execution": false
+}

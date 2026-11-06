@@ -1,0 +1,82 @@
+{
+  "binary_sha256": "afe8b6ef6e5ff6682239ff8f222e9393c896cbd1bc10bb46b2e633736899c295",
+  "children": [
+    {
+      "name": "one_compile",
+      "raw_exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "name": "one_calibration",
+      "raw_exit_code": 0,
+      "timed_out": false
+    }
+  ],
+  "compiler": {
+    "exact_compile_argv": [
+      "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+      "/nologo",
+      "/std:c++20",
+      "/EHsc",
+      "/W4",
+      "/WX",
+      "/MD",
+      "/permissive-",
+      "/fp:strict",
+      "/O2",
+      "/IC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\src",
+      "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-waveform-quality-prep\\quality-calibration-r5\\quality_calibration.cpp",
+      "/Fe:C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-waveform-quality-prep\\quality-calibration-r5\\root-runs\\CompileCalibrate-20261105T131552.901514Z-635fcc27\\quality-calibration.exe",
+      "/Fo:C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-waveform-quality-prep\\quality-calibration-r5\\root-runs\\CompileCalibrate-20261105T131552.901514Z-635fcc27\\quality-calibration.obj",
+      "/link",
+      "/SUBSYSTEM:CONSOLE"
+    ],
+    "executable_sha256_after": "88c8344236a27a6e727e0a8edc49aaa2690bdc7a9464b9d18cc7abe70a9f1c0d",
+    "executable_sha256_before": "88c8344236a27a6e727e0a8edc49aaa2690bdc7a9464b9d18cc7abe70a9f1c0d",
+    "explicit_resolved_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+    "profile": {
+      "family_required_by_source": "MSVC_NOT_CLANG",
+      "floating_point": "strict",
+      "language": "C++20",
+      "link_subsystem_request": "CONSOLE",
+      "optimization": "O2",
+      "permissive": false,
+      "runtime": "MD",
+      "warnings": "W4_WX"
+    }
+  },
+  "linked_pe": {
+    "file_bytes": 205824,
+    "machine": 34404,
+    "optional_header_magic": 523,
+    "status": "ACTUAL_LINKED_PE_CONSOLE_VERIFIED_BEFORE_LAUNCH",
+    "subsystem": 3,
+    "subsystem_name": "IMAGE_SUBSYSTEM_WINDOWS_CUI"
+  },
+  "native_or_device_invoked": false,
+  "reviewed_freeze_bundle_sha256": "F5F981826BBA93B49D1E103D60916A60AC81959F7721A4C7FC508B527966E071",
+  "run": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-waveform-quality-prep\\quality-calibration-r5\\root-runs\\CompileCalibrate-20261105T131552.901514Z-635fcc27",
+  "source_execution_before_this_root_invocation": false,
+  "source_manifest_sha256": "f48b3b5683b881c9dc6d7112e65cde42250ff0977a4dcf0dca3d2e0634946b67",
+  "stage": "CompileCalibrate",
+  "status": "ANALYTIC_INSTRUMENT_CALIBRATION_COMPLETED_ONLY",
+  "summary": {
+    "clock_queries": 690,
+    "expected_equal_mixture_refusals": 45,
+    "maximum_checker_payload_bytes": 16778784,
+    "maximum_whole_case_charged_source_units": 16712563090,
+    "maximum_whole_case_payload_bytes": 53081104,
+    "production_admission": false,
+    "rows": 1125,
+    "source_error_premise_measured": false,
+    "status": "INSTRUMENT_CALIBRATED_ANALYTIC_FIXTURES_ONLY",
+    "tone_charged_source_units_total": 196749514074,
+    "tone_elementary_calls_charged_total": 26092463766,
+    "vendor_candidate_invoked": false,
+    "whole_cases": 6,
+    "whole_phase_units_are_reserved_uppers": true,
+    "whole_window_rows": 3564
+  },
+  "toolchain_env_sha256": null,
+  "vendor_candidate_invoked": false
+}

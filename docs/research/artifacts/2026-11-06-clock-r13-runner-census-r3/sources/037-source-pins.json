@@ -1,0 +1,43 @@
+{
+  "schema": "NARROW_ERRATUM_PINS",
+  "inputs": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/census.json",
+      "sha256": "7F8425F9982EFEC1C5218AFD95F3A8E443C172DEC61112E5F9008306EA6A654E"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/census.md",
+      "sha256": "9F43A03908B5BDE7CC67AFE9EA48D46B18217AD6BCB903B804154FF21C368D78"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/source-pins.json",
+      "sha256": "840645DFD6FFD12177A915081C9757F1BB07943FC8384494A9F4C110D1AE3599"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/review.json",
+      "sha256": "D0DCA45718C6ACAD715DE0B44B7C864F03AFFF442A6819C22B416F3C73BCB696"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/review.md",
+      "sha256": "9C9C48E1560600BA5FC669E92303A23236C9AA7B63BDF2DCC4B2FC2F3B8B18F1"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/review-pins.json",
+      "sha256": "1827DB0415C2136748F378EE2BC2FD4D5EE001CD1C1D382894E774489A084FEC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1/erratum.json",
+      "sha256": "36453AC17D85CFAF7C28F6FDFE32290FB09DDF4124E97B974A4FED58BFBC79EA"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1/erratum.md",
+      "sha256": "E017B59E87BD3ABD76A9FEAFEFB80DBFA1DE41F9397B06B855A4B02A382996DA"
+    }
+  ]
+}

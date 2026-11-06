@@ -1,0 +1,142 @@
+[
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r3/argument.template.md",
+    "bytes": 16514,
+    "sha256": "DF4CD7DF426F1C7D9160A78400840D564B826A5D97C958988C197D7CE958BE38"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r3/failed-read-attempt-01.json",
+    "bytes": 671,
+    "sha256": "881A8472431CB8A53F71A507421D3956D10DE12AE8B890005A9BB5FCFD188A53"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r3/families.py",
+    "bytes": 15596,
+    "sha256": "73F6EF9DD01B59864074308BC25DF554E54BCA9F8CD44CA62AF89FE020B28C25"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r3/invoke.py",
+    "bytes": 3817,
+    "sha256": "25BBB8CBEA624FB51203637740876DF8EE36771DFD4B0762FAB71DC51C3FA283"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r3/rebuild.py",
+    "bytes": 48035,
+    "sha256": "4F80AD2E852BACA0A66FA8F8A69ADDEBC84DC2DD14960BFA488F5C2AB9098C16"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r3/schedules.py",
+    "bytes": 4597,
+    "sha256": "23CC0ABCB0C8D1E2D92C7083EE6858067EE1292893589A64B3E31E49A06E7E6C"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r3/shapes.py",
+    "bytes": 7051,
+    "sha256": "F04B17303E993A01F6B6310D5CFFA47256BF4BA73F55098A34824C95D395825A"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r3/WORKING.md",
+    "bytes": 1672,
+    "sha256": "A4AA17A40D74D5C82851AD7F4116F09AE784B3B1B5544D14B437318418567366"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r2/source-inventory.json",
+    "bytes": 603206,
+    "sha256": "12B4B7652C0B61EB639A6A6183693098B3150D7E01A78EBA01DA2E8F8689242F"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r2/source-pins.json",
+    "bytes": 320241,
+    "sha256": "DFC0F598BF3CECC00484A3772B86819BA2EF71A11078B26B30ED73ECA8BB4B93"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r2/census.json",
+    "bytes": 30361,
+    "sha256": "90E6F31DBF49D8D4A5B5DAC4B08AA022BF47EA94112850AEFD228F0B14D069CC"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r2/body-components.json",
+    "bytes": 22483,
+    "sha256": "F1C1A2F675B8740869B222D043F2EEA3533E96F824FA700AABF9F032E50C0038"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r2/phase-schedules.json",
+    "bytes": 11871,
+    "sha256": "F12CDE8966CECF8270C19D1609F18E49F1C20ED5D5A2BCAB7CF09A2D76A9FE00"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r2/source-graphs.json",
+    "bytes": 1514,
+    "sha256": "2DE7DA16FEAD2516C6878DCB960EBEE35C7944A8177CC2B8CF4B4D3F3EF56F35"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r2/first-green-whole-source-freeze.json",
+    "bytes": 10333,
+    "sha256": "F0C4439F557C5E59DBB1096AA0DACFE9DB62EDAD944E68AD52D14B20C4876BB6"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-r2/argument.md",
+    "bytes": 18033,
+    "sha256": "3BC494E74D08CF1C7D32EFAB6150B75DB14CEBBCB45AC54F60663221D104A682"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r2/review.md",
+    "bytes": 10376,
+    "sha256": "D1D11F4EEDF9329302240F5AA28355D5EB12F6A6869CBE87BAB3002B2DEF2678"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r2/review.json",
+    "bytes": 589177,
+    "sha256": "A9F97BDE57B80B7F92BF8AE8E6EDF3C755E7AABD41DAA63F3FE5595C0E42A06E"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r2/source-pins.json",
+    "bytes": 8508,
+    "sha256": "60D7833F12C237370822E785F3058244A4C2CCB422DBE3064068FB498520B33F"
+  },
+  {
+    "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r2/first-complete-own-pass-freeze.json",
+    "bytes": 1469,
+    "sha256": "60AFB6730C193E342C1962E61406F1E99FC3AB532F3B062E461D1AA06F6AB44F"
+  },
+  {
+    "path": "build-ci/20261106-r13-main-caller-ledger-r3/caller-ledger.json",
+    "bytes": 155738,
+    "sha256": "6FB853C6244C0C5EEEC68F114471B75953C4A959944F3B44C3D5F61EB7A59BF3"
+  },
+  {
+    "path": "build-ci/20261106-r13-main-caller-ledger-r3/argument.md",
+    "bytes": 6406,
+    "sha256": "981B2E1EA5992B1AC0ED8B5DB9723D0E18A8A592D653376D3D409BA3D9B60457"
+  },
+  {
+    "path": "build-ci/20261106-r13-main-caller-ledger-r3/source-pins.json",
+    "bytes": 4509,
+    "sha256": "B554C2BEAD02A1A3DC0816C1D896CF44448517838787ED88364EEE13798C32DB"
+  },
+  {
+    "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+    "bytes": 108428,
+    "sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788"
+  },
+  {
+    "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+    "bytes": 503610,
+    "sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3"
+  },
+  {
+    "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/README.md",
+    "bytes": 23499,
+    "sha256": "7243B4D955A821A59340928CE3D06D2810C85B9D58C5792AA97B8F34CC565512"
+  },
+  {
+    "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+    "bytes": 3725,
+    "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+  },
+  {
+    "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+    "bytes": 34958,
+    "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+  }
+]

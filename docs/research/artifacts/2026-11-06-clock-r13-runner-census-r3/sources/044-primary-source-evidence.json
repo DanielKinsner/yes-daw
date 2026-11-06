@@ -1,0 +1,79 @@
+[
+  {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/ProcessStartInfo.cs",
+    "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/ProcessStartInfo.cs",
+    "bytes": 8090,
+    "sha256": "E3CA0240C9FB9AF963631AD0C04B62CE577079D7FD177AF150096E9E15627E6E",
+    "pass": true
+  },
+  {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/Process.Windows.cs",
+    "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Process.Windows.cs",
+    "bytes": 41903,
+    "sha256": "49620FB20FEFFB84E36D587A381C0CF161E3EC8C114F6FF1E7FA2D7672B518CF",
+    "pass": true
+  },
+  {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Environment.Variables.Windows.cs",
+    "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Environment.Variables.Windows.cs",
+    "bytes": 5749,
+    "sha256": "84E3F67D9C45361C862784C5F75FED4A53507B4D42B364A707C57F411DC6BE4A",
+    "pass": true
+  },
+  {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Hashtable.cs",
+    "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Hashtable.cs",
+    "bytes": 63165,
+    "sha256": "BC06B72D387FAE36844C63ADA61D0AB5BC447E9710AA3891906EE4E923DE674C",
+    "pass": true
+  },
+  {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/Dictionary.cs",
+    "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+    "bytes": 93117,
+    "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA",
+    "pass": true
+  },
+  {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/List.cs",
+    "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/List.cs",
+    "bytes": 43437,
+    "sha256": "1346574BE64B5708F97AAA196AD474A63FF52F6D977D7AE18C366A600766F036",
+    "pass": true
+  },
+  {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/StreamReader.cs",
+    "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/StreamReader.cs",
+    "bytes": 61606,
+    "sha256": "9E570DB6C4CA8CBDF8065BACB8212ECE0CB5A4216738217EB99C3E8018E488B9",
+    "pass": true
+  },
+  {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/StringReader.cs",
+    "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/StringReader.cs",
+    "bytes": 11996,
+    "sha256": "78804249EB16A854FAEF70B19D0A7B4922DC504C1EAF2DAC446F26EEE45429AD",
+    "pass": true
+  },
+  {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/Path.cs",
+    "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Path.cs",
+    "bytes": 39112,
+    "sha256": "51E40D247651B4BD267A14C102709C1CB460CFFB386064C2F05A0CB69DDB0BE8",
+    "pass": true
+  },
+  {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/Path.Windows.cs",
+    "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Path.Windows.cs",
+    "bytes": 15866,
+    "sha256": "C0CF4FE4202E48F8553900ECF1C956C84263E674F62B14B43D401C2DB7F8D049",
+    "pass": true
+  },
+  {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Text/StringBuilder.cs",
+    "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/StringBuilder.cs",
+    "bytes": 144081,
+    "sha256": "4852F4B57D749BBFB9D5B865E0784974EE5F056DE4427C6E584FB4ECD193C751",
+    "pass": true
+  }
+]

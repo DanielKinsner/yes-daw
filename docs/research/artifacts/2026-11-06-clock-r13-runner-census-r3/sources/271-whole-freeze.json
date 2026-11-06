@@ -1,0 +1,19 @@
+{
+  "schema": "R13_R3_FIRST_COMPLETE_OWN_GREEN_FREEZE_V1",
+  "checks": 9244,
+  "failed_invocations": 1,
+  "source_pins": {
+    "path": "build-ci/20261106-clock-r13-runner-census-r3/source-pins.json",
+    "bytes": 343253,
+    "sha256": "63928A3072592D9C8774B9B6673DC2DA6499A874E7161663A533DB4C0686CDBA"
+  },
+  "own_file_count": 84,
+  "all_helpers_and_oracles_frozen": true,
+  "postgreen_edits_authorized": false,
+  "source_price_acceptance": false,
+  "source_functionality": "HOLD_Type_array_EmptyTypes",
+  "resource_fit": false,
+  "combined_U": false,
+  "Data": false,
+  "execution_GO": false
+}

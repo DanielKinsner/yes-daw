@@ -1,0 +1,91 @@
+{
+  "schema": "R9_EXACT_CLONE_CAPACITY_NARROW_ERRATUM",
+  "scope": "Correct only the exact prime-capacity arithmetic, preserve sealed R9 packet and independent review. Not a complete controlled-payload bound or execution authority.",
+  "subject_census_sha256": "7F8425F9982EFEC1C5218AFD95F3A8E443C172DEC61112E5F9008306EA6A654E",
+  "independent_review_sha256": "D0DCA45718C6ACAD715DE0B44B7C864F03AFFF442A6819C22B416F3C73BCB696",
+  "hashhelpers_source_sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4",
+  "review_artifacts_reverified": 21,
+  "receipt_histogram_rows": [
+    {
+      "fields": 2,
+      "maps": 3,
+      "selected_prime": 3,
+      "cells": 9
+    },
+    {
+      "fields": 3,
+      "maps": 37,
+      "selected_prime": 3,
+      "cells": 111
+    },
+    {
+      "fields": 4,
+      "maps": 6,
+      "selected_prime": 7,
+      "cells": 42
+    },
+    {
+      "fields": 5,
+      "maps": 5,
+      "selected_prime": 7,
+      "cells": 35
+    },
+    {
+      "fields": 6,
+      "maps": 1,
+      "selected_prime": 7,
+      "cells": 7
+    },
+    {
+      "fields": 13,
+      "maps": 2,
+      "selected_prime": 17,
+      "cells": 34
+    },
+    {
+      "fields": 24,
+      "maps": 3,
+      "selected_prime": 29,
+      "cells": 87
+    },
+    {
+      "fields": 30,
+      "maps": 1,
+      "selected_prime": 37,
+      "cells": 37
+    }
+  ],
+  "receipt_maps": 58,
+  "receipt_fields": 300,
+  "corrected_receipt_capacity": 362,
+  "corrected_four_receipts_capacity": 1448,
+  "corrected_all_seven_capacity": 10844,
+  "all_seven_equation": "7+4*362+8836+553=10844",
+  "superseding_claims": [
+    {
+      "location": "graphs.receipt.clone_dictionary_prime_capacity_sum",
+      "old": 462,
+      "corrected": 362
+    },
+    {
+      "location": "controlled_payload.serialization.map_clone_capacity_cells.receipts_four",
+      "old": 1848,
+      "corrected": 1448
+    },
+    {
+      "location": "controlled_payload.serialization.map_clone_capacity_cells.total_each_of_entry_and_bucket_arrays",
+      "old": 11244,
+      "corrected": 10844
+    },
+    {
+      "location": "controlled_payload.serialization.map_clone_storage",
+      "old": "11244*(4+dictionary_entry_object_stride)",
+      "corrected": "10844*(4+dictionary_entry_object_stride)"
+    }
+  ],
+  "source_scalar_upper_unchanged": 5041187603,
+  "controlled_payload": "HOLD_UNQUALIFIED",
+  "new_NOFIT": false,
+  "selected_or_bound_work_limit": null,
+  "target_execution_authorized": false
+}

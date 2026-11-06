@@ -1,0 +1,37 @@
+{
+  "record_created_utc": "2026-11-05T23:10:06.443309+00:00",
+  "kind": "MECHANICAL_ARITHMETIC_ERRATUM_NOT_NEW_SOURCE_OR_FIT_PROOF",
+  "old_source_and_reports_untouched": {
+    "build-ci\\20261105-clock-oracle-r4-cpp-census\\census.md": "B415336A0A7576EAAB422BF7D12F19EDB419B2D9A20950176937E39E2830BCC4",
+    "build-ci\\20261105-clock-oracle-r4-cpp-census\\census.json": "10935399D84D18108E2C9C3BFA871DC5257B57ABC06258623DB6491E08303283",
+    "build-ci\\20261105-clock-oracle-r4-cpp-census\\source-pins.json": "C939AA8CF00125FAC82648B823790238C22E2D5D1A474B48645DE6D724DCB872",
+    "build-ci\\20261105-clock-oracle-r4-independent-review.json": "E2E059805440624991E757826258C57511AF5534B56F425D4A377A005AC398C0",
+    "build-ci\\20261105-clock-oracle-separate-research-contract\\contract.md": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+  },
+  "reported_cut": 224,
+  "sum_listed_cut_groups": 124,
+  "reported_tick": 105,
+  "sum_listed_tick_groups": 95,
+  "sum_listed_fraction_groups": 122,
+  "recomputed_production_subtotal": 233,
+  "cached_subtotal": 69,
+  "quoted_queries": 16929297,
+  "quoted_fractional_queries": 16405308,
+  "corrected_arithmetic_terms": [
+    4198465656,
+    7644873528,
+    2263932504
+  ],
+  "corrected_arithmetic_subtotal": 14107271688,
+  "old_claimed_subtotal": 17821237248,
+  "old_cap": 17179869184,
+  "difference_below_old_cap": 3072597496,
+  "old_NOFIT_proof": "WITHDRAWN_UNESTABLISHED",
+  "old_full_fit": "UNKNOWN",
+  "new_U_or_limit_selected": false,
+  "execution_authorized": false,
+  "canonical_erratum": {
+    "path": "docs/research/2026-11-05-clock-oracle-budget-arithmetic-correction.md",
+    "sha256": "56C73E4F91D5252E203BB4A1DDE422595DD74D7C7526614EB938AF9B5875DE21"
+  }
+}

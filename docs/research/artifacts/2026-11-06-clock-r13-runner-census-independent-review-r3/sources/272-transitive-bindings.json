@@ -1,0 +1,709 @@
+[
+  {
+    "owner": "Initialize-TaskPathCatalogue",
+    "term": "Add_true",
+    "value": 62,
+    "recomputed": 62,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Initialize-TaskPathCatalogue",
+    "term": "Add_false",
+    "value": 119,
+    "recomputed": 119,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Initialize-TaskPathCatalogue",
+    "term": "Add_false",
+    "value": 119,
+    "recomputed": 119,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskCatalogueEntryPath",
+    "term": "String_miss_and_caller",
+    "value": 44,
+    "recomputed": 44,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskCatalogueEntryPath",
+    "term": "parent_String_miss_and_caller",
+    "value": 44,
+    "recomputed": 44,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskCatalogueEntryPath",
+    "term": "String_miss",
+    "value": 41,
+    "recomputed": 41,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskCanonicalPath",
+    "term": "Context",
+    "value": 26,
+    "recomputed": 26,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Get-TaskHash",
+    "term": "Spend64_caller_and_body",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskHash",
+    "term": "two_Close_max",
+    "value": 130,
+    "recomputed": 130,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskHash",
+    "term": "Complete_max",
+    "value": 17,
+    "recomputed": 17,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskHash",
+    "term": "Spend32_caller_and_body",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Assert-TaskFreshHashIdentity",
+    "term": "GetHashHex",
+    "value": 15,
+    "recomputed": 15,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskFreshHashIdentity",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskPollAdmission",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Invoke-TaskChild",
+    "term": "two_Spend_literal_callers_and_bodies",
+    "value": 40,
+    "recomputed": 40,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Invoke-TaskChild",
+    "term": "String_fixed",
+    "value": 49,
+    "recomputed": 49,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Add-TaskChildCleanup",
+    "term": "String_fixed",
+    "value": 49,
+    "recomputed": 49,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Add-TaskChildCleanup",
+    "term": "SetSecondary",
+    "value": 44,
+    "recomputed": 44,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Add-TaskChildCleanup",
+    "term": "String_ASCII",
+    "value": 53,
+    "recomputed": 53,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Invoke-TaskFencedChild",
+    "term": "SetSecondary",
+    "value": 44,
+    "recomputed": 44,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Replace-TaskBounded",
+    "term": "String_ASCII",
+    "value": 53,
+    "recomputed": 53,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Get-TaskBootstrapHash",
+    "term": "two_Close_callers_and_max",
+    "value": 134,
+    "recomputed": 134,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskBootstrapHash",
+    "term": "Complete_caller_and_max",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Initialize-TaskController",
+    "term": "Close_caller_and_max",
+    "value": 67,
+    "recomputed": 67,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Initialize-TaskController",
+    "term": "Complete_caller_and_max",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Initialize-TaskController",
+    "term": "Codec",
+    "value": 18,
+    "recomputed": 18,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Initialize-TaskController",
+    "term": "String_ASCII",
+    "value": 53,
+    "recomputed": 53,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Convert-TaskControlOperand",
+    "term": "RuntimeType",
+    "value": 16,
+    "recomputed": 16,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskExactKeys",
+    "term": "RuntimeType",
+    "value": 16,
+    "recomputed": 16,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskExactKeys",
+    "term": "String_general",
+    "value": 64,
+    "recomputed": 64,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Close-TaskOwner",
+    "term": "SetSecondary",
+    "value": 44,
+    "recomputed": 44,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Get-TaskEscapedStringBytes",
+    "term": "String_fixed",
+    "value": 49,
+    "recomputed": 49,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Get-TaskEscapedStringBytes",
+    "term": "Spend1_with_conversion",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Visit-TaskJsonValue",
+    "term": "Spend_caller_and_body",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Visit-TaskJsonValue",
+    "term": "RuntimeType",
+    "value": 16,
+    "recomputed": 16,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Visit-TaskJsonValue",
+    "term": "AddBound",
+    "value": 27,
+    "recomputed": 27,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Visit-TaskJsonValue",
+    "term": "AddBound",
+    "value": 27,
+    "recomputed": 27,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Visit-TaskJsonValue",
+    "term": "AddBound",
+    "value": 27,
+    "recomputed": 27,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Visit-TaskJsonValue",
+    "term": "AddBound",
+    "value": 27,
+    "recomputed": 27,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Visit-TaskJsonValue",
+    "term": "AddBound",
+    "value": 31,
+    "recomputed": 31,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Visit-TaskJsonValue",
+    "term": "AddBound",
+    "value": 31,
+    "recomputed": 31,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Measure-TaskJson",
+    "term": "Codec",
+    "value": 18,
+    "recomputed": 18,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Measure-TaskJson",
+    "term": "AddBound",
+    "value": 27,
+    "recomputed": 27,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Join-TaskBoundedNames",
+    "term": "String_general",
+    "value": 64,
+    "recomputed": 64,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Get-TaskEntries",
+    "term": "Spend1",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskEntries",
+    "term": "String_general",
+    "value": 64,
+    "recomputed": 64,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Copy-TaskOwned",
+    "term": "two_Close_caller_and_max",
+    "value": 134,
+    "recomputed": 134,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Copy-TaskOwned",
+    "term": "Complete_caller_and_max",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Copy-TaskOwned",
+    "term": "Spend128_caller_and_body",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Mutate-TaskOwnedBytes",
+    "term": "Close_caller_and_max",
+    "value": 67,
+    "recomputed": 67,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Mutate-TaskOwnedBytes",
+    "term": "Complete_caller_and_max",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Assert-TaskRawJson",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskRawJsonBytes",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Read-TaskBoundedBytes",
+    "term": "CloseOwner_max",
+    "value": 65,
+    "recomputed": 65,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Read-TaskBoundedBytes",
+    "term": "Complete_max",
+    "value": 17,
+    "recomputed": 17,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Close-TaskJsonReader",
+    "term": "SetSecondary",
+    "value": 44,
+    "recomputed": 44,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Read-TaskDependencyJson",
+    "term": "CloseJson_caller_and_max",
+    "value": 67,
+    "recomputed": 67,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Read-TaskDependencyJson",
+    "term": "CloseText_caller_and_max",
+    "value": 67,
+    "recomputed": 67,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Read-TaskDependencyJson",
+    "term": "CloseMemory_caller_and_max",
+    "value": 67,
+    "recomputed": 67,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Read-TaskDependencyJson",
+    "term": "Complete_caller_and_max",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskDependencyString",
+    "term": "RuntimeType",
+    "value": 16,
+    "recomputed": 16,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Get-TaskDependencyString",
+    "term": "String_fixed",
+    "value": 49,
+    "recomputed": 49,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Get-TaskDependencyString",
+    "term": "String_general",
+    "value": 64,
+    "recomputed": 64,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Read-TaskJson",
+    "term": "Spend_literal_caller_conversion_body",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Read-TaskJson",
+    "term": "Codec_caller_body",
+    "value": 19,
+    "recomputed": 19,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Read-TaskJson",
+    "term": "ReadBounded_identity",
+    "value": 201,
+    "recomputed": 201,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Read-TaskJson",
+    "term": "AddVisit",
+    "value": 17,
+    "recomputed": 17,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Encode-TaskJson",
+    "term": "Codec",
+    "value": 18,
+    "recomputed": 18,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Encode-TaskJson",
+    "term": "RuntimeType",
+    "value": 16,
+    "recomputed": 16,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Encode-TaskJson",
+    "term": "AddVisit",
+    "value": 17,
+    "recomputed": 17,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Get-TaskStageBytes",
+    "term": "Spend1",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Assert-TaskDocumentWrite",
+    "term": "String_fixed",
+    "value": 49,
+    "recomputed": 49,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskDocumentWrite",
+    "term": "String_general",
+    "value": 64,
+    "recomputed": 64,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Write-TaskJson",
+    "term": "WriteBytes_own",
+    "value": 34,
+    "recomputed": 34,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Save-TaskReceipt",
+    "term": "WriteBytes_own",
+    "value": 34,
+    "recomputed": 34,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskIdentity",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskBoundSourceInteger",
+    "term": "RuntimeType",
+    "value": 16,
+    "recomputed": 16,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskBoundSourceInteger",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskBoundSourceInteger",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskReservation",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskRetainedReservation",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskAttempt",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskPredecessor",
+    "term": "RuntimeType",
+    "value": 16,
+    "recomputed": 16,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskPredecessor",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Resolve-TaskInput",
+    "term": "String_fixed",
+    "value": 49,
+    "recomputed": 49,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Resolve-TaskInput",
+    "term": "Context",
+    "value": 26,
+    "recomputed": 26,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Resolve-TaskInput",
+    "term": "String_general",
+    "value": 64,
+    "recomputed": 64,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskFileSet",
+    "term": "String_general",
+    "value": 64,
+    "recomputed": 64,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Get-TaskReferences",
+    "term": "Spend2",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskPEHeader",
+    "term": "Close_caller_and_max",
+    "value": 67,
+    "recomputed": 67,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Get-TaskPEHeader",
+    "term": "Complete_caller_and_max",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Assert-TaskConsolePE",
+    "term": "Reject",
+    "value": 32,
+    "recomputed": 32,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Read-TaskChildResult",
+    "term": "Codec_D_body",
+    "value": 19,
+    "recomputed": 19,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Read-TaskChildResult",
+    "term": "AddVisit",
+    "value": 17,
+    "recomputed": 17,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Read-TaskChildResult",
+    "term": "Close_caller_and_max",
+    "value": 67,
+    "recomputed": 67,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Read-TaskChildResult",
+    "term": "Complete_caller_and_max",
+    "value": 20,
+    "recomputed": 20,
+    "reason": "complete rebuilt callee and explicitly named source caller ports only"
+  },
+  {
+    "owner": "Assert-TaskDependencies",
+    "term": "RuntimeType",
+    "value": 16,
+    "recomputed": 16,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskDependencies",
+    "term": "RuntimeType",
+    "value": 16,
+    "recomputed": 16,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskDependencies",
+    "term": "RuntimeType",
+    "value": 16,
+    "recomputed": 16,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Assert-TaskDependencies",
+    "term": "GetDependencyString",
+    "value": 98,
+    "recomputed": 98,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  },
+  {
+    "owner": "Save-TaskFailureInventory",
+    "term": "SetSecondary",
+    "value": 44,
+    "recomputed": 44,
+    "reason": "freshly rebuilt source component plus only explicitly named caller ports"
+  }
+]

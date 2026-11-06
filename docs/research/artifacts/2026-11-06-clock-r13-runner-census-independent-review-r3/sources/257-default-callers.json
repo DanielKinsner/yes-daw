@@ -1,0 +1,1505 @@
+{
+  "declarations": {
+    "Invoke-TaskFencedChild": {
+      "ExpectedBinary": {
+        "literal": "$null",
+        "source_type": "null",
+        "formal": "object",
+        "implicit_O": 0
+      }
+    },
+    "Assert-TaskString": {
+      "Maximum": {
+        "literal": "512",
+        "source_type": "Int32",
+        "formal": "Int32",
+        "implicit_O": 0
+      },
+      "Ascii": {
+        "literal": "$false",
+        "source_type": "Boolean",
+        "formal": "Boolean",
+        "implicit_O": 0
+      }
+    },
+    "Get-TaskSafePrefix": {
+      "Maximum": {
+        "literal": "512",
+        "source_type": "Int32",
+        "formal": "Int32",
+        "implicit_O": 0
+      }
+    },
+    "Assert-TaskIntegral": {
+      "Nonnegative": {
+        "literal": "$false",
+        "source_type": "Boolean",
+        "formal": "Boolean",
+        "implicit_O": 0
+      }
+    },
+    "Get-TaskEntries": {
+      "Destination": {
+        "literal": "$null",
+        "source_type": "null",
+        "formal": "reference_List",
+        "implicit_O": 0
+      }
+    },
+    "Measure-TaskJson": {
+      "Maximum": {
+        "literal": "1048576",
+        "source_type": "Int32",
+        "formal": "Int64",
+        "implicit_O": 1
+      }
+    },
+    "Read-TaskJson": {
+      "Maximum": {
+        "literal": "1048576",
+        "source_type": "Int32",
+        "formal": "Int64",
+        "implicit_O": 1
+      },
+      "ExpectedSha256": {
+        "literal": "$null",
+        "source_type": "null",
+        "formal": "String",
+        "implicit_O": 0
+      }
+    },
+    "Encode-TaskJson": {
+      "Maximum": {
+        "literal": "1048576",
+        "source_type": "Int32",
+        "formal": "Int64",
+        "implicit_O": 1
+      },
+      "Measurement": {
+        "literal": "$null",
+        "source_type": "null",
+        "formal": "object",
+        "implicit_O": 0
+      }
+    },
+    "Write-TaskJson": {
+      "Maximum": {
+        "literal": "1048576",
+        "source_type": "Int32",
+        "formal": "Int64",
+        "implicit_O": 1
+      },
+      "Measurement": {
+        "literal": "$null",
+        "source_type": "null",
+        "formal": "object",
+        "implicit_O": 0
+      }
+    }
+  },
+  "calls": [
+    {
+      "call_id": 26,
+      "caller": "Invoke-TaskChild",
+      "callee": "Assert-TaskString",
+      "line": 190,
+      "column": 39,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "argument validation foreach fixed"
+        },
+        {
+          "kind": "coefficient",
+          "label": "argument_row"
+        },
+        {
+          "kind": "coefficient",
+          "label": "string_UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 30,
+      "caller": "Invoke-TaskChild",
+      "callee": "Assert-TaskString",
+      "line": 202,
+      "column": 88,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "Environment.Clear"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "environment Keys foreach fixed"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "eight source environment row fixed"
+        },
+        {
+          "kind": "coefficient",
+          "label": "string_UTF16"
+        },
+        {
+          "kind": "coefficient",
+          "label": "environment_row"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 47,
+      "caller": "Add-TaskChildCleanup",
+      "callee": "Assert-TaskString",
+      "line": 266,
+      "column": 2,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "String ASCII validation caller/fixed"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "Rows.Add Code"
+        },
+        {
+          "kind": "coefficient",
+          "label": "Code_UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 56,
+      "caller": "Replace-TaskBounded",
+      "callee": "Assert-TaskString",
+      "line": 285,
+      "column": 2,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "three String callers and fixed portions"
+        },
+        {
+          "kind": "coefficient",
+          "label": "all_argument_UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 57,
+      "caller": "Replace-TaskBounded",
+      "callee": "Assert-TaskString",
+      "line": 285,
+      "column": 37,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "three String callers and fixed portions"
+        },
+        {
+          "kind": "coefficient",
+          "label": "all_argument_UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 58,
+      "caller": "Replace-TaskBounded",
+      "callee": "Assert-TaskString",
+      "line": 285,
+      "column": 72,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "three String callers and fixed portions"
+        },
+        {
+          "kind": "coefficient",
+          "label": "all_argument_UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 65,
+      "caller": "Initialize-TaskController",
+      "callee": "Assert-TaskString",
+      "line": 342,
+      "column": 53,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "fourteen argument for framework"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "fourteen argument own predicate/callers"
+        },
+        {
+          "kind": "coefficient",
+          "label": "argument_UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 70,
+      "caller": "Convert-TaskControlOperand",
+      "callee": "Assert-TaskIntegral",
+      "line": 384,
+      "column": 2,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Nonnegative"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "alternative",
+          "alternative": "builtin",
+          "label": "Integral caller/body"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 72,
+      "caller": "Assert-TaskExactKeys",
+      "callee": "Assert-TaskString",
+      "line": 395,
+      "column": 31,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Ascii",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "two foreach fixed"
+        },
+        {
+          "kind": "coefficient",
+          "label": "observed_key"
+        },
+        {
+          "kind": "coefficient",
+          "label": "key_UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 74,
+      "caller": "Get-TaskIntegerDigits",
+      "callee": "Assert-TaskIntegral",
+      "line": 417,
+      "column": 2,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Nonnegative",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "negative fixed source"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 75,
+      "caller": "Get-TaskEscapedStringBytes",
+      "callee": "Assert-TaskString",
+      "line": 429,
+      "column": 2,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Ascii",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "String validation fixed/default/caller"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 86,
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Assert-TaskString",
+      "line": 459,
+      "column": 4,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Ascii",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "coefficient",
+          "label": "map_entry"
+        },
+        {
+          "kind": "coefficient",
+          "label": "map_key_UTF16"
+        },
+        {
+          "kind": "scalar_alternative_vector",
+          "alternative": "map_fixed",
+          "source_lines": [
+            [
+              451,
+              464
+            ]
+          ]
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 97,
+      "caller": "Join-TaskBoundedNames",
+      "callee": "Assert-TaskString",
+      "line": 485,
+      "column": 49,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Ascii",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "indexed for fixed"
+        },
+        {
+          "kind": "coefficient",
+          "label": "name_row"
+        },
+        {
+          "kind": "coefficient",
+          "label": "name_UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 101,
+      "caller": "Get-TaskEntries",
+      "callee": "Assert-TaskString",
+      "line": 495,
+      "column": 174,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Ascii",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "outer while fixed"
+        },
+        {
+          "kind": "coefficient",
+          "label": "directory"
+        },
+        {
+          "kind": "coefficient",
+          "label": "candidate"
+        },
+        {
+          "kind": "coefficient",
+          "label": "candidate_UTF16"
+        },
+        {
+          "kind": "coefficient",
+          "label": "overflow"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 126,
+      "caller": "Get-TaskDependencyString",
+      "callee": "Assert-TaskString",
+      "line": 723,
+      "column": 2,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Ascii",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "String fixed/default/caller"
+        },
+        {
+          "kind": "coefficient",
+          "label": "UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 135,
+      "caller": "Encode-TaskJson",
+      "callee": "Measure-TaskJson",
+      "line": 738,
+      "column": 42,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "measurement null predicate"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 138,
+      "caller": "Get-TaskStageBytes",
+      "callee": "Get-TaskEntries",
+      "line": 751,
+      "column": 76,
+      "omitted": [
+        {
+          "literal": "$null",
+          "source_type": "null",
+          "formal": "reference_List",
+          "implicit_O": 0,
+          "parameter": "Destination",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "entry/sum"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "directory existence branch"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "walker caller/foreach fixed"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "return sum"
+        },
+        {
+          "kind": "coefficient",
+          "label": "row"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 140,
+      "caller": "Assert-TaskDocumentWrite",
+      "callee": "Assert-TaskString",
+      "line": 754,
+      "column": 2,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Ascii",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "String fixed/default/caller"
+        },
+        {
+          "kind": "coefficient",
+          "label": "Path_UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 143,
+      "caller": "Write-TaskJson",
+      "callee": "Measure-TaskJson",
+      "line": 763,
+      "column": 42,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "measurement null predicate"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "selected Measure caller/local"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 145,
+      "caller": "Write-TaskJson",
+      "callee": "Encode-TaskJson",
+      "line": 765,
+      "column": 11,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Measurement"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "Encode caller/local"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 148,
+      "caller": "Save-TaskReceipt",
+      "callee": "Measure-TaskJson",
+      "line": 772,
+      "column": 15,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "Measure caller/local"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 150,
+      "caller": "Save-TaskReceipt",
+      "callee": "Encode-TaskJson",
+      "line": 774,
+      "column": 15,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Measurement"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "Encode caller/local"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 162,
+      "caller": "Assert-TaskPredecessor",
+      "callee": "Assert-TaskString",
+      "line": 793,
+      "column": 2,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "ASCII manifest hash validation"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 165,
+      "caller": "Get-TaskPredecessorDescriptor",
+      "callee": "Assert-TaskString",
+      "line": 798,
+      "column": 2,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Ascii",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "path bounded string"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "hash bounded ASCII"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 166,
+      "caller": "Get-TaskPredecessorDescriptor",
+      "callee": "Assert-TaskString",
+      "line": 798,
+      "column": 40,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "path bounded string"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "hash bounded ASCII"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 167,
+      "caller": "Get-TaskPredecessorDescriptor",
+      "callee": "Assert-TaskIntegral",
+      "line": 799,
+      "column": 95,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Nonnegative"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "four numeric fields loop"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 168,
+      "caller": "Resolve-TaskInput",
+      "callee": "Assert-TaskString",
+      "line": 804,
+      "column": 2,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Ascii",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "String validation fixed/caller/default"
+        },
+        {
+          "kind": "coefficient",
+          "label": "Name_UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 175,
+      "caller": "Assert-TaskPins",
+      "callee": "Get-TaskEntries",
+      "line": 817,
+      "column": 23,
+      "omitted": [
+        {
+          "literal": "$null",
+          "source_type": "null",
+          "formal": "reference_List",
+          "implicit_O": 0,
+          "parameter": "Destination",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "three indexed foreach fixed"
+        },
+        {
+          "kind": "coefficient",
+          "label": "namespace_row"
+        },
+        {
+          "kind": "coefficient",
+          "label": "Where_callback"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 184,
+      "caller": "Assert-TaskFileSet",
+      "callee": "Assert-TaskString",
+      "line": 830,
+      "column": 121,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Ascii",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "ExpectedSet static comparer constructor"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "expected foreach fixed"
+        },
+        {
+          "kind": "coefficient",
+          "label": "expected_declared_row"
+        },
+        {
+          "kind": "coefficient",
+          "label": "string_UTF16"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 185,
+      "caller": "Assert-TaskFileSet",
+      "callee": "Assert-TaskString",
+      "line": 832,
+      "column": 34,
+      "omitted": [
+        {
+          "literal": "$false",
+          "source_type": "Boolean",
+          "formal": "Boolean",
+          "implicit_O": 0,
+          "parameter": "Ascii",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "two other foreach fixed"
+        },
+        {
+          "kind": "coefficient",
+          "label": "observed_row"
+        },
+        {
+          "kind": "coefficient",
+          "label": "string_UTF16"
+        },
+        {
+          "kind": "coefficient",
+          "label": "refusal_observed_extra"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 189,
+      "caller": "Get-TaskReferences",
+      "callee": "Get-TaskEntries",
+      "line": 838,
+      "column": 21,
+      "omitted": [
+        {
+          "literal": "$null",
+          "source_type": "null",
+          "formal": "reference_List",
+          "implicit_O": 0,
+          "parameter": "Destination",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "walker caller and foreach fixed"
+        },
+        {
+          "kind": "coefficient",
+          "label": "common_entry"
+        },
+        {
+          "kind": "coefficient",
+          "label": "file"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 203,
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskString",
+      "line": 872,
+      "column": 4,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "coefficient",
+          "label": "admitted_control"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 204,
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskString",
+      "line": 872,
+      "column": 54,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "coefficient",
+          "label": "admitted_control"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 210,
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskString",
+      "line": 884,
+      "column": 3,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "two mandatory ASCII fields"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 211,
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskString",
+      "line": 884,
+      "column": 53,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "two mandatory ASCII fields"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 212,
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskIntegral",
+      "line": 885,
+      "column": 96,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Nonnegative"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "six signed summary values"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 216,
+      "caller": "Get-TaskBuildArtifacts",
+      "callee": "Get-TaskEntries",
+      "line": 899,
+      "column": 21,
+      "omitted": [
+        {
+          "literal": "$null",
+          "source_type": "null",
+          "formal": "reference_List",
+          "implicit_O": 0,
+          "parameter": "Destination",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "walker caller and foreach fixed"
+        },
+        {
+          "kind": "coefficient",
+          "label": "file_row"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 221,
+      "caller": "Assert-TaskDependencies",
+      "callee": "Read-TaskJson",
+      "line": 906,
+      "column": 9,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "ExpectedSha256"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "ReadJson caller/local"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 230,
+      "caller": "Save-TaskFailureInventory",
+      "callee": "Get-TaskEntries",
+      "line": 923,
+      "column": 50,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Destination"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "root Exists/caller/try"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "walk catch state/secondary"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 232,
+      "caller": "Save-TaskFailureInventory",
+      "callee": "Write-TaskJson",
+      "line": 926,
+      "column": 2,
+      "omitted": [
+        {
+          "literal": "1048576",
+          "source_type": "Int32",
+          "formal": "Int64",
+          "implicit_O": 1,
+          "parameter": "Maximum",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        },
+        {
+          "literal": "$null",
+          "source_type": "null",
+          "formal": "object",
+          "implicit_O": 0,
+          "parameter": "Measurement",
+          "literal_R": 1,
+          "sponsor": "current helper fixed/loop/alternative role ledger"
+        }
+      ],
+      "supplied_optional_parameters": [],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "WriteJson path argument"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "seven-field failure payload/caller"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 233,
+      "caller": "Save-TaskFailureInventory",
+      "callee": "Get-TaskSafePrefix",
+      "line": 926,
+      "column": 150,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "fixed_group",
+          "label": "WriteJson path argument"
+        },
+        {
+          "kind": "fixed_group",
+          "label": "seven-field failure payload/caller"
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 245,
+      "caller": "MAIN",
+      "callee": "Assert-TaskString",
+      "line": 960,
+      "column": 2,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 55,
+          "label": "root ASCII helper caller",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 248,
+      "caller": "MAIN",
+      "callee": "Get-TaskEntries",
+      "line": 962,
+      "column": 84,
+      "omitted": [
+        {
+          "literal": "$null",
+          "source_type": "null",
+          "formal": "reference_List",
+          "implicit_O": 0,
+          "parameter": "Destination",
+          "literal_R": 1,
+          "sponsor": "root main R3 row"
+        }
+      ],
+      "supplied_optional_parameters": [],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 57,
+          "label": "sole run-attempt prefix",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 250,
+      "caller": "MAIN",
+      "callee": "Read-TaskJson",
+      "line": 963,
+      "column": 35,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "ExpectedSha256"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 58,
+          "label": "Pins and authenticated predecessor callers",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 253,
+      "caller": "MAIN",
+      "callee": "Measure-TaskJson",
+      "line": 969,
+      "column": 21,
+      "omitted": [
+        {
+          "literal": "1048576",
+          "source_type": "Int32",
+          "formal": "Int64",
+          "implicit_O": 1,
+          "parameter": "Maximum",
+          "literal_R": 1,
+          "sponsor": "root main R3 row"
+        }
+      ],
+      "supplied_optional_parameters": [],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 64,
+          "label": "marker measure/admission/encode caller ports",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 255,
+      "caller": "MAIN",
+      "callee": "Encode-TaskJson",
+      "line": 969,
+      "column": 136,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Measurement"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 64,
+          "label": "marker measure/admission/encode caller ports",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 289,
+      "caller": "MAIN",
+      "callee": "Assert-TaskString",
+      "line": 990,
+      "column": 62,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Ascii"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 85,
+          "label": "28 compiler argument validation/three replacements/Add callers",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 293,
+      "caller": "MAIN",
+      "callee": "Invoke-TaskFencedChild",
+      "line": 991,
+      "column": 15,
+      "omitted": [
+        {
+          "literal": "$null",
+          "source_type": "null",
+          "formal": "object",
+          "implicit_O": 0,
+          "parameter": "ExpectedBinary",
+          "literal_R": 1,
+          "sponsor": "root main R3 row"
+        }
+      ],
+      "supplied_optional_parameters": [],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 86,
+          "label": "compiler fenced call and raw exit guard",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 312,
+      "caller": "MAIN",
+      "callee": "Invoke-TaskFencedChild",
+      "line": 998,
+      "column": 15,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "ExpectedBinary"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 93,
+          "label": "producer fenced-call arguments",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 323,
+      "caller": "MAIN",
+      "callee": "Invoke-TaskFencedChild",
+      "line": 1006,
+      "column": 14,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "ExpectedBinary"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 101,
+          "label": "verifier fenced-call arguments",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 331,
+      "caller": "MAIN",
+      "callee": "Get-TaskEntries",
+      "line": 1012,
+      "column": 85,
+      "omitted": [
+        {
+          "literal": "$null",
+          "source_type": "null",
+          "formal": "reference_List",
+          "implicit_O": 0,
+          "parameter": "Destination",
+          "literal_R": 1,
+          "sponsor": "root main R3 row"
+        }
+      ],
+      "supplied_optional_parameters": [],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 107,
+          "label": "at most78 current root entries",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 339,
+      "caller": "MAIN",
+      "callee": "Measure-TaskJson",
+      "line": 1022,
+      "column": 22,
+      "omitted": [
+        {
+          "literal": "1048576",
+          "source_type": "Int32",
+          "formal": "Int64",
+          "implicit_O": 1,
+          "parameter": "Maximum",
+          "literal_R": 1,
+          "sponsor": "root main R3 row"
+        }
+      ],
+      "supplied_optional_parameters": [],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 116,
+          "label": "at most five fixed-point passes",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    },
+    {
+      "call_id": 341,
+      "caller": "MAIN",
+      "callee": "Write-TaskJson",
+      "line": 1028,
+      "column": 2,
+      "omitted": [],
+      "supplied_optional_parameters": [
+        "Maximum",
+        "Measurement"
+      ],
+      "caller_sponsors": [
+        {
+          "kind": "main_row",
+          "index": 119,
+          "label": "bundle write caller",
+          "multiplicity": 1
+        }
+      ],
+      "formal_W_owner": "callee entry once; no added default formal W"
+    }
+  ],
+  "complete_all_optional_call_sites": true,
+  "source_types_not_formal_rewrites": true
+}

@@ -1,0 +1,438 @@
+{
+  "schema": 1,
+  "stage": "SOURCE_ONLY_PROPOSAL_NO_SOURCE_OR_EXECUTION_GO",
+  "root_head": "1a25a8d886c26fce9f15ec6126c5730a91e1c34d",
+  "head_evidence": "Read ordinary main ref only; no Git commands",
+  "moving_root_surfaces": "STATUS read live, CMake/STATUS not pinned; root owns integration",
+  "pins": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "CLAUDE.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "CONTEXT.md",
+      "bytes": 46352,
+      "sha256": "C94A06170918C62ADD5D97E9B4C9DF8EF00278426E1BCDE93B97E9B55898A916",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0030-time-stretch-node.md",
+      "bytes": 6083,
+      "sha256": "0EA5C76A6C4BBA22E51627A3AFCCFF737A73686C3EFAA3F68DFAAE2204577407",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0042-stereo-sources-track-width-and-balance.md",
+      "bytes": 5595,
+      "sha256": "16B7162657A178DC6BE1B3A80BCB4DA9AB1C195507DC0BABD888225A9E299A6C",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0049-autonomous-delivery-and-usable-song-milestone.md",
+      "bytes": 9124,
+      "sha256": "CB99B27721D379AD631B43527724BEA8AB53D6EB82D1C27C01CA795175775843",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0055-cross-rate-audio.md",
+      "bytes": 11568,
+      "sha256": "95D92D6B0B657313F28694F08069F9744EF20B3DDEC4E5DC353E1545E796668E",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0059-shared-decoded-assets.md",
+      "bytes": 10327,
+      "sha256": "6284E8C11F1264463D472E41E299A8DFDFF2BEEB21FDF6E6226FF68D2F74331E",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0078-ship-first-cadence.md",
+      "bytes": 3882,
+      "sha256": "16FF2736DE8D9DDCCF88D146EFBDD295697FF64B54EBAB5135883AB706AD6AEC",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0083-musical-audio-prepared-lane.md",
+      "bytes": 31387,
+      "sha256": "7C45C564AC86079A82E487E8AE6AD510A34FCC6AB630663C2B56F8EFEF6FC646",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0084-musical-audio-channel-equivalence.md",
+      "bytes": 11431,
+      "sha256": "50036D3AEFE09133298B85EA00D93C37E5E41CBFC21F8A3DFBF46725F8CCFA45",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/plans/2026-11-03-editing-improvements-headless-plan.md",
+      "bytes": 6776,
+      "sha256": "A4958D3AF415423055F0C71E3A5883F0B4FB6445CB94E6304134FFC7EA53CCC2",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/plans/2026-11-04-musical-audio-prepared-lane-plan.md",
+      "bytes": 15036,
+      "sha256": "FFC05053978459CBC090000A72B0EE8261C18229A2803355DD4BAC2EEAA679CB",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/MusicalAudioChannelPlan.h",
+      "bytes": 17081,
+      "sha256": "F47C6E49B02A69C16CD554A4C5520CC891146A434603F4E1BB73E9099EB97F16",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/MusicalAudioWindow.h",
+      "bytes": 19572,
+      "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/MusicalAudioCutPlan.h",
+      "bytes": 28956,
+      "sha256": "17A84770B9B4904162008492ADC393EB183678ECD00113C0658EFE355413B390",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/ClipSchedule.h",
+      "bytes": 6706,
+      "sha256": "681ED77653AF195480FAA63FBB57D1804C1C3CBCA813310B18F0B058B7552D1A",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/RateMatchedView.h",
+      "bytes": 5293,
+      "sha256": "9A0770E8690FBC60048BDF13FF1D1BD332B6D620A1985C52895E7FE916BB0571",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "tests/musical_audio_channel_plan_tests.cpp",
+      "bytes": 31649,
+      "sha256": "943EA981BF42E7C389D28E8408C47B501B9DDBBCA34FECC9DD0C67A8907D95BB",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/signalsmith-stretch.h",
+      "bytes": 22145,
+      "sha256": "E7BD5C4E35AE05DE34ADE0CFC0E0C2285598543BEDB91420AC863812AF2A035E",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/spectral.h",
+      "bytes": 17009,
+      "sha256": "8B15F3E710BDEB2F7DDF9DA9DB10C0123FE0B0C675726202A6770F18ECFAED96",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/20261105-stereo-context-r1-root-measured-audit.json",
+      "bytes": 4499,
+      "sha256": "CD73FC22614DE13C6C65EB8319BA38CE7DB67E47E0073E2014B5B8CBBEFF66BE",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/README.md",
+      "bytes": 15673,
+      "sha256": "EA7A7B5E35BE03242C934E620FF1E17325BD74E28E8E5F00541D2B82344F0291",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/authored-manifest.json",
+      "bytes": 74092,
+      "sha256": "AD0837999552269370A7511B3727E112DB71CD680BDA2CBE23381ED70F536625",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/ContextHooks.h",
+      "bytes": 4311,
+      "sha256": "EBE4B9FCC2A2B1287626F71890AC8D545736C876105AC70B80F3B54A2E6EC81D",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/context_probe.cpp",
+      "bytes": 14136,
+      "sha256": "CD148D4D1B794343A10CBB2E784E84193B249065E56520DECF3559F64A90391A",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/freeze_context.py",
+      "bytes": 11101,
+      "sha256": "5F0EF98D683D4DD38B59FA052DB93E3C3934E0481D52A9724C5756DACBF7D9A9",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/prepare_observer.py",
+      "bytes": 18899,
+      "sha256": "9858EC4923365F5FD84C2EDBC55977D217BA92385B59979A972FF34A884FBB1C",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/verify_context.py",
+      "bytes": 24335,
+      "sha256": "93CE6A1EC89F76A3A911F26DDD5EFFE9C28FD20AB63AB09464E9A46D8FCEA48B",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/run-context.ps1",
+      "bytes": 10841,
+      "sha256": "D9FAEADE5B4113324BBC1E400D5EC6B90CDB6DC555FD0189CD1975B21A5FD99A",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/README.md",
+      "bytes": 14683,
+      "sha256": "538EB8C65A04FC0BEFF085CB4C969A8E6D1D9F1606AA2BCB16B03AB2E19751E3",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/authored-manifest.json",
+      "bytes": 17564,
+      "sha256": "1121DD78F582932DBD6D9C0022DEF0CFFD1085BF6FFC9497FBB2E4A1216ACAA0",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/ContextHooks.h",
+      "bytes": 4413,
+      "sha256": "69E483399229C627789F35B6D40C906C37535E40F5F0320817D19572BC71787D",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/context_probe.cpp",
+      "bytes": 19975,
+      "sha256": "4CFE4B202E4AF70324F637D2DA0CBFCEA46A6D14BBB02AF9193A557DFA94A2AC",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/freeze_context.py",
+      "bytes": 19775,
+      "sha256": "408CE6C23D15BE92B6B1F8BC20A98FBFEC4FBF4A882C4B42B5AD89647BE5FD29",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/prepare_observer.py",
+      "bytes": 6201,
+      "sha256": "40CC3A88D45ABB0178411E3ED62BF07391FA32E669A106FD1D10B682D8734DC7",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/verify_context.py",
+      "bytes": 34028,
+      "sha256": "C47D63BA12E8B8BACE3B9A92069E9F8BE546319E4978C055B5F6CDC5CEDB1460",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/run-context.ps1",
+      "bytes": 12325,
+      "sha256": "B1EC42FB12366F2989B9987AD63D62D2018B133CBB742AE2C5A468DF200BF207",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/README.md",
+      "bytes": 10666,
+      "sha256": "F1AC8DDBF4A5B9B408B4DA3C0432384D0A9BF7BE7D9A337237EFF40EF4D39AAF",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/authored-manifest.json",
+      "bytes": 15492,
+      "sha256": "2EC0463CE0C6895782526AB77D0E2CB065B22F9530CD78BE10A5D5DEE74D9932",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/freeze_oracles.py",
+      "bytes": 20689,
+      "sha256": "36C51DF7F9FF8E6BC9F40706549F7792382FA6B9B8920FAA591FB325ECD1F971",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/quiet_state.cpp",
+      "bytes": 19626,
+      "sha256": "01F45E235AC317059A088F81B4E6DEEE456626D8FC41AD86B7FB4D4F3147E690",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/verify_records.py",
+      "bytes": 6689,
+      "sha256": "1C25A25F9FC9F4B041DFC07A38774490CA907B5401DB5C9BB0DACC8513AEF1A0",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/run-quiet-state.ps1",
+      "bytes": 11890,
+      "sha256": "90E46C2C2147914C99B924760C183434293E70F0FB4A2424E2D00D30DA62093F",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/geometry.json",
+      "bytes": 432,
+      "sha256": "A13528DA27E637A80187E4CE487D29270604E81CB845DA2B089551421564B8D2",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/calls.txt",
+      "bytes": 9437,
+      "sha256": "5221361E6BD670C63A403106F724BDB76EEC6D28F29C08AF81C9359CECC64C82",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/operands.bin",
+      "bytes": 91284,
+      "sha256": "E647B2FCEEEA37A8B502A2983392247F5010F7334082BE517D726D9B2E80C248",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/expected-base.txt",
+      "bytes": 10080977,
+      "sha256": "4D886BC5BDE2A4972361D8443BB80580A05B3EA2B313EC889F39285668C6CDC5",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/analysis-oracle.json",
+      "bytes": 3712188,
+      "sha256": "5FDE03EB23157B41623D1ED4D33EC429CB0924AE17BE03C036E5C6801109F905",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/synthesis-oracle.json",
+      "bytes": 19497,
+      "sha256": "7863959347F5076651F2EE2E32186A09B55F456F8DCC2932DC20C9A46407F251",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/ownership-rules.json",
+      "bytes": 210458,
+      "sha256": "3A1F44A551A24AD935228634D8F60EFEA37B02F4B8D642206881150CF5D0E84E",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/freeze-receipt.json",
+      "bytes": 2365,
+      "sha256": "5B82EC457FB6BAE945AEE3C920F63B830DC268E467F2B88B43EF90F0520AD009",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/ObservedStretch.h",
+      "bytes": 29236,
+      "sha256": "D7B14A928EA28EFDA8C971BBF4B57576624E23D920EF0201D1050F69D1B0FB3A",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/ObservedSpectral.h",
+      "bytes": 17997,
+      "sha256": "868CB636C1CEC5525482B8DAE84D75364B2A4EDE2CCCA4949D8A4917430843EA",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/ContextHooks.h",
+      "bytes": 4311,
+      "sha256": "EBE4B9FCC2A2B1287626F71890AC8D545736C876105AC70B80F3B54A2E6EC81D",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/stretch-edits.json",
+      "bytes": 29768,
+      "sha256": "370BD55E00E6A8E838059806312E049D5C7A339869984FB18EBB25AC3C2FCD80",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/spectral-edits.json",
+      "bytes": 5211,
+      "sha256": "232FFC8AE55A2DCEEC37A783D7A1E0A4233C1BFF95BEE7299571DF46EDB2DD1F",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/preparation-receipt.json",
+      "bytes": 9939,
+      "sha256": "6399424ACEB22E9B267EA222A2E24FF9B16F1712EDDDF9FDF26C812605D9784C",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102915-4929305/execution-receipt.json",
+      "bytes": 4247,
+      "sha256": "231E179D7E2BEAFED2BBC24801C623A198E1E67D337F48E5AFBEAB15E2A3DBD1",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102915-4929305/candidate/candidate-receipt.json",
+      "bytes": 326,
+      "sha256": "68D9F085157C81FAC57AAC14D8612831A75610A92A79C39298D343A9291D67FA",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102915-4929305/candidate/verification-receipt.json",
+      "bytes": 2208,
+      "sha256": "7EAAE7C7E8AEDEFA783435AC0C15419DB32A8010C68ACC83B87484E7115408BE",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/runs/20261105-090102-7859189/execution-receipt.json",
+      "bytes": 4363,
+      "sha256": "664FBA8B2EE069DE19A9E36B0673BAEE4D9150AE3821882CCCDDC1C9602BB585",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/runs/20261105-090102-7859189/candidate/verification-receipt.json",
+      "bytes": 910,
+      "sha256": "5FA57AE7F453780D7446D9C30215F90F47A233C2CC25DC2EAD98A57D1D51F5BB",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/runs/20261105-090102-7859189/candidate/summary.csv",
+      "bytes": 1307,
+      "sha256": "90D3B4376883A424E3C3FE142D071AED8241F1B7CA665D66EC1F17178B7D5A0B",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114929-3203284/execution-receipt.json",
+      "bytes": 9244,
+      "sha256": "D97C1F19ACBBC584C80BC0A664DB182B3F1A5B522AD65DC3B170D9595AE8C283",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114929-3203284/candidate/verification-receipt.json",
+      "bytes": 10722,
+      "sha256": "D3A6B7F699E6717789EE44AE8D77521FEB45194571AC6D896DC963C198E4EAFF",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    }
+  ],
+  "pin_count": 67,
+  "writes_only": [
+    "build-ci/20261105-musical-physical-c1-context-prep/packet.md",
+    "build-ci/20261105-musical-physical-c1-context-prep/proof-plan.json",
+    "build-ci/20261105-musical-physical-c1-context-prep/source-pins.json"
+  ],
+  "preparation_execution": {
+    "authored_imports": false,
+    "generators": false,
+    "compiler": false,
+    "tests": false,
+    "DSP": false,
+    "environment_probe": false,
+    "native_app": false,
+    "desktop_input": false,
+    "device": false,
+    "network": false,
+    "Git": false,
+    "subagents": false
+  },
+  "static_inspection_only": [
+    "ordinary file reads",
+    "standard-library JSON/hash parsing",
+    "independent integer source-formula calculator"
+  ],
+  "old_stereo_forecast": "disqualified; preserved root auditCD73FC22 and new terminal+C*W term; old source immutable",
+  "write_transport_note": "First oversized shell launch rejected before process creation; no process or writes from that attempt. Three shorter allowed document writes used; no approval rejection."
+}

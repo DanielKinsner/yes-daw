@@ -1,0 +1,6 @@
+{
+  "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/HashHelpers.cs",
+  "bytes": 5167,
+  "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4",
+  "scope": "primary source association only, not native binary qualification"
+}

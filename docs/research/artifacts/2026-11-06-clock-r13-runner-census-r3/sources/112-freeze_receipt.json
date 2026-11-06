@@ -1,0 +1,54 @@
+{
+  "calibration_status": "UNRUN_ROOT_ACTUAL_OUTPUT_REVIEW_AND_SEPARATE_COMPILE_GO_REQUIRED",
+  "clock_queries": 690,
+  "counters": {
+    "bound_calls": 8257704,
+    "decimal_library_calls": 5079,
+    "decimal_series_terms": 975755,
+    "work_units": 1194649251
+  },
+  "exact_pi_proof": {
+    "binary64_bracket": [
+      "0x1.921fb54442d18p+1",
+      "0x1.921fb54442d19p+1"
+    ],
+    "kind": "EXACT_RATIONAL_MACHIN_ATAN_ALTERNATING",
+    "lower_denominator": "117045012839587847750696265429793726571056544167331213913740839416277594864368438720703125",
+    "lower_numerator": "367707752476172207210232155155211800650193769349643679097363623629261005878067849033826612",
+    "terms": [
+      24,
+      8
+    ],
+    "upper_denominator": "2510112580810824626575216210351662524282562745837445721264202802558429539203643798828125",
+    "upper_numerator": "7885751243558602857662407697083987647837187618916932871201975280927764532056854784214256"
+  },
+  "files_sha256": {
+    "calibration.tsv": "5341cfca9aa6f7b64ebfdd99becd76858d62da99322afbfc015b740451c8306a",
+    "clock.tsv": "c25b0f5a7f6c0357a47ad73cfcd8ac69368919344eec2cdcbb29111347c3ac76",
+    "geometry.jsonl": "f56929ce26422caf39e37313507bc9e3c2dc611cd7ffc11166bdfe0eddef1b7d",
+    "whole-case-source-hold.json": "8d9e794fb09d555bfcc8387909966ee740276d5c21391d3bbbf582548d7d88cf",
+    "whole-cases.tsv": "e9212267ec0e06b498262a9f05e48990490972a13c3c34bd9f5bcffe9a001a98",
+    "whole-windows.tsv": "6998c612d1efb4c6dd882ea0c0641ad01bb43383c36e2264df02b7ca59353fb1"
+  },
+  "geometries": 57,
+  "groups": {
+    "amplitude": 270,
+    "dc": 270,
+    "dominant": 90,
+    "equal": 45,
+    "frequency": 450
+  },
+  "numeric_a_floors": "UNRUN_CXX_SAME_RUNTIME_BACKEND_REQUIRED",
+  "preflight_analytic_work_upper": 1714817216,
+  "preflight_geometry_work_upper": 5138022400,
+  "real_reference": "DECIMAL110_120_NUMERICAL_REFERENCE_NOT_CERTIFIED_REAL_FLOORS",
+  "rows": 1125,
+  "scratch_payload_cap": 67108864,
+  "source_error_premise_measured": false,
+  "source_readiness_acceptance": "R4_NUMERIC_COST_ACCEPTED_R5_STORAGE_PROFILE_ASSERTED_ROOT_STAGES_REQUIRED",
+  "status": "ANALYTIC_FREEZE_ONLY_NOT_CALIBRATION",
+  "vendor_invoked": false,
+  "whole_cases": 6,
+  "whole_windows": 3564,
+  "work_cap": 17179869184
+}

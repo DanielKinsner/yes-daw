@@ -1,0 +1,49 @@
+{
+  "schema": "INDEPENDENT_WHOLE_R13_R3_FIRST_COMPLETE_OWN_GREEN",
+  "check_count": 18310,
+  "all_new_sources_helpers_oracles_outputs_frozen": true,
+  "postgreen_edit_authorized": false,
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r3/check.py",
+      "bytes": 39438,
+      "sha256": "2942A85B198DDCE4394C3D2340A30157F47D1412F30EC9E627EDB7BF28948551"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r3/failed-own-attempt-01/check.py",
+      "bytes": 39170,
+      "sha256": "E2DE4315528897DA877A47ED5AA6032206F635C943DAF0681016EC223852FA03"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r3/failed-own-attempt-01/failure.json",
+      "bytes": 459243,
+      "sha256": "83E6B8D34F4B1B00BF956EBC569AB68EA901FB7B16D13F0CCB8902D87BFD7718"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r3/failed-read-attempt-01.json",
+      "bytes": 352,
+      "sha256": "CCCFCEE27566C87E1EE3B8235ED46DD9F8BACC1607021289FC5DE9940822F12A"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r3/own-check-receipt.json",
+      "bytes": 489,
+      "sha256": "9BC6BA8A558AD6E8694B68369CA1CAFCF43F08721C4931AFF1C5A4D2DAD5B74C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r3/review.json",
+      "bytes": 1783133,
+      "sha256": "0ED0D3E71B31F5473C56F0653C776D8B0A89AB819F6A671294EF246B89352400"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r3/review.md",
+      "bytes": 6923,
+      "sha256": "88A37D5C8EB332A72BFA038FAAFD5D63562FC3A6517C0D257638A7B30EE3F560"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-independent-review-r3/source-pins.json",
+      "bytes": 345251,
+      "sha256": "A9FF574097656DE635C1AB625A75C5EA26CF506BB54F5E596DB21CDA7BB21CF9"
+    }
+  ],
+  "disposition": "CONDITIONAL_ACCEPT_COMPLETE_SCALAR_UPPER_ONLY"
+}

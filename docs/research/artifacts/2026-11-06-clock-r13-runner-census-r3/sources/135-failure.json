@@ -1,0 +1,5 @@
+{
+  "scope": "unfinished own ledger import for integer summary, not complete census check",
+  "raw_exit": 1,
+  "reason": "Single-quoted prose note contained an apostrophe at line291; SyntaxError before any model execution; no target or old helper executed."
+}

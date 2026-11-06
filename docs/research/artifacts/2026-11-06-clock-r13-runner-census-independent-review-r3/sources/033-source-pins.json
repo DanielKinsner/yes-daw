@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "status": "SCALAR_UPPER_DERIVED_PAYLOAD_REVISE_UNRUN",
+  "subject": "Complete R7 runner scalar upper proposal and concrete controlled32MiB preparse live-overlap residual",
+  "inputs": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r7-source-prototype/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r7-source-prototype/run-clock.ps1",
+      "bytes": 84790,
+      "sha256": "AD1134DED9FCAF6329F49D7C3F81F17E99D09BEA670DD9F9E7CBFC7FB5FE0A07"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r7-source-prototype/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r7-source-prototype/README.md",
+      "bytes": 22573,
+      "sha256": "9585FECAA26F661C396D1187B0AC65D6378A01F03D86B963683B21E6D0FD9FE6"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r7-source-prototype/source-manifest.json",
+      "bytes": 462318,
+      "sha256": "80ECBBC86547880C262C772884DEA12B6EA206283D7625B13696F5AB8A68158F"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r7-independent-review.json",
+      "bytes": 1525,
+      "sha256": "3C0E4E23268A3C780AEF5DD8B4DC8ABE399849CE00620A93374573C13FACF96F"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "docs/research/2026-11-05-clock-oracle-budget-arithmetic-correction.md",
+      "bytes": 2560,
+      "sha256": "56C73E4F91D5252E203BB4A1DDE422595DD74D7C7526614EB938AF9B5875DE21"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-budget-erratum-independent-review.json",
+      "bytes": 1387,
+      "sha256": "FC4D9216A11A930CC8A53C77F6F79356B9B8FB140C974D4DD5E4455E01AC052B"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-leaf-census-conventions.md",
+      "bytes": 1746,
+      "sha256": "DE33D91712372C2FE887A02FB137AA9A96C8C3BB93CB0D88BF57AA32DBEAE564"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-bulk-leaf-clarification.md",
+      "bytes": 2153,
+      "sha256": "268597D1F066779CE76DACFDBBC384FC452DC6B9AD319419F52DE597242BB3E8"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/powershell-JsonObject.cs",
+      "bytes": 37049,
+      "sha256": "B0673F6376217F1104293297F0B2E3C7C9F928045F8435CD93865EF024E287B0"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/newtonsoft-JsonConvert.cs",
+      "bytes": 55576,
+      "sha256": "DAEB3FEF0BCDE2E756CB0CBCAA92FB8A7782727CDB4ADDBA7B8C66E94B5A6205"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/newtonsoft-JavaScriptUtils.cs",
+      "bytes": 25775,
+      "sha256": "93131CB6065F06AC6DA30CC15C77F7E2A96EF2D3DC171FEC34C227590D930A1A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r6-primary-sources/newtonsoft-JsonTextReader.cs",
+      "bytes": 101923,
+      "sha256": "A9F79EBF4527275D5DE362DD9160F8B246CF34A5D1F767B4A978ECF420C36039"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Private.CoreLib.dll",
+      "bytes": 16033616,
+      "sha256": "ED80A1A5DD066C0407AD59686F9AF90A4F3E55DBF3E4C973B53CC8C9D0706F82"
+    }
+  ],
+  "externalPrimarySources": [
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Text/StringBuilder.cs",
+      "commit": "e2f47b0110ed922f21a1522da67279133ce28f32",
+      "read": "WEB_PRIMARY_SOURCE_ONLY",
+      "localSnapshotHash": null
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/List.cs",
+      "commit": "e2f47b0110ed922f21a1522da67279133ce28f32",
+      "read": "WEB_PRIMARY_SOURCE_ONLY",
+      "localSnapshotHash": null
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/Dictionary.cs",
+      "commit": "e2f47b0110ed922f21a1522da67279133ce28f32",
+      "read": "WEB_PRIMARY_SOURCE_ONLY",
+      "localSnapshotHash": null
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/Path.Windows.cs",
+      "commit": "e2f47b0110ed922f21a1522da67279133ce28f32",
+      "read": "WEB_PRIMARY_SOURCE_ONLY",
+      "localSnapshotHash": null
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/PathHelper.Windows.cs",
+      "commit": "e2f47b0110ed922f21a1522da67279133ce28f32",
+      "read": "WEB_PRIMARY_SOURCE_ONLY",
+      "localSnapshotHash": null
+    },
+    {
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/JsonTextWriter.cs",
+      "commit": "4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a",
+      "read": "WEB_PRIMARY_SOURCE_ONLY",
+      "localSnapshotHash": null
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/Path.cs",
+      "commit": "e2f47b0110ed922f21a1522da67279133ce28f32",
+      "read": "WEB_PRIMARY_SOURCE_ONLY",
+      "localSnapshotHash": null
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/Stream.cs",
+      "commit": "e2f47b0110ed922f21a1522da67279133ce28f32",
+      "read": "WEB_PRIMARY_SOURCE_ONLY",
+      "localSnapshotHash": null
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/system.io.stream.readatleastasync?view=net-10.0",
+      "read": "OFFICIAL_PRIMARY_API_CONTRACT_ONLY",
+      "localSnapshotHash": null
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/cpp/build/reference/sourcedependencies?view=msvc-170",
+      "read": "OFFICIAL_PRIMARY_SCHEMA_EXAMPLE_ONLY",
+      "localSnapshotHash": null
+    }
+  ],
+  "coreLibMetadata": {
+    "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Private.CoreLib.dll",
+    "productVersion": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32",
+    "identity": "Exact binary transitively pinned by R7 manifest; metadata/source association is not reproduced-binary equivalence."
+  },
+  "allHistoricalPhysicalAudit": "Root separately audited1171inputs+4own and24namespaces; no duplicate audit claimed.",
+  "fullUpper": 2944518648,
+  "runnerUpper": 2944518648,
+  "controlledPayloadUpper": null,
+  "selectedLimit": null,
+  "selfHash": "Self digest reported externally after write; no circular self-reference. Own outputs are the MD/JSON digests above; older checkpoint digests retained as lineage.",
+  "preemptionCheckpointDigests": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r7-runner-census/census.md",
+      "bytes": 9225,
+      "sha256": "FD2F298F98387B33590B64B4B40B66517ACD19889D70E603532248F1D3336B4A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r7-runner-census/census.json",
+      "bytes": 29699,
+      "sha256": "56ECF12908C359C8ACF02D5D330DB29E39B85BE986F29A0EBBB6AFDD1ABB6C44"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r7-runner-census/census.md",
+      "bytes": 27095,
+      "sha256": "098F31CCAAF46AB4D0E6E1601B3DF19DFC8CF97CCE829555946C181B27676082"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r7-runner-census/census.json",
+      "bytes": 82339,
+      "sha256": "C1652E783D7E275D31D201857E714FDE32C18B50D05B4D98250F34BA3E2B70CC"
+    }
+  ],
+  "wholeUpper": null,
+  "controlledPayloadWitness": {
+    "simultaneousLiveLowerBytes": 33619968,
+    "scratchCapBytes": 33554432,
+    "excessBytes": 65536,
+    "dependsOnGCReclamation": false,
+    "dependsOnObjectHeaderOrABI": false,
+    "dependsOnRuntimeExecution": false
+  },
+  "noExecutionOrAcceptedCensusBindingCredit": true,
+  "numericReview": "Complete source upper proposal pending independent fresh numeric review; allsource guardsfalse. No sourcecost/data/catalogue/limit binding."
+}

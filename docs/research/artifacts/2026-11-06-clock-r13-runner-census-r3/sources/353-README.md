@@ -1,0 +1,13 @@
+# Physical C1 context r5 - exact ADL compiler correction, execution UNRUN
+
+R4 actual Freeze succeeded. Its sole CompileAndRun attempt stopped at compiler exit2 before any candidate/DSP/verifier execution. Unqualified private bind calls with std::string arguments admitted std::bind through argument-dependent lookup; forwarding overloads won for literal integer arguments, yielding std::_Binder instead of Bound. Preserve the failure receipt4AE3DA03, raw compiler log, consumed marker and every R4 byte.
+
+The sole C++ correction renames the private declaration and all four calls from bind to bindRequest. This removes the std::bind candidate without changing any parameter, return value, branch, arithmetic, fixture, control or budget. Exact five-token inverse returns R4 C++ bytes9730B9B1. The runner changes only its exact revision path r4 to r5. Four support files, R3 hook namespaces/phase format, literal source-readiness booleans and all source/control/payload laws are unchanged.
+
+All prior140 pins are preserved. This manifest additionally binds eight R4 source/manifest lineage files, the actual failed compiler receipt/log, successful Freeze receipt and root output review, plus every current seven source file as a runtime fence. The manifest itself is hashed before and after. Fresh exact successor criticism must precede root Freeze-only GO; actual new frozen outputs must then be reviewed before a separate sole CompileAndRun GO. A new reviewed compiler hypothesis is not a silent retry of R4.
+
+R4 source/Freeze review established proposed six-case scope:132 calls,150 syntheses,300 physical analyses,43904 private PCM bit comparisons and36864 retained Frames; actual vendor execution remains UNRUN. Nonzero quiet input must retain MusicalQuietPathUnsupported. Twelve record and three physical controls remain separate. No arbitrary working PCM becomes Ready.
+
+Inherited source upper is251097152<260000000<2^28; Freeze child3M, preparation6M, candidate12M, replay228M, both runner allowances2MiB. Each runner keeps its actual1MiB guard; new pin visits spend the same guard, with no increased ceiling. Detailed requested payload701072360<828304896<1GiB; largest case470551088<512MiB. Full DSP/allocator/CLR/RSS/primitiveCPU/APIwalltime/quality/universalcontext/production evidence remains unqualified.
+
+The accepted bounded launcher, own-source fence, immediate compiler/executable hashes, AMD64/console checks, raw-prefix/unknown-drainage diagnostics and one-use marker stay intact. Nothing has executed in R5. Production admission remains false; headless console/Python only, no native UI, input or device startup.

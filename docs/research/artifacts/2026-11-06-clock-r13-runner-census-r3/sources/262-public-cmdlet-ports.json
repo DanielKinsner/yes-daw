@@ -1,0 +1,168 @@
+{
+  "schema": "R13_R3_FRESHLY_RECHECKED_SELECTED_PUBLIC_CMDLET_PORTS",
+  "state": "FROZEN_DECLARATION_AND_PORT_INPUT_NOT_WHOLE_PRICE_ACCEPTANCE",
+  "ports": [
+    {
+      "command": "Join-Path",
+      "parameter": "Path",
+      "declared_type": "string[]",
+      "source_port": "scalar string -> one semantic O1",
+      "primary_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Management/commands/management/CombinePathCommand.cs",
+      "line": 27,
+      "declaration": "        public string[] Path { get; set; }"
+    },
+    {
+      "command": "Get-Item",
+      "parameter": "LiteralPath",
+      "declared_type": "string[]",
+      "source_port": "scalar string -> one semantic O1",
+      "primary_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Management/commands/management/Navigation.cs",
+      "line": 1871,
+      "declaration": "        public string[] LiteralPath"
+    },
+    {
+      "command": "New-Item",
+      "parameter": "Path",
+      "declared_type": "string[]",
+      "source_port": "scalar string -> one semantic O1",
+      "primary_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Management/commands/management/Navigation.cs",
+      "line": 2028,
+      "declaration": "        public string[] Path { get; set; }"
+    },
+    {
+      "command": "Test-Path",
+      "parameter": "Path",
+      "declared_type": "string[]",
+      "source_port": "scalar string -> one semantic O1",
+      "primary_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Management/commands/management/TestPathCommand.cs",
+      "line": 47,
+      "declaration": "        public string[] Path"
+    },
+    {
+      "command": "Test-Path",
+      "parameter": "LiteralPath",
+      "declared_type": "string[]",
+      "source_port": "scalar string -> one semantic O1",
+      "primary_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Management/commands/management/TestPathCommand.cs",
+      "line": 63,
+      "declaration": "        public string[] LiteralPath"
+    },
+    {
+      "command": "ForEach-Object",
+      "parameter": "Process",
+      "declared_type": "ScriptBlock[]",
+      "source_port": "single source block -> one semantic O1",
+      "primary_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/InternalCommands.cs",
+      "line": 121,
+      "declaration": "        public ScriptBlock[] Process"
+    },
+    {
+      "command": "Where-Object",
+      "parameter": "FilterScript",
+      "declared_type": "ScriptBlock",
+      "source_port": "source block identity; no coercion O",
+      "primary_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/InternalCommands.cs",
+      "line": 1307,
+      "declaration": "        public ScriptBlock FilterScript"
+    },
+    {
+      "command": "Import-Module",
+      "parameter": "Name",
+      "declared_type": "string[]",
+      "source_port": "scalar string -> one semantic O1",
+      "primary_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/Modules/ImportModuleCommand.cs",
+      "line": 92,
+      "declaration": "        public string[] Name { get; set; } = Array.Empty<string>();"
+    },
+    {
+      "command": "Get-Command",
+      "parameter": "Name",
+      "declared_type": "string[]",
+      "source_port": "scalar string -> one semantic O1",
+      "primary_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/GetCommandCommand.cs",
+      "line": 42,
+      "declaration": "        public string[] Name"
+    },
+    {
+      "command": "Get-Command",
+      "parameter": "CommandType",
+      "declared_type": "CommandTypes",
+      "source_port": "bareword string -> enum O1",
+      "primary_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/GetCommandCommand.cs",
+      "line": 195,
+      "declaration": "        public CommandTypes CommandType"
+    },
+    {
+      "command": "common parameter",
+      "parameter": "ErrorAction",
+      "declared_type": "ActionPreference",
+      "source_port": "bareword Stop/Continue -> enum O1",
+      "primary_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/CommonCommandParameters.cs",
+      "line": 82,
+      "declaration": "        public ActionPreference ErrorAction"
+    }
+  ],
+  "primitive_scope": {
+    "constant_callable_name": "D only; no command/parameter-name R",
+    "computed_command_reference": "actual R once",
+    "presence_only_switch": "parameter W once; no invented true literal R",
+    "literal_static_data": "TypeR1+field/valueR1+selection/accessO1; parameterW separate",
+    "static_property": "TypeR1+D/E/T3+actual destinationW1; direct destination fused",
+    "materialization": "source eval/capture/setup/result and semantic coercion only; hidden per-cell CPU opaque; all backing/element/clone storage retained separately",
+    "callback": "each authored pipeline body D/E/T3 plus automatic input W; actual scalar output destination once, direct final primitive output fused",
+    "catch": "selected-handler K1 plus automatic caught-input W1, actual reads/explicit rethrows separately"
+  },
+  "scalar_array_primary_selection": {
+    "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/LanguagePrimitives.cs",
+    "lines": [
+      5018,
+      5042
+    ],
+    "selection": "array target chooses ConvertScalarToArray for non-enumerable scalar with valid element conversion"
+  },
+  "inputs": [
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Management/commands/management/CombinePathCommand.cs",
+      "bytes": 8503,
+      "sha256": "DD08308391D9A2D130E8F27C2AB43C23F34A6D562B5BFA98BDB8F2E5D4B3049E"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Management/commands/management/Navigation.cs",
+      "bytes": 150578,
+      "sha256": "827780F7CB77BB930514EBE08932E7A9A72A40D6F5BB5ADB05FFDA574ACAA5D9"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Management/commands/management/TestPathCommand.cs",
+      "bytes": 7456,
+      "sha256": "916E539BCFD86EC8FF630208E118C59C0F559B3147A929A77FE63A2AE766A34E"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/InternalCommands.cs",
+      "bytes": 106457,
+      "sha256": "8F04C78F7B38426E47B86BBA55EFDDB47AB1D2B2924BB106E91E4CBB01D9D183"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/Modules/ImportModuleCommand.cs",
+      "bytes": 96953,
+      "sha256": "986FA999E107E09FAB5B715B27DEE3F6B233E67C7E166716F5ADC333A10FB756"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/GetCommandCommand.cs",
+      "bytes": 70341,
+      "sha256": "8A79CF2874FB105C3ACAF331D3F38F09FCC761EABD9BF8A29DD4B8F3CD04440C"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/CommonCommandParameters.cs",
+      "bytes": 9937,
+      "sha256": "EDE7E6762C395F8F273E9237B348348F5EA613930EBB98D2E4C1B78617C9FF7A"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/LanguagePrimitives.cs",
+      "bytes": 291050,
+      "sha256": "284B0FAD37EF182C51566E8135B20E4C27464B1EE9352A1786E7DC76C3089711"
+    }
+  ],
+  "source_binary_association": "qualification remains explicit; no target/compiler/metadata/runtime execution",
+  "no_source_or_limit_or_Data_or_GO_change": true,
+  "whole_price_accepted": false
+}

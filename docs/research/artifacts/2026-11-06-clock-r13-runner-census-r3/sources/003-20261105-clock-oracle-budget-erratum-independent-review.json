@@ -1,0 +1,29 @@
+{
+  "created_utc": "2026-11-05T23:12:31.772065+00:00",
+  "reviewer": "/root/clock_budget_erratum_independent_review",
+  "review_received_exact_utc": null,
+  "verdict": "ACCEPT_ERRATUM_AND_CONTINUED_BOUNDED_SOURCE_PREPARATION",
+  "canonical_doc_sha256": "56C73E4F91D5252E203BB4A1DDE422595DD74D7C7526614EB938AF9B5875DE21",
+  "mechanical_audit_sha256": "2A2A1D510F44E02A83624DCB78F5B11156CA67AED0E0F19536A2527E7BE6F159",
+  "corrected_listed_group_values": {
+    "cut": 124,
+    "tick": 95,
+    "fraction": 122,
+    "production": 233,
+    "cached": 69,
+    "subtotal": 14107271688,
+    "below_2_to_34": 3072597496
+  },
+  "old_NOFIT": "UNESTABLISHED_WITHDRAWN",
+  "old_complete_fit": "UNKNOWN",
+  "continued_scope": "Bounded source preparation/full independent census/derive-U-last remains within authorized OptionA; prospective contract selects no allowance or execution. No amendment or owner decision needed for bounded preparation.",
+  "future_requirements": [
+    "cite canonical erratum and report old complete fit UNKNOWN",
+    "close actual runner poll/buffer obligations",
+    "complete independent work and lifetime bounds",
+    "independent derived-limit and binding-source review before execution"
+  ],
+  "new_limit_or_execution_authority": false,
+  "original_reports_ADRs_contract_sources_preserved": true,
+  "authored_helper_parser_compiler_stage_test_or_UI_execution": false
+}

@@ -1,0 +1,544 @@
+{
+  "schema": "yes-daw-independent-quality-calibration-source-r5",
+  "authorization": "SOURCE_AUTHORED_ROOT_STAGE_GO_REQUIRED",
+  "status": "SOURCE_READINESS_PROMOTED_CALIBRATION_UNRUN_ROOT_SUCCESSOR_REVIEW_AND_STAGE_GO_REQUIRED",
+  "source_only_authoring": true,
+  "authored_python_imported_or_executed": false,
+  "generator_executed": false,
+  "compiler_or_probe_executed": false,
+  "tests_executed": false,
+  "vendor_candidate_created_or_executed": false,
+  "environment_or_native_or_device_probe_executed": false,
+  "network": false,
+  "git_writes": false,
+  "tracked_edits": false,
+  "old_sources_or_runs_modified": false,
+  "sources": [
+    {
+      "path": "independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "path": "fast_fit.h",
+      "bytes": 30686,
+      "sha256": "761C74E7D83800E08000CAD4E7542A0BC063CBE751C68D31F7CF361FF8E7BE51"
+    },
+    {
+      "path": "quality_calibration.cpp",
+      "bytes": 25793,
+      "sha256": "58A6AF4529916848EE39038808D90CA59ED9789360BA5EB8E76A08496DFEEA28"
+    },
+    {
+      "path": "freeze_reference.py",
+      "bytes": 24091,
+      "sha256": "D0A2164D1E3E6FDABA321B0E8C7C713835C4952137C59D151CB100F3257C1AF9"
+    },
+    {
+      "path": "run_stage.py",
+      "bytes": 15718,
+      "sha256": "9E5647120FF214CA41F19D0ABD07B7B93DC1607A243F89D3A898D9243D840AE2"
+    },
+    {
+      "path": "README.md",
+      "bytes": 17944,
+      "sha256": "BF0A79FFC7B7007BE07B853104B6F1A5959D5F5A553D78FAD52726FFC8D8C7FB"
+    }
+  ],
+  "preserved_pins": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77"
+    },
+    {
+      "path": "docs/adr/0083-musical-audio-prepared-lane.md",
+      "sha256": "7C45C564AC86079A82E487E8AE6AD510A34FCC6AB630663C2B56F8EFEF6FC646"
+    },
+    {
+      "path": "build-ci/20261105-channel-equivalence-document-baseline/musical-audio-plan.md",
+      "sha256": "6A2087759DCE5A89BCF472589C3C94F822E41C0132077AAFACB3BC642FB4E95F",
+      "historical_original_path": "docs/plans/2026-11-04-musical-audio-prepared-lane-plan.md"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    {
+      "path": "src/engine/ClipEnvelope.h",
+      "sha256": "1375368503D68E8BCFB09014687B4A84CBF72F92FC1548FC5AB281EE19A89B9D"
+    },
+    {
+      "path": "src/engine/MusicalAudioWindow.h",
+      "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D"
+    },
+    {
+      "path": "src/engine/TimeStretch.h",
+      "sha256": "7F759B9A8015E8C020F4EA0EE6E0F7283CBC0D563A20CED6CC5A219D5A761227"
+    },
+    {
+      "path": "tests/time_stretch_tests.cpp",
+      "sha256": "966C0CDC77F2A5DEFBA9E0BF5B1D2A9B503D168A0AD4C0F2B25473C13B1C20C1"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/signalsmith-stretch.h",
+      "sha256": "E7BD5C4E35AE05DE34ADE0CFC0E0C2285598543BEDB91420AC863812AF2A035E"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/spectral.h",
+      "sha256": "8B15F3E710BDEB2F7DDF9DA9DB10C0123FE0B0C675726202A6770F18ECFAED96"
+    },
+    {
+      "path": "build-ci/20261104-musical-audio-contract-draft.md",
+      "sha256": "524B712E047A5DE818B7D13F40A9C633AC8E04AAF5342BC488CA3BBF2CE3314D"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/packet.md",
+      "sha256": "4F0933E8BEFEE4C6C676453369077697D9ED1FE4D12DBDB893E55F55243601D6"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/source-pins.json",
+      "sha256": "04F57EA57854D3926832F25968CF4FF36CEF706556EC49FCECC49DE00D160C04"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/proof-plan.json",
+      "sha256": "D1B13FE352DDE33815412F48864C82B561F890EEC739CD27A859AF20BF3F294B"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r1/independent_clock.h",
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r1/quality_calibration.cpp",
+      "sha256": "474C77B44B650C5E8E6B105846BD3D9E7DFE6722343A4D7EB2DD01830E566841"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r1/freeze_reference.py",
+      "sha256": "E91E336ED927068A71EEAEFBD5F3A9AE123E61EB0582940B764AF63064050562"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r1/run_stage.py",
+      "sha256": "7E6B3ABC7B8F0CD4AA64F36B1858BEE6CEC32AFD4F395DE99240AF8D146D7512"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r1/README.md",
+      "sha256": "0F1EDC6E063E6C1DB7E37B77B0F2279F570BE2D1D5FFA92273D953445EA384E8"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r1/manifest.json",
+      "sha256": "A4E978280995E02BDE9E3CFB07C68770B00621342B91EF131B57F9411288EED3"
+    },
+    {
+      "path": "build-ci/20261105-channel-equivalence-document-baseline/CONTEXT.md",
+      "bytes": 45430,
+      "sha256": "EFF7DBBFCFE2259BBFB3051F96812E6B80FAAF3A5571CD107441A9D43CA95A06"
+    },
+    {
+      "path": "docs/plans/2026-11-04-musical-audio-prepared-lane-plan.md",
+      "bytes": 15036,
+      "sha256": "FFC05053978459CBC090000A72B0EE8261C18229A2803355DD4BAC2EEAA679CB"
+    },
+    {
+      "path": "CONTEXT.md",
+      "bytes": 46352,
+      "sha256": "C94A06170918C62ADD5D97E9B4C9DF8EF00278426E1BCDE93B97E9B55898A916"
+    },
+    {
+      "path": "docs/adr/0084-musical-audio-channel-equivalence.md",
+      "bytes": 11431,
+      "sha256": "50036D3AEFE09133298B85EA00D93C37E5E41CBFC21F8A3DFBF46725F8CCFA45"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-execution-prep/packet.md",
+      "bytes": 17126,
+      "sha256": "D870163A91C913F69A85D7C8483C0937926D2AA57DDEF8D9CD9940EAB5664B79"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-execution-prep/proof-plan.json",
+      "bytes": 18103,
+      "sha256": "3E11102C97DB1EC18C902E4BA2E90B62B34AC0279833830CF70CB3143C42A1D7"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-execution-prep/source-pins.json",
+      "bytes": 9007,
+      "sha256": "7B6CE5B2A4A65073C0D58E5A74F6612D86F4E6C98CEE9FC2F30A32F424D7E0BC"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/manifest.json",
+      "bytes": 10210,
+      "sha256": "6D1A2126601CD490900A08272AFEECCD282CE77F49FFC41FA113090B40F9F4EC"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/quality_calibration.cpp",
+      "bytes": 21617,
+      "sha256": "C10396FB2A2A8A82B79A23950323E810ABBF8A25AFD1659A011485FD5CC933B1"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/freeze_reference.py",
+      "bytes": 19534,
+      "sha256": "EC4FD9C1D53FD613AE6516664302445007CB2CA17DD180B3CB32B35E0AB927A5"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/run_stage.py",
+      "bytes": 14528,
+      "sha256": "CA451637A3CE492A7F0A32C1463785B9E6691408FD9FFFE373EE86EB24C7F346"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/README.md",
+      "bytes": 13967,
+      "sha256": "1F92AD50447ADF53515236DAA52B53D0C82FBF81F6498A562443D5390D583E2E"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/Freeze-20261105T105800.856691Z-1ebc20b2/stage_receipt.json",
+      "bytes": 920,
+      "sha256": "E70FDE5B6FD95BFCB9C0F91AB28A7E2D3B4E11D2172DCD5DE29DCCFBA89712B1"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/Freeze-20261105T105800.856691Z-1ebc20b2/freeze/freeze_bundle.json",
+      "bytes": 585,
+      "sha256": "4754639AE784B74555DFDBDF38DFDD76074720E2303138E408ED687C926DE18D"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/Freeze-20261105T105800.856691Z-1ebc20b2/freeze/calibration.tsv",
+      "bytes": 280165,
+      "sha256": "5341CFCA9AA6F7B64EBFDD99BECD76858D62DA99322AFBFC015B740451C8306A"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/Freeze-20261105T105800.856691Z-1ebc20b2/freeze/clock.tsv",
+      "bytes": 96098,
+      "sha256": "C25B0F5A7F6C0357A47AD73CFCD8AC69368919344EEC2CDCBB29111347C3AC76"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/Freeze-20261105T105800.856691Z-1ebc20b2/freeze/geometry.jsonl",
+      "bytes": 36710,
+      "sha256": "F56929CE26422CAF39E37313507BC9E3C2DC611CD7FFC11166BDFE0EDDEF1B7D"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/Freeze-20261105T105800.856691Z-1ebc20b2/freeze/freeze_receipt.json",
+      "bytes": 1041,
+      "sha256": "E54C702071BAAF02E42CC3BF092BB4A786FA00205FC60F8726EBAE005CBF4854"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/CompileCalibrate-20261105T113800.647407Z-395bd38b/stage_receipt.json",
+      "bytes": 3412,
+      "sha256": "05F51815B86583568499FB41CB5525C62454F3E2FB11D3408E137FCC2F60B202"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/CompileCalibrate-20261105T113800.647407Z-395bd38b/calibration/calibration-results.tsv",
+      "bytes": 199706,
+      "sha256": "40BD7F908A4FC67AC83377408E1DC3BF6B2EDB96FB926053B7BB1BACE89B3EEF"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/CompileCalibrate-20261105T113800.647407Z-395bd38b/calibration/clock-results.tsv",
+      "bytes": 42672,
+      "sha256": "1284C102C8EC423B2ABB016760AC4A168F7D4334A1AC01D0193ACBBE19FA3410"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r2/root-runs/CompileCalibrate-20261105T113800.647407Z-395bd38b/calibration/summary.json",
+      "bytes": 445,
+      "sha256": "A7433318ADF9C039BE2422F001F724C9D134421B861F70D8835CA1864D1FA66A"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r3/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r3/fast_fit.h",
+      "bytes": 15927,
+      "sha256": "81F59A57D13210C6C20D9B03EED2A20E8BFBD26550A92775DD1DAD4EB7B3D805"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r3/quality_calibration.cpp",
+      "bytes": 16257,
+      "sha256": "CF08C3FD39FC838DDEEDB1E43E35ECEDAE725E5B9916561FF21042526C9E8EA2"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r3/freeze_reference.py",
+      "bytes": 22284,
+      "sha256": "882BC215DE8058666F4C6ABA015E1E21395A2C2B967F32E80F1D68553B6519AB"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r3/run_stage.py",
+      "bytes": 15087,
+      "sha256": "3703D49BD97E402547D8457EDF17CA20EC133673F3D56A0519C85A07368D49C3"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r3/README.md",
+      "bytes": 11810,
+      "sha256": "1C6BD1ED50DCE785569BBB3679AF6893DE8AC9F4409F1B62F1451C5FAC4F1841"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r3/authored-manifest.json",
+      "bytes": 15675,
+      "sha256": "DAF567566ACECAE1073DA4E00502DE51DC21F6A7C1D030ACA2A236C7C2DE6772"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vector",
+      "bytes": 161282,
+      "sha256": "351604D91A2CEAC79F9BD9448C0553CCCC22711E22955B5938EAF41DE98334A6"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/complex",
+      "bytes": 86853,
+      "sha256": "F455A3ADC6C3FF97EDAFB303981211099A793F9F198C46AE48DD8A4D4F6DFDB7"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "bytes": 112178,
+      "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals_core.h",
+      "bytes": 104524,
+      "sha256": "5070449E37A1735ADF49204A12C7A7D5EFA145D6AA607720AEF5ADBD2C57EF83"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r4/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+      "historical_revision": "r4"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r4/fast_fit.h",
+      "bytes": 30561,
+      "sha256": "C59AE956E2CA27380CF84EF026EC9BD9AE66BEF0A1958102C4E84A4C7434D504",
+      "historical_revision": "r4"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r4/quality_calibration.cpp",
+      "bytes": 25640,
+      "sha256": "2D312B10AD36B9FF24888516D11917E26B450833C963A003C7CFABC41A4D7018",
+      "historical_revision": "r4"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r4/freeze_reference.py",
+      "bytes": 23714,
+      "sha256": "E3422072B5F37A10A84C397FDF13576D34A3B89C7D6B9CC585C54ADAE7D0F5EA",
+      "historical_revision": "r4"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r4/run_stage.py",
+      "bytes": 15222,
+      "sha256": "D6501AB307642FD872B966154005F64D69266D920BE975B67565E0BE3146E9DB",
+      "historical_revision": "r4"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r4/README.md",
+      "bytes": 15684,
+      "sha256": "38F62AC5F85C22B9B0994CF1FFD423B49C8F751404D7842D77EBD808B71B3A05",
+      "historical_revision": "r4"
+    },
+    {
+      "path": "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r4/authored-manifest.json",
+      "bytes": 19212,
+      "sha256": "102E2226E561C738E7DD24E6D0044A0003FA883DF10913B48F11357E383FE6D9",
+      "historical_revision": "r4"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/numbers",
+      "bytes": 4872,
+      "sha256": "53AF2276596D45F8A9BFA8C6BB5FEE451AC3F57BB32F3C40F74C527B8BEEA5C1"
+    }
+  ],
+  "historical_document_binding": [
+    {
+      "original_path": "docs/plans/2026-11-04-musical-audio-prepared-lane-plan.md",
+      "archive_path": "build-ci/20261105-channel-equivalence-document-baseline/musical-audio-plan.md",
+      "sha256": "6A2087759DCE5A89BCF472589C3C94F822E41C0132077AAFACB3BC642FB4E95F",
+      "reason": "legitimate concurrent ADR0084 document update; exact prechange bytes retained; no ignored mismatch"
+    }
+  ],
+  "new_allowed_files": [
+    "independent_clock.h",
+    "fast_fit.h",
+    "quality_calibration.cpp",
+    "freeze_reference.py",
+    "run_stage.py",
+    "README.md",
+    "authored-manifest.json"
+  ],
+  "mathematical_contract": {
+    "new_objective": "one fixed binary64 beta per trial from midpoint certifiedCZT RHS/centered analyticGram; computed one-passRSS uses SAMEbeta",
+    "objective": "E-2*beta^T*b_B+beta^T*G_B*beta; NEVER E-beta^T*b",
+    "basis_stats_bounds": {
+      "pair": "M*(2*eps+eps^2)",
+      "DC": "M*eps",
+      "rhs": "eps*sumabs(y)",
+      "DC_exact": true
+    },
+    "LS_accuracy": "G_B>=ellI,ell>M/4; excess<=norm(b_B-G_B*beta)^2/ell; require<=2^-32*energyLower before pruning every trial",
+    "finalists": "all L_i<=min U_j; every finalist directly evaluated in increasingindex,strict< update",
+    "arbitrary1024_factor_removed": true,
+    "old_R3_solver_not_inherited": true
+  },
+  "Kahan_enclosure": {
+    "unit_roundoff": "2^-53",
+    "absolute_underflow": "denorm_min",
+    "q": "OUTWARD(1+u),not plain1+u",
+    "affine_coefficients_precomputed_once_M": true,
+    "recurrence": [
+      "A=q*(T+C)+delta",
+      "ea=u*(T+C)+delta",
+      "en=u*(S+A)+delta",
+      "et=u*(A+en)+delta",
+      "ec=u*(en+et)+delta",
+      "Eprime=E+C+ea+en",
+      "Cprime=en+et+ec",
+      "Sprime=q*(S+A)+delta"
+    ],
+    "product_and_evaluation_errors_separate": true
+  },
+  "transform_derivation": {
+    "cmul": "explicit4multiply2add,relative2*gamma3,absolute8delta",
+    "complex_add": "relativeu,absolute2delta",
+    "root_error": "actual certifiedMAXperplan,not table admission ceiling",
+    "H": "(1+epsRoot)*(1+2*gamma3)",
+    "Q": "outward(1+u)*H",
+    "relative": "eNext=Q*(1+e)-1",
+    "absolute": "aNext=outward(1+u)*(1+H)*a+16delta",
+    "normalization": "relativeu plus2delta",
+    "CZT": "forwardA/kernel FFT errors,pointwise product,inverse,normalization,inputchirp/carrier,outrotation,androundedgrid drift all explicit",
+    "independent_critic_acceptance": "ACCEPT_ROOT_RELAYED_R4_ACTUAL_IMPLEMENTATION_CALIBRATION_UNRUN"
+  },
+  "whole_case": {
+    "cases": 6,
+    "total_windows": 3564,
+    "windows_per_channel": 396,
+    "known_grids_assumption": false,
+    "all_actual_seed_grids_discovered_first": true,
+    "all_windows_ranked_before_direct": true,
+    "total_finalists_preflighted_before_any_direct": true,
+    "unreset_parent_budget": true,
+    "phase_subcounters_enforce_prepaid_caps_before_work": true,
+    "payload_cap": 67108864,
+    "work_cap": 17179869184
+  },
+  "proposed_cost_ledger": {
+    "status": "INDEPENDENT_SOURCE_COST_ACCEPTED_STORAGE_ASSERTIONS_ADDED_NOT_MEASURED",
+    "setup": 400000000,
+    "seed_per_window": 10500000,
+    "rank_per_window": 9000000,
+    "per_actual_grid": 2000000,
+    "direct_per_finalist": "40*M+128",
+    "window_bookkeeping": 4096,
+    "case_metadata": 1048576,
+    "source_input": "1unit initialization+24/sample+1elementary call/sample",
+    "example96k_stereo_windows": 792,
+    "example96k_actual_grids": 8,
+    "example96k_finalists": 792,
+    "example96k_total_charged_upper": 16724553984,
+    "example96k_payload_upper": 53089040,
+    "example_is_not_actual_calibration": true,
+    "cap_changed": false,
+    "reviewed_source_count_uppers": {
+      "seed_per_window": 10328357,
+      "correlation_ranking_per_window_strict": 8500000,
+      "geometry_per_grid_strict": 1481000,
+      "setup_strict": 250000000,
+      "grid_preallocation_bytes": 2911504,
+      "trig_nested_counter_exact": 1422
+    }
+  },
+  "qualification": {
+    "all_status": "UNRUN",
+    "small_DFT": true,
+    "packed_real_DFT": true,
+    "circular_CZT_defining_sum": true,
+    "all_trial_RHS_and_full_Gram_enclosures": true,
+    "all_trial_computed_RSS_enclosures": true,
+    "all_trial_minimum_vs_finalists": true,
+    "near_tie": true,
+    "DC": true,
+    "mixture": true,
+    "cancellation": true,
+    "band_edges": true,
+    "equal_RSS_first_minimum_direct_sample_control": true,
+    "component_test_geometry_not_global_seed_credit": true
+  },
+  "preserved_definitions": {
+    "clock_byte_exact": true,
+    "original_freezer_functions_AST_unchanged_except": [
+      "freeze"
+    ],
+    "new_function": "prove_pi_bracket",
+    "original_rows": 1125,
+    "expected_mixture_refusals": 45,
+    "clock_queries": 690,
+    "whole_cases": 6,
+    "whole_windows": 3564,
+    "calibration_cents": 0.25,
+    "calibration_dB": 0.01,
+    "product_cents_unchanged": 5,
+    "product_dB_unchanged": 1,
+    "source_error_2powminus20": "CONDITIONAL_UNMEASURED",
+    "original_reference_data_must_match_r2_after_actual_freeze": true
+  },
+  "source_guards": {
+    "runner": "explicit source literal SOURCE_READINESS_ACCEPTANCE must equal manifest.source_readiness_acceptance before compiler/bundle consumption",
+    "main": "coefficientAndTransformProofAccepted=true,wholeCasePreflightClosed=true; source acceptance only,calibration UNRUN",
+    "FP": "FE_TONEAREST and(MXCSR&~0x3f)==0x1f80 before math,no control changes",
+    "compiler": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+    "PE_console": true,
+    "one_use_bundle": true,
+    "no_retry": true,
+    "storage_profile_assertions": [
+      "sizeof(qf::Geometry)<=64",
+      "sizeof(Window)<=512 before local vector allocation"
+    ],
+    "root_stages": "exact successor source review and fresh acceptance,then separate Freeze GO,actual outputs/hash review,then separate one CompileCalibrate GO"
+  },
+  "remaining_finish_line": [
+    "root exact R5 delta review and fresh source acceptance before execution GO",
+    "separate root Freeze GO and actual generated reference/hash review",
+    "separate one CompileCalibrate GO then fresh measured critique including96k20secondstereo wholecase"
+  ],
+  "static_inspection": {
+    "LF_files": 7,
+    "Python_AST2": true,
+    "Cpp_lexical_delimiters_balanced": true,
+    "Cpp_compilation": "UNRUN",
+    "old_clock_exact": true,
+    "source_arithmetic": "independent exactFraction Machin bracket and26factorial>2^80 checked without importing authored code"
+  },
+  "production_admission": false,
+  "waveform_certified": false,
+  "materializer_or_renderer_credit": false,
+  "native_device_or_hardware": false,
+  "source_readiness_acceptance": "R4_NUMERIC_COST_ACCEPTED_R5_STORAGE_PROFILE_ASSERTED_ROOT_STAGES_REQUIRED",
+  "exact_successor_root_review": "PENDING_BEFORE_EXECUTION_GO",
+  "root_relayed_independent_reviews": [
+    {
+      "task": "/root/critic_quality_r4_numeric",
+      "decision": "ACCEPT",
+      "scope": "R4 actual fixed-beta numerical implementation and reviewed successor numeric design; all7files,6sourcehashes,55pins checked; require numbers provenance pin",
+      "new_measurement": false
+    },
+    {
+      "task": "/root/critic_quality_r4_cost",
+      "decision": "ACCEPT_CONDITIONAL_STORAGE_PROFILE_ASSERTIONS",
+      "scope": "Complete R4 source work ledger,requested-capacity pinned MSVC vectors; R5 adds required Geometry<=64 and Window<=512 assertions",
+      "conditions_added_in_r5": true,
+      "new_measurement": false
+    }
+  ],
+  "unchanged_from_r4": [
+    "objective",
+    "arithmetic algorithm",
+    "coefficients",
+    "thresholds",
+    "caps",
+    "test and fixture definitions",
+    "clock bytes",
+    "controls",
+    "complete-case budget and phase reservations"
+  ]
+}

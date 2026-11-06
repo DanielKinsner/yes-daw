@@ -1,0 +1,456 @@
+{
+  "schema": "YESDAW_CLOCK_R9_RUNNER_CENSUS_SOURCE_PINS_V1",
+  "state": "SEALED_SOURCE_ONLY_SCALAR_PROPOSAL_CONDITIONAL_PAYLOAD_HOLD",
+  "target_manifest_sha256": "777F41A33837BFA8F1E2517A062D0C144CBDCCE93B59CA08FBAF54718E72F75A",
+  "guard_promotion_or_execution": false,
+  "own_identity_audit": {
+    "schema": "R9_SOURCE_ONLY_INDEPENDENT_INPUT_AND_TEXT_IDENTITY",
+    "input_count": 1186,
+    "own_count": 4,
+    "mismatches": [],
+    "helpers_equal": [
+      "Spend-Task",
+      "Assert-NoLink",
+      "Get-TaskHash",
+      "Assert-TaskPollAdmission",
+      "Invoke-TaskChild",
+      "Add-TaskChildCleanup",
+      "Set-TaskRawExit",
+      "Invoke-TaskFencedChild",
+      "Replace-TaskBounded",
+      "Reject-TaskGate",
+      "Expect-TaskGate",
+      "Add-TaskJsonVisit",
+      "Get-TaskRuntimeType",
+      "Get-TaskBootstrapHash",
+      "Initialize-TaskController",
+      "Assert-TaskString",
+      "Get-TaskSafePrefix",
+      "Assert-TaskIntegral",
+      "Convert-TaskControlOperand",
+      "Assert-TaskExactKeys",
+      "Set-TaskSecondary",
+      "Close-TaskOwner",
+      "Complete-TaskOwnerClose",
+      "Get-TaskSecondaryCodes",
+      "Assert-TaskCodecBinding",
+      "Get-TaskIntegerDigits",
+      "Get-TaskEscapedStringBytes",
+      "Add-TaskJsonBound",
+      "Visit-TaskJsonValue",
+      "Measure-TaskJson",
+      "Join-TaskBoundedNames",
+      "Get-TaskEntries",
+      "Copy-TaskOwned",
+      "Mutate-TaskOwnedBytes",
+      "Read-TaskBoundedBytes",
+      "Encode-TaskJson",
+      "Get-TaskStageBytes",
+      "Assert-TaskDocumentWrite",
+      "Write-TaskJsonBytes",
+      "Write-TaskJson",
+      "Save-TaskReceipt",
+      "Assert-TaskIdentity",
+      "Assert-TaskBoundSourceInteger",
+      "Assert-TaskReservation",
+      "Assert-TaskRetainedReservation",
+      "Assert-TaskAttempt",
+      "Assert-TaskPredecessor",
+      "Get-TaskPredecessorDescriptor",
+      "Resolve-TaskInput",
+      "Assert-TaskPins",
+      "Assert-TaskFileSet",
+      "Get-TaskReferences",
+      "Assert-TaskSameReferences",
+      "Get-TaskPEHeader",
+      "Assert-TaskConsolePE",
+      "Get-TaskBuildArtifacts",
+      "Assert-TaskDependencies",
+      "Save-TaskFailureInventory"
+    ],
+    "helpers_changed": [
+      "Assert-TaskDependencyJsonShape",
+      "Read-TaskJson",
+      "Read-TaskChildResult"
+    ],
+    "helpers_added": [
+      "Assert-TaskRawJson"
+    ],
+    "helper_locations": {
+      "Spend-Task": {
+        "start": 60,
+        "end": 60
+      },
+      "Assert-NoLink": {
+        "start": 61,
+        "end": 65
+      },
+      "Get-TaskHash": {
+        "start": 66,
+        "end": 74
+      },
+      "Assert-TaskPollAdmission": {
+        "start": 75,
+        "end": 77
+      },
+      "Invoke-TaskChild": {
+        "start": 78,
+        "end": 152
+      },
+      "Add-TaskChildCleanup": {
+        "start": 153,
+        "end": 160
+      },
+      "Set-TaskRawExit": {
+        "start": 161,
+        "end": 163
+      },
+      "Invoke-TaskFencedChild": {
+        "start": 164,
+        "end": 175
+      },
+      "Replace-TaskBounded": {
+        "start": 176,
+        "end": 184
+      },
+      "Reject-TaskGate": {
+        "start": 186,
+        "end": 186
+      },
+      "Expect-TaskGate": {
+        "start": 187,
+        "end": 193
+      },
+      "Add-TaskJsonVisit": {
+        "start": 194,
+        "end": 194
+      },
+      "Get-TaskRuntimeType": {
+        "start": 195,
+        "end": 195
+      },
+      "Get-TaskBootstrapHash": {
+        "start": 196,
+        "end": 212
+      },
+      "Initialize-TaskController": {
+        "start": 213,
+        "end": 248
+      },
+      "Assert-TaskString": {
+        "start": 249,
+        "end": 257
+      },
+      "Get-TaskSafePrefix": {
+        "start": 258,
+        "end": 263
+      },
+      "Assert-TaskIntegral": {
+        "start": 264,
+        "end": 268
+      },
+      "Convert-TaskControlOperand": {
+        "start": 269,
+        "end": 280
+      },
+      "Assert-TaskExactKeys": {
+        "start": 281,
+        "end": 288
+      },
+      "Set-TaskSecondary": {
+        "start": 289,
+        "end": 293
+      },
+      "Close-TaskOwner": {
+        "start": 294,
+        "end": 296
+      },
+      "Complete-TaskOwnerClose": {
+        "start": 297,
+        "end": 297
+      },
+      "Get-TaskSecondaryCodes": {
+        "start": 298,
+        "end": 302
+      },
+      "Assert-TaskCodecBinding": {
+        "start": 303,
+        "end": 307
+      },
+      "Get-TaskIntegerDigits": {
+        "start": 308,
+        "end": 319
+      },
+      "Get-TaskEscapedStringBytes": {
+        "start": 320,
+        "end": 330
+      },
+      "Add-TaskJsonBound": {
+        "start": 331,
+        "end": 331
+      },
+      "Visit-TaskJsonValue": {
+        "start": 332,
+        "end": 365
+      },
+      "Measure-TaskJson": {
+        "start": 366,
+        "end": 372
+      },
+      "Join-TaskBoundedNames": {
+        "start": 373,
+        "end": 380
+      },
+      "Get-TaskEntries": {
+        "start": 381,
+        "end": 389
+      },
+      "Copy-TaskOwned": {
+        "start": 390,
+        "end": 394
+      },
+      "Mutate-TaskOwnedBytes": {
+        "start": 395,
+        "end": 399
+      },
+      "Assert-TaskRawJson": {
+        "start": 400,
+        "end": 476
+      },
+      "Assert-TaskDependencyJsonShape": {
+        "start": 477,
+        "end": 480
+      },
+      "Read-TaskBoundedBytes": {
+        "start": 481,
+        "end": 485
+      },
+      "Read-TaskJson": {
+        "start": 486,
+        "end": 492
+      },
+      "Encode-TaskJson": {
+        "start": 493,
+        "end": 506
+      },
+      "Get-TaskStageBytes": {
+        "start": 507,
+        "end": 509
+      },
+      "Assert-TaskDocumentWrite": {
+        "start": 510,
+        "end": 514
+      },
+      "Write-TaskJsonBytes": {
+        "start": 515,
+        "end": 518
+      },
+      "Write-TaskJson": {
+        "start": 519,
+        "end": 524
+      },
+      "Save-TaskReceipt": {
+        "start": 525,
+        "end": 533
+      },
+      "Assert-TaskIdentity": {
+        "start": 534,
+        "end": 534
+      },
+      "Assert-TaskBoundSourceInteger": {
+        "start": 535,
+        "end": 543
+      },
+      "Assert-TaskReservation": {
+        "start": 544,
+        "end": 544
+      },
+      "Assert-TaskRetainedReservation": {
+        "start": 545,
+        "end": 545
+      },
+      "Assert-TaskAttempt": {
+        "start": 546,
+        "end": 546
+      },
+      "Assert-TaskPredecessor": {
+        "start": 547,
+        "end": 552
+      },
+      "Get-TaskPredecessorDescriptor": {
+        "start": 553,
+        "end": 559
+      },
+      "Resolve-TaskInput": {
+        "start": 560,
+        "end": 560
+      },
+      "Assert-TaskPins": {
+        "start": 561,
+        "end": 573
+      },
+      "Assert-TaskFileSet": {
+        "start": 574,
+        "end": 582
+      },
+      "Get-TaskReferences": {
+        "start": 583,
+        "end": 587
+      },
+      "Assert-TaskSameReferences": {
+        "start": 588,
+        "end": 588
+      },
+      "Get-TaskPEHeader": {
+        "start": 589,
+        "end": 593
+      },
+      "Assert-TaskConsolePE": {
+        "start": 594,
+        "end": 594
+      },
+      "Read-TaskChildResult": {
+        "start": 595,
+        "end": 643
+      },
+      "Get-TaskBuildArtifacts": {
+        "start": 644,
+        "end": 648
+      },
+      "Assert-TaskDependencies": {
+        "start": 649,
+        "end": 662
+      },
+      "Save-TaskFailureInventory": {
+        "start": 663,
+        "end": 669
+      }
+    },
+    "parser_or_AST": false,
+    "target_execution": false
+  },
+  "external_primary_source_associations": [
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/ProcessStartInfo.cs",
+      "sha256": "E3CA0240C9FB9AF963631AD0C04B62CE577079D7FD177AF150096E9E15627E6E",
+      "bytes": 8090,
+      "qualification": "source association only; binary equivalence not asserted"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/Process.Windows.cs",
+      "sha256": "49620FB20FEFFB84E36D587A381C0CF161E3EC8C114F6FF1E7FA2D7672B518CF",
+      "bytes": 41903,
+      "qualification": "source association only; binary equivalence not asserted"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Environment.Variables.Windows.cs",
+      "sha256": "84E3F67D9C45361C862784C5F75FED4A53507B4D42B364A707C57F411DC6BE4A",
+      "bytes": 5749,
+      "qualification": "source association only; binary equivalence not asserted"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Hashtable.cs",
+      "sha256": "BC06B72D387FAE36844C63ADA61D0AB5BC447E9710AA3891906EE4E923DE674C",
+      "bytes": 63165,
+      "qualification": "source association only; binary equivalence not asserted"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/Dictionary.cs",
+      "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA",
+      "bytes": 93117,
+      "qualification": "source association only; binary equivalence not asserted"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/List.cs",
+      "sha256": "1346574BE64B5708F97AAA196AD474A63FF52F6D977D7AE18C366A600766F036",
+      "bytes": 43437,
+      "qualification": "source association only; binary equivalence not asserted"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/StreamReader.cs",
+      "sha256": "9E570DB6C4CA8CBDF8065BACB8212ECE0CB5A4216738217EB99C3E8018E488B9",
+      "bytes": 61606,
+      "qualification": "source association only; binary equivalence not asserted"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/StringReader.cs",
+      "sha256": "78804249EB16A854FAEF70B19D0A7B4922DC504C1EAF2DAC446F26EEE45429AD",
+      "bytes": 11996,
+      "qualification": "source association only; binary equivalence not asserted"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/Path.cs",
+      "sha256": "51E40D247651B4BD267A14C102709C1CB460CFFB386064C2F05A0CB69DDB0BE8",
+      "bytes": 39112,
+      "qualification": "source association only; binary equivalence not asserted"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/Path.Windows.cs",
+      "sha256": "C0CF4FE4202E48F8553900ECF1C956C84263E674F62B14B43D401C2DB7F8D049",
+      "bytes": 15866,
+      "qualification": "source association only; binary equivalence not asserted"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Text/StringBuilder.cs",
+      "sha256": "4852F4B57D749BBFB9D5B865E0784974EE5F056DE4427C6E584FB4ECD193C751",
+      "bytes": 144081,
+      "qualification": "source association only; binary equivalence not asserted"
+    }
+  ],
+  "namespace_audit": {
+    "namespaces": 27,
+    "entries": 1058,
+    "files": 1012,
+    "file_set_mismatches": [],
+    "reparse_entries": [],
+    "method": "Independent Python os.scandir read-only inventory; not target helper"
+  },
+  "target_five": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype/run-clock.ps1",
+      "bytes": 89803,
+      "sha256": "34B85E7CA230DA34A86EDBF5250BC8D460106C9B3F10ADF7D40541B9A604BBE5"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype/source-manifest.json",
+      "bytes": 476569,
+      "sha256": "777F41A33837BFA8F1E2517A062D0C144CBDCCE93B59CA08FBAF54718E72F75A"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype/README.md",
+      "bytes": 13201,
+      "sha256": "55F2AC89F86E274B50C561B15DC4D00D21EDE12D81D3CAADB2AAC6DB8F332AD2"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    }
+  ],
+  "bootstrap_graph_audit": {
+    "values": 9513,
+    "keys": 5822,
+    "max_UTF16": 435,
+    "depth": 4,
+    "floats": 0,
+    "nodes_plus_keys": 15335
+  },
+  "packet_outputs": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/census.md",
+      "sha256": "9F43A03908B5BDE7CC67AFE9EA48D46B18217AD6BCB903B804154FF21C368D78",
+      "bytes": 22548
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/census.json",
+      "sha256": "7F8425F9982EFEC1C5218AFD95F3A8E443C172DEC61112E5F9008306EA6A654E",
+      "bytes": 122330
+    }
+  ],
+  "self_check": "All source/artifact arithmetic assertions passed; exact5 immutable subject seals match; all1186input+4own earlier rehashes and27namespace checks independently passed. No target execution."
+}

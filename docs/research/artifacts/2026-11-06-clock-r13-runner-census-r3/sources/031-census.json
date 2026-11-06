@@ -1,0 +1,2626 @@
+{
+  "schema": 1,
+  "status": "SCALAR_UPPER_DERIVED_PAYLOAD_REVISE_UNRUN",
+  "subject": "ClockOracle R7 independent PowerShell scalar/lifetime census",
+  "scope": "SOURCE_ONLY; no authored source/helper/parser/import/compiler/test/stage/UI/device execution",
+  "canonicalArithmeticCorrection": "56C73E4F91D5252E203BB4A1DDE422595DD74D7C7526614EB938AF9B5875DE21",
+  "oldCompleteFit": "UNKNOWN",
+  "runnerUpper": 2944518648,
+  "controlledPayloadUpper": null,
+  "wholeUpper": null,
+  "selectedLimit": null,
+  "convention": {
+    "R": "Reached scalar/literal/source cell reads.",
+    "W": "Actual initialization/write, including parameter/receiver binding; guaranteed direct result destination counted once at caller.",
+    "O": "Arithmetic/bitwise/comparison/boolean/conversion/source access.",
+    "B": "Selected source branch.",
+    "S": "Visible source setup/registration/literal-construction control.",
+    "D": "Visible dispatch.",
+    "E": "Visible callee or primitive boundary entry.",
+    "T": "Actual normal return; no normal return fabricated on a throwing path.",
+    "K": "Explicit throwing/control transfer.",
+    "implicitFramework": "Root confirmed visible foreach setup/condition/advance/body/final-exit and registration once; no interpreter enumerator/binder/get_Item CPU graph.",
+    "primitive": "DE33/2685: external scalar result once, no internal bulk byte fee; explicit methods/properties/own helpers retain source argument/receiver/parameter/boundary actions.",
+    "sourceTypeMember": "Evaluated static type/member source values remain reads/accesses; no CLR reflection-framework internal body expansion."
+  },
+  "fullyDerivedRows": [
+    {
+      "name": "Spend-Task",
+      "path": "normal",
+      "lines": [
+        60,
+        60
+      ],
+      "vector": {
+        "R": 7,
+        "W": 2,
+        "O": 5,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 17,
+      "parameterConversionUnits": "C_long:0or1; all Int32 literal callers add1",
+      "normalLiteralCallerCalleeUnits": 18,
+      "caller": "Argument read and dispatch at actual caller; no result destination for void return."
+    },
+    {
+      "name": "Spend-Task",
+      "path": "negative-refusal",
+      "lines": [
+        60,
+        60
+      ],
+      "vector": {
+        "R": 3,
+        "W": 1,
+        "O": 2,
+        "B": 1,
+        "E": 1,
+        "K": 1
+      },
+      "units": 9,
+      "parameterConversionUnits": "C_long:0or1",
+      "maxWithConversion": 10
+    },
+    {
+      "name": "Spend-Task",
+      "path": "remaining-refusal",
+      "lines": [
+        60,
+        60
+      ],
+      "vector": {
+        "R": 6,
+        "W": 1,
+        "O": 4,
+        "B": 1,
+        "E": 1,
+        "K": 1
+      },
+      "units": 14,
+      "parameterConversionUnits": "C_long:0or1",
+      "maxWithConversion": 15
+    },
+    {
+      "name": "Add-TaskJsonVisit",
+      "path": "normal",
+      "lines": [
+        194,
+        194
+      ],
+      "vector": {
+        "R": 7,
+        "W": 2,
+        "O": 5,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 17,
+      "parameterConversionUnits": "C_long:0or1",
+      "maxWithConversion": 18
+    },
+    {
+      "name": "Add-TaskJsonBound",
+      "path": "normal",
+      "lines": [
+        331,
+        331
+      ],
+      "vector": {
+        "R": 13,
+        "W": 3,
+        "O": 8,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 27,
+      "parameterConversionUnits": "C_long:0or1",
+      "maxWithConversion": 28,
+      "indexing": "Each state index has evaluated receiver/key, source access and selected cell read/write; no hidden get_Item call."
+    },
+    {
+      "name": "Complete-TaskOwnerClose",
+      "path": "full-test-normal",
+      "lines": [
+        297,
+        297
+      ],
+      "vector": {
+        "R": 6,
+        "W": 2,
+        "O": 5,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 16,
+      "caller": "Two evaluated caller arguments and caller dispatch are not duplicated here."
+    },
+    {
+      "name": "Complete-TaskOwnerClose",
+      "path": "propagate-first-primary",
+      "lines": [
+        297,
+        297
+      ],
+      "vector": {
+        "R": 7,
+        "W": 2,
+        "O": 5,
+        "B": 1,
+        "E": 1,
+        "K": 1
+      },
+      "units": 17
+    },
+    {
+      "name": "Assert-TaskPollAdmission",
+      "path": "admit",
+      "lines": [
+        75,
+        77
+      ],
+      "vector": {
+        "R": 4,
+        "W": 1,
+        "O": 3,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 11,
+      "caller": "Actual caller has Long count; no parameter conversion or result copy."
+    },
+    {
+      "name": "Assert-TaskPollAdmission",
+      "path": "reject-prefix-before-Reject-TaskGate",
+      "lines": [
+        75,
+        77
+      ],
+      "vector": {
+        "R": 12,
+        "W": 7,
+        "O": 4,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1
+      },
+      "units": 27,
+      "callee": "Reject-TaskGate",
+      "calleeUnits": 32,
+      "fullUnits": 59
+    },
+    {
+      "name": "Reject-TaskGate",
+      "path": "throw",
+      "lines": [
+        186,
+        186
+      ],
+      "vector": {
+        "R": 9,
+        "W": 10,
+        "O": 2,
+        "D": 3,
+        "E": 4,
+        "T": 3,
+        "K": 1
+      },
+      "units": 32,
+      "primitiveCalls": "InvalidOperationException constructor and two Data getters:12units in total including primitive argument/receiver writes. Scalar results fuse with actual destinations; no duplicate result transfer."
+    },
+    {
+      "name": "Assert-TaskIdentity",
+      "path": "equal",
+      "lines": [
+        461,
+        461
+      ],
+      "vector": {
+        "R": 12,
+        "W": 2,
+        "O": 7,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 24
+    },
+    {
+      "name": "Assert-TaskIdentity",
+      "path": "full-test-reject-prefix",
+      "lines": [
+        461,
+        461
+      ],
+      "vector": {
+        "R": 33,
+        "W": 12,
+        "O": 12,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1
+      },
+      "units": 61,
+      "callee": "Reject-TaskGate",
+      "calleeUnits": 32,
+      "fullUnits": 93
+    },
+    {
+      "name": "Assert-TaskConsolePE",
+      "path": "console-pass",
+      "lines": [
+        521,
+        521
+      ],
+      "vector": {
+        "R": 16,
+        "W": 1,
+        "O": 11,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 31,
+      "ordinaryCalls": 3
+    },
+    {
+      "name": "Assert-TaskConsolePE",
+      "path": "GUI-reject-prefix",
+      "lines": [
+        521,
+        521
+      ],
+      "vector": {
+        "R": 33,
+        "W": 9,
+        "O": 15,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1
+      },
+      "units": 61,
+      "callee": "Reject-TaskGate",
+      "calleeUnits": 32,
+      "fullUnits": 93,
+      "expectedRejectionCalls": 1
+    },
+    {
+      "name": "Assert-TaskAttempt",
+      "path": "absent-pass",
+      "lines": [
+        473,
+        473
+      ],
+      "vector": {
+        "R": 1,
+        "W": 2,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 6
+    },
+    {
+      "name": "Assert-TaskAttempt",
+      "path": "existing-reject-prefix",
+      "lines": [
+        473,
+        473
+      ],
+      "vector": {
+        "R": 6,
+        "W": 6,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1
+      },
+      "units": 16,
+      "callee": "Reject-TaskGate",
+      "calleeUnits": 32,
+      "fullUnits": 48
+    },
+    {
+      "name": "Get-TaskRuntimeType",
+      "path": "null",
+      "lines": [
+        195,
+        195
+      ],
+      "vector": {
+        "R": 3,
+        "W": 1,
+        "O": 1,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 8
+    },
+    {
+      "name": "Get-TaskRuntimeType",
+      "path": "actual-Object-GetType",
+      "lines": [
+        195,
+        195
+      ],
+      "vector": {
+        "R": 5,
+        "W": 4,
+        "O": 1,
+        "B": 1,
+        "D": 1,
+        "E": 2,
+        "T": 2
+      },
+      "units": 16,
+      "result": "Caller owns the one actual scalar result destination; not priced again inside this direct return."
+    },
+    {
+      "name": "Set-TaskSecondary",
+      "path": "first-unsaturated-slot",
+      "lines": [
+        289,
+        293
+      ],
+      "vector": {
+        "R": 19,
+        "W": 6,
+        "O": 11,
+        "B": 3,
+        "D": 1,
+        "E": 2,
+        "T": 2
+      },
+      "units": 44,
+      "note": "Includes Length primitive receiver/argument/result and static Int64.MaxValue source member read; row requires independent arithmetic review before sealing."
+    },
+    {
+      "name": "Assert-TaskIntegral",
+      "path": "last-admitted-type-and-nonnegative",
+      "lines": [
+        264,
+        268
+      ],
+      "vector": {
+        "R": 20,
+        "W": 3,
+        "O": 17,
+        "B": 2,
+        "D": 1,
+        "E": 1,
+        "T": 1
+      },
+      "localUnits": 45,
+      "calls": [
+        {
+          "callee": "Get-TaskRuntimeType",
+          "count": 1,
+          "units": 16
+        }
+      ],
+      "units": 61,
+      "defaultLiteralReads": "Add1 if Nonnegative omitted; that path omits the value<0 test, saving3, so bound remains61.",
+      "perType": "For admitted type position i in the eight exact kinds: flagFalse body3*i+34; flagTrue nonnegative body3*i+37; first-class exact type/domain check and one GetType caller transfer retained."
+    },
+    {
+      "name": "Get-TaskIntegerDigits",
+      "path": "negative-Int64-minimum",
+      "lines": [
+        308,
+        319
+      ],
+      "fixedVector": {
+        "R": 7,
+        "W": 3,
+        "O": 2,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1,
+        "T": 1,
+        "K": 2
+      },
+      "fixedUnits": 19,
+      "calls": [
+        {
+          "callee": "Assert-TaskIntegral",
+          "path": "Int64 defaultNonnegativeFalse",
+          "count": 1,
+          "units": 56
+        }
+      ],
+      "loop": {
+        "kind": "foreach",
+        "bodies": 18,
+        "bodyVector": {
+          "R": 4,
+          "W": 2,
+          "O": 3,
+          "B": 1,
+          "K": 3
+        },
+        "bodyUnits": 13,
+        "reason": "All18 threshold comparisons and increments reached for Int64 minimum; per-body includes one element read/write and reached condition/advance/body control."
+      },
+      "units": 309
+    },
+    {
+      "name": "Get-TaskIntegerDigits",
+      "path": "nonnegative-UInt64-maximum",
+      "lines": [
+        308,
+        319
+      ],
+      "fixedVector": {
+        "R": 8,
+        "W": 3,
+        "O": 2,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1,
+        "T": 1,
+        "K": 2
+      },
+      "fixedUnits": 20,
+      "calls": [
+        {
+          "callee": "Assert-TaskIntegral",
+          "path": "UInt64 defaultNonnegativeFalse",
+          "count": 1,
+          "units": 59
+        }
+      ],
+      "loop": {
+        "kind": "foreach",
+        "bodies": 19,
+        "bodyVector": {
+          "R": 4,
+          "W": 2,
+          "O": 2,
+          "B": 1,
+          "K": 3
+        },
+        "bodyUnits": 12
+      },
+      "units": 307
+    },
+    {
+      "name": "Assert-TaskString",
+      "path": "normal-bounded-valid-string",
+      "lines": [
+        249,
+        257
+      ],
+      "fixedVector": {
+        "R": 4,
+        "W": 5,
+        "O": 3,
+        "B": 1,
+        "D": 1,
+        "E": 1,
+        "T": 1
+      },
+      "fixedLocalUnits": 16,
+      "primitiveFixedUnits": 4,
+      "helperFixedUnits": 16,
+      "loopFramework": "14*N+13",
+      "perCharacterUpper": 50,
+      "perCharacterPaths": {
+        "asciiTrueValid": 39,
+        "asciiFalsePlain": 32,
+        "validHighSurrogate": 46,
+        "validLowSurrogate": 50,
+        "malformedRefusalLastBody": 52
+      },
+      "defaultLiteralReads": "D=0,1or2 actual omitted defaults; no duplicate parameter write",
+      "formula": "64*N+49+D; first-invalid-char prefix bounded64*N+36+D, no fake finalfalse/advance after throw",
+      "maximum512BothDefaults": 32819,
+      "note": "Maximum entry length and exact type gate precedes indexed scan. Scalar property/method results fuse with their actual caller destinations."
+    },
+    {
+      "name": "Get-TaskEscapedStringBytes",
+      "path": "all-admitted-UTF16",
+      "lines": [
+        320,
+        330
+      ],
+      "fixedUnits": 25,
+      "perCharacterBodyUpper": 70,
+      "perCharacterBranches": {
+        "shortEscape": 62,
+        "escapedNonAscii": 70,
+        "safeAscii": 69
+      },
+      "loopFramework": "14*N+13 (fixed13 included in25)",
+      "calls": [
+        {
+          "callee": "Assert-TaskString",
+          "formula": "64*N+50; Maximum explicit, Ascii default omitted"
+        }
+      ],
+      "formula": "148*N+75",
+      "maximum512": 75851,
+      "note": "The body includes actual Spend-Task1 caller+conversion/callee20, independent of its debit1. External encoding CPU stays opaque."
+    },
+    {
+      "name": "Assert-TaskCodecBinding",
+      "path": "bound-codecs-null-defaultsettings",
+      "lines": [
+        303,
+        307
+      ],
+      "vector": {
+        "R": 6,
+        "W": 1,
+        "O": 4,
+        "B": 2,
+        "D": 1,
+        "E": 2,
+        "T": 2
+      },
+      "units": 18
+    },
+    {
+      "name": "Assert-TaskCodecBinding",
+      "path": "reject-nonnull-defaultsettings",
+      "lines": [
+        303,
+        307
+      ],
+      "vector": {
+        "R": 7,
+        "W": 1,
+        "O": 4,
+        "B": 2,
+        "D": 1,
+        "E": 2,
+        "T": 1,
+        "K": 1
+      },
+      "units": 19
+    },
+    {
+      "name": "Get-TaskSafePrefix",
+      "path": "actual-private-ASCII-root-caller",
+      "lines": [
+        258,
+        263
+      ],
+      "units": 51,
+      "components": {
+        "entryParametersReturn": 4,
+        "maximumGate": 8,
+        "MinAndLength": 13,
+        "highSurrogateGate": 17,
+        "substringCallerAndLeaf": 9
+      },
+      "genericUtf16AlternativeUnits": 54,
+      "note": "The sole actual caller supplies explicit512 and the initial ASCII/full-path gate makes the decrement unreachable. Primitive substring scalar result initializes the output map value once at caller."
+    },
+    {
+      "name": "Assert-TaskBoundSourceInteger",
+      "path": "positive-signed-kind",
+      "lines": [
+        462,
+        470
+      ],
+      "units": 54,
+      "components": {
+        "entryParametersReturn": 4,
+        "allowedKinds": 16,
+        "typeProjection": 27,
+        "allowedBranch": 3,
+        "positiveBranch": 4
+      },
+      "rejectionUpper": 110
+    },
+    {
+      "name": "Assert-NoLink",
+      "path": "completed-parent-chain",
+      "lines": [
+        61,
+        65
+      ],
+      "formula": "69*D+26, D<=64",
+      "components": {
+        "fixed": 21,
+        "parentLoopFixed": 5,
+        "parentLoopBodyAndControls": 69
+      },
+      "fullUpper": 4570,
+      "depthRefusal": {
+        "completedBodies": 64,
+        "refusingBody": 65,
+        "units": 4570,
+        "formula": "20+64*64+29+65*3+65+64+1"
+      },
+      "note": "Throw prefix has65 actual positive condition/body visits,64 advances, no invented finalfalse."
+    },
+    {
+      "name": "Close-TaskOwner",
+      "path": "null-or-Dispose-outcome",
+      "lines": [
+        294,
+        296
+      ],
+      "paths": {
+        "null": 7,
+        "disposeNormal": 12,
+        "firstRawDisposeFailure": 17,
+        "secondaryDisposeFailure": 62
+      },
+      "upper": 62,
+      "secondaryFactoring": "Normal12 minus nonreached primitive normalreturn1 plus primary-test4 plus literal/raw/caller-dispatch3 plus Set-TaskSecondary44 =62."
+    },
+    {
+      "name": "Get-TaskHash",
+      "path": "all-admitted-read-and-error-paths",
+      "lines": [
+        66,
+        74
+      ],
+      "formula": "295+AssertNoLinkUpper+65*B =4865+65*B",
+      "loopBodies": "B=ceil(admitted cap/65536)",
+      "components": {
+        "fixedAndFinallyUpper": 295,
+        "parentHelperUpper": 4570,
+        "chunkBody": 59,
+        "chunkConditionBodyAdvance": 6,
+        "primitiveBulkInternalByteFees": 0,
+        "catchUpper": 9,
+        "closeOwnerCalls": 2,
+        "closeOwnerUpperEach": 62,
+        "completeOwnerCloseUpper": 17
+      },
+      "note": "Fixed groups: own/parameter5, firstline43, setup12, streamCtor25, openLength9, hashCtor10, loopFixed6, EOF10, returnedIdentityMap18, finally24+2*62, plus bodyCatch9. OriginalMethod/primitive parameters and direct scalar destinations counted once."
+    },
+    {
+      "name": "Get-TaskBootstrapHash",
+      "path": "fixed-seven-file-caller-profile",
+      "lines": [
+        196,
+        212
+      ],
+      "formula": "279+49*D+45*B; D<=64 =>3415+45*B",
+      "allSevenUpper": 40960,
+      "components": {
+        "fixedAndErrorUpper": 279,
+        "parentBodyAndControls": 49,
+        "chunkBodyAndControls": 45,
+        "fixedParentDepthLimit": 64,
+        "depth65RefusalUpper": 3170
+      },
+      "note": "No per-hash bytearray and no internal bulk byte CPU fees. Exact seven identities24581790 bytes/379chunks."
+    },
+    {
+      "name": "Replace-TaskBounded",
+      "path": "actual-ASCII-compiler-arguments",
+      "lines": [
+        176,
+        185
+      ],
+      "formula": "53*(L+T+R)+217+loopRow",
+      "loopRows": {
+        "tooShort": 18,
+        "noMatchBreak": 38,
+        "oneMatchShortTail": 66,
+        "oneMatchLongTail": 86
+      },
+      "calls": 84,
+      "actualNormalMatches": 5,
+      "actualLoopRecipe": {
+        "tooShort": 18,
+        "noMatch": 61,
+        "oneMatchShortTail": 1,
+        "oneMatchLongTail": 4,
+        "units": 3052
+      },
+      "sourceLengthExtents": {
+        "valueEach": 512,
+        "tokenLengths": [
+          6,
+          6,
+          7
+        ],
+        "baseMaximum": 491,
+        "repoMaximum": 512,
+        "rootMaximum": 464,
+        "buildMaximum": 470,
+        "wholeLengthSumUpper": 84784
+      },
+      "wholeHelperUpper": 4514832,
+      "note": "Six unchanged short compiler flags yield18 too-short calls. Exactly five pinned placeholders remain; replacements are actual admitted Windows path strings and cannot introduce angle-bracket tokens. All original arguments and replacements remain ASCII; Assert-TaskString ASCII row53*N+49.",
+      "guardBackedRevision": {
+        "reason": "Remove unsupported normalized-length<=raw-length inference.",
+        "sumValueTokenReplacementUnitsUpper": 86548,
+        "allHelperUpper": 4608324,
+        "basis": "84Value and84Replacement assertions each admit<=512UTF16 units; tokens28*(6+6+7)=532. Earlier84784tight proposal is withdrawn, not certified."
+      }
+    },
+    {
+      "name": "Visit-TaskJsonValue",
+      "path": "closed-trusted-graph-normal-branches",
+      "lines": [
+        332,
+        365
+      ],
+      "branches": {
+        "null": 86,
+        "string": "184+148*N",
+        "boolean": 115,
+        "integer": 455,
+        "map": "185+223*E+31*max(E-1,0)+212*sumKeyUnits+sum(childVisits)",
+        "array": "190+21*E+31*max(E-1,0)+sum(childVisits)",
+        "unsupported": 139
+      },
+      "mapEntryLocalBase": 223,
+      "mapFixedAfterDispatch": 185,
+      "arrayEntryLocalBase": 21,
+      "arrayFixedAfterDispatch": 190,
+      "notes": [
+        "All key node tests/counters are included; keys do not call Visit recursively and get no invented Spend1 node call.",
+        "String branch includes exact GetEscaped helper; integer branch uses proved309 digit helper upper, not an external decimal-byte fee.",
+        "Returned scalar destinations fuse with actual primitive parameter/local/field destinations. Own recursive callee parameters/entry/return counted once per value node."
+      ]
+    }
+  ],
+  "graphBounds": {
+    "bundle": {
+      "bareFields": 21,
+      "bareNodes": 43,
+      "predecessorFields": 6,
+      "predecessorExtraNodes": 12,
+      "artifacts": 67,
+      "artifactFields": 4,
+      "artifactNodesEach": 9,
+      "transitive": 1176,
+      "transitiveFields": 4,
+      "transitiveNodesEach": 9,
+      "nodes": 11242,
+      "maps": 1245,
+      "arrays": 2,
+      "keyEntries": 4999,
+      "valueVisitCalls": 6243,
+      "stringValueVisits": 3735,
+      "integerValueVisits": 1253,
+      "booleanValueVisits": 8,
+      "keyUnitsUpper": 43921,
+      "stringValueUnitsUpper": 796230,
+      "recursiveVisitorUpper": 129937997
+    },
+    "runnerControls": {
+      "poll": 13,
+      "work": 13,
+      "bytes": 13,
+      "attempt": 11,
+      "identityWithMutation": 29,
+      "guiWithMutation": 29,
+      "missing": 17,
+      "extra": 17,
+      "duplicate": 17,
+      "total": 159
+    },
+    "childResult": {
+      "summaryFields": 12,
+      "extraControlsArrayField": 1,
+      "baseNodes": 27,
+      "controlFields": 3,
+      "controlNodesWithSixOperands": 13,
+      "produceControls": 3,
+      "verifyControls": 11,
+      "produceNodes": 66,
+      "verifyNodes": 170
+    },
+    "receipt": {
+      "fields": 30,
+      "bareNodes": 61,
+      "children": 3,
+      "childFields": 24,
+      "childBaseNodes": 49,
+      "cleanupStringsEach": 13,
+      "childExtraNodesTotal": 186,
+      "buildExtra": 31,
+      "dependencyExtra": 6,
+      "runnerControlsExtra": 159,
+      "produceExtra": 65,
+      "verifyExtra": 169,
+      "secondaryExtra": 77,
+      "nodes": 754,
+      "maps": 56,
+      "arrays": 23,
+      "keyEntries": 295,
+      "valueVisitCalls": 459,
+      "strings": 153,
+      "integers": 175,
+      "booleans": 52,
+      "arrayElements": 163,
+      "mapSeparators": 239,
+      "arraySeparatorsUpper": 140,
+      "keyUnitsUpper": 2849,
+      "stringUnitsUpper": 7551,
+      "stringGroupUnits": {
+        "receiptBare": 199,
+        "childNames": 55,
+        "childFailures": 93,
+        "cleanupCodes": 909,
+        "buildArtifacts": 1920,
+        "runnerIdsAndReasons": 442,
+        "controlExtraHashes": 192,
+        "witnessStrings": 1254,
+        "mutations": 1040,
+        "summaries": 212,
+        "cppControlIdsAndReasons": 560,
+        "secondaryCodes": 675
+      },
+      "cleanupCodeUnitsEachChildUpper": 303,
+      "recursiveVisitorUpper": 1930980,
+      "envelope": "Per-source-field-family upper, not a claim that all cleanup/secondary/result maxima coexist on one trace."
+    },
+    "failure": {
+      "fields": 7,
+      "bareNodes": 15,
+      "rawRows": 78,
+      "rowFields": 5,
+      "rowNodes": 11,
+      "nodes": 873,
+      "maps": 79,
+      "arrays": 1,
+      "keyEntries": 397,
+      "valueVisitCalls": 476,
+      "strings": 158,
+      "integers": 78,
+      "booleans": 160,
+      "keyUnitsUpper": 3313,
+      "stringUnitsUpper": 42504,
+      "recursiveVisitorUpper": 7193129
+    },
+    "marker": {
+      "fields": 6,
+      "nodes": 13,
+      "maps": 1,
+      "arrays": 0,
+      "keyEntries": 6,
+      "valueVisitCalls": 7,
+      "strings": 2,
+      "integers": 3,
+      "booleans": 1,
+      "keyUnits": 80,
+      "stringUnits": 75,
+      "recursiveVisitorUpper": 31586
+    },
+    "measurements": {
+      "marker": 1,
+      "receipts": 4,
+      "bundle": 5,
+      "failure": 1,
+      "total": 11,
+      "nodesUpper": 60112,
+      "recursiveVisitorUpper": 664638620
+    },
+    "encodes": {
+      "marker": 1,
+      "receipts": 4,
+      "bundle": 1,
+      "failure": 1,
+      "total": 7,
+      "nodesUpper": 15144
+    },
+    "fileSetRootCorrection": {
+      "preBundleExpectedFiles": 67,
+      "formula": "56reference+3build+4control+4stage=67; laterbundle is68th; rawfailure may be69thdeclared recipe but rootguard78 remains.",
+      "normalNonControlCallSlots": 200,
+      "normalNonControlExpectedElements": 8247,
+      "normalNonControlObservedElements": 8247,
+      "totalIncludingThreeControlsCallSlots": 203,
+      "totalIncludingControlsExpectedElements": 8415,
+      "totalIncludingControlsObservedElements": 8416
+    }
+  },
+  "pending": "Controlled32MiB qualification fails for an admitted dependency lexical prefix before codec refusal. Combined U, family catalogue data, all guard promotions and runtime qualification remain absent.",
+  "loopFramework": {
+    "foreach": "Explicit source source-array read+setup; per element actual source cell read+loop destination write; reached condition/advance/body controls; final condition/exit on completed path. CLR enumerator framework internals opaque.",
+    "indexedForLocalCount": {
+      "bodies": "N",
+      "units": "9*N+8",
+      "basis": "setupR1/W1/S1; each conditionR2/O1/K1; advanceR1/O1/W1/K1; body-controlK1; final condition+exit."
+    },
+    "indexedForLengthProperty": {
+      "bodies": "N",
+      "units": "14*N+13",
+      "basis": "As above but each Length condition has receiverR1, property boundary3/receiverW1/resultW1, counterR1, comparisonO1 and conditionK1. External scalar result initialized once."
+    }
+  },
+  "hashComposition": {
+    "historicalInputs": 1171,
+    "historicalBytes": 456913016,
+    "historicalChunks": 7762,
+    "ownFourBytes": 146046,
+    "manifestBytes": 462318,
+    "ownFiveBytes": 608364,
+    "ownFourChunks": 5,
+    "manifestChunks": 8,
+    "fenceIdentities": 1176,
+    "fenceChunks": 7775,
+    "normalFences": 8,
+    "reservedFencesNotActual": 9,
+    "normalFenceHashes": 9408,
+    "nonFenceHashes": 136,
+    "normalAllHashes": 9544,
+    "normalReadBodiesUpper": 72736,
+    "allGetHashHelperUpper": 51159400,
+    "allBootstrapHashHelperUpper": 40960,
+    "callerOwnership": "These helper totals exclude evaluated outer-call argument reads/dispatch/result destinations. No ninth fence priced."
+  },
+  "externalCapacityResearch": {
+    "coreLibProductVersion": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32",
+    "exactSourceRepository": "dotnet/dotnet VMR",
+    "exactSourceBase": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/",
+    "filesRead": [
+      "System/Text/StringBuilder.cs",
+      "System/Collections/Generic/List.cs",
+      "System/Collections/Generic/Dictionary.cs",
+      "System/IO/Path.Windows.cs",
+      "System/IO/PathHelper.Windows.cs"
+    ],
+    "scope": "Requested controlled payload/capacity only. No recursive CLR CPU pricing or source/binary-equivalence certificate. Initial runtime-repository404 resolved by exact VMR commit; no residual declared from404.",
+    "newtonsoftWriter": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/JsonTextWriter.cs",
+    "important": "GetFullPath can expand tilde short names; do not infer normalized output length from raw length alone. Current private script path and owned direct-child run-root provenance, plus reached output gates, must support any tighter bound."
+  },
+  "fullUpper": 2944518648,
+  "preemption": {
+    "resumed": true,
+    "history": "Same34-row checkpoint resumed after root work-order preemption; no historic packet edits.",
+    "finishedScope": "All61helper names plus fixed/setup/function-registration/main/catch rows and finite caller/loop composition.",
+    "workRemaining": "Fresh independent review of derived runner upper; preparse source repair and renewed controlled payload/price/profile census before binding or execution."
+  },
+  "coverage": {
+    "derivedHelperNames": [
+      "Spend-Task",
+      "Add-TaskJsonVisit",
+      "Add-TaskJsonBound",
+      "Complete-TaskOwnerClose",
+      "Assert-TaskPollAdmission",
+      "Reject-TaskGate",
+      "Assert-TaskIdentity",
+      "Assert-TaskConsolePE",
+      "Assert-TaskAttempt",
+      "Get-TaskRuntimeType",
+      "Set-TaskSecondary",
+      "Assert-TaskIntegral",
+      "Get-TaskIntegerDigits",
+      "Assert-TaskString",
+      "Get-TaskEscapedStringBytes",
+      "Assert-TaskCodecBinding",
+      "Get-TaskSafePrefix",
+      "Assert-TaskBoundSourceInteger",
+      "Assert-NoLink",
+      "Close-TaskOwner",
+      "Get-TaskHash",
+      "Get-TaskBootstrapHash",
+      "Replace-TaskBounded",
+      "Visit-TaskJsonValue",
+      "Convert-TaskControlOperand",
+      "Assert-TaskExactKeys",
+      "Get-TaskSecondaryCodes",
+      "Set-TaskRawExit",
+      "Add-TaskChildCleanup",
+      "Expect-TaskGate",
+      "Assert-TaskReservation",
+      "Assert-TaskRetainedReservation",
+      "Assert-TaskPredecessor",
+      "Get-TaskPredecessorDescriptor",
+      "Resolve-TaskInput",
+      "Join-TaskBoundedNames",
+      "Measure-TaskJson",
+      "Read-TaskBoundedBytes",
+      "Read-TaskJson",
+      "Assert-TaskDependencyJsonShape",
+      "Encode-TaskJson",
+      "Assert-TaskDocumentWrite",
+      "Write-TaskJsonBytes",
+      "Write-TaskJson",
+      "Save-TaskReceipt",
+      "Get-TaskStageBytes",
+      "Get-TaskEntries",
+      "Invoke-TaskFencedChild",
+      "Copy-TaskOwned",
+      "Mutate-TaskOwnedBytes",
+      "Get-TaskPEHeader",
+      "Get-TaskBuildArtifacts",
+      "Get-TaskReferences",
+      "Assert-TaskSameReferences",
+      "Assert-TaskDependencies",
+      "Read-TaskChildResult",
+      "Assert-TaskPins",
+      "Assert-TaskFileSet",
+      "Save-TaskFailureInventory",
+      "Initialize-TaskController",
+      "Invoke-TaskChild"
+    ],
+    "derivedHelperNameCount": 61,
+    "expectedHelperNames": 61,
+    "complete": true,
+    "allRowsRequireIndependentReview": true
+  },
+  "capacityCheckpoint": {
+    "status": "REVISE_CONCRETE_LIVE_CONTROLLED_PAYLOAD_COUNTEREXAMPLE",
+    "closed": false,
+    "physicalPayloadUpper": null,
+    "fit": false,
+    "notGenericHeap": true,
+    "notRuntimeObservation": true,
+    "witness": {
+      "inputBytes": 4194304,
+      "description": "A file of exactly4194304ASCII digit1 bytes; no newline required. R7 dependency lexical helper sees1scalar/node,depth0, no quoted/stringunits, all finalflagsfalse.",
+      "decodedInputUTF16Units": 4194304,
+      "decodedInputPayloadBytes": 8388608,
+      "oldReaderCharCapacity": 4194304,
+      "oldReaderPayloadBytes": 8388608,
+      "newReaderCharCapacity": 8388608,
+      "newReaderPayloadBytes": 16777216,
+      "rootedHashBufferBytes": 65536,
+      "simultaneousLowerPayloadBytes": 33619968,
+      "unchangedScratchCap": 33554432,
+      "excessBytes": 65536,
+      "livePoint": "JsonTextReader.PrepareBufferForReadData append branch holds old_chars and newdst simultaneously during BlockCopyChars, before ReturnBuffer and _chars=dst; StringReader still holds the entire decoded text and the runner global retains hashbuffer. These four allocations alone exceed32MiB; no dead-buffer/no-GC inference, header/ABI/allocator cost or old arrays required.",
+      "sourceSites": [
+        "run-clock.ps1:36",
+        "run-clock.ps1:400-412",
+        "run-clock.ps1:414-419",
+        "powershell-JsonObject.cs:209-220",
+        "newtonsoft-JsonTextReader.cs:281-311",
+        "newtonsoft-JsonTextReader.cs:1127-1132",
+        "newtonsoft-JsonTextReader.cs:1354-1373",
+        "newtonsoft-JavaScriptUtils.cs:44-62"
+      ],
+      "lateErrorAmplification": "Reader later allocates a complete number string2189 then another StringReference.ToString in the380-digit error2191-2193. PS JsonObject237-242 wraps the raw error message. These additional controlled error strings strengthen the residual but are unnecessary to the33619968live lower."
+    },
+    "mechanismsRetained": [
+      "one rooted65536hash owner, no fresh per-hash array",
+      "three synchronous read sites bufferSize1unbuffered",
+      "indexed dependency traversal; no ToCharArray",
+      "onequarantined child owner prevents nextchild; arrays remain rooted until terminal settlement",
+      "Null/Dispose/scope exit never credited as physical managed reclamation"
+    ],
+    "otherControlledRequests": {
+      "hashArrays": {
+        "count": 1,
+        "bytesEach": 65536
+      },
+      "childAsyncArrays": {
+        "count": 6,
+        "bytesEach": 4096,
+        "totalBytes": 24576,
+        "quarantine": "one child may retain2arraysplusstreams/process/tasks; earlier arrays cannot be called physicallyfreed fromscope alone"
+      },
+      "copyArrays": {
+        "count": 2,
+        "bytesEach": 65536,
+        "totalBytes": 131072
+      },
+      "mutationBeforeArrays": {
+        "sizes": [
+          1,
+          2
+        ],
+        "totalBytes": 3
+      },
+      "PEArrays": {
+        "count": 4,
+        "bytesPerCallMax": 4184,
+        "totalBytesMax": 16736
+      },
+      "inputByteArrays": {
+        "bootstrap": 1048576,
+        "predecessor": 1048576,
+        "dependency": 4194304,
+        "childResultsTotal": 131072,
+        "totalCapBytes": 6422528
+      },
+      "documentByteArrays": {
+        "marker": 319,
+        "receiptsTotal": 93760,
+        "bundle": 1048576,
+        "failure": 262760,
+        "totalBytes": 1405415
+      },
+      "streamRequestedBuffers": {
+        "childLogs": 24576,
+        "copies": 16384,
+        "mutations": 8192,
+        "PE": 16384,
+        "childResults": 8192,
+        "firstPredecessorByte": 4096,
+        "marker": 4096,
+        "unbufferedHashBootstrapBoundedRead": 0,
+        "note": "Configured/default capacity bounds retained; no assumption lazy/bypass/Dispose physically frees them. WriteAllBytes/Process reader/runtime intermediate capacities remain subordinate worksheet work after the concrete admission repair, not assignedzero."
+      }
+    },
+    "containerCapacities": {
+      "ListDefault": "ExactVMR List default0, first4 then doubling; current<=nextPowerOf2(max(4,count)), allprior backing capacities summed if no physical reclamation proved. E.g1176refs -> current2048/cumulative4092referencecells;78rows -> current128/cumulative252;376rows -> current512/cumulative1020.",
+      "exactCtorLists": "Compiler args28, controls9, cleanup13, childtextlines33, resultcontrols3/11 retain actual requested capacities, notCount-baseddiscount.",
+      "DictionaryClone": "PS JsonObject743-788 creates Dictionary(dict.Count) and growing List clones. ExactVMR Dictionary.Initialize uses prime capacity; bundle1245maps require8731entry/bucket capacity cells (21->23,6->7,1243*4->7). This is capacity association, not ABI/RSS or complete globalbytefit.",
+      "StringBuilder": "JsonConvert675-686 new StringBuilder256; exactVMR chunkgrowth/cap8000 must retain allchunks plus finalToString and appendedLF UTF16 and UTF8 bytes. No builder-null/free claim.",
+      "paths": "ExactVMR Path.GetDirectoryName122-127 uses Substring perancestor; physical payload/repeated parent-walk strings remain visible controlled outputs. GetFullPath may expand short names; old84784replacementlength shortcut withdrawn in favour of512guard-based86548sum."
+    },
+    "globalUpperNotClaimed": "This witness already disproves32MiBcontrolledqualification for an admitted prefix. A global requested-payload upper for all CLR codec/container/stream/path temporaries is not sealed; no generic CLR/RSS disclaimer substitutes for the explicit33619968overlap. Postrepair full lifetime/capacity recensus remainsrequired."
+  },
+  "sourceWorkAccepted": false,
+  "independentFreshNumericReview": "PENDING; this source census supplies no catalogue binding or execution authority.",
+  "completedRemainingHelperRows": [
+    {
+      "name": "Convert-TaskControlOperand",
+      "lines": [
+        269,
+        280
+      ],
+      "paths": {
+        "builtinNonnegative": {
+          "groups": [
+            2,
+            21,
+            64,
+            2
+          ],
+          "units": 89
+        },
+        "BigIntegerInRange": {
+          "groups": [
+            2,
+            21,
+            27,
+            3
+          ],
+          "units": 53
+        },
+        "BigIntegerRangeRefusal": {
+          "units": 54
+        }
+      },
+      "normalizations": 84,
+      "note": "Only six operands in each of14 actual records; caller index/assignment separate. A true range test includes Sign and CompareTo with freshly constructed BigInteger(UInt64.MaxValue), then actual UInt64 cast. Normal builtin path preserves exact kind."
+    },
+    {
+      "name": "Assert-TaskExactKeys",
+      "lines": [
+        281,
+        288
+      ],
+      "formula": "71+81*K+64*sumKeyUnits",
+      "groups": {
+        "entryAndParameters": 3,
+        "typeCallWithDestination": 19,
+        "threeKindTests": 12,
+        "countLengthTest": 14,
+        "setConstructor": 9,
+        "firstForeachFixed": 4,
+        "secondForeachFixed": 9,
+        "normalReturn": 1,
+        "firstForeachPerKey": 13,
+        "secondForeachPerKeyFixed": 68,
+        "secondForeachPerCodeUnit": 64
+      },
+      "note": "Actual reached fixed key families bounded by source call sites. No map index binder graph; K keys, actual key UTF16 lengths. Wrong-kind/count/set paths are bounded prefixes; map mutation outside closed call graph not assumed."
+    },
+    {
+      "name": "Get-TaskSecondaryCodes",
+      "lines": [
+        298,
+        302
+      ],
+      "groups": {
+        "entryAndListCtor": 12,
+        "lengthForFramework": 167,
+        "elevenConditionalRows": 319,
+        "directToArrayCommaReturn": 7
+      },
+      "units": 505,
+      "note": "11 slots; non-null family upper, 3-field maps. ToArray result destination belongs to caller."
+    },
+    {
+      "name": "Set-TaskRawExit",
+      "lines": [
+        161,
+        163
+      ],
+      "groups": {
+        "entryParametersReturn": 5,
+        "ObservedGate": 2,
+        "switchSelectorAndThreeLiteralTests": 9,
+        "selectedReceiptCellWrite": 5
+      },
+      "units": 21,
+      "note": "At most one selected output slot. Unknown-name default throws before write; no third-party Name ingress.",
+      "vector": {
+        "R": 8,
+        "W": 4,
+        "O": 4,
+        "B": 2,
+        "S": 1,
+        "E": 1,
+        "T": 1
+      }
+    },
+    {
+      "name": "Add-TaskChildCleanup",
+      "lines": [
+        153,
+        160
+      ],
+      "formula": "144+53*CodeUnits",
+      "groups": {
+        "entryParameters": 5,
+        "sourceMaximumSevenLiteralsSixAddsAndLocal": 14,
+        "countMaximumGate": 9,
+        "ASCIIStringFixedAndCaller": 53,
+        "listAdd": 7,
+        "rawPrimaryOrSecondaryUpper": 55,
+        "return": 1
+      },
+      "actualCodeUnitsUpper": 43,
+      "upper": 2423,
+      "maxCallsPerChild": 13,
+      "note": "Source fixed cleanup family: cancel1/reap1/settlement1/reads2/flushes2/positions2/owners4. Quarantine replaces owner group, never adds another four. Caller argument evaluation separate."
+    },
+    {
+      "name": "Expect-TaskGate",
+      "lines": [
+        187,
+        193
+      ],
+      "formula": "93+25*K+ActualActionBody",
+      "groups": {
+        "entryParameters": 5,
+        "caughtInit": 2,
+        "actionDispatch": 2,
+        "actualThrowCatchProperty": 7,
+        "reasonAndGateTests": 25,
+        "witnessRead": 10,
+        "countTest": 14,
+        "foreachFixed": 9,
+        "returnMapAndReturn": 19
+      },
+      "perWitnessKey": 25,
+      "note": "All nine successful controls invoke a throwing actual helper; Out-Null after thrown action is not reached. An unexpected normal Action has its own bounded Out-Null/refusal prefix and cannot proceed to retained control. Scriptblock entry and own selected action instructions remain actual caller rows, not hidden or free."
+    },
+    {
+      "name": "Assert-TaskReservation",
+      "lines": [
+        471,
+        471
+      ],
+      "paths": {
+        "normal": 20,
+        "gateRefusal": 63,
+        "unboundRefusal": 9
+      },
+      "note": "Caller two argument reads/dispatch and actual type conversions outside. Bound catalogue absent; prices are prospective source census only.",
+      "normalVector": {
+        "R": 8,
+        "W": 2,
+        "O": 6,
+        "B": 2,
+        "E": 1,
+        "T": 1
+      }
+    },
+    {
+      "name": "Assert-TaskRetainedReservation",
+      "lines": [
+        472,
+        472
+      ],
+      "paths": {
+        "normal": 16,
+        "gateRefusal": 59
+      },
+      "note": "Same unchanged880803840 byte cap; no new work or retained allowance.",
+      "normalVector": {
+        "R": 6,
+        "W": 2,
+        "O": 5,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      }
+    },
+    {
+      "name": "Assert-TaskPredecessor",
+      "lines": [
+        474,
+        479
+      ],
+      "groups": {
+        "entryParameter": 2,
+        "runtimeTypeDestination": 19,
+        "mapKind": 8,
+        "arrayTypeTests": 48,
+        "hashASCIIValidationAndCaller": 3448,
+        "descriptorComparisons": 31,
+        "normalReturn": 1
+      },
+      "normal": 3557,
+      "withActualGateRefusal": 3619
+    },
+    {
+      "name": "Get-TaskPredecessorDescriptor",
+      "lines": [
+        480,
+        486
+      ],
+      "groups": {
+        "entryParameter": 2,
+        "exactSixKeysAndCaller": 4988,
+        "pathStringAndCaller": 32824,
+        "hashASCIIAndCaller": 3448,
+        "fourIntegralLoopAndCallers": 300,
+        "exactDescriptorComparisons": 35,
+        "returnSixFieldMap": 38
+      },
+      "upper": 41635,
+      "keyUnits": 69,
+      "note": "Default cap512 is an admitted upper, not a claim the fixed path has512 units. Same six-field validated projection retained."
+    },
+    {
+      "name": "Resolve-TaskInput",
+      "lines": [
+        487,
+        487
+      ],
+      "formula": "64*NameUnits+95",
+      "rootedFormula": "64*NameUnits+79",
+      "upper512": 32863,
+      "note": "Relative and rooted are alternatives. Actual source call arguments/parameter source-destination fusion retained. Normalized path payload length is not asserted from raw Name length."
+    },
+    {
+      "name": "Join-TaskBoundedNames",
+      "lines": [
+        373,
+        380
+      ],
+      "formula": "66+87*K+64*sumNameUnits",
+      "groups": {
+        "entryParameters": 3,
+        "extentBeforeCopy": 13,
+        "lengthInit": 2,
+        "indexedCountLoopFixed": 13,
+        "upper512MulAndMathMax": 15,
+        "beforeAllocationTest": 10,
+        "directJoinCastAndReturn": 10
+      },
+      "perElement": {
+        "forFramework": 14,
+        "stringFixedCaller": 56,
+        "lengthAccumulate": 12,
+        "separatorConditional": 5
+      },
+      "maximumJoinedUnitsFormula": "512*K+max(K-1,0)",
+      "note": "List.Count property and actual List index access visible; Join internal CPU opaque, output UTF16 capacity fully retained. Cast IEnumerable does not copy referent cells."
+    },
+    {
+      "name": "Measure-TaskJson",
+      "lines": [
+        366,
+        372
+      ],
+      "formula": "103+Ddefault+Visitor(Value)",
+      "groups": {
+        "entryParameters": 3,
+        "codecCallerAndHelper": 19,
+        "documentProfileGate": 12,
+        "stateThreeFieldMap": 11,
+        "VisitorCaller": 4,
+        "finalLFBoundAndCaller": 31,
+        "returnedFourFieldMeasurement": 23
+      },
+      "defaultLiteralUnits": 1,
+      "note": "Maximum omitted only at actual caller sites; all11 recursive passes remain separate. No codec preprocessing clone during measurement."
+    },
+    {
+      "name": "Read-TaskBoundedBytes",
+      "lines": [
+        414,
+        418
+      ],
+      "groups": {
+        "entryParametersConversionUpper": 4,
+        "statAndLength": 12,
+        "preallocationGate": 12,
+        "ownerLocals": 6,
+        "unbufferedStreamConstructor": 25,
+        "openLengthGate": 9,
+        "exactByteArrayConstructor": 8,
+        "ReadExactly": 15,
+        "EOF": 10,
+        "directCommaReturn": 3,
+        "catchUpper": 9,
+        "closeAndCompleteUpper": 84
+      },
+      "upper": 197,
+      "note": "Argument/property result initialization fused once with actual read parameter. Unbuffered mode1; array extent admitted before allocation."
+    },
+    {
+      "name": "Read-TaskJson",
+      "lines": [
+        419,
+        419
+      ],
+      "formula": "403+Ddefault+DependencyShapeIfMaximum4194304",
+      "groups": {
+        "entryParameters": 3,
+        "SpendCallerAndCallee": 20,
+        "codecCallerAndHelper": 19,
+        "boundedReadAndCallerDestination": 201,
+        "visitCounterLengthAndHelper": 24,
+        "UTF8CtorAndGetString": 15,
+        "nullAssignment": 2,
+        "dependencyBranch": 4,
+        "dependencyCaller": 2,
+        "exactConvertFromJsonBoundary": 12,
+        "wrapperReturn": 1
+      },
+      "note": "Existing JSON parser implementation CPU opaque; its raw/parsed/temporary controlled payload is not omitted. Actual only predecessor and dependency calls."
+    },
+    {
+      "name": "Assert-TaskDependencyJsonShape",
+      "lines": [
+        400,
+        413
+      ],
+      "formula": "69*TextUnits+52",
+      "maximumTextUnits": 4194304,
+      "upper4194304": 289407028,
+      "groups": {
+        "entryParameter": 2,
+        "sevenLocalInitializationsAndNodeMaximumExpression": 27,
+        "forLengthFixed": 13,
+        "finalFourFlagTestAndRefusalUpper": 10
+      },
+      "perUnit": {
+        "forLengthFramework": 14,
+        "characterReadAndLargestReachedUnquotedPath": 55
+      },
+      "note": "All original UTF16 units including whitespace traversed; quotedUnicode continue retains real increment/backedge. Character path upper is max of actual scalar/delimiter/open/close/quoted paths; no invented ToCharArray or time-derived count."
+    },
+    {
+      "name": "Encode-TaskJson",
+      "lines": [
+        420,
+        433
+      ],
+      "formula": "38*(ByteLength-1)+175",
+      "groups": {
+        "entryParameters": 4,
+        "codecCallerAndHelper": 19,
+        "measurementNullGate": 4,
+        "admittedLengthGate": 18,
+        "exactCmdletCallEnumConversionAndDestination": 14,
+        "actualRuntimeTypeAndLengthTest": 35,
+        "forLengthFixed": 13,
+        "UTF8CtorAppendLFAndGetBytes": 17,
+        "actualBytesTest": 21,
+        "visitCounterCallerAndHelper": 24,
+        "encodeCounter": 3,
+        "directCommaReturn": 3
+      },
+      "note": "All closed actual7 callers supply a measurement. No extra Measure pass or encoding iteration is invented. L=actual ASCII output units before LF. Named source params/enum coercion retained; codec internal scalar loop opaque."
+    },
+    {
+      "name": "Assert-TaskDocumentWrite",
+      "lines": [
+        437,
+        441
+      ],
+      "formula": "64*PathUnits+91+StageBytes",
+      "groups": {
+        "entryParameters": 3,
+        "stringAndCallerFixed": 53,
+        "existsBranch": 8,
+        "oldLengthThenUpper": 12,
+        "lengthAndStageArithmeticGate": 14,
+        "normalReturn": 1
+      },
+      "note": "Length primitive result destination fused with actual source arithmetic; StageBytes helper result destination written once. Failed earlier path is prefix."
+    },
+    {
+      "name": "Write-TaskJsonBytes",
+      "lines": [
+        442,
+        445
+      ],
+      "formula": "34+DocumentWrite(Path)",
+      "groups": {
+        "entryParametersConversionUpper": 5,
+        "encodedCapGate": 13,
+        "documentCaller": 7,
+        "WriteAllBytesAndReturn": 9
+      },
+      "note": "Existing CLR WriteAllBytes implementation CPU opaque, controlled stream/temporary capacity remains worksheet obligation."
+    },
+    {
+      "name": "Write-TaskJson",
+      "lines": [
+        446,
+        451
+      ],
+      "formula": "59+Ddefaults+2*DocumentWrite(Path)+Encode(Value)+107*NeedsMeasurement",
+      "groups": {
+        "entryParameters": 5,
+        "measurementNullGate": 4,
+        "firstDocumentCaller": 6,
+        "encodeCallerAndDestination": 5,
+        "writeBytesCaller": 4,
+        "writeBytesOwnRows": 34,
+        "normalReturn": 1
+      },
+      "note": "Only failure inventory omits measurement (and Maximum); final bundle supplies both. Measure visitor price separate; both actual stage-pool checks retained."
+    },
+    {
+      "name": "Save-TaskReceipt",
+      "lines": [
+        452,
+        460
+      ],
+      "formula": "684+2*DocumentWrite(Path)+Encode(Receipt)+Visitor(Receipt)",
+      "groups": {
+        "ownStatementsAndCallers": 179,
+        "secondaryProjection": 505
+      },
+      "note": "At most4 actual calls including failure footer; cap12 is reservation/guard not actual call multiplicity. Both before-encode/write pool checks remain; no null as physical-free."
+    },
+    {
+      "name": "Get-TaskStageBytes",
+      "lines": [
+        434,
+        436
+      ],
+      "formula": "21+73*E+Entries(Stage,false,7)",
+      "maximumReturnedRows": 7,
+      "upperOwn": 532,
+      "note": "Six known names; at most7 admitted rows before unlisted refusal, eighth candidate refuses inside walker before append. Both normal/failure prefixes retained; not count-as-capacity."
+    },
+    {
+      "name": "Get-TaskEntries",
+      "lines": [
+        381,
+        389
+      ],
+      "formula": "56+4725*D+204*E+64*sumCandidateUnits+OverflowPrefix",
+      "groups": {
+        "initialAndCompletedReturn": 56,
+        "directoryOverheadAndNoLink": 4725,
+        "candidateOverhead": 204,
+        "overflowCandidateOwn": 129,
+        "overflowPerCharacter": 64
+      },
+      "bounds": "D<=E+1 for recursive walk; D=1 nonrecursive. E<=Maximum appended; at most one overflow candidate before append; overflow prefix excludes normal post-gate metadata/Add/Enqueue. Every opened iterator final MoveNext false/close or throwing prefix accounted.",
+      "note": "All own helper callers shown. NoLink4570 covers possible65thancestor refusal; no reparse traversal or unsponsored Queue extent. Source-added PSCustomObject five fields remain capacity worksheet."
+    },
+    {
+      "name": "Invoke-TaskFencedChild",
+      "lines": [
+        164,
+        175
+      ],
+      "formula": "107+Ddefault+2*Pins+Child+b*(69+HashBinary+IdentityNormal)",
+      "actualCalls": 3,
+      "actualAfterBinaryBranches": 2,
+      "note": "Compiler's omitted null default readD1, two actual oracle expected-binary branches. Both actual finally fences and their errors are retained. Each helper result goes once into its real destination."
+    },
+    {
+      "name": "Copy-TaskOwned",
+      "lines": [
+        390,
+        394
+      ],
+      "formula": "9525+70*B",
+      "groups": {
+        "entryParametersAndConversions": 7,
+        "pathCapAndOwnedPrefix": 30,
+        "twoNoLinkCallsAndCallers": 9144,
+        "localsAndBufferCtor": 17,
+        "twoDefaultBufferedStreamCtors": 38,
+        "sourceLengthGate": 9,
+        "whileTerminal": 5,
+        "EOF": 10,
+        "FlushTrue": 7,
+        "catch": 9,
+        "closeAndComplete": 148,
+        "normalReturn": 1
+      },
+      "chunkBody70IncludesLoop": true,
+      "actualCalls": 2,
+      "actualChunkUpper": 514,
+      "combinedHelperUpper": 55030,
+      "note": "One98009-byte copy2chunks; binary cap33554432 gives512chunks. Per-call explicit65536 array and default stream capacities remain full lifetime worksheet."
+    },
+    {
+      "name": "Mutate-TaskOwnedBytes",
+      "lines": [
+        395,
+        399
+      ],
+      "groups": {
+        "entryParametersConversion": 5,
+        "ownedPathAndReplacementGate": 34,
+        "localsAndBeforeArray": 17,
+        "ReadWriteDefaultStream": 19,
+        "coordinateGate": 20,
+        "twoPositions": 14,
+        "ReadExactly": 15,
+        "Write": 15,
+        "Flush": 7,
+        "catch": 9,
+        "finally": 84,
+        "returnedFourFields": 24
+      },
+      "upper": 263,
+      "actualCalls": 2,
+      "note": "Replacement1 and2 bytes only. Hex return strings2/4 chars; prior byte arrays equally1/2. Owned before/body/secondary preserved."
+    },
+    {
+      "name": "Get-TaskPEHeader",
+      "lines": [
+        516,
+        520
+      ],
+      "groups": {
+        "entryParameter": 2,
+        "GetItem": 7,
+        "sizeGate": 18,
+        "locals": 6,
+        "FileOpen": 19,
+        "DOSArray": 7,
+        "ReadDOS": 15,
+        "Offset": 9,
+        "DOSGate": 25,
+        "Position": 7,
+        "HeaderArray": 7,
+        "ReadHeader": 15,
+        "OptionalSize": 9,
+        "OptionalGate": 21,
+        "OptionalArray": 7,
+        "ReadOptional": 15,
+        "returnedSevenFields": 51,
+        "catch": 9,
+        "finally": 84
+      },
+      "upper": 333,
+      "actualCalls": 4,
+      "note": "Explicit64+24+optional<=4096 payload;4calls. Four ordinary/GUI ConsolePE includes separate actual expected rejection count3+1, not5."
+    },
+    {
+      "name": "Get-TaskBuildArtifacts",
+      "lines": [
+        569,
+        573
+      ],
+      "formula": "47+98*E+Entries(Build,false,4)+FileSet+sumHashFiles",
+      "normalFiles": 3,
+      "actualCalls": 2,
+      "note": "Guard max4 permits a prefix row set but exact known admitted file recipe3. Hashes6 in normal schedule; overall67MiB admitted pool does not multiply per-file bytes."
+    },
+    {
+      "name": "Get-TaskReferences",
+      "lines": [
+        510,
+        514
+      ],
+      "formula": "54+39*E+98*F+Entries(Data,true,60)+E*NoLink+sumHashFiles+FileSet",
+      "normalFiles": 56,
+      "entryBound": 60,
+      "actualCalls": 2,
+      "note": "Directories run through Spend/NoLink/container continue; only files acquire name/hash/5-field descriptor. Source cap152627224 applies complete pool; no bytecap relabelled as actual chunks."
+    },
+    {
+      "name": "Assert-TaskSameReferences",
+      "lines": [
+        515,
+        515
+      ],
+      "formula": "30+51*F",
+      "normalFiles": 56,
+      "upperNormal": 2886,
+      "actualCalls": 1,
+      "note": "Includes56 normal Identity helper calls. One actual outside-control mismatch changes a prefix to IdentityRefusal; no new array or file set helper."
+    },
+    {
+      "name": "Assert-TaskDependencies",
+      "lines": [
+        574,
+        587
+      ],
+      "formula": "421+64*SourceUnits+ReadJson(Dependency)+ResolveSource+sumIncludes(69+64*PathUnits+Resolve)",
+      "maxIncludes": 1172,
+      "maxSourceUnits": 512,
+      "note": "Exact parsed root/Data maps;2 optional empty module arrays checked; bounded Includes1..1172. Arbitrary parsed fields are not projected to receipt. Shape traversal and decode/parser remain actual distinct actions/payloads."
+    },
+    {
+      "name": "Read-TaskChildResult",
+      "lines": [
+        522,
+        568
+      ],
+      "formula": "21557+38*TextUnits+12630*AdmittedControls+FileSetControlIds+CloseFailurePrefixIfAdditional",
+      "groups": {
+        "fixedAndSummaryWithFixed12FieldKeys": 21557,
+        "scanPerUTF16Unit": 38,
+        "perAdmittedThreeFieldControl": 12630
+      },
+      "actualCalls": 2,
+      "actualControls": 14,
+      "actualOperandNormalizations": 84,
+      "bothHelperOwnUpper": 5200670,
+      "note": "Each raw segment<=65536bytes; UTF16 units<=65536. Scan includes terminalI==Length, every blank line,<=33 nonempty Substrings. Controls are unique expected3/11; at most one additional bad-ID parsed prefix before refusal, never an extra admitted operand normalization. Per-control includes six89-unit helper upper +actual indexed assignments. Exact-key/summary methods and both raw/error/close paths expanded; FileSet separate to avoid double count."
+    },
+    {
+      "name": "Assert-TaskPins",
+      "lines": [
+        488,
+        500
+      ],
+      "formula": "87+50*Namespaces+11*WalkRows+27*WalkFiles+63*4+44*1171+sumResolveDirsAndInputs+sumNoLinkDirs+sumWalks+sumNamespaceFileSets+24*(4+1171)+sumHash1176",
+      "normalNamespaces": 24,
+      "normalWalkRows": 1045,
+      "normalWalkFiles": 999,
+      "actualCallsUpper": 8,
+      "note": "Own4 plus1171 historical plusmanifest1. Get-TaskHash helper includes its own no-link; namespace roots have a separate explicit no-link inPins and again inwalker. Pipeline callback source bodies/entry/implicit $_ binding visible; interpreter enumeration/binder internal CPU opaque."
+    },
+    {
+      "name": "Assert-TaskFileSet",
+      "lines": [
+        501,
+        509
+      ],
+      "normalFormula": "100+83*N+78*M+64*(ExpectedUnits+ObservedUnits)",
+      "refusalFormula": "169+90*N+87*M+64*(ExpectedUnits+ObservedUnits)+JoinMissing+JoinUnknown",
+      "actualNormalScheduleCallSlots": 203,
+      "normalExpectedElementsUpper": 8416,
+      "normalObservedElementsUpper": 8417,
+      "note": "Control observed55/57/57 vs expected56 each; other admitted sets exact. Generic outside-control FileSet failures<=2 (before-fence failure plus required finally fence); normal source envelope plus their actual refusal-path surplus may dominate prefix but must never be labelled extra helper calls. Fixed keyset constructors,3 foreach loops, direct source Contains/Add and nonempty bounded joins retained."
+    },
+    {
+      "name": "Save-TaskFailureInventory",
+      "lines": [
+        588,
+        594
+      ],
+      "formula": "193+64*FileRows+Entries(Root,true,78,Destination)+WriteJson(Failure,NeedsMeasurement1)",
+      "ownUpperFor78": 5185,
+      "groups": {
+        "entryLocals": 15,
+        "exists": 8,
+        "walkerCaller": 13,
+        "catchAndSecondary": 52,
+        "foreachFixed": 4,
+        "receiptTwoCells": 10,
+        "outputJoinCaller": 8,
+        "outerSevenFieldGraph": 81,
+        "WriteJsonDispatch": 1,
+        "normalReturn": 1
+      },
+      "fileRowsUpper": 78,
+      "perFileOwn": 64,
+      "note": "True Directory rows continue before descriptor; at most78files in rawprefix,79th candidate before append. Iterator partial destination persists after failure. NeedsMeasurement1 causes exactly one failure recursive pass and once-encode, never69-as-failurebound."
+    },
+    {
+      "name": "Initialize-TaskController",
+      "lines": [
+        213,
+        248
+      ],
+      "formula": "2137+53*sum14ArgUnits+7BootstrapHash",
+      "ownUpper": 2137,
+      "groups": {
+        "registrationAndSevenHookLoop": 123,
+        "runtimeLiteral": 2,
+        "sevenThreeFieldPinArrays": 58,
+        "pinForeachFixed": 4,
+        "pinForeachBodyAndCallers": 203,
+        "selfAndOwnerLocals": 9,
+        "selfNativeIdentityGate": 29,
+        "catch": 9,
+        "ownerFinally": 84,
+        "commandLineArgsBoundary": 5,
+        "expected14Array": 37,
+        "argCountGate": 14,
+        "argForFramework": 209,
+        "argPerBodyFixed": 1120,
+        "appFullPath": 10,
+        "apphostDllAlternativeIdentity": 42,
+        "autoloadWrite": 2,
+        "authenticImports": 30,
+        "actualGetCommands": 24,
+        "implementingTypeGate": 18,
+        "twoCodecAssemblyChecks": 84,
+        "codecBinding": 19,
+        "normalReturn": 1
+      },
+      "argumentGuardUpper": 379904,
+      "bootstrapHashUpper": 40960,
+      "totalUpper": 423001,
+      "note": "Fresh actual14 arguments; all inputcodeunits bounded before String assertion.7fixed hashes24581790bytes/379read bodies. Two authentic Import-Module plus two Get-Command opaque boundaries retain visible params/returns; no preauth module call."
+    },
+    {
+      "name": "Invoke-TaskChild",
+      "lines": [
+        78,
+        152
+      ],
+      "formula": "1044811+74*ArgumentCount+53*(sumArgumentUnits+sumEightEnvironmentValueUnits)+257*StageBytes",
+      "actualChildSlots": 3,
+      "actualArgs": [
+        28,
+        6,
+        6
+      ],
+      "ownFixedGroups": {
+        "entry": 4,
+        "nameProfile": 10,
+        "childIndex": 10,
+        "argumentExtent": 14,
+        "argumentValidationForeachFixed": 4,
+        "SpendAndQuarantine": 44,
+        "locals": 81,
+        "cancelCtor": 5,
+        "twoLogStreamCtors": 64,
+        "twoPositions": 12,
+        "processInfoAndSixPropertyWrites": 47,
+        "exactEightEnvironmentKeys": 3493,
+        "environmentClear": 9,
+        "environmentForeachFixed": 12,
+        "eightEnvironmentPerEntryFixed": 696,
+        "argumentAddForeachFixed": 4,
+        "startAndWatch": 14,
+        "initialTwoAsyncReads": 74,
+        "pollOuterUpper": 1007971,
+        "normalExitRecord": 8,
+        "bodyCatchUpper": 13,
+        "cleanupAndFooterUpper": 32222
+      },
+      "argumentForeachPerEntryFixed": 74,
+      "poll": {
+        "normalBodyMaximum": 7200,
+        "whileGatePrefixMaximum": 7201,
+        "basePerNormalPoll": 135,
+        "terminalAndGateRefusal": 78,
+        "completedDirectionsUpper": 260,
+        "completedBodyPer": 48,
+        "positiveAdmittedBeforeStageUpper": 257,
+        "positiveBodyOwnPer": 91,
+        "oneRawCapOverflowOwn": 14,
+        "zeroEOFUpper": 2,
+        "zeroAssignOwnPer": 6,
+        "ownTotal": 1007971
+      },
+      "cleanup": {
+        "cancel": 2440,
+        "reap": 2462,
+        "readArraySetup": 25,
+        "WaitAll": 2449,
+        "twoReadSettlement": 4954,
+        "twoFlush": 4898,
+        "twoPosition": 4886,
+        "settledOwnerCondition": 7,
+        "settledOwnerOrQuarantine": 9820,
+        "cleanupFailureFlag": 15,
+        "child24FieldMap": 95,
+        "childrenAppend": 10,
+        "rawExitSwitch": 16,
+        "footerCatchQuarantineRawExit": 120,
+        "postBodyPrimaryFooter": 10,
+        "postCleanupAndActualRawExit": 13,
+        "normalReturn": 2,
+        "helperCallsUpper": 13
+      },
+      "note": "Source/primary Stream.ReadAtLeastAsync guarantees4096 except EOF; real child anonymous pipes have terminal EOF. Max raw cap1MiB permits<=257 positive admission/StageBytes calls (including stage-before-write refusal), <=1 later raw-cap rejection, <=2 zeroEOF. Bound260 completed bodies uses these disjoint families, independent of elapsed time. Two EOF partials cannot both coexist with256full writes;257 is floor((1048576-2)/4096)+2. Source loops remain <=7200; all14400 direction-condition passes counted. This is an upper envelope, not measured reads/sleep/completion counts. All13 scheduled cleanup calls retained, quarantine replaces4 settledowner disposals. CLR task/process/pipe internals remain opaque CPU and generic heap, explicit arrays/streams stay worksheet."
+    }
+  ],
+  "fixedBootstrapDefinitionRows": [
+    {
+      "lines": "2-7",
+      "units": 44,
+      "basis": "four native parameter writes/type admissions; four Mandatory attribute source constructions plus one ValidateSet literal construction; no binder-internal graph"
+    },
+    {
+      "lines": "8-17",
+      "units": 36,
+      "basis": "Stop write2, eight flag writes16, six not/read plus five or and selected guard18"
+    },
+    {
+      "lines": "20-24",
+      "units": 46230,
+      "basis": "three-value array/foreach18; each raw path guard22, indexed UTF16 ASCII loop30*512+13, IsPathFullyQualified9"
+    },
+    {
+      "lines": "25-26",
+      "units": 1041,
+      "basis": "hash length9 and64 reached indexed regex checks1032"
+    },
+    {
+      "lines": "27-29",
+      "units": 183,
+      "basis": "seven suffix literal array16, suffix foreach/derived guards151, script suffix guard16"
+    },
+    {
+      "lines": "30-33",
+      "units": 82,
+      "basis": "three GetFullPath21, manifestJoin/Upper15, four root joins36, own-name literal array10"
+    },
+    {
+      "lines": "34-49",
+      "units": 81,
+      "basis": "fixed source locals12+hashCtor7+poll2+JSON2+visit expression18+state locals10+max/null6+reflection12+codecNull6+counter6"
+    },
+    {
+      "lines": "50-54",
+      "units": 154,
+      "basis": "eleven literal secondary sites24, two exact arrays11+11, raw null2, actual30-field ordered receipt106"
+    },
+    {
+      "lines": "57-59",
+      "units": 115,
+      "basis": "signed threshold18element array39, unsigned19element array and Parse50, summary12array26"
+    },
+    {
+      "lines": "60-594",
+      "units": 61,
+      "basis": "61 actual function registrations; no function body executed merely by registration"
+    }
+  ],
+  "mainAndErrorOwnRows": [
+    {
+      "lines": "599",
+      "units": 19
+    },
+    {
+      "lines": "600",
+      "units": 1
+    },
+    {
+      "lines": "601",
+      "units": 52
+    },
+    {
+      "lines": "604",
+      "units": 25
+    },
+    {
+      "lines": "605",
+      "units": 68
+    },
+    {
+      "lines": "606",
+      "units": 36
+    },
+    {
+      "lines": "607",
+      "units": 18
+    },
+    {
+      "lines": "608",
+      "units": 8
+    },
+    {
+      "lines": "609",
+      "units": 5
+    },
+    {
+      "lines": "610",
+      "units": 42
+    },
+    {
+      "lines": "611",
+      "units": 23
+    },
+    {
+      "lines": "614",
+      "units": 35
+    },
+    {
+      "lines": "615",
+      "units": 6
+    },
+    {
+      "lines": "616",
+      "units": 44514
+    },
+    {
+      "lines": "617",
+      "units": 15
+    },
+    {
+      "lines": "618",
+      "units": 25780
+    },
+    {
+      "lines": "619",
+      "units": 94
+    },
+    {
+      "lines": "620",
+      "units": 15
+    },
+    {
+      "lines": "621",
+      "units": 76
+    },
+    {
+      "lines": "622",
+      "units": 83
+    },
+    {
+      "lines": "623",
+      "units": 56
+    },
+    {
+      "lines": "624",
+      "units": 4
+    },
+    {
+      "lines": "625",
+      "units": 11
+    },
+    {
+      "lines": "626",
+      "units": 32
+    },
+    {
+      "lines": "627",
+      "units": 10
+    },
+    {
+      "lines": "628",
+      "units": 1192
+    },
+    {
+      "lines": "629",
+      "units": 79
+    },
+    {
+      "lines": "630",
+      "units": 11
+    },
+    {
+      "lines": "631",
+      "units": 121
+    },
+    {
+      "lines": "632",
+      "units": 29
+    },
+    {
+      "lines": "633",
+      "units": 14
+    },
+    {
+      "lines": "634",
+      "units": 6
+    },
+    {
+      "lines": "635",
+      "units": 119
+    },
+    {
+      "lines": "636",
+      "units": 10
+    },
+    {
+      "lines": "637",
+      "units": 4
+    },
+    {
+      "lines": "638",
+      "units": 252
+    },
+    {
+      "lines": "639",
+      "units": 259
+    },
+    {
+      "lines": "640",
+      "units": 255
+    },
+    {
+      "lines": "641",
+      "units": 218
+    },
+    {
+      "lines": "642",
+      "units": 24
+    },
+    {
+      "lines": "643",
+      "units": 19
+    },
+    {
+      "lines": "644",
+      "units": 6
+    },
+    {
+      "lines": "645",
+      "units": 106
+    },
+    {
+      "lines": "646",
+      "units": 15
+    },
+    {
+      "lines": "647",
+      "units": 383
+    },
+    {
+      "lines": "648",
+      "units": 25
+    },
+    {
+      "lines": "649",
+      "units": 12
+    },
+    {
+      "lines": "650",
+      "units": 15
+    },
+    {
+      "lines": "651",
+      "units": 7
+    },
+    {
+      "lines": "652",
+      "units": 878
+    },
+    {
+      "lines": "653",
+      "units": 17
+    },
+    {
+      "lines": "654",
+      "units": 14
+    },
+    {
+      "lines": "655",
+      "units": 18
+    },
+    {
+      "lines": "656",
+      "units": 40
+    },
+    {
+      "lines": "657",
+      "units": 23
+    },
+    {
+      "lines": "658",
+      "units": 375
+    },
+    {
+      "lines": "659",
+      "units": 4
+    },
+    {
+      "lines": "660",
+      "units": 21
+    },
+    {
+      "lines": "661",
+      "units": 36
+    },
+    {
+      "lines": "662",
+      "units": 15
+    },
+    {
+      "lines": "663",
+      "units": 656
+    },
+    {
+      "lines": "664",
+      "units": 264
+    },
+    {
+      "lines": "665",
+      "units": 276
+    },
+    {
+      "lines": "666",
+      "units": 11
+    },
+    {
+      "lines": "667",
+      "units": 4
+    },
+    {
+      "lines": "668",
+      "units": 21
+    },
+    {
+      "lines": "669",
+      "units": 44
+    },
+    {
+      "lines": "670",
+      "units": 7
+    },
+    {
+      "lines": "671",
+      "units": 124
+    },
+    {
+      "lines": "672",
+      "units": 284
+    },
+    {
+      "lines": "673",
+      "units": 984
+    },
+    {
+      "lines": "674",
+      "units": 3686
+    },
+    {
+      "lines": "675",
+      "units": 11
+    },
+    {
+      "lines": "676",
+      "units": 30
+    },
+    {
+      "lines": "677",
+      "units": 783
+    },
+    {
+      "lines": "678",
+      "units": 184
+    },
+    {
+      "lines": "679",
+      "units": 886
+    },
+    {
+      "lines": "680",
+      "units": 40021
+    },
+    {
+      "lines": "681",
+      "units": 74
+    },
+    {
+      "lines": "682",
+      "units": 4
+    },
+    {
+      "lines": "683-687",
+      "units": 268
+    },
+    {
+      "lines": "688",
+      "units": 5
+    },
+    {
+      "lines": "689",
+      "units": 6
+    },
+    {
+      "lines": "690",
+      "units": 12
+    },
+    {
+      "lines": "691",
+      "units": 21
+    },
+    {
+      "lines": "692-700",
+      "units": 136
+    },
+    {
+      "lines": "first reached direct refusal",
+      "units": 2
+    },
+    {
+      "lines": "script normal exit",
+      "units": 1
+    }
+  ],
+  "disjointRunnerComposition": [
+    {
+      "id": "fixedBootstrapDefinitions",
+      "units": 48027
+    },
+    {
+      "id": "fixedMainCatchAndSourceCallers",
+      "units": 124455
+    },
+    {
+      "id": "InitializeControllerWithSevenFixedHashes",
+      "units": 423001
+    },
+    {
+      "id": "completeGetHashHelpers",
+      "units": 51159400
+    },
+    {
+      "id": "remainingNoLinkHelpers",
+      "units": 1786870
+    },
+    {
+      "id": "allResolveHelpers",
+      "units": 429782314
+    },
+    {
+      "id": "allDirectoryWalkerHelpers",
+      "units": 535780848
+    },
+    {
+      "id": "stageByteOwnRows",
+      "units": 417088
+    },
+    {
+      "id": "pinsOwnRows",
+      "units": 975080
+    },
+    {
+      "id": "FileSetNormalClosedSlots",
+      "units": 541823159
+    },
+    {
+      "id": "twoUnexpectedFileSetRefusalReplacementSurpluses",
+      "units": 309107298
+    },
+    {
+      "id": "threeActualExpectedFileSetRefusals",
+      "units": 11077172
+    },
+    {
+      "id": "childOwnRowsWithAllPollsCleanup",
+      "units": 4874097
+    },
+    {
+      "id": "threeFencedWrapperOwnRows",
+      "units": 460
+    },
+    {
+      "id": "84CompilerReplacementHelpers",
+      "units": 4608324
+    },
+    {
+      "id": "twoOwnedCopyHelpers",
+      "units": 55030
+    },
+    {
+      "id": "twoOwnedMutationHelpers",
+      "units": 526
+    },
+    {
+      "id": "fourPEHeaderHelpers",
+      "units": 1332
+    },
+    {
+      "id": "threeOrdinaryConsolePE",
+      "units": 93
+    },
+    {
+      "id": "oneUnexpectedConsolePERefusalReplacementSurplus",
+      "units": 62
+    },
+    {
+      "id": "predecessorDescriptor",
+      "units": 41635
+    },
+    {
+      "id": "predecessorMap",
+      "units": 3619
+    },
+    {
+      "id": "fourBoundSignedIntegerHelpers",
+      "units": 440
+    },
+    {
+      "id": "twoNormalWorkReservations",
+      "units": 40
+    },
+    {
+      "id": "twoNormalRetainedReservations",
+      "units": 32
+    },
+    {
+      "id": "normalAttempt",
+      "units": 6
+    },
+    {
+      "id": "normalLastLegalPoll",
+      "units": 11
+    },
+    {
+      "id": "rootASCIIValidation",
+      "units": 27185
+    },
+    {
+      "id": "28CompilerArgumentASCIIValidations",
+      "units": 761180
+    },
+    {
+      "id": "elevenMeasurementOwnRowsAndDefaults",
+      "units": 1140
+    },
+    {
+      "id": "allRecursiveVisitorPasses",
+      "units": 664638620
+    },
+    {
+      "id": "fourSaveReceiptOwnRowsExcludingMeasurementHelper",
+      "units": 2324
+    },
+    {
+      "id": "twoWriteJsonOwnRowsExcludingMeasurementHelper",
+      "units": 124
+    },
+    {
+      "id": "thirteenDocumentOwnRows",
+      "units": 427167
+    },
+    {
+      "id": "sevenOnceEncodeOwnRows",
+      "units": 53406729
+    },
+    {
+      "id": "bootstrapBoundedRead",
+      "units": 197
+    },
+    {
+      "id": "twoReadJsonOwnRowsExcludingDependencyShape",
+      "units": 807
+    },
+    {
+      "id": "dependencyShapeAll4MiBUnits",
+      "units": 289407028
+    },
+    {
+      "id": "dependencyOtherOwnRows",
+      "units": 38518153
+    },
+    {
+      "id": "twoChildResultOwnRowsWith14AdmittedControls",
+      "units": 5200670
+    },
+    {
+      "id": "oneAttemptedBadControlPrefixBeforeRefusal",
+      "units": 11886
+    },
+    {
+      "id": "twoBuildArtifactOwnRows",
+      "units": 878
+    },
+    {
+      "id": "twoReferenceOwnRows",
+      "units": 15764
+    },
+    {
+      "id": "sameReferencesIncluding56normalIdentities",
+      "units": 2886
+    },
+    {
+      "id": "sevenOtherNormalIdentityHelpers",
+      "units": 168
+    },
+    {
+      "id": "twoUnexpectedIdentityRefusalReplacementSurpluses",
+      "units": 138
+    },
+    {
+      "id": "failureInventoryOwnRows",
+      "units": 5185
+    }
+  ],
+  "compositionFacts": {
+    "resolveCalls": 13078,
+    "noLinkOutsideCovered": 391,
+    "fileSetNormalCalls": 200,
+    "fileSetNormalElements": 8247,
+    "namespaceCount": 24,
+    "namespaceMaxRows": 1069,
+    "namespaceDirUpper": 689,
+    "stageCalls": 784,
+    "entriesAnyStage": 268460,
+    "entriesNamespaces": 39292937,
+    "entriesRoot": 2978022,
+    "entriesData": 2299476,
+    "entriesBuild": 169544,
+    "entriesRuns": 70628,
+    "entriesAll": 535780848,
+    "stageOwn": 417088,
+    "pinOwn": 975080,
+    "fileSetNormal": 541823159,
+    "genericSetFailureSurplus": 309107298,
+    "missingSet": 3650149,
+    "extraSet": 3713939,
+    "duplicateSet": 3713084,
+    "failureBytes": 262760,
+    "encodeTotal": 53406729,
+    "depsOwn": 38518153,
+    "childOwn": 4874097,
+    "runner": 2944518648,
+    "replacementGuardUpper": 4608324
+  },
+  "compositionConvention": {
+    "scope": "Positive source-derived upper envelope, not minimal actual trace or measured implementation. Native opaque internals stay unchanged.",
+    "evaluations": "Caller evaluated source operands/read/dispatch stay at their caller; callee parameter destination writes stay at callee. Direct external result and next parameter destination fuse once. Explicit wrapper entry/return remains separate. Reference binding copies no referent cells.",
+    "loops": "Every reached test/body/advance/finalfalse or explicitbreak/throw alternative is represented; for any-path walker rows the overflow form subtracts22 normal terminal/return units before substituting32897 actual overflow prefix, never claiming a false test after throw.",
+    "foreach": "Root-confirmed visible foreach source actions only; no invented interpreter enumerator/command-binder/get_Item body. Actual source array-literal elements and source registration retained.",
+    "bulk": "Existing declared CRT/CLR bulk primitive boundaries/visible args/wrappers; no internal n-byte write fee, no invented extra bulk scalar. Byte extents and all controlled lifetimes retained.",
+    "bounds": "A source maximum used in a positive inequality is labelled upper, never relabelled actual visits/length/capacity. Complete fence actual schedule8; reserve9 is not an extra call.",
+    "failure": "Normal full-schedule rows dominate terminated prefixes; two generic FileSet and Identity refusal replacement surpluses cover before-fence plus mandatory finally failures. Expected controls remain distinct actual errors. No extra failing-call slots invented.",
+    "arithmetic": "47disjoint component rows sum by integer addition; RunnerUpper fits positive signedInt64. This is not newU/limit/cap or binding. Combined runner+producer+verifier remainsnull.",
+    "sourceRegistration": "61source function declarations counted as61registrations; no body execution at registration."
+  },
+  "failurePrefixDominance": {
+    "hashes": "9544normal-request slots/72736read bodies are normal closed schedule counts and an any-prefix upper, not measured visits. All possible extra known-reference/build row hashes occur before the final676fence; if a set/aggregate refuses, at least that1176hash/7775chunk future fence is not reached. Root-walk/reference/build guards allow at most4additional reference rows or aggregate-cap final hash (<the omitted future fence); input/sources arrays are fixed authenticated lengths. Later stage/bundle hashes have explicit log/document caps and no surviving child writer.",
+    "fileSets": "200ordinary closed slots have8247expected and8247observed elements. Three expected controls addN168/M169; total203slots withN8415/M8416. Final pre-bundle root set is67=56+3+4+4; profile68 includes laterbundle.",
+    "errors": "At most2outside-control FileSet/Identity errors: the first failed before-fence operation and the immediately required finally fence. Other direct callers terminate main into one failure inventory and one final receipt; those do not callFileSet/Identity. Scalar surplus rows replace normal per-call envelopes; they are not extra scheduled calls.",
+    "childResult": "14admitted C++controls/84normalizations. One additional attempted bad control prefix may reach fixed parse/key/string/ID checks before refusal, not operand normalization; the first such failure terminates main. Normal second result's unused future source may dominate earlier fault prefixes."
+  },
+  "outputByteEnvelopes": {
+    "marker": 319,
+    "receipt": 23440,
+    "failure": 262760,
+    "bundle": 1048576,
+    "onceEncodes": 7,
+    "measurements": 11,
+    "ASCIIReceiptEvidence": "Root is explicitly ASCII admitted624; receipt only sourcefixedASCII/status/hash/control strings plus validated ASCII child control/status fields, owned Root paths, raw scalar positions and secondary fixedcodes. No raw exception text serialized.",
+    "receiptDerivation": "keyunits2849+keyquotes590+escapedvalueunits2*7551+valuequotes306+integerdigits20*175+bool5*52+map/array/syntax832+LF1=23440.",
+    "failureDerivation": "fixedASCIIkeys3313+794quotes+6*42504valueUTF16units+316valuequotes+20*78digits+5*160bools+braces158+brackets2+colons397+mapcommas318+arraycommas77+LF1=262760.",
+    "markerDerivation": "fixedkeyUTF16units80+12keyquotes+75stringunits+4valuequotes+19workdigits+9retaineddigits+1attemptdigit+5false+2braces+6colons+5commas+LF1=319."
+  },
+  "preparseRepairProposal": {
+    "status": "SOURCE_ONLY_RECOMMENDATION_NO_R7_EDIT",
+    "minimal": "Before every SDK parser invocation on untrusted/captured raw text, extend/reuse a shared bounded lexical/grammar admission. R7 DependencyShape currently checks quoted strings/nodes/depth but leaves unquoted token extent unbounded. Reject unsupported scalar/comment/constructor syntax and overlong or out-of-domain integral tokens before SDK buffer growth; report a fixed literal reason and bounded scalar offsets, nevercopy/format raw rejected token.",
+    "integerDomain": "Actual accepted C++operand schema is0..UInt64.MaxValue18446744073709551615; summary sixintegers are nonnegative<=Int64.MaxValue9223372036854775807. The existing generic builtin integral domain isInt64.MinValue-9223372036854775808 throughUInt64.MaxValue. Every required strict decimal integer token fits20UTF16units includingoptionalminus; positive20digits require exact unsigned upper check, negative19magnitude digits require9223372036854775808bound. No +/fraction/exponent/NaN/Infinity is emitted by these integer schemas. Version1.2 is a JSONstring, not a fractional numeric obligation. PreserveUInt64/FNV20-digit witnesses and the6operand-only BigInteger normalization.",
+    "strings": "Retain512decodedUTF16units dependency Source/Includes, valid UTF16/surrogate escapes and canonical JSON escaping. At most6rawunits perdecodedUTF16unit gives3074rawunits includingtwoquotes; supplementarypairs counttwoUTF16units. Results have controlID64, gate128, summary status128/hash64 and fixedkeys<=28; no arbitrary64numbercap. Do not use a global512stringprofile for immutable bootstrap metadata without deriving its separate authenticated profile.",
+    "tokensAndGrammar": "Strict JSON true/false/null finite4/5/4; strict integers20unitswith exact domain; requirequoted propertynames, validescape sequences/surrogatepairs, no unquoted identifiers, comments, singlequotes, constructors, undefined, NaN/Infinity. Maintain existing document/node/depth/field/array profiles and an explicit finite grammar stack before SDKentry. Long whitespace remains allowed within unchanged documentbytecap; it must not count as a long scalar.",
+    "callers": [
+      "Read-TaskJson419 for dependency (4MiB; nodes<=2*1172+256=2600; quotedstrings512;depth24)",
+      "Read-TaskChildResult543 controls3+11 and554twosummaries:13nodes/control atdepth2 and25nodes/summary atdepth1; exactkeys/projection remain",
+      "Read-TaskJson419 predecessor: currently separate1MiBcap; derive fixedpinned96artifact/147transitive sourceprofile or authenticate SAMEcapturedbytes beforeparse, not a race-prone earlierpathhash",
+      "main601bootstrap: SAMEtaskBootstrapbytes are cryptographically authenticated599beforedecode; retain/derive separate exact fixedmanifest lexical profile before SDKparse, not a lazy universal512stringclaim"
+    ],
+    "parseInvocationCount": 19,
+    "helperReuse": "One explicit scanner with source-profile arguments can serve dependency/results and remaining parsercallers; source registration/caller/default/profile/stack/eachcharacter/branch/parameter actions must be recensused. No preexisting helperprice transfers to a newbody.",
+    "boundedErrorText": "Preparse failures use constant reasons +bounded offsets/kind. Do not echo rawscalar/comment/text. After grammar/token/string/path bounds, SDK numeric-error substitutions are<=20units, keys/stringsboundedbyprofile and composedJSONpathboundedbydepth*string units; keep primary/secondary raw ownersand boundedmessageclones in futureworksheet.",
+    "preserve": [
+      "all56files/16929027densewords/785fractions/nativeinverse",
+      "bothactualproductionendpointsperQ",
+      "all14CPPcontrols/84operandnormalizations and9runnercontrols",
+      "840MiBretained/32MiBscratch/1800s/7200polls/oneheavy/oneattempt",
+      "R7fivefiles/allhistoricalseals",
+      "no newU/price/data/guardpromotion"
+    ],
+    "primaryDependencySchema": "Microsoft primary /sourceDependencies documentation shows Version \"1.2\" and Source/Includes/ImportedModules/HeaderUnits JSON strings/arrays; Version isquoted. R7already refusesnonempty imported module/header-unit arrays. Strict integer-only unquoted grammar changes no required numeric compiler or result field.",
+    "primaryDependencySchemaURL": "https://learn.microsoft.com/en-us/cpp/build/reference/sourcedependencies?view=msvc-170"
+  },
+  "scalarMeaning": "Finite complete source-action UPPER PROPOSAL with61helper/own-source main coverage; independent fresh numeric audit remains required before acceptance/binding. Positive guard-derived envelopes are explicitly distinguished from actual visit counts and minimal trace prices.",
+  "replacementCorrection": {
+    "oldTightLengthSum": 84784,
+    "status": "WITHDRAWN_UNJUSTIFIED_NORMALIZED_RAW_SHORTCUT",
+    "guardLengthSum": 86548,
+    "helperUpper": 4608324,
+    "basis": "84Value<=512 plus84Replacement<=512 plus tokens28*(6+6+7)=532; same84 sourcecalls/case upper3052;53*86548+217*84+3052=4608324."
+  },
+  "scopeExclusions": [
+    "No execution, parser/import/helper/compiler/test/stage/UI/device/Git/CI mutation",
+    "No existing R7/history/ADR/production edit",
+    "No catalogue/price/selectedworklimit/binding/guardpromotion",
+    "No whole producer+runner+verifier fit",
+    "No ABI/RSS/generalCLRheap qualification",
+    "No actual claim cl emits the malformed dependency witness; it is a source-admitted preparse prefix from an opaque compiler output whose admission must be safe beforeSDK refusal"
+  ]
+}
