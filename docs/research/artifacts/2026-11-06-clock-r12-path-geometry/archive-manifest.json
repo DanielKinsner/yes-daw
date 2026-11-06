@@ -1,0 +1,233 @@
+{
+  "schema": "CONDITIONAL_SOURCE_COMPONENT_ARCHIVE",
+  "component": "paths",
+  "independent_review_sha256": "33A90EDA40F801250828A2E3D5F7C304425A451520755A96088A1F8CF7DA69FF",
+  "scope": "Only the named conditional source component; complete resource closure, final qualification, binding and target GO remain HOLD",
+  "files": [
+    {
+      "file": "20261105-clock-oracle-r12-path-geometry-r1/geometry.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/geometry.json",
+      "original_bytes": 2350419,
+      "original_sha256": "BE95DC06AB85E7BF0A706656B08A6C2C8B5581C4AE3376BFE7AB1D98CADBAD9F",
+      "transformation": "BYTE_EXACT",
+      "bytes": 2350419,
+      "sha256": "BE95DC06AB85E7BF0A706656B08A6C2C8B5581C4AE3376BFE7AB1D98CADBAD9F"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-path-geometry-r1/primary/FileInfo.cs",
+      "original_path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary/FileInfo.cs",
+      "original_bytes": 7639,
+      "original_sha256": "2610C78EC589E1AACD82C4428835C427B838E8156A6F346F517D28EF9FFBB9A2",
+      "transformation": "BYTE_EXACT",
+      "bytes": 7639,
+      "sha256": "2610C78EC589E1AACD82C4428835C427B838E8156A6F346F517D28EF9FFBB9A2"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-path-geometry-r1/primary/FileStream.cs",
+      "original_path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary/FileStream.cs",
+      "original_bytes": 27745,
+      "original_sha256": "50A6636B1F2DE8FF0BAF1F861B8098DC9C9B893AB85ABEB80C76A923BF4C9A69",
+      "transformation": "BYTE_EXACT",
+      "bytes": 27745,
+      "sha256": "50A6636B1F2DE8FF0BAF1F861B8098DC9C9B893AB85ABEB80C76A923BF4C9A69"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-path-geometry-r1/primary/FileSystemInfo.cs",
+      "original_path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary/FileSystemInfo.cs",
+      "original_bytes": 8469,
+      "original_sha256": "C2B587448E23BD69924D03D6CE02C091F8524B05E54F99B0709189970A2C7540",
+      "transformation": "BYTE_EXACT",
+      "bytes": 8469,
+      "sha256": "C2B587448E23BD69924D03D6CE02C091F8524B05E54F99B0709189970A2C7540"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-path-geometry-r1/primary/FileSystemInfo.Windows.cs",
+      "original_path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary/FileSystemInfo.Windows.cs",
+      "original_bytes": 6030,
+      "original_sha256": "C5F90E47AAF470AB721FF53C470C826BBAF7D33101302BB0494BE42901055845",
+      "transformation": "BYTE_EXACT",
+      "bytes": 6030,
+      "sha256": "C5F90E47AAF470AB721FF53C470C826BBAF7D33101302BB0494BE42901055845"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-path-geometry-r1/primary/PathHelper.Windows.cs",
+      "original_path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary/PathHelper.Windows.cs",
+      "original_bytes": 10890,
+      "original_sha256": "1AD8B06C5615896C1DA6DEEA0C0D83E458040A6D4A7E2A3A0FB783AE7E7046FD",
+      "transformation": "BYTE_EXACT",
+      "bytes": 10890,
+      "sha256": "1AD8B06C5615896C1DA6DEEA0C0D83E458040A6D4A7E2A3A0FB783AE7E7046FD"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-path-geometry-r1/primary-source-origins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary-source-origins.json",
+      "original_bytes": 1772,
+      "original_sha256": "D38A2805DF47266A5407AC2074375C9364BEF1EE8E0A388E5703696F3A145076",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1772,
+      "sha256": "D38A2805DF47266A5407AC2074375C9364BEF1EE8E0A388E5703696F3A145076"
+    },
+    {
+      "file": "20261105-prepare-r12-path-geometry.py",
+      "original_path": "build-ci/20261105-prepare-r12-path-geometry.py",
+      "original_bytes": 4838,
+      "original_sha256": "7325F1204094035507AA0A632E30390E211F59D6AF478095459D58C22357BEAA",
+      "transformation": "BYTE_EXACT",
+      "bytes": 4838,
+      "sha256": "7325F1204094035507AA0A632E30390E211F59D6AF478095459D58C22357BEAA"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/bundle-bound.json",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/bundle-bound.json",
+      "original_bytes": 5226,
+      "original_sha256": "BE3EE2DD5BDF45C3C9AE0EBF1FA6A379BB69331CA319D05E29BA29C96D99A423",
+      "transformation": "BYTE_EXACT",
+      "bytes": 5226,
+      "sha256": "BE3EE2DD5BDF45C3C9AE0EBF1FA6A379BB69331CA319D05E29BA29C96D99A423"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/check_bundle_bound.py",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/check_bundle_bound.py",
+      "original_bytes": 6672,
+      "original_sha256": "85D30B927B20F32AF09A4AFB02858E9C0B310A288AC1CD2CA717535FEFE64A41",
+      "transformation": "BYTE_EXACT",
+      "bytes": 6672,
+      "sha256": "85D30B927B20F32AF09A4AFB02858E9C0B310A288AC1CD2CA717535FEFE64A41"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/check_geometry.py",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/check_geometry.py",
+      "original_bytes": 9480,
+      "original_sha256": "6DBA97E2F5DF56016864670295F5DB171C4D3A55DE3C77B5F6187A7905D536F3",
+      "transformation": "BYTE_EXACT",
+      "bytes": 9480,
+      "sha256": "6DBA97E2F5DF56016864670295F5DB171C4D3A55DE3C77B5F6187A7905D536F3"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/file-checks.json",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/file-checks.json",
+      "original_bytes": 1740695,
+      "original_sha256": "20028410500E1AFE2445CBB18ACC831533D088DCA4B00E374BB41F7D01A2FAAF",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1740695,
+      "sha256": "20028410500E1AFE2445CBB18ACC831533D088DCA4B00E374BB41F7D01A2FAAF"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Directory.cs",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Directory.cs",
+      "original_bytes": 17250,
+      "original_sha256": "6A9F26935201F8AFB171EA18703115AE76F26EF80522AEA9FD222801CC53E71C",
+      "transformation": "BYTE_EXACT",
+      "bytes": 17250,
+      "sha256": "6A9F26935201F8AFB171EA18703115AE76F26EF80522AEA9FD222801CC53E71C"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/File.cs",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/File.cs",
+      "original_bytes": 91892,
+      "original_sha256": "D89DB8BA0139AB64C219597718F9496BC9238FBBB16B05BD2E907F3226202BBE",
+      "transformation": "BYTE_EXACT",
+      "bytes": 91892,
+      "sha256": "D89DB8BA0139AB64C219597718F9496BC9238FBBB16B05BD2E907F3226202BBE"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/PathInternal.Windows.cs",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/PathInternal.Windows.cs",
+      "original_bytes": 18415,
+      "original_sha256": "1473848F007E73E49E19A3D3C2D615673A0A3D971528227FF6D1AFBB5DA26986",
+      "transformation": "BYTE_EXACT",
+      "bytes": 18415,
+      "sha256": "1473848F007E73E49E19A3D3C2D615673A0A3D971528227FF6D1AFBB5DA26986"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/SharedArrayPool.cs",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/SharedArrayPool.cs",
+      "original_bytes": 25609,
+      "original_sha256": "9AB00C5DE4F3B220149DBDA3B9E4924F04AC132FC451B592EBD53872FC198DBA",
+      "transformation": "BYTE_EXACT",
+      "bytes": 25609,
+      "sha256": "9AB00C5DE4F3B220149DBDA3B9E4924F04AC132FC451B592EBD53872FC198DBA"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Strategies_FileStreamHelpers.cs",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Strategies_FileStreamHelpers.cs",
+      "original_bytes": 6661,
+      "original_sha256": "D62B716DC9969D9CB96D6B97875312E953FC9D3DAA0D99DB33D0F18A12551446",
+      "transformation": "BYTE_EXACT",
+      "bytes": 6661,
+      "sha256": "D62B716DC9969D9CB96D6B97875312E953FC9D3DAA0D99DB33D0F18A12551446"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Strategies_FileStreamHelpers.Windows.cs",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Strategies_FileStreamHelpers.Windows.cs",
+      "original_bytes": 19962,
+      "original_sha256": "D84AEB6840611BB74437EEA52F82B5154123BA0BC4717D140C0FADD8340FBCF6",
+      "transformation": "BYTE_EXACT",
+      "bytes": 19962,
+      "sha256": "D84AEB6840611BB74437EEA52F82B5154123BA0BC4717D140C0FADD8340FBCF6"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Strategies_OSFileStreamStrategy.cs",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Strategies_OSFileStreamStrategy.cs",
+      "original_bytes": 11717,
+      "original_sha256": "5C5D36A5B85D46E760BBDAC2A15B79E5432163E1F67746611A48EAC771D6A3FF",
+      "transformation": "BYTE_EXACT",
+      "bytes": 11717,
+      "sha256": "5C5D36A5B85D46E760BBDAC2A15B79E5432163E1F67746611A48EAC771D6A3FF"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Utilities.cs",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Utilities.cs",
+      "original_bytes": 2186,
+      "original_sha256": "CE55B5275ACF8D7C3FBC02805029178A2DA8C7E5E7FB0A8A7DB792AA13FA5A99",
+      "transformation": "BYTE_EXACT",
+      "bytes": 2186,
+      "sha256": "CE55B5275ACF8D7C3FBC02805029178A2DA8C7E5E7FB0A8A7DB792AA13FA5A99"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/ValueStringBuilder.cs",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/ValueStringBuilder.cs",
+      "original_bytes": 9703,
+      "original_sha256": "737198AD816E8023DFD3CB4309D092DD1CE431A4CE2268CC37D42310F0528056",
+      "transformation": "BYTE_EXACT",
+      "bytes": 9703,
+      "sha256": "737198AD816E8023DFD3CB4309D092DD1CE431A4CE2268CC37D42310F0528056"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary-origins.json",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary-origins.json",
+      "original_bytes": 3011,
+      "original_sha256": "06FB766B84ECCB756C35F56C58A900D0E83DEF26BB259CC75ADCB6239EFB23F4",
+      "transformation": "BYTE_EXACT",
+      "bytes": 3011,
+      "sha256": "06FB766B84ECCB756C35F56C58A900D0E83DEF26BB259CC75ADCB6239EFB23F4"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/review.json",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/review.json",
+      "original_bytes": 9183,
+      "original_sha256": "33A90EDA40F801250828A2E3D5F7C304425A451520755A96088A1F8CF7DA69FF",
+      "transformation": "BYTE_EXACT",
+      "bytes": 9183,
+      "sha256": "33A90EDA40F801250828A2E3D5F7C304425A451520755A96088A1F8CF7DA69FF"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/review.md",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/review.md",
+      "original_bytes": 10703,
+      "original_sha256": "FF501A8A1AAED10E21E0F71B125FFE471E109288647526F4F93037746A14BE97",
+      "transformation": "BYTE_EXACT",
+      "bytes": 10703,
+      "sha256": "FF501A8A1AAED10E21E0F71B125FFE471E109288647526F4F93037746A14BE97"
+    },
+    {
+      "file": "20261106-clock-oracle-r12-path-geometry-independent-review-r1/source-pins.json",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/source-pins.json",
+      "original_bytes": 8548,
+      "original_sha256": "E03CD209E34D70C94D6925A7C7ACBDD4331D926F13149C45F07716587AF8A389",
+      "transformation": "BYTE_EXACT",
+      "bytes": 8548,
+      "sha256": "E03CD209E34D70C94D6925A7C7ACBDD4331D926F13149C45F07716587AF8A389"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "commit": "e2f47b0110ed922f21a1522da67279133ce28f32",
+  "files": [
+    {
+      "file": "FileInfo.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/FileInfo.cs",
+      "bytes": 7639,
+      "sha256": "2610C78EC589E1AACD82C4428835C427B838E8156A6F346F517D28EF9FFBB9A2"
+    },
+    {
+      "file": "FileSystemInfo.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/FileSystemInfo.cs",
+      "bytes": 8469,
+      "sha256": "C2B587448E23BD69924D03D6CE02C091F8524B05E54F99B0709189970A2C7540"
+    },
+    {
+      "file": "FileSystemInfo.Windows.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/FileSystemInfo.Windows.cs",
+      "bytes": 6030,
+      "sha256": "C5F90E47AAF470AB721FF53C470C826BBAF7D33101302BB0494BE42901055845"
+    },
+    {
+      "file": "FileStream.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/FileStream.cs",
+      "bytes": 27745,
+      "sha256": "50A6636B1F2DE8FF0BAF1F861B8098DC9C9B893AB85ABEB80C76A923BF4C9A69"
+    },
+    {
+      "file": "PathHelper.Windows.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/PathHelper.Windows.cs",
+      "bytes": 10890,
+      "sha256": "1AD8B06C5615896C1DA6DEEA0C0D83E458040A6D4A7E2A3A0FB783AE7E7046FD"
+    }
+  ]
+}

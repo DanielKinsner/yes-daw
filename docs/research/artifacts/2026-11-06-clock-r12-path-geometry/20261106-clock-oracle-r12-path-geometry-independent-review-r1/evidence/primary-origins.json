@@ -1,0 +1,56 @@
+[
+  {
+    "file": "ValueStringBuilder.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/System/Text/ValueStringBuilder.cs",
+    "bytes": 9703,
+    "sha256": "737198AD816E8023DFD3CB4309D092DD1CE431A4CE2268CC37D42310F0528056"
+  },
+  {
+    "file": "SharedArrayPool.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Buffers/SharedArrayPool.cs",
+    "bytes": 25609,
+    "sha256": "9AB00C5DE4F3B220149DBDA3B9E4924F04AC132FC451B592EBD53872FC198DBA"
+  },
+  {
+    "file": "Utilities.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Buffers/Utilities.cs",
+    "bytes": 2186,
+    "sha256": "CE55B5275ACF8D7C3FBC02805029178A2DA8C7E5E7FB0A8A7DB792AA13FA5A99"
+  },
+  {
+    "file": "PathInternal.Windows.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/System/IO/PathInternal.Windows.cs",
+    "bytes": 18415,
+    "sha256": "1473848F007E73E49E19A3D3C2D615673A0A3D971528227FF6D1AFBB5DA26986"
+  },
+  {
+    "file": "File.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/File.cs",
+    "bytes": 91892,
+    "sha256": "D89DB8BA0139AB64C219597718F9496BC9238FBBB16B05BD2E907F3226202BBE"
+  },
+  {
+    "file": "Directory.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/Directory.cs",
+    "bytes": 17250,
+    "sha256": "6A9F26935201F8AFB171EA18703115AE76F26EF80522AEA9FD222801CC53E71C"
+  },
+  {
+    "file": "Strategies_FileStreamHelpers.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/Strategies/FileStreamHelpers.cs",
+    "bytes": 6661,
+    "sha256": "D62B716DC9969D9CB96D6B97875312E953FC9D3DAA0D99DB33D0F18A12551446"
+  },
+  {
+    "file": "Strategies_OSFileStreamStrategy.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/Strategies/OSFileStreamStrategy.cs",
+    "bytes": 11717,
+    "sha256": "5C5D36A5B85D46E760BBDAC2A15B79E5432163E1F67746611A48EAC771D6A3FF"
+  },
+  {
+    "file": "Strategies_FileStreamHelpers.Windows.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/Strategies/FileStreamHelpers.Windows.cs",
+    "bytes": 19962,
+    "sha256": "D84AEB6840611BB74437EEA52F82B5154123BA0BC4717D140C0FADD8340FBCF6"
+  }
+]

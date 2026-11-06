@@ -1,0 +1,192 @@
+{
+  "schema": "YESDAW_R12_SELECTED_PATH_GEOMETRY_INDEPENDENT_REVIEW_V1",
+  "verdict": "ACCEPT_RESTRICTED_LEXICAL_ARITHMETIC_AND_CONDITIONAL_SOURCE_CORRESPONDENCE",
+  "resource_verdict": "HOLD_P_PAYLOAD_ROOT_FINAL_UNION_FIT_AND_GO",
+  "source_changed": false,
+  "target_execution": false,
+  "checks": 23210,
+  "verified_files": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/geometry.json",
+      "bytes": 2350419,
+      "sha256": "BE95DC06AB85E7BF0A706656B08A6C2C8B5581C4AE3376BFE7AB1D98CADBAD9F"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary-source-origins.json",
+      "bytes": 1772,
+      "sha256": "D38A2805DF47266A5407AC2074375C9364BEF1EE8E0A388E5703696F3A145076"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary/FileInfo.cs",
+      "bytes": 7639,
+      "sha256": "2610C78EC589E1AACD82C4428835C427B838E8156A6F346F517D28EF9FFBB9A2"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary/FileStream.cs",
+      "bytes": 27745,
+      "sha256": "50A6636B1F2DE8FF0BAF1F861B8098DC9C9B893AB85ABEB80C76A923BF4C9A69"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary/FileSystemInfo.Windows.cs",
+      "bytes": 6030,
+      "sha256": "C5F90E47AAF470AB721FF53C470C826BBAF7D33101302BB0494BE42901055845"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary/FileSystemInfo.cs",
+      "bytes": 8469,
+      "sha256": "C2B587448E23BD69924D03D6CE02C091F8524B05E54F99B0709189970A2C7540"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/primary/PathHelper.Windows.cs",
+      "bytes": 10890,
+      "sha256": "1AD8B06C5615896C1DA6DEEA0C0D83E458040A6D4A7E2A3A0FB783AE7E7046FD"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Path.Windows.cs",
+      "bytes": 15866,
+      "sha256": "C0CF4FE4202E48F8553900ECF1C956C84263E674F62B14B43D401C2DB7F8D049"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Path.cs",
+      "bytes": 39112,
+      "sha256": "51E40D247651B4BD267A14C102709C1CB460CFFB386064C2F05A0CB69DDB0BE8"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Management/commands/management/CombinePathCommand.cs",
+      "bytes": 8503,
+      "sha256": "DD08308391D9A2D130E8F27C2AB43C23F34A6D562B5BFA98BDB8F2E5D4B3049E"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/PathInterfaces.cs",
+      "bytes": 60203,
+      "sha256": "63E22FF1488224626D190323B8CEC0FC758A5CA8E01B32E183F10BDDA2FE8F79"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/SessionStateNavigation.cs",
+      "bytes": 66448,
+      "sha256": "9122BCD2C80BE533B34B2C52A9D939C5C503F4A359C5C00649E957130E857C61"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/namespaces/FileSystemProvider.cs",
+      "bytes": 388822,
+      "sha256": "4BB0194D150023208488D221365A9A42863C584295B726C121F8143CA4E2E5D9"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/namespaces/LocationGlobber.cs",
+      "bytes": 192711,
+      "sha256": "918F47C6A4B615EFE58919E690EE2673010C574BEE22BDBC987959DAADC6CA77"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/namespaces/NavigationProviderBase.cs",
+      "bytes": 44872,
+      "sha256": "A87FD1122F8AFFE147297DBBB6B9CE1E56139670C8F92E000D0D96E2D3CD5593"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/source-origins.json",
+      "bytes": 276057,
+      "sha256": "5314810ED0AF072A0103248367FAF8A42E51D3C1835242D2D40309771D06DA68"
+    },
+    {
+      "path": "build-ci/20261105-prepare-r12-path-geometry.py",
+      "bytes": 4838,
+      "sha256": "7325F1204094035507AA0A632E30390E211F59D6AF478095459D58C22357BEAA"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary-origins.json",
+      "bytes": 3011,
+      "sha256": "06FB766B84ECCB756C35F56C58A900D0E83DEF26BB259CC75ADCB6239EFB23F4"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Directory.cs",
+      "bytes": 17250,
+      "sha256": "6A9F26935201F8AFB171EA18703115AE76F26EF80522AEA9FD222801CC53E71C"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/File.cs",
+      "bytes": 91892,
+      "sha256": "D89DB8BA0139AB64C219597718F9496BC9238FBBB16B05BD2E907F3226202BBE"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/PathInternal.Windows.cs",
+      "bytes": 18415,
+      "sha256": "1473848F007E73E49E19A3D3C2D615673A0A3D971528227FF6D1AFBB5DA26986"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/SharedArrayPool.cs",
+      "bytes": 25609,
+      "sha256": "9AB00C5DE4F3B220149DBDA3B9E4924F04AC132FC451B592EBD53872FC198DBA"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Strategies_FileStreamHelpers.Windows.cs",
+      "bytes": 19962,
+      "sha256": "D84AEB6840611BB74437EEA52F82B5154123BA0BC4717D140C0FADD8340FBCF6"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Strategies_FileStreamHelpers.cs",
+      "bytes": 6661,
+      "sha256": "D62B716DC9969D9CB96D6B97875312E953FC9D3DAA0D99DB33D0F18A12551446"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Strategies_OSFileStreamStrategy.cs",
+      "bytes": 11717,
+      "sha256": "5C5D36A5B85D46E760BBDAC2A15B79E5432163E1F67746611A48EAC771D6A3FF"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Utilities.cs",
+      "bytes": 2186,
+      "sha256": "CE55B5275ACF8D7C3FBC02805029178A2DA8C7E5E7FB0A8A7DB792AA13FA5A99"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/ValueStringBuilder.cs",
+      "bytes": 9703,
+      "sha256": "737198AD816E8023DFD3CB4309D092DD1CE431A4CE2268CC37D42310F0528056"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-manifest.json",
+      "bytes": 501180,
+      "sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557"
+    }
+  ],
+  "geometry": {
+    "identities": 1294,
+    "known_pool_strings": 1458,
+    "known_pool_UTF16_units": 186478,
+    "maximum_canonical_units": 270,
+    "maximum_known_depth": 18,
+    "parent_array_reference_slots": 84110,
+    "alias_limit": 2662
+  },
+  "known_alias_keys_conditional": 2211,
+  "parent_requests_conditional": {
+    "complete_known_recipe_only": true,
+    "parent_edge_entries": 1458,
+    "nonempty_proper_parent_substring_requests": 1457,
+    "requested_UTF16_units": 157789,
+    "distinct_parent_contents": 164,
+    "repeated_parent_contents": 1293,
+    "distinct_parent_contents_UTF16_units": 18149
+  },
+  "bundle_wire_upper20": 452921,
+  "bundle_wire_upper_exact_static_numbers20_dynamic": 434454,
+  "bundle_preflight_value_nodes": 6544,
+  "bundle_preflight_key_nodes": 5251,
+  "bundle_preflight_total_visits": 11795,
+  "precise_unclosed_terms": [
+    "Actual stock C-drive/provider and exact selected SDK binary/source association for the proposed uncreated root.",
+    "Join-Path provider/context resolution intermediate substring/stack/container ownership.",
+    "Repeated SDK normalization of fresh filesystem/reparse/metadata/stream operations; eleven selected long identity paths each conditionally request a520-char rent selecting1024-char capacity.",
+    "Parent candidates materialized before interning; basename strings, raw/canonical aliases, list/dictionary capacities and ABI fields.",
+    "Unknown/tilde expansion and first Maximum+1 enumeration refusal paths before later guards; native API returned capacities and error graphs.",
+    "Joined phase lifetimes, physical retention without GC/null/Dispose free credit, complete P/N and final resource/price/Data binding."
+  ],
+  "argument": {
+    "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/review.md",
+    "bytes": 10703,
+    "sha256": "FF501A8A1AAED10E21E0F71B125FFE471E109288647526F4F93037746A14BE97"
+  }
+}

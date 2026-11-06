@@ -81,8 +81,10 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The controller environment equations passed1,293 conditional source checks; actual native startup,
    unjoined early-startup callbacks and the true writer interval remain unqualified. No environment dump was read.
    R5's conditional all-input/source-object argument passed18,197 independent checks; actual native
-   binding/funding/resources/integration remain held. Whole production census R3 review is REVISE;
-   a systematic explicit/unqualified-designator inventory across420 bodies/51 helpers is required next.
+   binding/funding/resources/integration remain held. Whole production census R4 review is REVISE;
+   its complete R5 successor is under fresh independent review, including all420 bodies/51 helpers.
+   R13 is a separate unrun source successor for typed preflight counters and streamed dependency parsing;
+   its whole functional review is in progress and all target execution guards remain false.
    The narrow candidate observation/restoration lemma passed13,368 independent checks; actual errno,
    floor/provider/interval and whole runtime/resource qualification remain pending.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
@@ -105,6 +107,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Preserve selected path and bundle geometry
+
+- Archived25 source/geometry/review records. Independent conditional source review passed23,210 checks for the provisional R12 root.
+- Bundle wire upper452,921 includes LF and20-character numeric tokens. SDK re-normalization, pre-intern parent substrings and unknown/tilde/refusal paths remain separate payload owners.
+- Whole P, final input/root/environment, complete resource fit, binding and target execution remain held. The proposed run root stays uncreated; continue the fresh R5 numeric and R13 functional reviews headlessly.
 
 ## 2026-11-06 - Preserve the rejected first payload-phase proposal
 
