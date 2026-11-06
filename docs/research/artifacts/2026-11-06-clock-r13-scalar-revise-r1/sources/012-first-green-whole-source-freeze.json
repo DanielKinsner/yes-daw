@@ -1,0 +1,89 @@
+{
+  "schema": "R13_CENSUS_FIRST_COMPLETE_OWN_GREEN_WHOLE_FREEZE_V1",
+  "boundary": "All listed whole files frozen at the first complete passing own consistency check; no later helper/comment/numeric edits",
+  "actual_own_check": {
+    "command": "python build-ci/20261106-clock-r13-runner-census-r1/build-census.py",
+    "exit_code": 0,
+    "wall_time_seconds": 0.7332739,
+    "checks": 1501,
+    "phases": [
+      733250550,
+      761503292,
+      3705175061,
+      4161328300,
+      4777752378,
+      5536151256
+    ],
+    "whole_proposal": 5536151256,
+    "helpers": 74,
+    "composition_families": 54
+  },
+  "preserved_failures": [
+    "authoring-attempt-r1:reserved Python keyword, before authoring",
+    "authoring-attempt-r2:duplicate equal phase key, before output write"
+  ],
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/authoring-attempt-r1/failure.json",
+      "bytes": 269,
+      "sha256": "4F49B12001BAA7E054075CCC236EC6C4E39D5997BD5E4C571905CC5508983095"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/authoring-attempt-r1/prepare-inputs.py",
+      "bytes": 12738,
+      "sha256": "18331D1131DBC17B2928742919B9FEF708FC969CA664BB6A812F0EE70DB2FDB0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/authoring-attempt-r2/build-census.py",
+      "bytes": 23060,
+      "sha256": "A8BEB719342AA4D9477389FF8EDEAACBC6530023D7EBF7FC12C329F14763DF1F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/authoring-attempt-r2/failure.json",
+      "bytes": 349,
+      "sha256": "96746BF5E702F8873F3FEA4BDCE22A5562FA378359A6B738F46F1A875B22093B"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/authoring-notes.md",
+      "bytes": 7165,
+      "sha256": "952E262809B1729E50809BF3885598E46B9E75BAB6DFC5B64DAE30CFF8C2249C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/body-operands.json",
+      "bytes": 236291,
+      "sha256": "C06647E2A7CDCEBFDD4B71A692448E95BC511DCC26723927D749A605D5EFC1E3"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/build-census.py",
+      "bytes": 23035,
+      "sha256": "6FE869C9F41F3DDF5F9B2C9F0783959A251C50D57896BC2089ACFB85F15B0DB2"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/census.json",
+      "bytes": 320489,
+      "sha256": "9DAEFFB03433D0A6D215054462A69D67A2DD79B9A1267F747B70C84DA9EC7024"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/census.md",
+      "bytes": 4252,
+      "sha256": "3B7C3F71A9635D395A7C77D3C3D601190BCE30D09FC337D13D81A5B40C66DFB5"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/checks.json",
+      "bytes": 238937,
+      "sha256": "F14062C8D368E3C7AF7612CDC83C55A2825078BA6009359B30C4B8FDD9155ADD"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/prepare-inputs.py",
+      "bytes": 12788,
+      "sha256": "B57FB6AE3534ADEFB5EBDFC4346D6B97093123B24896BE908A531974469A5923"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/source-inventory.json",
+      "bytes": 284551,
+      "sha256": "AB4896DD70F780913140EAB92473A5DBCE744DF85E98B07215895C7A04E61672"
+    }
+  ],
+  "no_target_execution": true,
+  "no_price_resource_binding_or_execution_authority": true
+}

@@ -1,0 +1,49 @@
+{
+  "schema": "INDEPENDENT_REVIEW_FIRST_COMPLETE_GREEN_FILE_DATA_CHECKER_FREEZE_V1",
+  "checks": 2123,
+  "failed": 0,
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-r13-runner-numeric-independent-review-r1/check.py",
+      "bytes": 25193,
+      "sha256": "B15C178838137B92E4794F4EC8595416DDBC645079A43543AF1445F85AD2D2E0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-numeric-independent-review-r1/ordered-ledgers.json",
+      "bytes": 104273,
+      "sha256": "F5213F870B1F5C3B3AD111F3E03E4F1B26C9DC37BE319E6015CFE9885F5A5F0A"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-numeric-independent-review-r1/caller-inventory.json",
+      "bytes": 124306,
+      "sha256": "DCAEA6272452E47B490969304C3E8CE29EEC88CDC345D18BEF871A3863BB302D"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-numeric-independent-review-r1/phase-arithmetic.json",
+      "bytes": 6109,
+      "sha256": "C3177D2CACA02139BEADC9A326F29DA55152240BC56772D1F79C16B693DC0989"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-numeric-independent-review-r1/checks.json",
+      "bytes": 820600,
+      "sha256": "77F90184CD847F9314BD8129ADAF314842D4409C3CD1905393B8BE3AE401DDF7"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-numeric-independent-review-r1/verified-inputs.json",
+      "bytes": 309151,
+      "sha256": "5448CF2E0E70E1EC0E4356121DFD00C92166BDD29684D0661AF7BCF736802200"
+    }
+  ],
+  "scope": "File/text/JSON/hash/integer self-check only, no target parser/helper/compiler/program/stage or runtime execution.",
+  "preserved_attempts": [
+    "attempt-r1",
+    "attempt-r2"
+  ],
+  "navigation_only_correction": {
+    "path": "build-ci/20261106-clock-r13-runner-numeric-independent-review-r1/navigation-corrections.json",
+    "bytes": 853,
+    "sha256": "B74EF272C96D52C860D339AA48AE2E4E5798921677AB9944A6558DA6CCF3460F"
+  },
+  "source_subjects_changed": false,
+  "prices_accepted": false
+}

@@ -1,0 +1,4 @@
+{
+  "exit_code": 1,
+  "reason": "Own inventory expectation320 omitted ten actual zero-argument source calls at end-of-line; fresh independent scan found330. Frozen author315 omits15 occurrences in14 locations. All other2120 own checks passed; no subject changed or target executed."
+}

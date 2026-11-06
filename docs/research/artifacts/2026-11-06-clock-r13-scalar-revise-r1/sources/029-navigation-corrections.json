@@ -1,0 +1,25 @@
+{
+  "schema": "R13_REVIEW_NAVIGATION_ONLY_CORRECTION_V1",
+  "rows": [
+    {
+      "ledger_id": "L06",
+      "frozen_navigation_line": 721,
+      "correct_navigation_line": 722,
+      "exact_source": " if((Get-TaskRuntimeType $Token) -eq [Newtonsoft.Json.Linq.JValue] -and $Token.get_Type() -eq [Newtonsoft.Json.Linq.JTokenType]::String){$taskValue=$Token.get_Value()}"
+    },
+    {
+      "ledger_id": "L07",
+      "frozen_navigation_line": 707,
+      "correct_navigation_line": 711,
+      "exact_source": "  $taskSettings.MaxDepth=24;$taskSettings.CheckAdditionalContent=$true"
+    },
+    {
+      "ledger_id": "L22",
+      "frozen_navigation_line": 123,
+      "correct_navigation_line": 124,
+      "exact_source": " foreach($taskAlias in @($taskRaw,$taskCanonical)){"
+    }
+  ],
+  "arithmetic_changed": false,
+  "first_green_evidence_preserved": true
+}

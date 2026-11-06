@@ -1,0 +1,7 @@
+{
+  "exit_code": 1,
+  "wall_time_seconds": 0.7963013,
+  "phase": "Own full Python composition before output write",
+  "reason": "dict(**phaseArgs,binary_tests=...) duplicated the same already-present phase key; remove only the redundant equal derived keyword",
+  "source_sha256": "A8BEB719342AA4D9477389FF8EDEAACBC6530023D7EBF7FC12C329F14763DF1F"
+}

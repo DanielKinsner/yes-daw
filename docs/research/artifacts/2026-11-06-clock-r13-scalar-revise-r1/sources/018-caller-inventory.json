@@ -1,0 +1,2417 @@
+{
+  "schema": "INDEPENDENT_R13_CALL_OCCURRENCE_INVENTORY_V1",
+  "occurrences": [
+    {
+      "caller": "Initialize-TaskPathCatalogue",
+      "callee": "Add-TaskPathCatalogueEntry",
+      "line": 87,
+      "column": 47,
+      "source": " foreach($taskPin in $taskManifest['inputs']){Add-TaskPathCatalogueEntry $taskPin['path'] $true}"
+    },
+    {
+      "caller": "Initialize-TaskPathCatalogue",
+      "callee": "Add-TaskPathCatalogueEntry",
+      "line": 88,
+      "column": 38,
+      "source": " foreach($taskName in $taskOwnNames){Add-TaskPathCatalogueEntry ([IO.Path]::Join($taskBase,$taskName)) $false}"
+    },
+    {
+      "caller": "Initialize-TaskPathCatalogue",
+      "callee": "Add-TaskPathCatalogueEntry",
+      "line": 89,
+      "column": 2,
+      "source": " Add-TaskPathCatalogueEntry $taskManifestPath $false"
+    },
+    {
+      "caller": "Initialize-TaskPathCatalogue",
+      "callee": "Add-TaskPathCatalogueEntry",
+      "line": 90,
+      "column": 49,
+      "source": " foreach($taskA in $taskManifest['references']){Add-TaskPathCatalogueEntry ([IO.Path]::Join($taskDataRoot,$taskA['path'])) $false}"
+    },
+    {
+      "caller": "Initialize-TaskPathCatalogue",
+      "callee": "Add-TaskPathCatalogueEntry",
+      "line": 91,
+      "column": 61,
+      "source": " foreach($taskA in $taskManifest['compiler_final_outputs']){Add-TaskPathCatalogueEntry ([IO.Path]::Join($taskBuildRoot,$taskA['name'])) $false}"
+    },
+    {
+      "caller": "Initialize-TaskPathCatalogue",
+      "callee": "Add-TaskPathCatalogueEntry",
+      "line": 92,
+      "column": 52,
+      "source": " foreach($taskA in $taskManifest['control_files']){Add-TaskPathCatalogueEntry ([IO.Path]::Join($taskRoot,$taskA['path'])) $false}"
+    },
+    {
+      "caller": "Initialize-TaskPathCatalogue",
+      "callee": "Add-TaskPathCatalogueEntry",
+      "line": 93,
+      "column": 53,
+      "source": " foreach($taskName in $taskManifest['stage_files']){Add-TaskPathCatalogueEntry ([IO.Path]::Join($taskStageRoot,$taskName)) $false}"
+    },
+    {
+      "caller": "Get-TaskCatalogueEntryPath",
+      "callee": "Get-TaskCatalogueString",
+      "line": 111,
+      "column": 17,
+      "source": " $taskCanonical=Get-TaskCatalogueString $taskCanonical"
+    },
+    {
+      "caller": "Get-TaskCatalogueEntryPath",
+      "callee": "Get-TaskCatalogueString",
+      "line": 114,
+      "column": 11,
+      "source": "  $taskAt=Get-TaskCatalogueString $taskAt;$taskParents[$taskParentCount]=$taskAt;$taskParentCount++"
+    },
+    {
+      "caller": "Get-TaskCatalogueEntryPath",
+      "callee": "Get-TaskCatalogueString",
+      "line": 119,
+      "column": 32,
+      "source": "   if($taskParent){$taskParent=Get-TaskCatalogueString $taskParent}"
+    },
+    {
+      "caller": "Get-TaskCanonicalPath",
+      "callee": "Get-TaskCatalogueEntryPath",
+      "line": 135,
+      "column": 70,
+      "source": "  if($script:taskPathCatalogue['aliases'].ContainsKey($Path)){return Get-TaskCatalogueEntryPath $script:taskPathCatalogue['aliases'][$Path]}"
+    },
+    {
+      "caller": "Assert-NoLink",
+      "callee": "Get-TaskCanonicalPath",
+      "line": 143,
+      "column": 10,
+      "source": " $taskAt=Get-TaskCanonicalPath $Path;$taskDepth=0"
+    },
+    {
+      "caller": "Assert-NoLink",
+      "callee": "Spend-Task",
+      "line": 144,
+      "column": 17,
+      "source": " while($taskAt){Spend-Task 1;$taskDepth++;if($taskDepth -gt 64){throw 'Path depth'};if([IO.File]::Exists($taskAt) -or [IO.Directory]::Exists($taskAt)){if(([IO.File]::GetAttributes($taskAt)-band [IO.FileAttributes]::ReparsePoint)-ne 0){throw 'Reparse path refused'}};if((Test-TaskPathCatalogueContext) -and $script:taskPathCatalogue['parent_strings'].ContainsKey($taskAt)){$taskAt=$script:taskPathCatalogue['parent_strings'][$taskAt]}else{$taskAt=[IO.Path]::GetDirectoryName($taskAt)}}"
+    },
+    {
+      "caller": "Get-TaskHash",
+      "callee": "Spend-Task",
+      "line": 147,
+      "column": 2,
+      "source": " Spend-Task 64;Assert-NoLink $Path;$taskItem=[IO.FileInfo]::new($Path);$taskLength=$taskItem.Length;if($taskLength -gt $Maximum -or $taskLength -lt 0){throw 'Hash file cap'}"
+    },
+    {
+      "caller": "Get-TaskHash",
+      "callee": "Assert-NoLink",
+      "line": 147,
+      "column": 16,
+      "source": " Spend-Task 64;Assert-NoLink $Path;$taskItem=[IO.FileInfo]::new($Path);$taskLength=$taskItem.Length;if($taskLength -gt $Maximum -or $taskLength -lt 0){throw 'Hash file cap'}"
+    },
+    {
+      "caller": "Get-TaskHash",
+      "callee": "Spend-Task",
+      "line": 150,
+      "column": 36,
+      "source": "  while($taskSeen -lt $taskLength){Spend-Task 32;$taskN=[int][Math]::Min(65536L,$taskLength-$taskSeen);$taskStream.ReadExactly($taskBuffer,0,$taskN);$taskSeen+=$taskN;$taskHash.AppendData($taskBuffer,0,$taskN)}"
+    },
+    {
+      "caller": "Get-TaskHash",
+      "callee": "Close-TaskOwner",
+      "line": 153,
+      "column": 10,
+      "source": " finally{Close-TaskOwner $taskHash;Close-TaskOwner $taskStream;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Get-TaskHash",
+      "callee": "Close-TaskOwner",
+      "line": 153,
+      "column": 36,
+      "source": " finally{Close-TaskOwner $taskHash;Close-TaskOwner $taskStream;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Get-TaskHash",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 153,
+      "column": 64,
+      "source": " finally{Close-TaskOwner $taskHash;Close-TaskOwner $taskStream;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Assert-TaskFreshHashIdentity",
+      "callee": "Test-TaskHashValue",
+      "line": 177,
+      "column": 50,
+      "source": " if($ExpectedBytes -ne $Observed.Item1 -or -not (Test-TaskHashValue ([byte[]]$Observed.Item2) $ExpectedHash)){"
+    },
+    {
+      "caller": "Assert-TaskFreshHashIdentity",
+      "callee": "Get-TaskHashHex",
+      "line": 179,
+      "column": 20,
+      "source": "  $taskObservedHex=Get-TaskHashHex $Observed"
+    },
+    {
+      "caller": "Assert-TaskFreshHashIdentity",
+      "callee": "Reject-TaskGate",
+      "line": 180,
+      "column": 3,
+      "source": "  Reject-TaskGate 'BEFORE_AFTER_COMPLETE_INPUT_IDENTITY' @{path=$Path;expected_bytes=$ExpectedBytes;observed_bytes=$Observed.Item1;expected_hash=$taskExpectedHex;observed_hash=$taskObservedHex}"
+    },
+    {
+      "caller": "Assert-TaskPollAdmission",
+      "callee": "Reject-TaskGate",
+      "line": 184,
+      "column": 81,
+      "source": " if($CompletedPolls -lt 0 -or $CompletedPolls -ge $script:taskChildPollMaximum){Reject-TaskGate 'CHILD_POLL_LIMIT' @{completed=$CompletedPolls;limit=$script:taskChildPollMaximum;attempted=($CompletedPolls+1)}}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Assert-TaskString",
+      "line": 190,
+      "column": 39,
+      "source": " foreach($taskArgument in $Arguments){Assert-TaskString $taskArgument 512 $true}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Spend-Task",
+      "line": 191,
+      "column": 2,
+      "source": " Spend-Task 4096;Spend-Task 8192;if($null -ne $script:taskQuarantine){throw 'Unsettled prior child owns storage; no next child'}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Spend-Task",
+      "line": 191,
+      "column": 18,
+      "source": " Spend-Task 4096;Spend-Task 8192;if($null -ne $script:taskQuarantine){throw 'Unsettled prior child owns storage; no next child'}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Assert-TaskExactKeys",
+      "line": 201,
+      "column": 3,
+      "source": "  Assert-TaskExactKeys $taskManifest['environment'] @('SystemRoot','windir','PATH','INCLUDE','LIB','TEMP','TMP','VSLANG')"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Assert-TaskString",
+      "line": 202,
+      "column": 88,
+      "source": "  $taskInfo.Environment.Clear();foreach($taskKey in $taskManifest['environment'].Keys){Assert-TaskString $taskManifest['environment'][$taskKey] 512 $true;$taskValue=$taskManifest['environment'][$taskKey];if($taskValue -ceq '<OWNED_OPAQUE_TEMP>'){$taskValue=$taskOpaqueRoot};$taskInfo.Environment[$taskKey]=$taskValue}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Assert-TaskPollAdmission",
+      "line": 208,
+      "column": 67,
+      "source": "   $taskPollLimited=($taskPolls -ge $script:taskChildPollMaximum);Assert-TaskPollAdmission $taskPolls;$taskPolls++"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Spend-Task",
+      "line": 209,
+      "column": 4,
+      "source": "   Spend-Task 64"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Spend-Task",
+      "line": 213,
+      "column": 6,
+      "source": "     Spend-Task 128;$taskN=$taskRead.GetAwaiter().GetResult();if($taskDirection -eq 0){$taskAccountA=$true}else{$taskAccountB=$true};$taskObserved+=$taskN;$taskUnretained+=$taskN"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Add-TaskChildCleanup",
+      "line": 230,
+      "column": 60,
+      "source": "  if($null -ne $taskCancel){try{$taskCancel.Cancel()}catch{Add-TaskChildCleanup $taskCleanup 'read_cancel' $_ (5+$taskChildIndex)}}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Add-TaskChildCleanup",
+      "line": 231,
+      "column": 207,
+      "source": "  if($taskStarted){try{if(-not $taskProcess.HasExited){$taskProcess.Kill($true);$null=$taskProcess.WaitForExit(2000)};if($taskProcess.HasExited){$taskExit=$taskProcess.ExitCode;$taskExitObserved=$true}else{Add-TaskChildCleanup $taskCleanup 'own_child_exit_not_observed_2000ms' $null (5+$taskChildIndex)}}catch{Add-TaskChildCleanup $taskCleanup 'own_child_reap_failure' $_ (5+$taskChildIndex)}}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Add-TaskChildCleanup",
+      "line": 231,
+      "column": 311,
+      "source": "  if($taskStarted){try{if(-not $taskProcess.HasExited){$taskProcess.Kill($true);$null=$taskProcess.WaitForExit(2000)};if($taskProcess.HasExited){$taskExit=$taskProcess.ExitCode;$taskExitObserved=$true}else{Add-TaskChildCleanup $taskCleanup 'own_child_exit_not_observed_2000ms' $null (5+$taskChildIndex)}}catch{Add-TaskChildCleanup $taskCleanup 'own_child_reap_failure' $_ (5+$taskChildIndex)}}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Add-TaskChildCleanup",
+      "line": 233,
+      "column": 96,
+      "source": "  if($taskReads.Length -gt 0){try{$null=[Threading.Tasks.Task]::WaitAll($taskReads,2000)}catch{Add-TaskChildCleanup $taskCleanup 'read_settlement_diagnostic' $_ (5+$taskChildIndex)}}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Add-TaskChildCleanup",
+      "line": 236,
+      "column": 287,
+      "source": "   if($null -ne $taskRead){if(-not $taskRead.IsCompleted){$taskSettled=$false}else{if(-not $taskAccount){try{$taskN=$taskRead.GetAwaiter().GetResult();$taskObserved+=$taskN;$taskUnretained+=$taskN;if($taskN -eq 0){if($taskDirection -eq 0){$taskDoneA=$true}else{$taskDoneB=$true}}}catch{Add-TaskChildCleanup $taskCleanup 'settled_read_cancel_or_fault' $_ (5+$taskChildIndex)}}}}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Add-TaskChildCleanup",
+      "line": 238,
+      "column": 98,
+      "source": "  foreach($taskSink in @($taskOut,$taskErr)){if($null -ne $taskSink){try{$taskSink.Flush()}catch{Add-TaskChildCleanup $taskCleanup 'retained_prefix_flush' $_ (5+$taskChildIndex)}}}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Add-TaskChildCleanup",
+      "line": 239,
+      "column": 86,
+      "source": "  if($null -ne $taskOut){try{$taskEndA=$taskOut.Position}catch{$taskPositions=$false;Add-TaskChildCleanup $taskCleanup 'retained_position_refusal' $_ (5+$taskChildIndex)}}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Add-TaskChildCleanup",
+      "line": 240,
+      "column": 86,
+      "source": "  if($null -ne $taskErr){try{$taskEndB=$taskErr.Position}catch{$taskPositions=$false;Add-TaskChildCleanup $taskCleanup 'retained_position_refusal' $_ (5+$taskChildIndex)}}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Add-TaskChildCleanup",
+      "line": 243,
+      "column": 129,
+      "source": "   foreach($taskOwner in @($taskOut,$taskErr,$taskCancel,$taskProcess)){if($null -ne $taskOwner){try{$taskOwner.Dispose()}catch{Add-TaskChildCleanup $taskCleanup 'settled_owner_dispose' $_ (5+$taskChildIndex)}}}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Add-TaskChildCleanup",
+      "line": 245,
+      "column": 166,
+      "source": "   $script:taskQuarantine=@{process=$taskProcess;cancel=$taskCancel;readA=$taskReadA;readB=$taskReadB;bufferA=$taskA;bufferB=$taskB;stdout=$taskOut;stderr=$taskErr};Add-TaskChildCleanup $taskCleanup 'one_rooted_unsettled_owner_no_more_children' $null (5+$taskChildIndex)"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Set-TaskSecondary",
+      "line": 252,
+      "column": 87,
+      "source": "   $taskFooter=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}else{Set-TaskSecondary (5+$taskChildIndex) $_}"
+    },
+    {
+      "caller": "Invoke-TaskChild",
+      "callee": "Set-TaskRawExit",
+      "line": 254,
+      "column": 4,
+      "source": "   Set-TaskRawExit $Name $taskExitObserved $taskExit"
+    },
+    {
+      "caller": "Add-TaskChildCleanup",
+      "callee": "Assert-TaskString",
+      "line": 266,
+      "column": 2,
+      "source": " Assert-TaskString $Code 64 $true;$Rows.Add($Code)"
+    },
+    {
+      "caller": "Add-TaskChildCleanup",
+      "callee": "Set-TaskSecondary",
+      "line": 267,
+      "column": 91,
+      "source": " if($null -ne $Raw){if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$Raw}else{Set-TaskSecondary $Slot $Raw}}"
+    },
+    {
+      "caller": "Invoke-TaskFencedChild",
+      "callee": "Invoke-TaskChild",
+      "line": 276,
+      "column": 34,
+      "source": " try{Assert-TaskPins;$taskResult=Invoke-TaskChild $Name $Executable $Arguments}"
+    },
+    {
+      "caller": "Invoke-TaskFencedChild",
+      "callee": "Set-TaskSecondary",
+      "line": 279,
+      "column": 135,
+      "source": "  try{Assert-TaskPins}catch{if($null -eq $taskBody){$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}}else{Set-TaskSecondary $taskIndex $_}}"
+    },
+    {
+      "caller": "Invoke-TaskFencedChild",
+      "callee": "Get-TaskHash",
+      "line": 280,
+      "column": 123,
+      "source": "  if($null -ne $ExpectedBinary){try{Assert-TaskFreshHashIdentity $Executable $ExpectedBinary.Item1 $ExpectedBinary.Item2 (Get-TaskHash $Executable 33554432)}catch{if($null -eq $taskBody){$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}}else{Set-TaskSecondary (2+$taskIndex) $_}}}"
+    },
+    {
+      "caller": "Invoke-TaskFencedChild",
+      "callee": "Assert-TaskFreshHashIdentity",
+      "line": 280,
+      "column": 37,
+      "source": "  if($null -ne $ExpectedBinary){try{Assert-TaskFreshHashIdentity $Executable $ExpectedBinary.Item1 $ExpectedBinary.Item2 (Get-TaskHash $Executable 33554432)}catch{if($null -eq $taskBody){$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}}else{Set-TaskSecondary (2+$taskIndex) $_}}}"
+    },
+    {
+      "caller": "Invoke-TaskFencedChild",
+      "callee": "Set-TaskSecondary",
+      "line": 280,
+      "column": 270,
+      "source": "  if($null -ne $ExpectedBinary){try{Assert-TaskFreshHashIdentity $Executable $ExpectedBinary.Item1 $ExpectedBinary.Item2 (Get-TaskHash $Executable 33554432)}catch{if($null -eq $taskBody){$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}}else{Set-TaskSecondary (2+$taskIndex) $_}}}"
+    },
+    {
+      "caller": "Replace-TaskBounded",
+      "callee": "Assert-TaskString",
+      "line": 285,
+      "column": 2,
+      "source": " Assert-TaskString $Value 512 $true;Assert-TaskString $Token 512 $true;Assert-TaskString $Replacement 512 $true"
+    },
+    {
+      "caller": "Replace-TaskBounded",
+      "callee": "Assert-TaskString",
+      "line": 285,
+      "column": 37,
+      "source": " Assert-TaskString $Value 512 $true;Assert-TaskString $Token 512 $true;Assert-TaskString $Replacement 512 $true"
+    },
+    {
+      "caller": "Replace-TaskBounded",
+      "callee": "Assert-TaskString",
+      "line": 285,
+      "column": 72,
+      "source": " Assert-TaskString $Value 512 $true;Assert-TaskString $Token 512 $true;Assert-TaskString $Replacement 512 $true"
+    },
+    {
+      "caller": "Get-TaskBootstrapHash",
+      "callee": "Close-TaskOwner",
+      "line": 319,
+      "column": 10,
+      "source": " finally{Close-TaskOwner $taskHash;Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Get-TaskBootstrapHash",
+      "callee": "Close-TaskOwner",
+      "line": 319,
+      "column": 36,
+      "source": " finally{Close-TaskOwner $taskHash;Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Get-TaskBootstrapHash",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 319,
+      "column": 62,
+      "source": " finally{Close-TaskOwner $taskHash;Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Initialize-TaskController",
+      "callee": "Get-TaskBootstrapHash",
+      "line": 336,
+      "column": 89,
+      "source": " foreach($taskPin in $taskPins){$taskPath=[IO.Path]::Join($taskRuntime,$taskPin[0]);if((Get-TaskBootstrapHash $taskPath $taskPin[1]) -cne $taskPin[2]){throw 'EXACT_BOOTSTRAP_RUNTIME_IDENTITY'}}"
+    },
+    {
+      "caller": "Initialize-TaskController",
+      "callee": "Close-TaskOwner",
+      "line": 338,
+      "column": 262,
+      "source": " try{if(-not $taskSelf.MainModule.FileName.Equals([IO.Path]::Join($taskRuntime,'pwsh.exe'),[StringComparison]::OrdinalIgnoreCase)){throw 'EXACT_NATIVE_CONTROLLER'}}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskSelf;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Initialize-TaskController",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 338,
+      "column": 288,
+      "source": " try{if(-not $taskSelf.MainModule.FileName.Equals([IO.Path]::Join($taskRuntime,'pwsh.exe'),[StringComparison]::OrdinalIgnoreCase)){throw 'EXACT_NATIVE_CONTROLLER'}}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskSelf;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Initialize-TaskController",
+      "callee": "Assert-TaskString",
+      "line": 342,
+      "column": 53,
+      "source": " for($taskI=0;$taskI -lt $taskArgs.Length;$taskI++){Assert-TaskString $taskArgs[$taskI] 512 $true;if($taskI -gt 0 -and -not $taskArgs[$taskI].Equals($taskExpected[$taskI],[StringComparison]::OrdinalIgnoreCase)){throw 'EXACT_NO_PROFILE_NONINTERACTIVE_CONTROLLER'}}"
+    },
+    {
+      "caller": "Initialize-TaskController",
+      "callee": "Assert-TaskCodecBinding",
+      "line": 351,
+      "column": 2,
+      "source": " Assert-TaskCodecBinding"
+    },
+    {
+      "caller": "Assert-TaskString",
+      "callee": "Get-TaskRuntimeType",
+      "line": 358,
+      "column": 6,
+      "source": " if((Get-TaskRuntimeType $Value) -ne [string] -or $Value.Length -gt $Maximum){throw 'EXACT_BOUNDED_STRING'}"
+    },
+    {
+      "caller": "Assert-TaskIntegral",
+      "callee": "Get-TaskRuntimeType",
+      "line": 373,
+      "column": 9,
+      "source": " $taskT=Get-TaskRuntimeType $Value"
+    },
+    {
+      "caller": "Convert-TaskControlOperand",
+      "callee": "Get-TaskRuntimeType",
+      "line": 380,
+      "column": 6,
+      "source": " if((Get-TaskRuntimeType $Value) -eq [System.Numerics.BigInteger]){"
+    },
+    {
+      "caller": "Convert-TaskControlOperand",
+      "callee": "Assert-TaskIntegral",
+      "line": 384,
+      "column": 2,
+      "source": " Assert-TaskIntegral $Value $true"
+    },
+    {
+      "caller": "Assert-TaskExactKeys",
+      "callee": "Get-TaskRuntimeType",
+      "line": 390,
+      "column": 9,
+      "source": " $taskT=Get-TaskRuntimeType $Map"
+    },
+    {
+      "caller": "Assert-TaskExactKeys",
+      "callee": "Assert-TaskString",
+      "line": 395,
+      "column": 31,
+      "source": " foreach($taskK in $Map.Keys){Assert-TaskString $taskK 512;if(-not $taskSet.Contains($taskK)){throw 'EXACT_OBJECT_FIELD_SET'}}"
+    },
+    {
+      "caller": "Close-TaskOwner",
+      "callee": "Set-TaskSecondary",
+      "line": 403,
+      "column": 118,
+      "source": " if($null -ne $Owner){try{$Owner.Dispose()}catch{if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}else{Set-TaskSecondary 10 $_}}}"
+    },
+    {
+      "caller": "Get-TaskIntegerDigits",
+      "callee": "Assert-TaskIntegral",
+      "line": 417,
+      "column": 2,
+      "source": " Assert-TaskIntegral $Value"
+    },
+    {
+      "caller": "Get-TaskEscapedStringBytes",
+      "callee": "Assert-TaskString",
+      "line": 429,
+      "column": 2,
+      "source": " Assert-TaskString $Value $script:taskJsonProfile['string_units']"
+    },
+    {
+      "caller": "Get-TaskEscapedStringBytes",
+      "callee": "Spend-Task",
+      "line": 432,
+      "column": 3,
+      "source": "  Spend-Task 1;$taskC=[int]$Value[$taskI]"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Spend-Task",
+      "line": 445,
+      "column": 47,
+      "source": " $State[1]++;$script:taskJsonPreflightNodes++;Spend-Task 1"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Add-TaskJsonBound",
+      "line": 446,
+      "column": 23,
+      "source": " if($null -eq $Value){Add-TaskJsonBound $State 4;return}"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Get-TaskRuntimeType",
+      "line": 447,
+      "column": 9,
+      "source": " $taskT=Get-TaskRuntimeType $Value"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Get-TaskEscapedStringBytes",
+      "line": 448,
+      "column": 52,
+      "source": " if($taskT -eq [string]){Add-TaskJsonBound $State (Get-TaskEscapedStringBytes $Value);return}"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Add-TaskJsonBound",
+      "line": 448,
+      "column": 26,
+      "source": " if($taskT -eq [string]){Add-TaskJsonBound $State (Get-TaskEscapedStringBytes $Value);return}"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Add-TaskJsonBound",
+      "line": 449,
+      "column": 24,
+      "source": " if($taskT -eq [bool]){Add-TaskJsonBound $State $(if($Value){4}else{5});return}"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Get-TaskIntegerDigits",
+      "line": 450,
+      "column": 214,
+      "source": " if($taskT -eq [sbyte] -or $taskT -eq [byte] -or $taskT -eq [int16] -or $taskT -eq [uint16] -or $taskT -eq [int32] -or $taskT -eq [uint32] -or $taskT -eq [int64] -or $taskT -eq [uint64]){Add-TaskJsonBound $State (Get-TaskIntegerDigits $Value);return}"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Add-TaskJsonBound",
+      "line": 450,
+      "column": 188,
+      "source": " if($taskT -eq [sbyte] -or $taskT -eq [byte] -or $taskT -eq [int16] -or $taskT -eq [uint16] -or $taskT -eq [int32] -or $taskT -eq [uint32] -or $taskT -eq [int64] -or $taskT -eq [uint64]){Add-TaskJsonBound $State (Get-TaskIntegerDigits $Value);return}"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Add-TaskJsonBound",
+      "line": 453,
+      "column": 3,
+      "source": "  Add-TaskJsonBound $State 2;$taskSeen=0"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Assert-TaskString",
+      "line": 459,
+      "column": 4,
+      "source": "   Assert-TaskString $taskEntry.Key $script:taskJsonProfile['string_units']"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Get-TaskEscapedStringBytes",
+      "line": 460,
+      "column": 31,
+      "source": "   Add-TaskJsonBound $State ((Get-TaskEscapedStringBytes $taskEntry.Key)+1)"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Add-TaskJsonBound",
+      "line": 460,
+      "column": 4,
+      "source": "   Add-TaskJsonBound $State ((Get-TaskEscapedStringBytes $taskEntry.Key)+1)"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Add-TaskJsonBound",
+      "line": 461,
+      "column": 24,
+      "source": "   if($taskSeen -gt 1){Add-TaskJsonBound $State 1}"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Visit-TaskJsonValue",
+      "line": 462,
+      "column": 4,
+      "source": "   Visit-TaskJsonValue $taskEntry.Value ($Depth+1) $State"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Add-TaskJsonBound",
+      "line": 468,
+      "column": 3,
+      "source": "  Add-TaskJsonBound $State 2"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Add-TaskJsonBound",
+      "line": 469,
+      "column": 59,
+      "source": "  for($taskI=0;$taskI -lt $taskCount;$taskI++){if($taskI){Add-TaskJsonBound $State 1};Visit-TaskJsonValue $Value[$taskI] ($Depth+1) $State}"
+    },
+    {
+      "caller": "Visit-TaskJsonValue",
+      "callee": "Visit-TaskJsonValue",
+      "line": 469,
+      "column": 87,
+      "source": "  for($taskI=0;$taskI -lt $taskCount;$taskI++){if($taskI){Add-TaskJsonBound $State 1};Visit-TaskJsonValue $Value[$taskI] ($Depth+1) $State}"
+    },
+    {
+      "caller": "Measure-TaskJson",
+      "callee": "Assert-TaskCodecBinding",
+      "line": 475,
+      "column": 2,
+      "source": " Assert-TaskCodecBinding"
+    },
+    {
+      "caller": "Measure-TaskJson",
+      "callee": "Add-TaskJsonBound",
+      "line": 479,
+      "column": 42,
+      "source": " Visit-TaskJsonValue $Value 0 $taskState;Add-TaskJsonBound $taskState 1 # final LF"
+    },
+    {
+      "caller": "Measure-TaskJson",
+      "callee": "Visit-TaskJsonValue",
+      "line": 479,
+      "column": 2,
+      "source": " Visit-TaskJsonValue $Value 0 $taskState;Add-TaskJsonBound $taskState 1 # final LF"
+    },
+    {
+      "caller": "Join-TaskBoundedNames",
+      "callee": "Assert-TaskString",
+      "line": 485,
+      "column": 49,
+      "source": " for($taskI=0;$taskI -lt $Names.Count;$taskI++){Assert-TaskString $Names[$taskI] 512;$taskLength+=$Names[$taskI].Length;if($taskI){$taskLength++}}"
+    },
+    {
+      "caller": "Get-TaskEntries",
+      "callee": "Get-TaskCanonicalPath",
+      "line": 493,
+      "column": 187,
+      "source": " $taskRows=$Destination;if($null -eq $taskRows){$taskRows=[Collections.Generic.List[object]]::new()};$taskPending=[Collections.Generic.Queue[object]]::new();$taskPending.Enqueue(@{path=(Get-TaskCanonicalPath $Root);depth=0});$taskSeen=0"
+    },
+    {
+      "caller": "Get-TaskEntries",
+      "callee": "Assert-NoLink",
+      "line": 494,
+      "column": 245,
+      "source": " while($taskPending.Count){$taskNext=$taskPending.Dequeue();$taskDirectory=$taskNext['path'];$taskDepth=[int]$taskNext['depth'];if($taskDepth -gt 64){Reject-TaskGate 'DIRECTORY_DEPTH_PROFILE' @{path=$taskDirectory;depth=$taskDepth;maximum=64}};Assert-NoLink $taskDirectory;$taskIterator=$null;$taskIteratorBefore=$script:taskPrimaryRaw;$taskIteratorBody=$null"
+    },
+    {
+      "caller": "Get-TaskEntries",
+      "callee": "Reject-TaskGate",
+      "line": 494,
+      "column": 151,
+      "source": " while($taskPending.Count){$taskNext=$taskPending.Dequeue();$taskDirectory=$taskNext['path'];$taskDepth=[int]$taskNext['depth'];if($taskDepth -gt 64){Reject-TaskGate 'DIRECTORY_DEPTH_PROFILE' @{path=$taskDirectory;depth=$taskDepth;maximum=64}};Assert-NoLink $taskDirectory;$taskIterator=$null;$taskIteratorBefore=$script:taskPrimaryRaw;$taskIteratorBody=$null"
+    },
+    {
+      "caller": "Get-TaskEntries",
+      "callee": "Spend-Task",
+      "line": 495,
+      "column": 414,
+      "source": "   try{$taskIterator=[IO.Directory]::EnumerateFileSystemEntries($taskDirectory).GetEnumerator();while($taskIterator.MoveNext()){$taskCandidate=[string]$taskIterator.Current;Assert-TaskString $taskCandidate 512;$taskPath=Get-TaskCanonicalPath $taskCandidate;$taskSeen++;if($taskSeen -gt $Maximum){Reject-TaskGate 'DIRECTORY_ENTRY_PROFILE' @{root=$Root;maximum=$Maximum;observed=$taskSeen;overflow_path=$taskPath}};Spend-Task 1;if($taskPath.Length -gt 512){throw 'Finite owned/input path length'};$taskAttributes=[IO.File]::GetAttributes($taskPath);$taskDirectoryFlag=($taskAttributes -band [IO.FileAttributes]::Directory)-ne 0;$taskLink=($taskAttributes -band [IO.FileAttributes]::ReparsePoint)-ne 0;$taskLength=if($taskDirectoryFlag -or $taskLink){0L}else{[IO.FileInfo]::new($taskPath).Length};$taskRows.Add([System.Tuple[object,object,object,object,object]]::new($taskPath,[IO.Path]::GetFileName($taskPath),$taskDirectoryFlag,$taskLength,$taskLink));if($taskLink){throw 'Reparse entry refused before traversal'};if($Recursive -and $taskDirectoryFlag){if($taskDepth -ge 64){Reject-TaskGate 'DIRECTORY_DEPTH_PROFILE' @{path=$taskPath;depth=($taskDepth+1);maximum=64}};$taskPending.Enqueue(@{path=$taskPath;depth=($taskDepth+1)})}}}"
+    },
+    {
+      "caller": "Get-TaskEntries",
+      "callee": "Get-TaskCanonicalPath",
+      "line": 495,
+      "column": 221,
+      "source": "   try{$taskIterator=[IO.Directory]::EnumerateFileSystemEntries($taskDirectory).GetEnumerator();while($taskIterator.MoveNext()){$taskCandidate=[string]$taskIterator.Current;Assert-TaskString $taskCandidate 512;$taskPath=Get-TaskCanonicalPath $taskCandidate;$taskSeen++;if($taskSeen -gt $Maximum){Reject-TaskGate 'DIRECTORY_ENTRY_PROFILE' @{root=$Root;maximum=$Maximum;observed=$taskSeen;overflow_path=$taskPath}};Spend-Task 1;if($taskPath.Length -gt 512){throw 'Finite owned/input path length'};$taskAttributes=[IO.File]::GetAttributes($taskPath);$taskDirectoryFlag=($taskAttributes -band [IO.FileAttributes]::Directory)-ne 0;$taskLink=($taskAttributes -band [IO.FileAttributes]::ReparsePoint)-ne 0;$taskLength=if($taskDirectoryFlag -or $taskLink){0L}else{[IO.FileInfo]::new($taskPath).Length};$taskRows.Add([System.Tuple[object,object,object,object,object]]::new($taskPath,[IO.Path]::GetFileName($taskPath),$taskDirectoryFlag,$taskLength,$taskLink));if($taskLink){throw 'Reparse entry refused before traversal'};if($Recursive -and $taskDirectoryFlag){if($taskDepth -ge 64){Reject-TaskGate 'DIRECTORY_DEPTH_PROFILE' @{path=$taskPath;depth=($taskDepth+1);maximum=64}};$taskPending.Enqueue(@{path=$taskPath;depth=($taskDepth+1)})}}}"
+    },
+    {
+      "caller": "Get-TaskEntries",
+      "callee": "Reject-TaskGate",
+      "line": 495,
+      "column": 297,
+      "source": "   try{$taskIterator=[IO.Directory]::EnumerateFileSystemEntries($taskDirectory).GetEnumerator();while($taskIterator.MoveNext()){$taskCandidate=[string]$taskIterator.Current;Assert-TaskString $taskCandidate 512;$taskPath=Get-TaskCanonicalPath $taskCandidate;$taskSeen++;if($taskSeen -gt $Maximum){Reject-TaskGate 'DIRECTORY_ENTRY_PROFILE' @{root=$Root;maximum=$Maximum;observed=$taskSeen;overflow_path=$taskPath}};Spend-Task 1;if($taskPath.Length -gt 512){throw 'Finite owned/input path length'};$taskAttributes=[IO.File]::GetAttributes($taskPath);$taskDirectoryFlag=($taskAttributes -band [IO.FileAttributes]::Directory)-ne 0;$taskLink=($taskAttributes -band [IO.FileAttributes]::ReparsePoint)-ne 0;$taskLength=if($taskDirectoryFlag -or $taskLink){0L}else{[IO.FileInfo]::new($taskPath).Length};$taskRows.Add([System.Tuple[object,object,object,object,object]]::new($taskPath,[IO.Path]::GetFileName($taskPath),$taskDirectoryFlag,$taskLength,$taskLink));if($taskLink){throw 'Reparse entry refused before traversal'};if($Recursive -and $taskDirectoryFlag){if($taskDepth -ge 64){Reject-TaskGate 'DIRECTORY_DEPTH_PROFILE' @{path=$taskPath;depth=($taskDepth+1);maximum=64}};$taskPending.Enqueue(@{path=$taskPath;depth=($taskDepth+1)})}}}"
+    },
+    {
+      "caller": "Get-TaskEntries",
+      "callee": "Reject-TaskGate",
+      "line": 495,
+      "column": 1075,
+      "source": "   try{$taskIterator=[IO.Directory]::EnumerateFileSystemEntries($taskDirectory).GetEnumerator();while($taskIterator.MoveNext()){$taskCandidate=[string]$taskIterator.Current;Assert-TaskString $taskCandidate 512;$taskPath=Get-TaskCanonicalPath $taskCandidate;$taskSeen++;if($taskSeen -gt $Maximum){Reject-TaskGate 'DIRECTORY_ENTRY_PROFILE' @{root=$Root;maximum=$Maximum;observed=$taskSeen;overflow_path=$taskPath}};Spend-Task 1;if($taskPath.Length -gt 512){throw 'Finite owned/input path length'};$taskAttributes=[IO.File]::GetAttributes($taskPath);$taskDirectoryFlag=($taskAttributes -band [IO.FileAttributes]::Directory)-ne 0;$taskLink=($taskAttributes -band [IO.FileAttributes]::ReparsePoint)-ne 0;$taskLength=if($taskDirectoryFlag -or $taskLink){0L}else{[IO.FileInfo]::new($taskPath).Length};$taskRows.Add([System.Tuple[object,object,object,object,object]]::new($taskPath,[IO.Path]::GetFileName($taskPath),$taskDirectoryFlag,$taskLength,$taskLink));if($taskLink){throw 'Reparse entry refused before traversal'};if($Recursive -and $taskDirectoryFlag){if($taskDepth -ge 64){Reject-TaskGate 'DIRECTORY_DEPTH_PROFILE' @{path=$taskPath;depth=($taskDepth+1);maximum=64}};$taskPending.Enqueue(@{path=$taskPath;depth=($taskDepth+1)})}}}"
+    },
+    {
+      "caller": "Get-TaskEntries",
+      "callee": "Assert-TaskString",
+      "line": 495,
+      "column": 174,
+      "source": "   try{$taskIterator=[IO.Directory]::EnumerateFileSystemEntries($taskDirectory).GetEnumerator();while($taskIterator.MoveNext()){$taskCandidate=[string]$taskIterator.Current;Assert-TaskString $taskCandidate 512;$taskPath=Get-TaskCanonicalPath $taskCandidate;$taskSeen++;if($taskSeen -gt $Maximum){Reject-TaskGate 'DIRECTORY_ENTRY_PROFILE' @{root=$Root;maximum=$Maximum;observed=$taskSeen;overflow_path=$taskPath}};Spend-Task 1;if($taskPath.Length -gt 512){throw 'Finite owned/input path length'};$taskAttributes=[IO.File]::GetAttributes($taskPath);$taskDirectoryFlag=($taskAttributes -band [IO.FileAttributes]::Directory)-ne 0;$taskLink=($taskAttributes -band [IO.FileAttributes]::ReparsePoint)-ne 0;$taskLength=if($taskDirectoryFlag -or $taskLink){0L}else{[IO.FileInfo]::new($taskPath).Length};$taskRows.Add([System.Tuple[object,object,object,object,object]]::new($taskPath,[IO.Path]::GetFileName($taskPath),$taskDirectoryFlag,$taskLength,$taskLink));if($taskLink){throw 'Reparse entry refused before traversal'};if($Recursive -and $taskDirectoryFlag){if($taskDepth -ge 64){Reject-TaskGate 'DIRECTORY_DEPTH_PROFILE' @{path=$taskPath;depth=($taskDepth+1);maximum=64}};$taskPending.Enqueue(@{path=$taskPath;depth=($taskDepth+1)})}}}"
+    },
+    {
+      "caller": "Get-TaskEntries",
+      "callee": "Close-TaskOwner",
+      "line": 497,
+      "column": 48,
+      "source": "   finally{if($taskIterator -is [IDisposable]){Close-TaskOwner $taskIterator};Complete-TaskOwnerClose $taskIteratorBefore $taskIteratorBody}"
+    },
+    {
+      "caller": "Get-TaskEntries",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 497,
+      "column": 79,
+      "source": "   finally{if($taskIterator -is [IDisposable]){Close-TaskOwner $taskIterator};Complete-TaskOwnerClose $taskIteratorBefore $taskIteratorBody}"
+    },
+    {
+      "caller": "Copy-TaskOwned",
+      "callee": "Assert-NoLink",
+      "line": 503,
+      "column": 2,
+      "source": " Assert-NoLink $Source;Assert-NoLink $Destination;$taskIn=$null;$taskOut=$null;$taskBuffer=[byte[]]::new(65536);$taskSeen=0L;$taskBefore=$script:taskPrimaryRaw;$taskBody=$null"
+    },
+    {
+      "caller": "Copy-TaskOwned",
+      "callee": "Assert-NoLink",
+      "line": 503,
+      "column": 24,
+      "source": " Assert-NoLink $Source;Assert-NoLink $Destination;$taskIn=$null;$taskOut=$null;$taskBuffer=[byte[]]::new(65536);$taskSeen=0L;$taskBefore=$script:taskPrimaryRaw;$taskBody=$null"
+    },
+    {
+      "caller": "Copy-TaskOwned",
+      "callee": "Spend-Task",
+      "line": 504,
+      "column": 328,
+      "source": " try{$taskIn=[IO.FileStream]::new($Source,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$taskOut=[IO.FileStream]::new($Destination,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None);if($taskIn.Length -ne $ExpectedBytes){throw 'Owned source copy length'};while($taskSeen -lt $ExpectedBytes){Spend-Task 128;$taskN=[int][Math]::Min(65536L,$ExpectedBytes-$taskSeen);$taskIn.ReadExactly($taskBuffer,0,$taskN);if($taskN -gt $Cap-$taskSeen){throw 'Owned control before-write cap'};$taskOut.Write($taskBuffer,0,$taskN);$taskSeen+=$taskN};if($taskIn.ReadByte() -ne -1){throw 'Owned source copy EOF'};$taskOut.Flush($true)}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskOut;Close-TaskOwner $taskIn;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Copy-TaskOwned",
+      "callee": "Close-TaskOwner",
+      "line": 504,
+      "column": 748,
+      "source": " try{$taskIn=[IO.FileStream]::new($Source,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$taskOut=[IO.FileStream]::new($Destination,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None);if($taskIn.Length -ne $ExpectedBytes){throw 'Owned source copy length'};while($taskSeen -lt $ExpectedBytes){Spend-Task 128;$taskN=[int][Math]::Min(65536L,$ExpectedBytes-$taskSeen);$taskIn.ReadExactly($taskBuffer,0,$taskN);if($taskN -gt $Cap-$taskSeen){throw 'Owned control before-write cap'};$taskOut.Write($taskBuffer,0,$taskN);$taskSeen+=$taskN};if($taskIn.ReadByte() -ne -1){throw 'Owned source copy EOF'};$taskOut.Flush($true)}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskOut;Close-TaskOwner $taskIn;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Copy-TaskOwned",
+      "callee": "Close-TaskOwner",
+      "line": 504,
+      "column": 773,
+      "source": " try{$taskIn=[IO.FileStream]::new($Source,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$taskOut=[IO.FileStream]::new($Destination,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None);if($taskIn.Length -ne $ExpectedBytes){throw 'Owned source copy length'};while($taskSeen -lt $ExpectedBytes){Spend-Task 128;$taskN=[int][Math]::Min(65536L,$ExpectedBytes-$taskSeen);$taskIn.ReadExactly($taskBuffer,0,$taskN);if($taskN -gt $Cap-$taskSeen){throw 'Owned control before-write cap'};$taskOut.Write($taskBuffer,0,$taskN);$taskSeen+=$taskN};if($taskIn.ReadByte() -ne -1){throw 'Owned source copy EOF'};$taskOut.Flush($true)}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskOut;Close-TaskOwner $taskIn;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Copy-TaskOwned",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 504,
+      "column": 797,
+      "source": " try{$taskIn=[IO.FileStream]::new($Source,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$taskOut=[IO.FileStream]::new($Destination,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None);if($taskIn.Length -ne $ExpectedBytes){throw 'Owned source copy length'};while($taskSeen -lt $ExpectedBytes){Spend-Task 128;$taskN=[int][Math]::Min(65536L,$ExpectedBytes-$taskSeen);$taskIn.ReadExactly($taskBuffer,0,$taskN);if($taskN -gt $Cap-$taskSeen){throw 'Owned control before-write cap'};$taskOut.Write($taskBuffer,0,$taskN);$taskSeen+=$taskN};if($taskIn.ReadByte() -ne -1){throw 'Owned source copy EOF'};$taskOut.Flush($true)}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskOut;Close-TaskOwner $taskIn;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Mutate-TaskOwnedBytes",
+      "callee": "Close-TaskOwner",
+      "line": 508,
+      "column": 500,
+      "source": " try{$taskFile=[IO.FileStream]::new($Path,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);if($Offset -lt 0 -or $Offset+$Replacement.Length -gt $taskFile.Length){throw 'Owned mutation coordinate'};$taskFile.Position=$Offset;$taskFile.ReadExactly($taskBefore,0,$taskBefore.Length);$taskFile.Position=$Offset;$taskFile.Write($Replacement,0,$Replacement.Length);$taskFile.Flush($true)}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskPriorPrimary $taskBody}"
+    },
+    {
+      "caller": "Mutate-TaskOwnedBytes",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 508,
+      "column": 526,
+      "source": " try{$taskFile=[IO.FileStream]::new($Path,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);if($Offset -lt 0 -or $Offset+$Replacement.Length -gt $taskFile.Length){throw 'Owned mutation coordinate'};$taskFile.Position=$Offset;$taskFile.ReadExactly($taskBefore,0,$taskBefore.Length);$taskFile.Position=$Offset;$taskFile.Write($Replacement,0,$Replacement.Length);$taskFile.Flush($true)}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskPriorPrimary $taskBody}"
+    },
+    {
+      "caller": "Assert-TaskRawJson",
+      "callee": "Reject-TaskGate",
+      "line": 573,
+      "column": 32,
+      "source": "   if($taskScalarUnits -gt 20){Reject-TaskGate 'JSON_RAW_SCALAR_UNITS' @{observed=$taskScalarUnits;maximum=20}}"
+    },
+    {
+      "caller": "Assert-TaskRawJsonBytes",
+      "callee": "Reject-TaskGate",
+      "line": 662,
+      "column": 32,
+      "source": "   if($taskScalarUnits -gt 20){Reject-TaskGate 'JSON_RAW_SCALAR_UNITS' @{observed=$taskScalarUnits;maximum=20}}"
+    },
+    {
+      "caller": "Read-TaskBoundedBytes",
+      "callee": "Close-TaskOwner",
+      "line": 693,
+      "column": 503,
+      "source": " try{$taskFile=[IO.FileStream]::new($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read,1,[IO.FileOptions]::SequentialScan);if($taskFile.Length -ne $taskLength){throw 'JSON length changed before bounded allocation'};$taskBytes=[byte[]]::new([int]$taskLength);$taskFile.ReadExactly($taskBytes,0,$taskBytes.Length);if($taskFile.ReadByte() -ne -1){throw 'JSON exact EOF'};return ,$taskBytes}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Read-TaskBoundedBytes",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 693,
+      "column": 529,
+      "source": " try{$taskFile=[IO.FileStream]::new($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read,1,[IO.FileOptions]::SequentialScan);if($taskFile.Length -ne $taskLength){throw 'JSON length changed before bounded allocation'};$taskBytes=[byte[]]::new([int]$taskLength);$taskFile.ReadExactly($taskBytes,0,$taskBytes.Length);if($taskFile.ReadByte() -ne -1){throw 'JSON exact EOF'};return ,$taskBytes}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Close-TaskJsonReader",
+      "callee": "Set-TaskSecondary",
+      "line": 698,
+      "column": 116,
+      "source": " if($null -ne $Owner){try{$Owner.Close()}catch{if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}else{Set-TaskSecondary 10 $_}}}"
+    },
+    {
+      "caller": "Read-TaskDependencyJson",
+      "callee": "Close-TaskOwner",
+      "line": 717,
+      "column": 47,
+      "source": " finally{Close-TaskJsonReader $taskJsonReader;Close-TaskOwner $taskTextReader;Close-TaskOwner $taskMemory;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Read-TaskDependencyJson",
+      "callee": "Close-TaskOwner",
+      "line": 717,
+      "column": 79,
+      "source": " finally{Close-TaskJsonReader $taskJsonReader;Close-TaskOwner $taskTextReader;Close-TaskOwner $taskMemory;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Read-TaskDependencyJson",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 717,
+      "column": 107,
+      "source": " finally{Close-TaskJsonReader $taskJsonReader;Close-TaskOwner $taskTextReader;Close-TaskOwner $taskMemory;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Read-TaskDependencyJson",
+      "callee": "Close-TaskJsonReader",
+      "line": 717,
+      "column": 10,
+      "source": " finally{Close-TaskJsonReader $taskJsonReader;Close-TaskOwner $taskTextReader;Close-TaskOwner $taskMemory;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Get-TaskDependencyString",
+      "callee": "Get-TaskRuntimeType",
+      "line": 722,
+      "column": 6,
+      "source": " if((Get-TaskRuntimeType $Token) -eq [Newtonsoft.Json.Linq.JValue] -and $Token.get_Type() -eq [Newtonsoft.Json.Linq.JTokenType]::String){$taskValue=$Token.get_Value()}"
+    },
+    {
+      "caller": "Get-TaskDependencyString",
+      "callee": "Assert-TaskString",
+      "line": 723,
+      "column": 2,
+      "source": " Assert-TaskString $taskValue 512"
+    },
+    {
+      "caller": "Read-TaskJson",
+      "callee": "Spend-Task",
+      "line": 727,
+      "column": 2,
+      "source": " Spend-Task 64;Assert-TaskCodecBinding;$taskBytes=Read-TaskBoundedBytes $Path $Maximum"
+    },
+    {
+      "caller": "Read-TaskJson",
+      "callee": "Read-TaskBoundedBytes",
+      "line": 727,
+      "column": 51,
+      "source": " Spend-Task 64;Assert-TaskCodecBinding;$taskBytes=Read-TaskBoundedBytes $Path $Maximum"
+    },
+    {
+      "caller": "Read-TaskJson",
+      "callee": "Add-TaskJsonVisit",
+      "line": 731,
+      "column": 2,
+      "source": " Add-TaskJsonVisit $taskBytes.Length"
+    },
+    {
+      "caller": "Read-TaskJson",
+      "callee": "Assert-TaskRawJsonBytes",
+      "line": 732,
+      "column": 46,
+      "source": " if($Maximum -eq 4194304){$taskCompactLength=Assert-TaskRawJsonBytes $taskBytes (2*[int]$taskManifest['profile']['include_input_count']+256) 512 24;return ,(Read-TaskDependencyJson $taskBytes $taskCompactLength)}else{$taskCompactLength=Assert-TaskRawJsonBytes $taskBytes 2420 270 3}"
+    },
+    {
+      "caller": "Read-TaskJson",
+      "callee": "Assert-TaskRawJsonBytes",
+      "line": 732,
+      "column": 237,
+      "source": " if($Maximum -eq 4194304){$taskCompactLength=Assert-TaskRawJsonBytes $taskBytes (2*[int]$taskManifest['profile']['include_input_count']+256) 512 24;return ,(Read-TaskDependencyJson $taskBytes $taskCompactLength)}else{$taskCompactLength=Assert-TaskRawJsonBytes $taskBytes 2420 270 3}"
+    },
+    {
+      "caller": "Read-TaskJson",
+      "callee": "Read-TaskDependencyJson",
+      "line": 732,
+      "column": 158,
+      "source": " if($Maximum -eq 4194304){$taskCompactLength=Assert-TaskRawJsonBytes $taskBytes (2*[int]$taskManifest['profile']['include_input_count']+256) 512 24;return ,(Read-TaskDependencyJson $taskBytes $taskCompactLength)}else{$taskCompactLength=Assert-TaskRawJsonBytes $taskBytes 2420 270 3}"
+    },
+    {
+      "caller": "Encode-TaskJson",
+      "callee": "Assert-TaskCodecBinding",
+      "line": 737,
+      "column": 2,
+      "source": " Assert-TaskCodecBinding"
+    },
+    {
+      "caller": "Encode-TaskJson",
+      "callee": "Measure-TaskJson",
+      "line": 738,
+      "column": 42,
+      "source": " if($null -eq $Measurement){$Measurement=Measure-TaskJson $Value $Maximum}"
+    },
+    {
+      "caller": "Encode-TaskJson",
+      "callee": "Get-TaskRuntimeType",
+      "line": 743,
+      "column": 6,
+      "source": " if((Get-TaskRuntimeType $taskText) -ne [string] -or $taskText.Length -ne $Measurement['bytes']-1){throw 'EXACT_PREFLIGHT_SERIALIZED_LENGTH'}"
+    },
+    {
+      "caller": "Encode-TaskJson",
+      "callee": "Add-TaskJsonVisit",
+      "line": 747,
+      "column": 2,
+      "source": " Add-TaskJsonVisit $taskBytes.Length;$script:taskJsonEncodes++"
+    },
+    {
+      "caller": "Get-TaskStageBytes",
+      "callee": "Spend-Task",
+      "line": 751,
+      "column": 118,
+      "source": " $taskSum=0L;if([IO.Directory]::Exists($taskStageRoot)){foreach($taskF in (Get-TaskEntries $taskStageRoot $false 7)){Spend-Task 1;if($taskF.Item3 -or $taskF.Item2 -cnotin @('stdout.log','stderr.log','receipt.json','bundle.json','consumed.json','failure-inventory.json')){throw 'Unlisted controlled stage artifact'};if($taskF.Item4 -gt $taskStageCap-$taskSum){throw 'Controlled stage aggregate'};$taskSum+=$taskF.Item4}};return $taskSum"
+    },
+    {
+      "caller": "Get-TaskStageBytes",
+      "callee": "Get-TaskEntries",
+      "line": 751,
+      "column": 76,
+      "source": " $taskSum=0L;if([IO.Directory]::Exists($taskStageRoot)){foreach($taskF in (Get-TaskEntries $taskStageRoot $false 7)){Spend-Task 1;if($taskF.Item3 -or $taskF.Item2 -cnotin @('stdout.log','stderr.log','receipt.json','bundle.json','consumed.json','failure-inventory.json')){throw 'Unlisted controlled stage artifact'};if($taskF.Item4 -gt $taskStageCap-$taskSum){throw 'Controlled stage aggregate'};$taskSum+=$taskF.Item4}};return $taskSum"
+    },
+    {
+      "caller": "Assert-TaskDocumentWrite",
+      "callee": "Assert-TaskString",
+      "line": 754,
+      "column": 2,
+      "source": " Assert-TaskString $Path 512"
+    },
+    {
+      "caller": "Write-TaskJsonBytes",
+      "callee": "Assert-TaskDocumentWrite",
+      "line": 760,
+      "column": 2,
+      "source": " Assert-TaskDocumentWrite $Path $Bytes.Length;[IO.File]::WriteAllBytes($Path,$Bytes)"
+    },
+    {
+      "caller": "Write-TaskJson",
+      "callee": "Measure-TaskJson",
+      "line": 763,
+      "column": 42,
+      "source": " if($null -eq $Measurement){$Measurement=Measure-TaskJson $Value $Maximum}"
+    },
+    {
+      "caller": "Write-TaskJson",
+      "callee": "Assert-TaskDocumentWrite",
+      "line": 764,
+      "column": 2,
+      "source": " Assert-TaskDocumentWrite $Path $Measurement['bytes']"
+    },
+    {
+      "caller": "Write-TaskJson",
+      "callee": "Encode-TaskJson",
+      "line": 765,
+      "column": 11,
+      "source": " $taskRaw=Encode-TaskJson $Value $Maximum $Measurement"
+    },
+    {
+      "caller": "Write-TaskJson",
+      "callee": "Write-TaskJsonBytes",
+      "line": 766,
+      "column": 2,
+      "source": " Write-TaskJsonBytes $Path $taskRaw $Maximum"
+    },
+    {
+      "caller": "Save-TaskReceipt",
+      "callee": "Get-TaskSecondaryCodes",
+      "line": 770,
+      "column": 37,
+      "source": " $taskReceipt['secondary_failures']=Get-TaskSecondaryCodes"
+    },
+    {
+      "caller": "Save-TaskReceipt",
+      "callee": "Measure-TaskJson",
+      "line": 772,
+      "column": 15,
+      "source": " $taskMeasure=Measure-TaskJson $taskReceipt 65536"
+    },
+    {
+      "caller": "Save-TaskReceipt",
+      "callee": "Assert-TaskDocumentWrite",
+      "line": 773,
+      "column": 2,
+      "source": " Assert-TaskDocumentWrite $taskPath $taskMeasure['bytes']"
+    },
+    {
+      "caller": "Save-TaskReceipt",
+      "callee": "Encode-TaskJson",
+      "line": 774,
+      "column": 15,
+      "source": " $taskEncoded=Encode-TaskJson $taskReceipt 65536 $taskMeasure"
+    },
+    {
+      "caller": "Save-TaskReceipt",
+      "callee": "Write-TaskJsonBytes",
+      "line": 775,
+      "column": 2,
+      "source": " Write-TaskJsonBytes $taskPath $taskEncoded 65536"
+    },
+    {
+      "caller": "Assert-TaskIdentity",
+      "callee": "Reject-TaskGate",
+      "line": 777,
+      "column": 146,
+      "source": "function Assert-TaskIdentity($Expected,$Observed){if($Expected['bytes'] -ne $Observed['bytes'] -or $Expected['sha256'] -cne $Observed['sha256']){Reject-TaskGate 'BEFORE_AFTER_COMPLETE_INPUT_IDENTITY' @{path=$Expected['path'];expected_bytes=$Expected['bytes'];observed_bytes=$Observed['bytes'];expected_hash=$Expected['sha256'];observed_hash=$Observed['sha256']}}}"
+    },
+    {
+      "caller": "Assert-TaskBoundSourceInteger",
+      "callee": "Get-TaskRuntimeType",
+      "line": 781,
+      "column": 48,
+      "source": " $taskType=if($null -eq $Value){'<null>'}else{(Get-TaskRuntimeType $Value).FullName}"
+    },
+    {
+      "caller": "Assert-TaskBoundSourceInteger",
+      "callee": "Reject-TaskGate",
+      "line": 782,
+      "column": 24,
+      "source": " if(-not $taskAllowed){Reject-TaskGate 'EXACT_SIGNED_SOURCE_INTEGER_KIND' @{field=$Field;observed_type=$taskType}}"
+    },
+    {
+      "caller": "Assert-TaskBoundSourceInteger",
+      "callee": "Reject-TaskGate",
+      "line": 785,
+      "column": 19,
+      "source": " if($Value -le 0){Reject-TaskGate 'POSITIVE_SOURCE_INTEGER_REPRESENTATION_DOMAIN' @{field=$Field;observed_type=$taskType;observed_value=$Value;minimum=1L;representation_max=[long]::MaxValue}}"
+    },
+    {
+      "caller": "Assert-TaskReservation",
+      "callee": "Reject-TaskGate",
+      "line": 787,
+      "column": 220,
+      "source": "function Assert-TaskReservation([long]$Total,[long]$Limit){if($null -eq $script:taskReviewedWorkLimit){throw 'UNBOUND_RESEARCH_LIMIT'};if($Total -gt $Limit -or $Total -lt 0 -or $Limit -gt $script:taskReviewedWorkLimit){Reject-TaskGate 'WHOLE_STAGE_WORK_RESERVATION' @{total=$Total;limit=$Limit;global=$script:taskReviewedWorkLimit}}}"
+    },
+    {
+      "caller": "Assert-TaskRetainedReservation",
+      "callee": "Reject-TaskGate",
+      "line": 788,
+      "column": 133,
+      "source": "function Assert-TaskRetainedReservation([long]$Total,[long]$Limit){if($Total -gt $Limit -or $Total -lt 0 -or $Limit -gt 880803840L){Reject-TaskGate 'WHOLE_STAGE_RETAINED_RESERVATION' @{total=$Total;limit=$Limit;global=880803840L}}}"
+    },
+    {
+      "caller": "Assert-TaskAttempt",
+      "callee": "Reject-TaskGate",
+      "line": 789,
+      "column": 70,
+      "source": "function Assert-TaskAttempt([bool]$Exists,[string]$Path){if($Exists){Reject-TaskGate 'ONE_ATTEMPT_ALREADY_CONSUMED' @{path=$Path;exists=$Exists}}}"
+    },
+    {
+      "caller": "Assert-TaskPredecessor",
+      "callee": "Get-TaskRuntimeType",
+      "line": 791,
+      "column": 9,
+      "source": " $taskT=Get-TaskRuntimeType $Bundle;if($taskT -ne [System.Management.Automation.OrderedHashtable] -and $taskT -ne [Collections.Hashtable]){throw 'PREDECESSOR_MAP_KIND'}"
+    },
+    {
+      "caller": "Assert-TaskPredecessor",
+      "callee": "Get-TaskRuntimeType",
+      "line": 792,
+      "column": 6,
+      "source": " if((Get-TaskRuntimeType $Bundle['artifacts']) -ne [object[]] -or (Get-TaskRuntimeType $Bundle['transitive_inputs']) -ne [object[]]){throw 'PREDECESSOR_ARRAY_KINDS'}"
+    },
+    {
+      "caller": "Assert-TaskPredecessor",
+      "callee": "Get-TaskRuntimeType",
+      "line": 792,
+      "column": 68,
+      "source": " if((Get-TaskRuntimeType $Bundle['artifacts']) -ne [object[]] -or (Get-TaskRuntimeType $Bundle['transitive_inputs']) -ne [object[]]){throw 'PREDECESSOR_ARRAY_KINDS'}"
+    },
+    {
+      "caller": "Assert-TaskPredecessor",
+      "callee": "Assert-TaskString",
+      "line": 793,
+      "column": 2,
+      "source": " Assert-TaskString $Bundle['source_manifest_sha256'] 64 $true"
+    },
+    {
+      "caller": "Assert-TaskPredecessor",
+      "callee": "Reject-TaskGate",
+      "line": 794,
+      "column": 197,
+      "source": " if($Bundle['artifacts'].Count -ne 96 -or $Bundle['transitive_inputs'].Count -ne 147 -or $Bundle['source_manifest_sha256'] -cne '6822A96025D6EEADD79642AB50B0A30224A35429B0577D3246BBC173AC630E88'){Reject-TaskGate 'EXACT_R4_PREDECESSOR' @{artifacts=$Bundle['artifacts'].Count;transitive=$Bundle['transitive_inputs'].Count;source_manifest=$Bundle['source_manifest_sha256']}}"
+    },
+    {
+      "caller": "Get-TaskPredecessorDescriptor",
+      "callee": "Assert-TaskExactKeys",
+      "line": 797,
+      "column": 2,
+      "source": " Assert-TaskExactKeys $Parsed @('path','sha256','artifacts','transitive','complete_union_paths','complete_union_bytes')"
+    },
+    {
+      "caller": "Get-TaskPredecessorDescriptor",
+      "callee": "Assert-TaskString",
+      "line": 798,
+      "column": 2,
+      "source": " Assert-TaskString $Parsed['path'] 512;Assert-TaskString $Parsed['sha256'] 64 $true"
+    },
+    {
+      "caller": "Get-TaskPredecessorDescriptor",
+      "callee": "Assert-TaskString",
+      "line": 798,
+      "column": 40,
+      "source": " Assert-TaskString $Parsed['path'] 512;Assert-TaskString $Parsed['sha256'] 64 $true"
+    },
+    {
+      "caller": "Get-TaskPredecessorDescriptor",
+      "callee": "Assert-TaskIntegral",
+      "line": 799,
+      "column": 95,
+      "source": " foreach($taskK in @('artifacts','transitive','complete_union_paths','complete_union_bytes')){Assert-TaskIntegral $Parsed[$taskK] $true}"
+    },
+    {
+      "caller": "Resolve-TaskInput",
+      "callee": "Assert-TaskString",
+      "line": 804,
+      "column": 2,
+      "source": " Assert-TaskString $Name 512"
+    },
+    {
+      "caller": "Resolve-TaskInput",
+      "callee": "Get-TaskCatalogueEntryPath",
+      "line": 807,
+      "column": 106,
+      "source": "  if((Test-TaskPathCatalogueContext) -and $script:taskPathCatalogue['inputs'].ContainsKey($Name)){return Get-TaskCatalogueEntryPath $script:taskPathCatalogue['inputs'][$Name]}"
+    },
+    {
+      "caller": "Resolve-TaskInput",
+      "callee": "Get-TaskCatalogueEntryPath",
+      "line": 811,
+      "column": 105,
+      "source": " if((Test-TaskPathCatalogueContext) -and $script:taskPathCatalogue['inputs'].ContainsKey($Name)){return Get-TaskCatalogueEntryPath $script:taskPathCatalogue['inputs'][$Name]}"
+    },
+    {
+      "caller": "Assert-TaskPins",
+      "callee": "Assert-NoLink",
+      "line": 816,
+      "column": 51,
+      "source": "  $taskRootDir=Resolve-TaskInput $taskDir['path'];Assert-NoLink $taskRootDir"
+    },
+    {
+      "caller": "Assert-TaskPins",
+      "callee": "Resolve-TaskInput",
+      "line": 816,
+      "column": 16,
+      "source": "  $taskRootDir=Resolve-TaskInput $taskDir['path'];Assert-NoLink $taskRootDir"
+    },
+    {
+      "caller": "Assert-TaskPins",
+      "callee": "Get-TaskEntries",
+      "line": 817,
+      "column": 23,
+      "source": "  $taskActualFiles=@((Get-TaskEntries $taskRootDir $taskDir['recursive'] ([int]$taskDir['entry_count']+1))|Where-Object {-not $_.Item3})"
+    },
+    {
+      "caller": "Assert-TaskPins",
+      "callee": "Assert-TaskFileSet",
+      "line": 819,
+      "column": 3,
+      "source": "  Assert-TaskFileSet $taskObservedNames @($taskDir['files'])"
+    },
+    {
+      "caller": "Assert-TaskPins",
+      "callee": "Get-TaskHash",
+      "line": 821,
+      "column": 10,
+      "source": " $taskMh=Get-TaskHash $taskManifestPath 1048576;if(-not (Test-TaskHashValue ([byte[]]$taskMh.Item2) $taskExpectedManifest)){throw 'Current source manifest changed'}"
+    },
+    {
+      "caller": "Assert-TaskPins",
+      "callee": "Test-TaskHashValue",
+      "line": 821,
+      "column": 58,
+      "source": " $taskMh=Get-TaskHash $taskManifestPath 1048576;if(-not (Test-TaskHashValue ([byte[]]$taskMh.Item2) $taskExpectedManifest)){throw 'Current source manifest changed'}"
+    },
+    {
+      "caller": "Assert-TaskPins",
+      "callee": "Get-TaskHash",
+      "line": 823,
+      "column": 372,
+      "source": " foreach($taskPin in $taskManifest['sources']){if($taskPin['path'] -cnotin $taskOwnNames -or -not $taskSeen.Add($taskPin['path'])){throw 'Exact own4 names'};$taskExpectedPath=Join-Path $taskBase $taskPin['path'];$taskExpectedBytes=$taskPin['bytes'];$taskExpectedHash=$taskPin['sha256'];Assert-TaskFreshHashIdentity $taskExpectedPath $taskExpectedBytes $taskExpectedHash (Get-TaskHash $taskExpectedPath $taskExpectedBytes)}"
+    },
+    {
+      "caller": "Assert-TaskPins",
+      "callee": "Assert-TaskFreshHashIdentity",
+      "line": 823,
+      "column": 287,
+      "source": " foreach($taskPin in $taskManifest['sources']){if($taskPin['path'] -cnotin $taskOwnNames -or -not $taskSeen.Add($taskPin['path'])){throw 'Exact own4 names'};$taskExpectedPath=Join-Path $taskBase $taskPin['path'];$taskExpectedBytes=$taskPin['bytes'];$taskExpectedHash=$taskPin['sha256'];Assert-TaskFreshHashIdentity $taskExpectedPath $taskExpectedBytes $taskExpectedHash (Get-TaskHash $taskExpectedPath $taskExpectedBytes)}"
+    },
+    {
+      "caller": "Assert-TaskPins",
+      "callee": "Get-TaskHash",
+      "line": 824,
+      "column": 255,
+      "source": " $taskSum=0L;foreach($taskPin in $taskManifest['inputs']){$taskPath=Resolve-TaskInput $taskPin['path'];$taskExpectedBytes=$taskPin['bytes'];$taskExpectedHash=$taskPin['sha256'];Assert-TaskFreshHashIdentity $taskPath $taskExpectedBytes $taskExpectedHash (Get-TaskHash $taskPath $taskExpectedBytes);$taskSum+=[long]$taskPin['bytes']}"
+    },
+    {
+      "caller": "Assert-TaskPins",
+      "callee": "Assert-TaskFreshHashIdentity",
+      "line": 824,
+      "column": 178,
+      "source": " $taskSum=0L;foreach($taskPin in $taskManifest['inputs']){$taskPath=Resolve-TaskInput $taskPin['path'];$taskExpectedBytes=$taskPin['bytes'];$taskExpectedHash=$taskPin['sha256'];Assert-TaskFreshHashIdentity $taskPath $taskExpectedBytes $taskExpectedHash (Get-TaskHash $taskPath $taskExpectedBytes);$taskSum+=[long]$taskPin['bytes']}"
+    },
+    {
+      "caller": "Assert-TaskPins",
+      "callee": "Resolve-TaskInput",
+      "line": 824,
+      "column": 69,
+      "source": " $taskSum=0L;foreach($taskPin in $taskManifest['inputs']){$taskPath=Resolve-TaskInput $taskPin['path'];$taskExpectedBytes=$taskPin['bytes'];$taskExpectedHash=$taskPin['sha256'];Assert-TaskFreshHashIdentity $taskPath $taskExpectedBytes $taskExpectedHash (Get-TaskHash $taskPath $taskExpectedBytes);$taskSum+=[long]$taskPin['bytes']}"
+    },
+    {
+      "caller": "Assert-TaskFileSet",
+      "callee": "Assert-TaskString",
+      "line": 830,
+      "column": 121,
+      "source": " $taskExpectedSet=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal);foreach($taskName in $Expected){Assert-TaskString $taskName 512;if(-not $taskExpectedSet.Add($taskName)){throw 'Duplicate declared expected file name'}}"
+    },
+    {
+      "caller": "Assert-TaskFileSet",
+      "callee": "Assert-TaskString",
+      "line": 832,
+      "column": 34,
+      "source": " foreach($taskName in $Observed){Assert-TaskString $taskName 512;if(-not $taskSet.Add($taskName)){$taskDuplicate=$taskName};if(-not $taskExpectedSet.Contains($taskName)){$taskUnknown.Add($taskName)}}"
+    },
+    {
+      "caller": "Assert-TaskFileSet",
+      "callee": "Reject-TaskGate",
+      "line": 834,
+      "column": 107,
+      "source": " if($Observed.Count -ne $Expected.Count -or $taskMissing.Count -or $taskUnknown.Count -or $taskDuplicate){Reject-TaskGate 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=$Observed.Count;expected=$Expected.Count;missing=(Join-TaskBoundedNames $taskMissing $Expected.Count);unknown=(Join-TaskBoundedNames $taskUnknown $Observed.Count);duplicate=$taskDuplicate}}"
+    },
+    {
+      "caller": "Assert-TaskFileSet",
+      "callee": "Join-TaskBoundedNames",
+      "line": 834,
+      "column": 220,
+      "source": " if($Observed.Count -ne $Expected.Count -or $taskMissing.Count -or $taskUnknown.Count -or $taskDuplicate){Reject-TaskGate 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=$Observed.Count;expected=$Expected.Count;missing=(Join-TaskBoundedNames $taskMissing $Expected.Count);unknown=(Join-TaskBoundedNames $taskUnknown $Observed.Count);duplicate=$taskDuplicate}}"
+    },
+    {
+      "caller": "Assert-TaskFileSet",
+      "callee": "Join-TaskBoundedNames",
+      "line": 834,
+      "column": 281,
+      "source": " if($Observed.Count -ne $Expected.Count -or $taskMissing.Count -or $taskUnknown.Count -or $taskDuplicate){Reject-TaskGate 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=$Observed.Count;expected=$Expected.Count;missing=(Join-TaskBoundedNames $taskMissing $Expected.Count);unknown=(Join-TaskBoundedNames $taskUnknown $Observed.Count);duplicate=$taskDuplicate}}"
+    },
+    {
+      "caller": "Get-TaskReferences",
+      "callee": "Spend-Task",
+      "line": 838,
+      "column": 62,
+      "source": " foreach($taskF in (Get-TaskEntries $taskDataRoot $true 60)){Spend-Task 2;Assert-NoLink $taskF.Item1;if($taskF.Item3){continue};$taskRelative=[IO.Path]::GetRelativePath($taskDataRoot,$taskF.Item1).Replace([char]92,[char]47);$taskNames.Add($taskRelative);if(-not $taskCaps.ContainsKey($taskRelative)){throw 'Unknown reference output before admission'};$taskH=Get-TaskHash $taskF.Item1 $taskCaps[$taskRelative];if($taskH.Item1 -gt 152627224L-$taskBytes){throw 'Complete reference pool cap'};$taskBytes+=$taskH.Item1;$taskRows.Add(@{path=$taskF.Item1;relative_path=$taskRelative;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "Get-TaskReferences",
+      "callee": "Assert-NoLink",
+      "line": 838,
+      "column": 75,
+      "source": " foreach($taskF in (Get-TaskEntries $taskDataRoot $true 60)){Spend-Task 2;Assert-NoLink $taskF.Item1;if($taskF.Item3){continue};$taskRelative=[IO.Path]::GetRelativePath($taskDataRoot,$taskF.Item1).Replace([char]92,[char]47);$taskNames.Add($taskRelative);if(-not $taskCaps.ContainsKey($taskRelative)){throw 'Unknown reference output before admission'};$taskH=Get-TaskHash $taskF.Item1 $taskCaps[$taskRelative];if($taskH.Item1 -gt 152627224L-$taskBytes){throw 'Complete reference pool cap'};$taskBytes+=$taskH.Item1;$taskRows.Add(@{path=$taskF.Item1;relative_path=$taskRelative;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "Get-TaskReferences",
+      "callee": "Get-TaskHash",
+      "line": 838,
+      "column": 359,
+      "source": " foreach($taskF in (Get-TaskEntries $taskDataRoot $true 60)){Spend-Task 2;Assert-NoLink $taskF.Item1;if($taskF.Item3){continue};$taskRelative=[IO.Path]::GetRelativePath($taskDataRoot,$taskF.Item1).Replace([char]92,[char]47);$taskNames.Add($taskRelative);if(-not $taskCaps.ContainsKey($taskRelative)){throw 'Unknown reference output before admission'};$taskH=Get-TaskHash $taskF.Item1 $taskCaps[$taskRelative];if($taskH.Item1 -gt 152627224L-$taskBytes){throw 'Complete reference pool cap'};$taskBytes+=$taskH.Item1;$taskRows.Add(@{path=$taskF.Item1;relative_path=$taskRelative;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "Get-TaskReferences",
+      "callee": "Get-TaskHashHex",
+      "line": 838,
+      "column": 604,
+      "source": " foreach($taskF in (Get-TaskEntries $taskDataRoot $true 60)){Spend-Task 2;Assert-NoLink $taskF.Item1;if($taskF.Item3){continue};$taskRelative=[IO.Path]::GetRelativePath($taskDataRoot,$taskF.Item1).Replace([char]92,[char]47);$taskNames.Add($taskRelative);if(-not $taskCaps.ContainsKey($taskRelative)){throw 'Unknown reference output before admission'};$taskH=Get-TaskHash $taskF.Item1 $taskCaps[$taskRelative];if($taskH.Item1 -gt 152627224L-$taskBytes){throw 'Complete reference pool cap'};$taskBytes+=$taskH.Item1;$taskRows.Add(@{path=$taskF.Item1;relative_path=$taskRelative;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "Get-TaskReferences",
+      "callee": "Get-TaskEntries",
+      "line": 838,
+      "column": 21,
+      "source": " foreach($taskF in (Get-TaskEntries $taskDataRoot $true 60)){Spend-Task 2;Assert-NoLink $taskF.Item1;if($taskF.Item3){continue};$taskRelative=[IO.Path]::GetRelativePath($taskDataRoot,$taskF.Item1).Replace([char]92,[char]47);$taskNames.Add($taskRelative);if(-not $taskCaps.ContainsKey($taskRelative)){throw 'Unknown reference output before admission'};$taskH=Get-TaskHash $taskF.Item1 $taskCaps[$taskRelative];if($taskH.Item1 -gt 152627224L-$taskBytes){throw 'Complete reference pool cap'};$taskBytes+=$taskH.Item1;$taskRows.Add(@{path=$taskF.Item1;relative_path=$taskRelative;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "Get-TaskReferences",
+      "callee": "Assert-TaskFileSet",
+      "line": 839,
+      "column": 2,
+      "source": " Assert-TaskFileSet $taskNames.ToArray() @($taskCaps.Keys);return @{files=$taskRows.ToArray();bytes=$taskBytes;names=$taskNames.ToArray()}"
+    },
+    {
+      "caller": "Assert-TaskSameReferences",
+      "callee": "Assert-TaskIdentity",
+      "line": 841,
+      "column": 273,
+      "source": "function Assert-TaskSameReferences($Before,$After){if($Before['bytes'] -ne $After['bytes']){throw 'Generated reference byte sum changed'};$taskOld=@{};foreach($taskRow in $Before['files']){$taskOld[$taskRow['relative_path']]=$taskRow};foreach($taskRow in $After['files']){Assert-TaskIdentity $taskOld[$taskRow['relative_path']] $taskRow}}"
+    },
+    {
+      "caller": "Get-TaskPEHeader",
+      "callee": "Close-TaskOwner",
+      "line": 845,
+      "column": 10,
+      "source": " finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Get-TaskPEHeader",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 845,
+      "column": 36,
+      "source": " finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Assert-TaskConsolePE",
+      "callee": "Reject-TaskGate",
+      "line": 847,
+      "column": 148,
+      "source": "function Assert-TaskConsolePE($PE){if($PE['signature'] -ne 17744 -or $PE['machine'] -ne 34404 -or $PE['magic'] -ne 523 -or $PE['subsystem'] -ne 3){Reject-TaskGate 'ACTUAL_PE_CONSOLE_BEFORE_LAUNCH' @{signature=$PE['signature'];machine=$PE['machine'];magic=$PE['magic'];subsystem=$PE['subsystem']}}}"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Add-TaskJsonVisit",
+      "line": 853,
+      "column": 3,
+      "source": "  Add-TaskJsonVisit $taskLength;$taskBuffer=[byte[]]::new([int]$taskLength);$taskFile.ReadExactly($taskBuffer,0,$taskBuffer.Length)"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskRawJson",
+      "line": 869,
+      "column": 4,
+      "source": "   Assert-TaskRawJson $taskLines[$taskLine] 13 128 2"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskExactKeys",
+      "line": 871,
+      "column": 4,
+      "source": "   Assert-TaskExactKeys $taskParsed @('control','gate','operands')"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskString",
+      "line": 872,
+      "column": 4,
+      "source": "   Assert-TaskString $taskParsed['control'] 64 $true;Assert-TaskString $taskParsed['gate'] 128 $true"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskString",
+      "line": 872,
+      "column": 54,
+      "source": "   Assert-TaskString $taskParsed['control'] 64 $true;Assert-TaskString $taskParsed['gate'] 128 $true"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Get-TaskRuntimeType",
+      "line": 875,
+      "column": 8,
+      "source": "   if((Get-TaskRuntimeType $taskParsed['operands']) -ne [object[]] -or $taskParsed['operands'].Length -ne 6){throw 'EXACT_SIX_CONTROL_OPERANDS'}"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Convert-TaskControlOperand",
+      "line": 877,
+      "column": 87,
+      "source": "   for($taskOperand=0;$taskOperand -lt 6;$taskOperand++){$taskOperands[$taskOperand]=(Convert-TaskControlOperand $taskParsed['operands'][$taskOperand])}"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskFileSet",
+      "line": 880,
+      "column": 3,
+      "source": "  Assert-TaskFileSet @($taskIds) @($taskExpected.Keys)"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskRawJson",
+      "line": 881,
+      "column": 3,
+      "source": "  Assert-TaskRawJson $taskLines[$taskLines.Count-1] 25 128 1"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskExactKeys",
+      "line": 883,
+      "column": 3,
+      "source": "  Assert-TaskExactKeys $taskParsed $taskSummaryFields"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskString",
+      "line": 884,
+      "column": 3,
+      "source": "  Assert-TaskString $taskParsed['status'] 128 $true;Assert-TaskString $taskParsed['source_manifest_sha256'] 64 $true"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskString",
+      "line": 884,
+      "column": 53,
+      "source": "  Assert-TaskString $taskParsed['status'] 128 $true;Assert-TaskString $taskParsed['source_manifest_sha256'] 64 $true"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Assert-TaskIntegral",
+      "line": 885,
+      "column": 96,
+      "source": "  foreach($taskK in @('entries','inverse_records','reserved','used','prior','composed_after')){Assert-TaskIntegral $taskParsed[$taskK] $true;if($taskParsed[$taskK] -gt [long]::MaxValue){throw 'SUMMARY_SIGNED_REPRESENTATION'}}"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Get-TaskRuntimeType",
+      "line": 886,
+      "column": 87,
+      "source": "  foreach($taskK in @('vendor','quality','Ready','compiler_peak_disk_qualified')){if((Get-TaskRuntimeType $taskParsed[$taskK]) -ne [bool] -or $taskParsed[$taskK]){throw 'EXACT_FALSE_SUMMARY_FLAGS'}}"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Close-TaskOwner",
+      "line": 895,
+      "column": 10,
+      "source": " finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Read-TaskChildResult",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 895,
+      "column": 36,
+      "source": " finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "caller": "Get-TaskBuildArtifacts",
+      "callee": "Get-TaskHash",
+      "line": 899,
+      "column": 190,
+      "source": " foreach($taskF in (Get-TaskEntries $taskBuildRoot $false 4)){if($taskF.Item3 -or -not $taskBuildCaps.ContainsKey($taskF.Item2)){throw 'Compiler final artifact set is not admitted'};$taskH=Get-TaskHash $taskF.Item1 $taskBuildCaps[$taskF.Item2];if($taskH.Item1 -gt 67108864L-$taskSum){throw 'Compiler final aggregate not admitted'};$taskSum+=$taskH.Item1;$taskSeen.Add($taskF.Item2);$taskRows.Add(@{path=$taskF.Item1;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "Get-TaskBuildArtifacts",
+      "callee": "Get-TaskHashHex",
+      "line": 899,
+      "column": 444,
+      "source": " foreach($taskF in (Get-TaskEntries $taskBuildRoot $false 4)){if($taskF.Item3 -or -not $taskBuildCaps.ContainsKey($taskF.Item2)){throw 'Compiler final artifact set is not admitted'};$taskH=Get-TaskHash $taskF.Item1 $taskBuildCaps[$taskF.Item2];if($taskH.Item1 -gt 67108864L-$taskSum){throw 'Compiler final aggregate not admitted'};$taskSum+=$taskH.Item1;$taskSeen.Add($taskF.Item2);$taskRows.Add(@{path=$taskF.Item1;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "Get-TaskBuildArtifacts",
+      "callee": "Get-TaskEntries",
+      "line": 899,
+      "column": 21,
+      "source": " foreach($taskF in (Get-TaskEntries $taskBuildRoot $false 4)){if($taskF.Item3 -or -not $taskBuildCaps.ContainsKey($taskF.Item2)){throw 'Compiler final artifact set is not admitted'};$taskH=Get-TaskHash $taskF.Item1 $taskBuildCaps[$taskF.Item2];if($taskH.Item1 -gt 67108864L-$taskSum){throw 'Compiler final aggregate not admitted'};$taskSum+=$taskH.Item1;$taskSeen.Add($taskF.Item2);$taskRows.Add(@{path=$taskF.Item1;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "Get-TaskBuildArtifacts",
+      "callee": "Assert-TaskFileSet",
+      "line": 900,
+      "column": 2,
+      "source": " Assert-TaskFileSet $taskSeen.ToArray() @($taskBuildCaps.Keys);return @{files=$taskRows.ToArray();bytes=$taskSum}"
+    },
+    {
+      "caller": "Assert-TaskDependencies",
+      "callee": "Get-TaskCanonicalPath",
+      "line": 903,
+      "column": 18,
+      "source": " $taskReportPath=Get-TaskCanonicalPath (Join-Path $taskBuildRoot 'source-dependencies.json');$taskReportHash=$null;$taskReportMatches=0"
+    },
+    {
+      "caller": "Assert-TaskDependencies",
+      "callee": "Read-TaskJson",
+      "line": 906,
+      "column": 9,
+      "source": " $taskD=Read-TaskJson $taskReportPath 4194304 $taskReportHash"
+    },
+    {
+      "caller": "Assert-TaskDependencies",
+      "callee": "Get-TaskRuntimeType",
+      "line": 907,
+      "column": 7,
+      "source": "  if((Get-TaskRuntimeType $taskD) -ne [Newtonsoft.Json.Linq.JObject]){throw 'DEPENDENCY_ROOT_MAP'}"
+    },
+    {
+      "caller": "Assert-TaskDependencies",
+      "callee": "Get-TaskRuntimeType",
+      "line": 908,
+      "column": 69,
+      "source": "  $taskData=$taskD.GetValue('Data',[StringComparison]::Ordinal);if((Get-TaskRuntimeType $taskData) -ne [Newtonsoft.Json.Linq.JObject]){throw 'DEPENDENCY_DATA_MAP'}"
+    },
+    {
+      "caller": "Assert-TaskDependencies",
+      "callee": "Get-TaskDependencyString",
+      "line": 909,
+      "column": 15,
+      "source": "  $taskSource=Get-TaskDependencyString ($taskData.GetValue('Source',[StringComparison]::Ordinal))"
+    },
+    {
+      "caller": "Assert-TaskDependencies",
+      "callee": "Resolve-TaskInput",
+      "line": 910,
+      "column": 7,
+      "source": "  if((Resolve-TaskInput $taskSource) -ine (Join-Path $taskBase 'clock_stage.cpp')){throw 'Compiler source-dependency source binding'}"
+    },
+    {
+      "caller": "Assert-TaskDependencies",
+      "callee": "Get-TaskRuntimeType",
+      "line": 913,
+      "column": 36,
+      "source": "   if($null -ne $taskOptional){if((Get-TaskRuntimeType $taskOptional) -ne [Newtonsoft.Json.Linq.JArray] -or $taskOptional.get_Count() -ne 0){throw 'Unqualified compiler module/header-unit dependency'}}"
+    },
+    {
+      "caller": "Assert-TaskDependencies",
+      "callee": "Get-TaskRuntimeType",
+      "line": 916,
+      "column": 7,
+      "source": "  if((Get-TaskRuntimeType $taskIncludes) -ne [Newtonsoft.Json.Linq.JArray] -or $taskIncludes.get_Count() -lt 1 -or $taskIncludes.get_Count() -gt $taskManifest['profile']['include_input_count']){throw 'Compiler dependency Includes finite profile'}"
+    },
+    {
+      "caller": "Assert-TaskDependencies",
+      "callee": "Get-TaskDependencyString",
+      "line": 917,
+      "column": 50,
+      "source": "  foreach($taskToken in $taskIncludes){$taskPath=Get-TaskDependencyString $taskToken;if(-not $taskIncludeIndex.ContainsKey((Resolve-TaskInput $taskPath))){throw 'Source-dependency include outside pre-fenced conservative inventory'}}"
+    },
+    {
+      "caller": "Assert-TaskDependencies",
+      "callee": "Resolve-TaskInput",
+      "line": 917,
+      "column": 125,
+      "source": "  foreach($taskToken in $taskIncludes){$taskPath=Get-TaskDependencyString $taskToken;if(-not $taskIncludeIndex.ContainsKey((Resolve-TaskInput $taskPath))){throw 'Source-dependency include outside pre-fenced conservative inventory'}}"
+    },
+    {
+      "caller": "Save-TaskFailureInventory",
+      "callee": "Set-TaskSecondary",
+      "line": 923,
+      "column": 223,
+      "source": " try{if([IO.Directory]::Exists($taskRoot)){$null=Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']) $taskEntries}}catch{$taskComplete=$false;$taskReason='BOUNDED_FAILURE_WALK_REFUSED';Set-TaskSecondary 8 $_}"
+    },
+    {
+      "caller": "Save-TaskFailureInventory",
+      "callee": "Get-TaskEntries",
+      "line": 923,
+      "column": 50,
+      "source": " try{if([IO.Directory]::Exists($taskRoot)){$null=Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']) $taskEntries}}catch{$taskComplete=$false;$taskReason='BOUNDED_FAILURE_WALK_REFUSED';Set-TaskSecondary 8 $_}"
+    },
+    {
+      "caller": "Save-TaskFailureInventory",
+      "callee": "Get-TaskSafePrefix",
+      "line": 926,
+      "column": 150,
+      "source": " Write-TaskJson (Join-Path $taskStageRoot 'failure-inventory.json') @{files=$taskRows.ToArray();complete=$taskComplete;code=$taskReason;root_prefix=(Get-TaskSafePrefix $taskRoot 512);compiler_temporary_peak_disk_qualified=$false;admitted_pool_success=$false;quarantine_retains_ownership=($null -ne $taskQuarantine)}"
+    },
+    {
+      "caller": "Save-TaskFailureInventory",
+      "callee": "Write-TaskJson",
+      "line": 926,
+      "column": 2,
+      "source": " Write-TaskJson (Join-Path $taskStageRoot 'failure-inventory.json') @{files=$taskRows.ToArray();complete=$taskComplete;code=$taskReason;root_prefix=(Get-TaskSafePrefix $taskRoot 512);compiler_temporary_peak_disk_qualified=$false;admitted_pool_success=$false;quarantine_retains_ownership=($null -ne $taskQuarantine)}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Read-TaskBoundedBytes",
+      "line": 932,
+      "column": 17,
+      "source": " $taskBootstrap=Read-TaskBoundedBytes $taskManifestPath 1048576;if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($taskBootstrap)) -cne $taskExpectedManifest){throw 'External manifest hash'}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Initialize-TaskController",
+      "line": 933,
+      "column": 2,
+      "source": " Initialize-TaskController"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Add-TaskJsonVisit",
+      "line": 934,
+      "column": 2,
+      "source": " Add-TaskJsonVisit $taskBootstrap.Length;$taskBootstrapCompact=Assert-TaskRawJsonBytes $taskBootstrap 16104 512 4"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskRawJsonBytes",
+      "line": 934,
+      "column": 64,
+      "source": " Add-TaskJsonVisit $taskBootstrap.Length;$taskBootstrapCompact=Assert-TaskRawJsonBytes $taskBootstrap 16104 512 4"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskBoundSourceInteger",
+      "line": 940,
+      "column": 89,
+      "source": " foreach($taskKey in @('runner_upper','producer_upper','verifier_upper','whole_upper')){Assert-TaskBoundSourceInteger $taskKey $taskManifest['source_work'][$taskKey]}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskReservation",
+      "line": 944,
+      "column": 40,
+      "source": " $taskReviewedWorkLimit=$taskTotalWork;Assert-TaskReservation $taskTotalWork $taskReviewedWorkLimit"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskRuntimeType",
+      "line": 945,
+      "column": 6,
+      "source": " if((Get-TaskRuntimeType $taskManifest['inputs']) -ne [object[]] -or $taskManifest['inputs'].Count -ne $taskManifest['profile']['input_count']){throw 'EXACT_INPUT_ARRAY_PROFILE'}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Initialize-TaskPathCatalogue",
+      "line": 950,
+      "column": 2,
+      "source": " Initialize-TaskPathCatalogue"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskPredecessorDescriptor",
+      "line": 951,
+      "column": 29,
+      "source": " $taskPredecessorDescriptor=Get-TaskPredecessorDescriptor $taskManifest['predecessor_bundle']"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Resolve-TaskInput",
+      "line": 952,
+      "column": 163,
+      "source": " $taskInputIndex=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::OrdinalIgnoreCase);foreach($taskPin in $taskManifest['inputs']){$taskPath=Resolve-TaskInput $taskPin['path'];if($taskPath.Length -gt 512 -or $taskInputIndex.ContainsKey($taskPath)){throw 'Exact unique input paths'};$taskInputIndex.Add($taskPath,$taskPin)}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskRetainedReservation",
+      "line": 958,
+      "column": 252,
+      "source": " $taskControlCaps=0L;foreach($taskC in $taskManifest['control_files']){$taskControlCaps+=[long]$taskC['bytes_cap']};$taskReservedRetained=[long]$taskManifest['profile']['input_bytes']+$taskAuthoredBytes+152627224L+67108864L+67108864L+$taskControlCaps;Assert-TaskRetainedReservation $taskReservedRetained 880803840L"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskString",
+      "line": 960,
+      "column": 2,
+      "source": " Assert-TaskString $taskRoot 512 $true"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-NoLink",
+      "line": 961,
+      "column": 2,
+      "source": " Assert-NoLink $taskRoot;Assert-TaskAttempt (Test-Path -LiteralPath $taskRoot) $taskRoot"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskAttempt",
+      "line": 961,
+      "column": 26,
+      "source": " Assert-NoLink $taskRoot;Assert-TaskAttempt (Test-Path -LiteralPath $taskRoot) $taskRoot"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskEntries",
+      "line": 962,
+      "column": 84,
+      "source": " $taskRuns=Join-Path $taskBase 'runs';if((Test-Path -LiteralPath $taskRuns) -and @(Get-TaskEntries $taskRuns $false 1).Count -gt 0){throw 'Revision sole attempt already exists'}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Read-TaskJson",
+      "line": 963,
+      "column": 35,
+      "source": " Assert-TaskPins;$taskPredecessor=Read-TaskJson (Resolve-TaskInput $taskPredecessorDescriptor['path']) 1048576 $taskPredecessorDescriptor['sha256'];Assert-TaskPredecessor $taskPredecessor"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskPredecessor",
+      "line": 963,
+      "column": 149,
+      "source": " Assert-TaskPins;$taskPredecessor=Read-TaskJson (Resolve-TaskInput $taskPredecessorDescriptor['path']) 1048576 $taskPredecessorDescriptor['sha256'];Assert-TaskPredecessor $taskPredecessor"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Resolve-TaskInput",
+      "line": 963,
+      "column": 50,
+      "source": " Assert-TaskPins;$taskPredecessor=Read-TaskJson (Resolve-TaskInput $taskPredecessorDescriptor['path']) 1048576 $taskPredecessorDescriptor['sha256'];Assert-TaskPredecessor $taskPredecessor"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Measure-TaskJson",
+      "line": 969,
+      "column": 21,
+      "source": " $taskMarkerMeasure=Measure-TaskJson $taskMarkerValue;Assert-TaskDocumentWrite $taskMarkerPath $taskMarkerMeasure['bytes'];$taskMarker=Encode-TaskJson $taskMarkerValue 1048576 $taskMarkerMeasure"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Encode-TaskJson",
+      "line": 969,
+      "column": 136,
+      "source": " $taskMarkerMeasure=Measure-TaskJson $taskMarkerValue;Assert-TaskDocumentWrite $taskMarkerPath $taskMarkerMeasure['bytes'];$taskMarker=Encode-TaskJson $taskMarkerValue 1048576 $taskMarkerMeasure"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskDocumentWrite",
+      "line": 969,
+      "column": 55,
+      "source": " $taskMarkerMeasure=Measure-TaskJson $taskMarkerValue;Assert-TaskDocumentWrite $taskMarkerPath $taskMarkerMeasure['bytes'];$taskMarker=Encode-TaskJson $taskMarkerValue 1048576 $taskMarkerMeasure"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Close-TaskOwner",
+      "line": 971,
+      "column": 239,
+      "source": " try{$taskMarkerFile=[IO.File]::Open($taskMarkerPath,[IO.FileMode]::CreateNew);$taskMarkerFile.Write($taskMarker,0,$taskMarker.Length)}catch{$taskMarkerBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskMarkerFile;Complete-TaskOwnerClose $taskMarkerBefore $taskMarkerBody}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 971,
+      "column": 271,
+      "source": " try{$taskMarkerFile=[IO.File]::Open($taskMarkerPath,[IO.FileMode]::CreateNew);$taskMarkerFile.Write($taskMarker,0,$taskMarker.Length)}catch{$taskMarkerBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskMarkerFile;Complete-TaskOwnerClose $taskMarkerBefore $taskMarkerBody}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskReservation",
+      "line": 972,
+      "column": 60,
+      "source": " $taskControls=[Collections.Generic.List[object]]::new(10);Assert-TaskReservation $taskTotalWork $taskReviewedWorkLimit"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskRawJsonBytes",
+      "line": 973,
+      "column": 8,
+      "source": " $null=Assert-TaskRawJsonBytes ([Text.UTF8Encoding]::new($false,$true).GetBytes('18446744073709551615')) 1 1 1;$null=Assert-TaskRawJsonBytes ([Text.UTF8Encoding]::new($false,$true).GetBytes('-9223372036854775808')) 1 1 1"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskRawJsonBytes",
+      "line": 973,
+      "column": 118,
+      "source": " $null=Assert-TaskRawJsonBytes ([Text.UTF8Encoding]::new($false,$true).GetBytes('18446744073709551615')) 1 1 1;$null=Assert-TaskRawJsonBytes ([Text.UTF8Encoding]::new($false,$true).GetBytes('-9223372036854775808')) 1 1 1"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Expect-TaskGate",
+      "line": 974,
+      "column": 21,
+      "source": " $taskControls.Add((Expect-TaskGate 'json-scalar-one-past-boundary' {$null=Assert-TaskRawJsonBytes ([Text.UTF8Encoding]::new($false,$true).GetBytes('184467440737095516150')) 1 1 1} 'JSON_RAW_SCALAR_UNITS' @{observed=21;maximum=20}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskRawJsonBytes",
+      "line": 974,
+      "column": 76,
+      "source": " $taskControls.Add((Expect-TaskGate 'json-scalar-one-past-boundary' {$null=Assert-TaskRawJsonBytes ([Text.UTF8Encoding]::new($false,$true).GetBytes('184467440737095516150')) 1 1 1} 'JSON_RAW_SCALAR_UNITS' @{observed=21;maximum=20}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskPollAdmission",
+      "line": 975,
+      "column": 2,
+      "source": " Assert-TaskPollAdmission ($taskChildPollMaximum-1)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskPollAdmission",
+      "line": 976,
+      "column": 63,
+      "source": " $taskControls.Add((Expect-TaskGate 'poll-one-past-boundary' {Assert-TaskPollAdmission $taskChildPollMaximum} 'CHILD_POLL_LIMIT' @{completed=$taskChildPollMaximum;limit=$taskChildPollMaximum;attempted=($taskChildPollMaximum+1)}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Expect-TaskGate",
+      "line": 976,
+      "column": 21,
+      "source": " $taskControls.Add((Expect-TaskGate 'poll-one-past-boundary' {Assert-TaskPollAdmission $taskChildPollMaximum} 'CHILD_POLL_LIMIT' @{completed=$taskChildPollMaximum;limit=$taskChildPollMaximum;attempted=($taskChildPollMaximum+1)}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Expect-TaskGate",
+      "line": 977,
+      "column": 21,
+      "source": " $taskControls.Add((Expect-TaskGate 'work-one-below' {Assert-TaskReservation $taskTotalWork ($taskTotalWork-1)} 'WHOLE_STAGE_WORK_RESERVATION' @{total=$taskTotalWork;limit=($taskTotalWork-1);global=$taskReviewedWorkLimit}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskReservation",
+      "line": 977,
+      "column": 55,
+      "source": " $taskControls.Add((Expect-TaskGate 'work-one-below' {Assert-TaskReservation $taskTotalWork ($taskTotalWork-1)} 'WHOLE_STAGE_WORK_RESERVATION' @{total=$taskTotalWork;limit=($taskTotalWork-1);global=$taskReviewedWorkLimit}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Expect-TaskGate",
+      "line": 978,
+      "column": 21,
+      "source": " $taskControls.Add((Expect-TaskGate 'bytes-one-below' {Assert-TaskRetainedReservation $taskReservedRetained ($taskReservedRetained-1)} 'WHOLE_STAGE_RETAINED_RESERVATION' @{total=$taskReservedRetained;limit=($taskReservedRetained-1);global=880803840L}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskRetainedReservation",
+      "line": 978,
+      "column": 56,
+      "source": " $taskControls.Add((Expect-TaskGate 'bytes-one-below' {Assert-TaskRetainedReservation $taskReservedRetained ($taskReservedRetained-1)} 'WHOLE_STAGE_RETAINED_RESERVATION' @{total=$taskReservedRetained;limit=($taskReservedRetained-1);global=880803840L}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Expect-TaskGate",
+      "line": 979,
+      "column": 21,
+      "source": " $taskControls.Add((Expect-TaskGate 'one-use-already-consumed' {Assert-TaskAttempt (Test-Path -LiteralPath $taskMarkerPath) $taskMarkerPath} 'ONE_ATTEMPT_ALREADY_CONSUMED' @{path=$taskMarkerPath;exists=$true}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskAttempt",
+      "line": 979,
+      "column": 65,
+      "source": " $taskControls.Add((Expect-TaskGate 'one-use-already-consumed' {Assert-TaskAttempt (Test-Path -LiteralPath $taskMarkerPath) $taskMarkerPath} 'ONE_ATTEMPT_ALREADY_CONSUMED' @{path=$taskMarkerPath;exists=$true}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHash",
+      "line": 980,
+      "column": 89,
+      "source": " $taskSourceBundle=Resolve-TaskInput $taskPredecessorDescriptor['path'];$taskBundleHash=Get-TaskHash $taskSourceBundle 98009;$taskMutantBundle=Join-Path $taskRoot 'controls/predecessor-mutant.json';Copy-TaskOwned $taskSourceBundle $taskMutantBundle 98009 98009"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Copy-TaskOwned",
+      "line": 980,
+      "column": 199,
+      "source": " $taskSourceBundle=Resolve-TaskInput $taskPredecessorDescriptor['path'];$taskBundleHash=Get-TaskHash $taskSourceBundle 98009;$taskMutantBundle=Join-Path $taskRoot 'controls/predecessor-mutant.json';Copy-TaskOwned $taskSourceBundle $taskMutantBundle 98009 98009"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Resolve-TaskInput",
+      "line": 980,
+      "column": 20,
+      "source": " $taskSourceBundle=Resolve-TaskInput $taskPredecessorDescriptor['path'];$taskBundleHash=Get-TaskHash $taskSourceBundle 98009;$taskMutantBundle=Join-Path $taskRoot 'controls/predecessor-mutant.json';Copy-TaskOwned $taskSourceBundle $taskMutantBundle 98009 98009"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHash",
+      "line": 981,
+      "column": 198,
+      "source": " $taskIdentity=@{path=$taskMutantBundle;bytes=98009L;sha256=$taskPredecessorDescriptor['sha256']};Assert-TaskFreshHashIdentity $taskIdentity['path'] $taskIdentity['bytes'] $taskIdentity['sha256'] (Get-TaskHash $taskMutantBundle 98009)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskFreshHashIdentity",
+      "line": 981,
+      "column": 99,
+      "source": " $taskIdentity=@{path=$taskMutantBundle;bytes=98009L;sha256=$taskPredecessorDescriptor['sha256']};Assert-TaskFreshHashIdentity $taskIdentity['path'] $taskIdentity['bytes'] $taskIdentity['sha256'] (Get-TaskHash $taskMutantBundle 98009)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Close-TaskOwner",
+      "line": 983,
+      "column": 204,
+      "source": " try{$taskBundleFirst=[IO.File]::OpenRead($taskMutantBundle);$taskFirst=$taskBundleFirst.ReadByte()}catch{$taskBundleBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskBundleFirst;Complete-TaskOwnerClose $taskBundleBefore $taskBundleBody}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Complete-TaskOwnerClose",
+      "line": 983,
+      "column": 237,
+      "source": " try{$taskBundleFirst=[IO.File]::OpenRead($taskMutantBundle);$taskFirst=$taskBundleFirst.ReadByte()}catch{$taskBundleBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskBundleFirst;Complete-TaskOwnerClose $taskBundleBefore $taskBundleBody}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHash",
+      "line": 984,
+      "column": 111,
+      "source": " $taskMutation=Mutate-TaskOwnedBytes $taskMutantBundle 0 ([byte[]]@([byte]($taskFirst -bxor 1)));$taskCorrupt=Get-TaskHash $taskMutantBundle 98009"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Mutate-TaskOwnedBytes",
+      "line": 984,
+      "column": 16,
+      "source": " $taskMutation=Mutate-TaskOwnedBytes $taskMutantBundle 0 ([byte[]]@([byte]($taskFirst -bxor 1)));$taskCorrupt=Get-TaskHash $taskMutantBundle 98009"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHashHex",
+      "line": 985,
+      "column": 357,
+      "source": " $taskControls.Add((Expect-TaskGate 'own-tool-or-predecessor-changed' {Assert-TaskFreshHashIdentity $taskIdentity['path'] $taskIdentity['bytes'] $taskIdentity['sha256'] $taskCorrupt} 'BEFORE_AFTER_COMPLETE_INPUT_IDENTITY' @{path=$taskMutantBundle;expected_bytes=98009L;observed_bytes=$taskCorrupt.Item1;expected_hash=$taskIdentity['sha256'];observed_hash=(Get-TaskHashHex $taskCorrupt)}));$taskControls[$taskControls.Count-1]['mutation']=$taskMutation;$taskControls[$taskControls.Count-1]['initial_copy_sha256']=(Get-TaskHashHex $taskBundleHash)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHashHex",
+      "line": 985,
+      "column": 514,
+      "source": " $taskControls.Add((Expect-TaskGate 'own-tool-or-predecessor-changed' {Assert-TaskFreshHashIdentity $taskIdentity['path'] $taskIdentity['bytes'] $taskIdentity['sha256'] $taskCorrupt} 'BEFORE_AFTER_COMPLETE_INPUT_IDENTITY' @{path=$taskMutantBundle;expected_bytes=98009L;observed_bytes=$taskCorrupt.Item1;expected_hash=$taskIdentity['sha256'];observed_hash=(Get-TaskHashHex $taskCorrupt)}));$taskControls[$taskControls.Count-1]['mutation']=$taskMutation;$taskControls[$taskControls.Count-1]['initial_copy_sha256']=(Get-TaskHashHex $taskBundleHash)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskFreshHashIdentity",
+      "line": 985,
+      "column": 72,
+      "source": " $taskControls.Add((Expect-TaskGate 'own-tool-or-predecessor-changed' {Assert-TaskFreshHashIdentity $taskIdentity['path'] $taskIdentity['bytes'] $taskIdentity['sha256'] $taskCorrupt} 'BEFORE_AFTER_COMPLETE_INPUT_IDENTITY' @{path=$taskMutantBundle;expected_bytes=98009L;observed_bytes=$taskCorrupt.Item1;expected_hash=$taskIdentity['sha256'];observed_hash=(Get-TaskHashHex $taskCorrupt)}));$taskControls[$taskControls.Count-1]['mutation']=$taskMutation;$taskControls[$taskControls.Count-1]['initial_copy_sha256']=(Get-TaskHashHex $taskBundleHash)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Expect-TaskGate",
+      "line": 985,
+      "column": 21,
+      "source": " $taskControls.Add((Expect-TaskGate 'own-tool-or-predecessor-changed' {Assert-TaskFreshHashIdentity $taskIdentity['path'] $taskIdentity['bytes'] $taskIdentity['sha256'] $taskCorrupt} 'BEFORE_AFTER_COMPLETE_INPUT_IDENTITY' @{path=$taskMutantBundle;expected_bytes=98009L;observed_bytes=$taskCorrupt.Item1;expected_hash=$taskIdentity['sha256'];observed_hash=(Get-TaskHashHex $taskCorrupt)}));$taskControls[$taskControls.Count-1]['mutation']=$taskMutation;$taskControls[$taskControls.Count-1]['initial_copy_sha256']=(Get-TaskHashHex $taskBundleHash)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Save-TaskReceipt",
+      "line": 986,
+      "column": 225,
+      "source": " $taskReceipt['reserved_source_work']=$taskTotalWork;$taskReceipt['reserved_admitted_retained']=$taskReservedRetained;$taskReceipt['status']='OPAQUE_COMPILER_STARTING';$taskReceipt['runner_controls']=$taskControls.ToArray();Save-TaskReceipt"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Resolve-TaskInput",
+      "line": 987,
+      "column": 16,
+      "source": " $taskCompiler=Resolve-TaskInput $taskManifest['compiler']['path'];Assert-TaskConsolePE (Get-TaskPEHeader $taskCompiler)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskPEHeader",
+      "line": 987,
+      "column": 90,
+      "source": " $taskCompiler=Resolve-TaskInput $taskManifest['compiler']['path'];Assert-TaskConsolePE (Get-TaskPEHeader $taskCompiler)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskConsolePE",
+      "line": 987,
+      "column": 68,
+      "source": " $taskCompiler=Resolve-TaskInput $taskManifest['compiler']['path'];Assert-TaskConsolePE (Get-TaskPEHeader $taskCompiler)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Replace-TaskBounded",
+      "line": 990,
+      "column": 113,
+      "source": " foreach($taskArg in $taskManifest['compiler']['arguments']){Assert-TaskString $taskArg 512 $true;$taskExpanded=Replace-TaskBounded $taskArg '<BASE>' $taskBase;$taskExpanded=Replace-TaskBounded $taskExpanded '<REPO>' $taskRepo;$taskExpanded=Replace-TaskBounded $taskExpanded '<BUILD>' $taskBuildRoot;$taskArguments.Add($taskExpanded)}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Replace-TaskBounded",
+      "line": 990,
+      "column": 175,
+      "source": " foreach($taskArg in $taskManifest['compiler']['arguments']){Assert-TaskString $taskArg 512 $true;$taskExpanded=Replace-TaskBounded $taskArg '<BASE>' $taskBase;$taskExpanded=Replace-TaskBounded $taskExpanded '<REPO>' $taskRepo;$taskExpanded=Replace-TaskBounded $taskExpanded '<BUILD>' $taskBuildRoot;$taskArguments.Add($taskExpanded)}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Replace-TaskBounded",
+      "line": 990,
+      "column": 242,
+      "source": " foreach($taskArg in $taskManifest['compiler']['arguments']){Assert-TaskString $taskArg 512 $true;$taskExpanded=Replace-TaskBounded $taskArg '<BASE>' $taskBase;$taskExpanded=Replace-TaskBounded $taskExpanded '<REPO>' $taskRepo;$taskExpanded=Replace-TaskBounded $taskExpanded '<BUILD>' $taskBuildRoot;$taskArguments.Add($taskExpanded)}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskString",
+      "line": 990,
+      "column": 62,
+      "source": " foreach($taskArg in $taskManifest['compiler']['arguments']){Assert-TaskString $taskArg 512 $true;$taskExpanded=Replace-TaskBounded $taskArg '<BASE>' $taskBase;$taskExpanded=Replace-TaskBounded $taskExpanded '<REPO>' $taskRepo;$taskExpanded=Replace-TaskBounded $taskExpanded '<BUILD>' $taskBuildRoot;$taskArguments.Add($taskExpanded)}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Invoke-TaskFencedChild",
+      "line": 991,
+      "column": 15,
+      "source": " $taskCompile=Invoke-TaskFencedChild 'one-opaque-compile' $taskCompiler $taskArguments.ToArray();if($taskCompile['raw_exit'] -ne 0){throw 'Compiler raw failure'}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskDependencies",
+      "line": 992,
+      "column": 122,
+      "source": " $taskBuild=Get-TaskBuildArtifacts;$taskReceipt['compiler_final_outputs']=$taskBuild;$taskReceipt['source_dependencies']=Assert-TaskDependencies $taskBuild;$taskAdmittedCompiler=$true"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHash",
+      "line": 993,
+      "column": 142,
+      "source": " $taskBinary=Join-Path $taskBuildRoot 'clock_stage.exe';$taskPE=Get-TaskPEHeader $taskBinary;Assert-TaskConsolePE $taskPE;$taskInitialBinary=Get-TaskHash $taskBinary 33554432"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskPEHeader",
+      "line": 993,
+      "column": 65,
+      "source": " $taskBinary=Join-Path $taskBuildRoot 'clock_stage.exe';$taskPE=Get-TaskPEHeader $taskBinary;Assert-TaskConsolePE $taskPE;$taskInitialBinary=Get-TaskHash $taskBinary 33554432"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskConsolePE",
+      "line": 993,
+      "column": 94,
+      "source": " $taskBinary=Join-Path $taskBuildRoot 'clock_stage.exe';$taskPE=Get-TaskPEHeader $taskBinary;Assert-TaskConsolePE $taskPE;$taskInitialBinary=Get-TaskHash $taskBinary 33554432"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHash",
+      "line": 994,
+      "column": 228,
+      "source": " $taskGuiPath=Join-Path $taskRoot 'controls/gui-mutant.exe';Copy-TaskOwned $taskBinary $taskGuiPath $taskInitialBinary.Item1 33554432;Assert-TaskFreshHashIdentity $taskGuiPath $taskInitialBinary.Item1 $taskInitialBinary.Item2 (Get-TaskHash $taskGuiPath 33554432);Assert-TaskConsolePE (Get-TaskPEHeader $taskGuiPath)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskFreshHashIdentity",
+      "line": 994,
+      "column": 135,
+      "source": " $taskGuiPath=Join-Path $taskRoot 'controls/gui-mutant.exe';Copy-TaskOwned $taskBinary $taskGuiPath $taskInitialBinary.Item1 33554432;Assert-TaskFreshHashIdentity $taskGuiPath $taskInitialBinary.Item1 $taskInitialBinary.Item2 (Get-TaskHash $taskGuiPath 33554432);Assert-TaskConsolePE (Get-TaskPEHeader $taskGuiPath)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Copy-TaskOwned",
+      "line": 994,
+      "column": 61,
+      "source": " $taskGuiPath=Join-Path $taskRoot 'controls/gui-mutant.exe';Copy-TaskOwned $taskBinary $taskGuiPath $taskInitialBinary.Item1 33554432;Assert-TaskFreshHashIdentity $taskGuiPath $taskInitialBinary.Item1 $taskInitialBinary.Item2 (Get-TaskHash $taskGuiPath 33554432);Assert-TaskConsolePE (Get-TaskPEHeader $taskGuiPath)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskPEHeader",
+      "line": 994,
+      "column": 286,
+      "source": " $taskGuiPath=Join-Path $taskRoot 'controls/gui-mutant.exe';Copy-TaskOwned $taskBinary $taskGuiPath $taskInitialBinary.Item1 33554432;Assert-TaskFreshHashIdentity $taskGuiPath $taskInitialBinary.Item1 $taskInitialBinary.Item2 (Get-TaskHash $taskGuiPath 33554432);Assert-TaskConsolePE (Get-TaskPEHeader $taskGuiPath)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskConsolePE",
+      "line": 994,
+      "column": 264,
+      "source": " $taskGuiPath=Join-Path $taskRoot 'controls/gui-mutant.exe';Copy-TaskOwned $taskBinary $taskGuiPath $taskInitialBinary.Item1 33554432;Assert-TaskFreshHashIdentity $taskGuiPath $taskInitialBinary.Item1 $taskInitialBinary.Item2 (Get-TaskHash $taskGuiPath 33554432);Assert-TaskConsolePE (Get-TaskPEHeader $taskGuiPath)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Mutate-TaskOwnedBytes",
+      "line": 995,
+      "column": 19,
+      "source": " $taskGuiMutation=Mutate-TaskOwnedBytes $taskGuiPath ([long]$taskPE['offset']+24+68) ([BitConverter]::GetBytes([uint16]2));$taskGui=Get-TaskPEHeader $taskGuiPath"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskPEHeader",
+      "line": 995,
+      "column": 133,
+      "source": " $taskGuiMutation=Mutate-TaskOwnedBytes $taskGuiPath ([long]$taskPE['offset']+24+68) ([BitConverter]::GetBytes([uint16]2));$taskGui=Get-TaskPEHeader $taskGuiPath"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHash",
+      "line": 996,
+      "column": 465,
+      "source": " $taskControls.Add((Expect-TaskGate 'pe-gui-subsystem' {Assert-TaskConsolePE $taskGui} 'ACTUAL_PE_CONSOLE_BEFORE_LAUNCH' @{signature=$taskGui['signature'];machine=$taskGui['machine'];magic=$taskGui['magic'];subsystem=2}));$taskControls[$taskControls.Count-1]['mutation']=$taskGuiMutation;$taskControls[$taskControls.Count-1]['initial_copy_sha256']=(Get-TaskHashHex $taskInitialBinary);$taskControls[$taskControls.Count-1]['actual_mutant_sha256']=(Get-TaskHashHex (Get-TaskHash $taskGuiPath 33554432))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHashHex",
+      "line": 996,
+      "column": 350,
+      "source": " $taskControls.Add((Expect-TaskGate 'pe-gui-subsystem' {Assert-TaskConsolePE $taskGui} 'ACTUAL_PE_CONSOLE_BEFORE_LAUNCH' @{signature=$taskGui['signature'];machine=$taskGui['machine'];magic=$taskGui['magic'];subsystem=2}));$taskControls[$taskControls.Count-1]['mutation']=$taskGuiMutation;$taskControls[$taskControls.Count-1]['initial_copy_sha256']=(Get-TaskHashHex $taskInitialBinary);$taskControls[$taskControls.Count-1]['actual_mutant_sha256']=(Get-TaskHashHex (Get-TaskHash $taskGuiPath 33554432))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHashHex",
+      "line": 996,
+      "column": 448,
+      "source": " $taskControls.Add((Expect-TaskGate 'pe-gui-subsystem' {Assert-TaskConsolePE $taskGui} 'ACTUAL_PE_CONSOLE_BEFORE_LAUNCH' @{signature=$taskGui['signature'];machine=$taskGui['machine'];magic=$taskGui['magic'];subsystem=2}));$taskControls[$taskControls.Count-1]['mutation']=$taskGuiMutation;$taskControls[$taskControls.Count-1]['initial_copy_sha256']=(Get-TaskHashHex $taskInitialBinary);$taskControls[$taskControls.Count-1]['actual_mutant_sha256']=(Get-TaskHashHex (Get-TaskHash $taskGuiPath 33554432))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Expect-TaskGate",
+      "line": 996,
+      "column": 21,
+      "source": " $taskControls.Add((Expect-TaskGate 'pe-gui-subsystem' {Assert-TaskConsolePE $taskGui} 'ACTUAL_PE_CONSOLE_BEFORE_LAUNCH' @{signature=$taskGui['signature'];machine=$taskGui['machine'];magic=$taskGui['magic'];subsystem=2}));$taskControls[$taskControls.Count-1]['mutation']=$taskGuiMutation;$taskControls[$taskControls.Count-1]['initial_copy_sha256']=(Get-TaskHashHex $taskInitialBinary);$taskControls[$taskControls.Count-1]['actual_mutant_sha256']=(Get-TaskHashHex (Get-TaskHash $taskGuiPath 33554432))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskConsolePE",
+      "line": 996,
+      "column": 57,
+      "source": " $taskControls.Add((Expect-TaskGate 'pe-gui-subsystem' {Assert-TaskConsolePE $taskGui} 'ACTUAL_PE_CONSOLE_BEFORE_LAUNCH' @{signature=$taskGui['signature'];machine=$taskGui['machine'];magic=$taskGui['magic'];subsystem=2}));$taskControls[$taskControls.Count-1]['mutation']=$taskGuiMutation;$taskControls[$taskControls.Count-1]['initial_copy_sha256']=(Get-TaskHashHex $taskInitialBinary);$taskControls[$taskControls.Count-1]['actual_mutant_sha256']=(Get-TaskHashHex (Get-TaskHash $taskGuiPath 33554432))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHash",
+      "line": 997,
+      "column": 18,
+      "source": " $taskBinaryHash=Get-TaskHash $taskBinary 33554432"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Invoke-TaskFencedChild",
+      "line": 998,
+      "column": 15,
+      "source": " $taskProduce=Invoke-TaskFencedChild 'oracle-produce' $taskBinary @('produce',$taskDataRoot,$taskExpectedManifest,[string]$taskRunnerLimit,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Read-TaskChildResult",
+      "line": 999,
+      "column": 16,
+      "source": " $taskProduced=Read-TaskChildResult $taskProduce;if($taskProduced['reserved'] -ne $taskProducerLimit -or $taskProduced['used'] -gt $taskProduced['reserved'] -or $taskProduced['prior'] -ne $taskRunnerLimit -or $taskProduced['composed_after'] -ne $taskRunnerLimit+$taskProducerLimit){throw 'Actual producer summary/ledger'}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskFileSet",
+      "line": 1000,
+      "column": 33,
+      "source": " $taskBefore=Get-TaskReferences;Assert-TaskFileSet $taskBefore['names'] @($taskCaps.Keys)"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Expect-TaskGate",
+      "line": 1001,
+      "column": 126,
+      "source": " $taskMissing=@($taskBefore['names']|Where-Object {$_ -cne 'references/native-inverse/r48000-map5.json'});$taskControls.Add((Expect-TaskGate 'missing-inverse-descriptor' {Assert-TaskFileSet $taskMissing @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=55;expected=56;missing='references/native-inverse/r48000-map5.json';unknown='';duplicate=''}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskFileSet",
+      "line": 1001,
+      "column": 172,
+      "source": " $taskMissing=@($taskBefore['names']|Where-Object {$_ -cne 'references/native-inverse/r48000-map5.json'});$taskControls.Add((Expect-TaskGate 'missing-inverse-descriptor' {Assert-TaskFileSet $taskMissing @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=55;expected=56;missing='references/native-inverse/r48000-map5.json';unknown='';duplicate=''}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Expect-TaskGate",
+      "line": 1002,
+      "column": 74,
+      "source": " $taskExtra=@($taskBefore['names'])+@('unlisted.bin');$taskControls.Add((Expect-TaskGate 'extra-file' {Assert-TaskFileSet $taskExtra @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=57;expected=56;missing='';unknown='unlisted.bin';duplicate=''}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskFileSet",
+      "line": 1002,
+      "column": 104,
+      "source": " $taskExtra=@($taskBefore['names'])+@('unlisted.bin');$taskControls.Add((Expect-TaskGate 'extra-file' {Assert-TaskFileSet $taskExtra @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=57;expected=56;missing='';unknown='unlisted.bin';duplicate=''}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Expect-TaskGate",
+      "line": 1003,
+      "column": 87,
+      "source": " $taskDuplicate=@($taskBefore['names'])+@($taskBefore['names'][0]);$taskControls.Add((Expect-TaskGate 'duplicate-file' {Assert-TaskFileSet $taskDuplicate @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=57;expected=56;missing='';unknown='';duplicate=$taskBefore['names'][0]}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskFileSet",
+      "line": 1003,
+      "column": 121,
+      "source": " $taskDuplicate=@($taskBefore['names'])+@($taskBefore['names'][0]);$taskControls.Add((Expect-TaskGate 'duplicate-file' {Assert-TaskFileSet $taskDuplicate @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=57;expected=56;missing='';unknown='';duplicate=$taskBefore['names'][0]}))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Save-TaskReceipt",
+      "line": 1004,
+      "column": 90,
+      "source": " $taskReceipt['producer']=$taskProduced;$taskReceipt['status']='PRODUCED_VERIFY_PENDING';Save-TaskReceipt"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Invoke-TaskFencedChild",
+      "line": 1006,
+      "column": 14,
+      "source": " $taskVerify=Invoke-TaskFencedChild 'independent-full-verify' $taskBinary @('verify',$taskDataRoot,$taskExpectedManifest,[string]$taskPrior,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Read-TaskChildResult",
+      "line": 1007,
+      "column": 16,
+      "source": " $taskVerified=Read-TaskChildResult $taskVerify;if($taskVerified['reserved'] -ne $taskVerifierLimit -or $taskVerified['composed_after'] -ne $taskTotalWork -or $taskVerified['prior'] -ne $taskPrior -or $taskVerified['inverse_records'] -ne $taskProduced['inverse_records'] -or $taskVerified['used'] -gt $taskVerified['reserved']){throw 'Actual independent replay summary/ledger'}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskSameReferences",
+      "line": 1008,
+      "column": 32,
+      "source": " $taskAfter=Get-TaskReferences;Assert-TaskSameReferences $taskBefore $taskAfter;$taskFinalBuild=Get-TaskBuildArtifacts"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskBuildArtifacts",
+      "line": 1008,
+      "column": 97,
+      "source": " $taskAfter=Get-TaskReferences;Assert-TaskSameReferences $taskBefore $taskAfter;$taskFinalBuild=Get-TaskBuildArtifacts"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskIdentity",
+      "line": 1009,
+      "column": 189,
+      "source": " foreach($taskOldFile in $taskBuild['files']){$taskNow=@($taskFinalBuild['files']|Where-Object path -ceq $taskOldFile['path']);if($taskNow.Count -ne 1){throw 'Compiler artifacts changed'};Assert-TaskIdentity $taskOldFile $taskNow[0]}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHash",
+      "line": 1010,
+      "column": 165,
+      "source": " $taskControlsFiles=[Collections.Generic.List[object]]::new();foreach($taskC in $taskManifest['control_files']){$taskPath=Join-Path $taskRoot $taskC['path'];$taskH=Get-TaskHash $taskPath $taskC['bytes_cap'];if($taskC.Contains('exact_bytes') -and $taskH.Item1 -ne $taskC['exact_bytes']){throw 'Actual bounded record-control file length'};$taskControlsFiles.Add(@{path=$taskPath;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHashHex",
+      "line": 1010,
+      "column": 405,
+      "source": " $taskControlsFiles=[Collections.Generic.List[object]]::new();foreach($taskC in $taskManifest['control_files']){$taskPath=Join-Path $taskRoot $taskC['path'];$taskH=Get-TaskHash $taskPath $taskC['bytes_cap'];if($taskC.Contains('exact_bytes') -and $taskH.Item1 -ne $taskC['exact_bytes']){throw 'Actual bounded record-control file length'};$taskControlsFiles.Add(@{path=$taskPath;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-NoLink",
+      "line": 1012,
+      "column": 176,
+      "source": " $taskObservedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskF in (Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']))){Assert-NoLink $taskF.Item1;if(-not $taskF.Item3){$taskObservedRunFiles.Add([IO.Path]::GetRelativePath($taskRoot,$taskF.Item1).Replace([char]92,[char]47))}}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskEntries",
+      "line": 1012,
+      "column": 85,
+      "source": " $taskObservedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskF in (Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']))){Assert-NoLink $taskF.Item1;if(-not $taskF.Item3){$taskObservedRunFiles.Add([IO.Path]::GetRelativePath($taskRoot,$taskF.Item1).Replace([char]92,[char]47))}}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskFileSet",
+      "line": 1013,
+      "column": 2,
+      "source": " Assert-TaskFileSet $taskObservedRunFiles.ToArray() $taskExpectedRunFiles.ToArray()"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Save-TaskReceipt",
+      "line": 1014,
+      "column": 302,
+      "source": " Assert-TaskPins;if($null -ne $script:taskPrimaryRaw){throw $script:taskPrimaryRaw};$taskReceipt['verification']=$taskVerified;$taskReceipt['runner_controls']=$taskControls.ToArray();$taskReceipt['runner_used']=$taskUnits;$taskReceipt['status']='CONTROLLED_CLOCK_COMPLETE_ROOT_OUTPUT_REVIEW_REQUIRED';Save-TaskReceipt"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHash",
+      "line": 1016,
+      "column": 136,
+      "source": " foreach($taskName in @('stdout.log','stderr.log','receipt.json','consumed.json')){$taskPath=Join-Path $taskStageRoot $taskName;$taskH=Get-TaskHash $taskPath 67108864;$taskArtifacts.Add(@{path=$taskPath;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHashHex",
+      "line": 1016,
+      "column": 231,
+      "source": " foreach($taskName in @('stdout.log','stderr.log','receipt.json','consumed.json')){$taskPath=Join-Path $taskStageRoot $taskName;$taskH=Get-TaskHash $taskPath 67108864;$taskArtifacts.Add(@{path=$taskPath;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Resolve-TaskInput",
+      "line": 1018,
+      "column": 133,
+      "source": " $taskTransitive=[Collections.Generic.List[object]]::new();foreach($taskPin in $taskManifest['inputs']){$taskTransitive.Add(@{path=(Resolve-TaskInput $taskPin['path']);bytes=$taskPin['bytes'];sha256=$taskPin['sha256'];origin_bundle_sha256=$taskExpectedManifest})};foreach($taskPin in $taskManifest['sources']){$taskTransitive.Add(@{path=(Join-Path $taskBase $taskPin['path']);bytes=$taskPin['bytes'];sha256=$taskPin['sha256'];origin_bundle_sha256=$taskExpectedManifest})};$taskTransitive.Add(@{path=$taskManifestPath;bytes=(Get-Item -LiteralPath $taskManifestPath).Length;sha256=$taskExpectedManifest;origin_bundle_sha256=$taskExpectedManifest})"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Measure-TaskJson",
+      "line": 1022,
+      "column": 22,
+      "source": "  $taskBundleMeasure=Measure-TaskJson $taskBundle"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskRetainedReservation",
+      "line": 1027,
+      "column": 2,
+      "source": " Assert-TaskRetainedReservation $taskBundle['admitted_retained'] 880803840L"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Write-TaskJson",
+      "line": 1028,
+      "column": 2,
+      "source": " Write-TaskJson (Join-Path $taskStageRoot 'bundle.json') $taskBundle 1048576 $taskBundleMeasure"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHash",
+      "line": 1029,
+      "column": 105,
+      "source": " Write-Output ('CONTROLLED_CLOCK_COMPLETE_ROOT_OUTPUT_REVIEW_REQUIRED bundle_sha256='+(Get-TaskHashHex (Get-TaskHash (Join-Path $taskStageRoot 'bundle.json') 1048576)))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHashHex",
+      "line": 1029,
+      "column": 88,
+      "source": " Write-Output ('CONTROLLED_CLOCK_COMPLETE_ROOT_OUTPUT_REVIEW_REQUIRED bundle_sha256='+(Get-TaskHashHex (Get-TaskHash (Join-Path $taskStageRoot 'bundle.json') 1048576)))"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Set-TaskSecondary",
+      "line": 1034,
+      "column": 39,
+      "source": "  try{Save-TaskFailureInventory}catch{Set-TaskSecondary 8 $_}"
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Set-TaskSecondary",
+      "line": 1035,
+      "column": 30,
+      "source": "  try{Save-TaskReceipt}catch{Set-TaskSecondary 9 $_;Write-Error 'Failure footer incomplete; preserve all files and raw primary/secondary/child/owned-read state. No certification.' -ErrorAction Continue}"
+    }
+  ],
+  "author_count": 315,
+  "actual_count": 320,
+  "multiplicity_gaps": [
+    {
+      "caller": "Encode-TaskJson",
+      "callee": "Assert-TaskCodecBinding",
+      "line": 737,
+      "actual": 1,
+      "recorded": 0
+    },
+    {
+      "caller": "Initialize-TaskController",
+      "callee": "Assert-TaskCodecBinding",
+      "line": 351,
+      "actual": 1,
+      "recorded": 0
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Assert-TaskRawJsonBytes",
+      "line": 973,
+      "actual": 2,
+      "recorded": 1
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskBuildArtifacts",
+      "line": 1008,
+      "actual": 1,
+      "recorded": 0
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHashHex",
+      "line": 985,
+      "actual": 2,
+      "recorded": 1
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Get-TaskHashHex",
+      "line": 996,
+      "actual": 2,
+      "recorded": 1
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Initialize-TaskController",
+      "line": 933,
+      "actual": 1,
+      "recorded": 0
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Initialize-TaskPathCatalogue",
+      "line": 950,
+      "actual": 1,
+      "recorded": 0
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Replace-TaskBounded",
+      "line": 990,
+      "actual": 3,
+      "recorded": 1
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Save-TaskReceipt",
+      "line": 986,
+      "actual": 1,
+      "recorded": 0
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Save-TaskReceipt",
+      "line": 1004,
+      "actual": 1,
+      "recorded": 0
+    },
+    {
+      "caller": "MAIN_AND_ERROR",
+      "callee": "Save-TaskReceipt",
+      "line": 1014,
+      "actual": 1,
+      "recorded": 0
+    },
+    {
+      "caller": "Measure-TaskJson",
+      "callee": "Assert-TaskCodecBinding",
+      "line": 475,
+      "actual": 1,
+      "recorded": 0
+    },
+    {
+      "caller": "Save-TaskReceipt",
+      "callee": "Get-TaskSecondaryCodes",
+      "line": 770,
+      "actual": 1,
+      "recorded": 0
+    }
+  ]
+}

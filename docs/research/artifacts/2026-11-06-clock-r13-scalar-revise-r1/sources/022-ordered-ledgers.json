@@ -1,0 +1,2234 @@
+{
+  "schema": "INDEPENDENT_R13_ORDERED_LOCAL_LEDGER_V1",
+  "ledgers": [
+    {
+      "id": "L01",
+      "helper": "Get-TaskHashHex",
+      "line": 157,
+      "group": "Item2/cast/argument",
+      "frozen": 7,
+      "terms": {
+        "receiver_R": 1,
+        "receiver_W": 1,
+        "getter_D_E_T": 3,
+        "cast_type_R": 1,
+        "cast_O": 1,
+        "fused_argument_W": 1
+      },
+      "independently_derived_local": 8,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L02",
+      "helper": "Assert-TaskFreshHashIdentity",
+      "line": 177,
+      "group": "Test caller",
+      "frozen": 8,
+      "terms": {
+        "getter_without_result": 5,
+        "cast_type_R": 1,
+        "cast_O": 1,
+        "expected_R": 1,
+        "Test_D": 1,
+        "bool_operand_W": 1
+      },
+      "independently_derived_local": 10,
+      "note": "Test parameter W2 remain solely in its callee entry3; no duplicate digest destination.",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L03",
+      "helper": "Test-TaskHashValue",
+      "line": 164,
+      "group": "byte local",
+      "frozen": 6,
+      "terms": {
+        "indexed_R_O": 4,
+        "cast_type_R": 1,
+        "cast_O": 1,
+        "local_W": 1
+      },
+      "independently_derived_local": 7,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L04",
+      "helper": "Assert-TaskFreshHashIdentity",
+      "line": 178,
+      "group": "expected projection maximum",
+      "frozen": 12,
+      "terms": {
+        "kind_predicate": 4,
+        "Convert_type_R": 1,
+        "expected_R": 1,
+        "cast_type_R": 1,
+        "cast_O": 1,
+        "argument_W": 1,
+        "D_E_T": 3,
+        "local_W": 1
+      },
+      "independently_derived_local": 13,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L05",
+      "helper": "Assert-TaskFreshHashIdentity",
+      "line": 179,
+      "group": "observed projection",
+      "frozen": 17,
+      "terms": {
+        "caller_argument_R": 1,
+        "own_D": 1,
+        "local_W": 1,
+        "GetHashHex": 15
+      },
+      "independently_derived_local": 18,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L06",
+      "helper": "Get-TaskDependencyString",
+      "line": 721,
+      "group": "typed guard",
+      "frozen": 32,
+      "terms": {
+        "runtime_caller_R_D_W": 3,
+        "runtime_body": 16,
+        "JValue_type_eq": 2,
+        "and_O": 1,
+        "get_Type_with_operand_W": 6,
+        "String_enum": 3,
+        "eq_O": 1,
+        "B": 1
+      },
+      "independently_derived_local": 33,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L07",
+      "helper": "Read-TaskDependencyJson",
+      "line": 707,
+      "group": "two scalar setters",
+      "frozen": 14,
+      "terms": {
+        "two_named_receivers_R": 2,
+        "two_literal_R": 2,
+        "two_receiver_W": 2,
+        "two_parameter_W": 2,
+        "two_D_E_T": 6,
+        "Int32_to_nullable_O": 1
+      },
+      "independently_derived_local": 15,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L08",
+      "helper": "Assert-TaskPins",
+      "line": 823,
+      "group": "Own4 guard",
+      "frozen": 19,
+      "terms": {
+        "first_path_index": 4,
+        "OwnNames_R": 1,
+        "cnotin_O": 1,
+        "or_O": 1,
+        "Add_receiver_R_W": 2,
+        "Add_path_index": 4,
+        "Add_parameter_W": 1,
+        "Add_D_E_T": 3,
+        "Add_bool_operand_W": 1,
+        "not_O": 1,
+        "B": 1
+      },
+      "independently_derived_local": 20,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L09",
+      "helper": "Assert-TaskPins",
+      "line": 824,
+      "group": "input byte sum",
+      "frozen": 8,
+      "terms": {
+        "sum_R": 1,
+        "indexed_bytes": 4,
+        "cast_type_R": 1,
+        "cast_O": 1,
+        "add_O": 1,
+        "sum_W": 1
+      },
+      "independently_derived_local": 9,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L10",
+      "helper": "Add-TaskPathCatalogueEntry",
+      "line": 75,
+      "group": "drive guard",
+      "frozen": 17,
+      "terms": {
+        "Length_with_operand": 6,
+        "literal_3_R": 1,
+        "ge_O": 1,
+        "indexed_Name": 4,
+        "char_type_R": 1,
+        "literal_58_R": 1,
+        "cast_O": 1,
+        "ceq_O": 1,
+        "and_O": 1,
+        "B": 1
+      },
+      "independently_derived_local": 18,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L11",
+      "helper": "Initialize-TaskPathCatalogue",
+      "line": 84,
+      "group": "maximum",
+      "frozen": 36,
+      "terms": {
+        "input_index": 4,
+        "input_Count_tail": 5,
+        "long_type_R": 1,
+        "cast_O": 1,
+        "OwnNames_Count": 6,
+        "literal_1_R": 1,
+        "two_profile_cells": 14,
+        "four_adds_O": 4,
+        "local_W": 1
+      },
+      "independently_derived_local": 37,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L12",
+      "helper": "Join-TaskBoundedNames",
+      "line": 488,
+      "group": "direct Join/cast/return",
+      "frozen": 10,
+      "terms": {
+        "string_type_R": 1,
+        "separator_R": 1,
+        "IEnumerable_type_R": 1,
+        "Names_R": 1,
+        "cast_O": 1,
+        "two_argument_W": 2,
+        "D_E_T": 3,
+        "function_T": 1
+      },
+      "independently_derived_local": 11,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L13",
+      "helper": "Get-TaskEntries",
+      "line": 494,
+      "group": "depth local",
+      "frozen": 6,
+      "terms": {
+        "indexed_cell": 4,
+        "int_type_R": 1,
+        "cast_O": 1,
+        "local_W": 1
+      },
+      "independently_derived_local": 7,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L14",
+      "helper": "Get-TaskEntries",
+      "line": 495,
+      "group": "candidate local",
+      "frozen": 7,
+      "terms": {
+        "Current_getter_without_destination": 5,
+        "string_type_R": 1,
+        "cast_O": 1,
+        "local_W": 1
+      },
+      "independently_derived_local": 8,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L15",
+      "helper": "Read-TaskBoundedBytes",
+      "line": 693,
+      "group": "byte array construction",
+      "frozen": 8,
+      "terms": {
+        "array_type_R": 1,
+        "int_type_R": 1,
+        "length_R": 1,
+        "cast_O": 1,
+        "parameter_W": 1,
+        "D_E_T": 3,
+        "result_W": 1
+      },
+      "independently_derived_local": 9,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L16",
+      "helper": "Encode-TaskJson",
+      "line": 744,
+      "group": "scan per body",
+      "frozen": 38,
+      "terms": {
+        "three_indexed_reads": 12,
+        "three_cast_type_R": 3,
+        "three_cast_O": 3,
+        "three_literals_R": 3,
+        "three_compares_O": 3,
+        "two_or_O": 2,
+        "B": 1,
+        "loop_framework": 14
+      },
+      "independently_derived_local": 41,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L17",
+      "helper": "Assert-TaskPins",
+      "line": 814,
+      "group": "whole fixed source",
+      "frozen": 90,
+      "terms": {
+        "entry_E": 1,
+        "three_indexed_foreach_fixed": 21,
+        "manifest_Hash_caller": 4,
+        "manifest_Test_guard": 12,
+        "static_comparer_and_set_ctor": 10,
+        "sources_OwnNames_count_guard": 17,
+        "sum_init": 2,
+        "final_profile_guard": 28,
+        "return_T": 1
+      },
+      "independently_derived_local": 96,
+      "note": "Per-Own4, per-input and namespace rows are separate; this is not the narrow old90+2 correction.",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L18",
+      "helper": "Assert-TaskExactKeys",
+      "line": 393,
+      "group": "set constructor",
+      "frozen": 9,
+      "terms": {
+        "static_getter_Type_R_D_E_T": 4,
+        "constructor_argument_W": 1,
+        "constructor_Type_R_D_E_T": 4,
+        "result_W": 1
+      },
+      "independently_derived_local": 10,
+      "note": "The same constructor/getter boundary applies to both FileSet constructors; all13 written StringComparer occurrences require source sponsor reconciliation.",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L19",
+      "helper": "Assert-TaskRawJsonBytes",
+      "line": 650,
+      "group": "literal group",
+      "frozen": 37,
+      "terms": {
+        "original_group": 36,
+        "int_type_R": 1,
+        "cast_O": 1
+      },
+      "independently_derived_local": 38,
+      "note": "This exposes a missing component atom. A new global coefficient requires whole grammar regeneration, not automatic537/588 selection.",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L20",
+      "helper": "Initialize-TaskPathCatalogue",
+      "line": 87,
+      "group": "indexed foreach fixed",
+      "frozen": 6,
+      "terms": {
+        "base_R": 1,
+        "key_R": 1,
+        "index_O": 1,
+        "selected_cell_R": 1,
+        "setup_S": 1,
+        "terminal_K": 1,
+        "exit_K": 1
+      },
+      "independently_derived_local": 7,
+      "note": "Also applies to references/compiler/control/stage indexed foreach fixed groups at90..93.",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L21",
+      "helper": "Initialize-TaskPathCatalogue",
+      "line": 88,
+      "group": "OwnNames foreach fixed",
+      "frozen": 3,
+      "terms": {
+        "enumerable_R": 1,
+        "setup_S": 1,
+        "terminal_K": 1,
+        "exit_K": 1
+      },
+      "independently_derived_local": 4,
+      "note": "",
+      "whole_replacement_accepted": false
+    },
+    {
+      "id": "L22",
+      "helper": "Get-TaskCatalogueEntryPath",
+      "line": 123,
+      "group": "two-value array foreach fixed",
+      "frozen": 7,
+      "terms": {
+        "array_S": 1,
+        "two_value_R": 2,
+        "two_element_W": 2,
+        "foreach_S": 1,
+        "terminal_K": 1,
+        "exit_K": 1
+      },
+      "independently_derived_local": 8,
+      "note": "",
+      "whole_replacement_accepted": false
+    }
+  ],
+  "all74coverage": [
+    {
+      "name": "Spend-Task",
+      "first_line": 62,
+      "last_line": 62,
+      "sha256": "66DF6C55461CDF58502EC0F611FEB24F657362C7CF10FC853B88668C1CD012FD",
+      "authored_formula": "normal17+actual_long_conversion;refusal<=15",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Normal/refusal and literal Int32-to-Long caller conversion; no byte-based CPU fee."
+    },
+    {
+      "name": "Test-TaskPathCatalogueContext",
+      "first_line": 63,
+      "last_line": 65,
+      "sha256": "D10F058738B1EFF90307AC5425230C45F21D06C6C30BDB21770A8325AEE52041",
+      "authored_formula": "2+3+18+3=26",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Add-TaskPathCatalogueEntry",
+      "first_line": 66,
+      "last_line": 80,
+      "sha256": "C9DE3543766471C4654BA2734AB311128333F3B3E5F501D091F3B17ABE644C58",
+      "authored_formula": "true62;false118",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L10"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Initialize-TaskPathCatalogue",
+      "first_line": 81,
+      "last_line": 95,
+      "sha256": "E3FC5D0B2CBE7C93207582476C9DB4C1176D0EAF37216A2B4D580897DEE3974C",
+      "authored_formula": "209+73I+133*own4+118+136*(references+build+controls)+133*stageNames",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L11",
+        "L20",
+        "L21"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskCatalogueString",
+      "first_line": 96,
+      "last_line": 101,
+      "sha256": "60F9684C05BADCA5067AC82E8AEA97E2948643576548D91B6D3460BA188A4609",
+      "authored_formula": "hit21;miss41",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskCatalogueEntryPath",
+      "first_line": 102,
+      "last_line": 132,
+      "sha256": "BB22B5A5FDDBC7AC5926974C7FDDB948D85626DA066C682B2FF296E806BC5542",
+      "authored_formula": "each71+(9529-71)*firstBuildIndicator",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L22"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskCanonicalPath",
+      "first_line": 133,
+      "last_line": 140,
+      "sha256": "67C28288B8F0324E376AEBAAE7CC8370DF8055D6AAE352EC73CDAEC0E85DB2CE",
+      "authored_formula": "own76+EntryPathIfSelected",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-NoLink",
+      "first_line": 141,
+      "last_line": 145,
+      "sha256": "31DE6D632202DA09BAA1014F5635A30B88EAB2F76E1BDFE9E35DF23E2859718E",
+      "authored_formula": "own7254+Canonical",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskHash",
+      "first_line": 146,
+      "last_line": 156,
+      "sha256": "08A684A5B35E118473A0CEC4A151D1F1E3E8510C703352875C7672C941FF019E",
+      "authored_formula": "289+65*B",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "All input/copy/binary/manifest identities and chunk schedules; Tuple2 constructor/return, cleanup and canonical excluded bodies."
+    },
+    {
+      "name": "Get-TaskHashHex",
+      "first_line": 157,
+      "last_line": 157,
+      "sha256": "D08B2EE66428DA87A240FF55DCB7DD0321417FA2A7A2E8B9D30607D4A46A89B6",
+      "authored_formula": "14",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L01"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Test-TaskHashValue",
+      "first_line": 158,
+      "last_line": 175,
+      "sha256": "8B8B916CDEF6085D4EBEDB0F266D4EBECF843298848D080B9C901AAEC11A0F4F",
+      "authored_formula": "hex1477_or_binary647",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L03"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskFreshHashIdentity",
+      "first_line": 176,
+      "last_line": 182,
+      "sha256": "CF9E7C786EEAEF89A45A48F6A86F9FC7A82335BC76DAFA55844C1D12E3C76A73",
+      "authored_formula": "25+Test;refusal replaces normalreturn with83 =>delta82",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L02",
+        "L04",
+        "L05"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskPollAdmission",
+      "first_line": 183,
+      "last_line": 185,
+      "sha256": "554418A08FE8E11283901184255FFE7CC73B3D3BCF2CA940E718EDD47FE228FA",
+      "authored_formula": "admit11;refusal27+Reject32=59",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Invoke-TaskChild",
+      "first_line": 186,
+      "last_line": 260,
+      "sha256": "9D6D25D4DB83DA468FBB77C1C044F124F51D2AB42CD9982D6C1D7EB72316A3EA",
+      "authored_formula": "own1044811+74*argc+53*(argUnits+8envUnits)+positiveReads*Stage",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "All7200polls, two directions,259outer calls, arbitrary fragmentation opaque primitive CPU; every own cleanup/CTS/quarantine outcome. No258 transfer."
+    },
+    {
+      "name": "Add-TaskChildCleanup",
+      "first_line": 261,
+      "last_line": 268,
+      "sha256": "997CC5032E8079DE2A66E5BCA30FCE6F589F0D2A376031FE75A61884D4DF6C57",
+      "authored_formula": "144+53*CodeUnits<=2423 for CodeUnits<=43;included in13 scheduled child cleanup slots, not second composition",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Set-TaskRawExit",
+      "first_line": 269,
+      "last_line": 271,
+      "sha256": "64EEFFAE10F4615EC62E2DC886CF76D4A8FC204C18429CFD71F07134B23AA289",
+      "authored_formula": "5+2+9+5=21;included in child footer alternative",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Invoke-TaskFencedChild",
+      "first_line": 272,
+      "last_line": 283,
+      "sha256": "DF83B57BD0E3613FB9F9C228447507C4CC260EEB474939EB15A326814F29A2C0",
+      "authored_formula": "104+Ddefault+2*Pins+Child+binary*(68+Hash+FreshIdentity)",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Pre-Pins, required finally Pins, optional binary check and secondary outcomes; joint refusal finding applies."
+    },
+    {
+      "name": "Replace-TaskBounded",
+      "first_line": 284,
+      "last_line": 293,
+      "sha256": "F901E745C106D048C40F4DB380ABE30A219B877B96398C35DF45E13C2477F18E",
+      "authored_formula": "84helpers:53*(inputUnits+replacementUnits+tokenUnits)+217*84+18*18+61*38+66+4*86",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Reject-TaskGate",
+      "first_line": 294,
+      "last_line": 294,
+      "sha256": "FC77B4889EABB262D71C625FBF7BEA2E6E51147935AE75ABFBCF39E12D5F3D3C",
+      "authored_formula": "32;actual error branches own callers and witness construction separate",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Expect-TaskGate",
+      "first_line": 295,
+      "last_line": 301,
+      "sha256": "C360A7FC3DA5907ADD2A2E57C68EBAE7E301E101D7C764197EF7922A4EAC896E",
+      "authored_formula": "93+25*witnessKeys+ActualSelectedAction",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Add-TaskJsonVisit",
+      "first_line": 302,
+      "last_line": 302,
+      "sha256": "02D89EEB39F1883222C829E56E115CB2C75A30CBEFE1E9A745336D3F0C42E28E",
+      "authored_formula": "17+actual_long_conversion<=18",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskRuntimeType",
+      "first_line": 303,
+      "last_line": 303,
+      "sha256": "AD2EAEE448A91B13627C15F7CBA318950933961D1AACCC56F18805C0932E03E6",
+      "authored_formula": "null8;actualObjectGetType16",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskBootstrapHash",
+      "first_line": 304,
+      "last_line": 320,
+      "sha256": "321A61EFA8943E426683B992F28703FD4B3F849A4883A74A256E33B9C407E8B6",
+      "authored_formula": "279+49D+45B;sevenactualD<=64,379chunks",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Initialize-TaskController",
+      "first_line": 321,
+      "last_line": 356,
+      "sha256": "535909E7C6B0BBC7AFB1068A9BEEF06D3C04D5819EA21FEADCF46CE44B3DF1D0",
+      "authored_formula": "2136+53*14*512+7*(279+49*64)+45*379",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Actual14 arguments,7authenticated fixed hashes, module/codec/getter chains, primary/secondary finally. No runtime/profile qualification inferred."
+    },
+    {
+      "name": "Assert-TaskString",
+      "first_line": 357,
+      "last_line": 365,
+      "sha256": "F548E737114445FF3F79C5FD141D8FAEF67CB43E2352D482921B660542C10029",
+      "authored_formula": "64N+49+Ddefault;ASCII53N+49",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Independent ASCII body53; general surrogate branch64 is not automatically changed by Encode finding."
+    },
+    {
+      "name": "Get-TaskSafePrefix",
+      "first_line": 366,
+      "last_line": 371,
+      "sha256": "3C5728959EBFDFC9B42EC546024FF091BE26CDD2A6A1F6CB9ACDA9D1AF17B1B3",
+      "authored_formula": "ASCII private caller51;general surrogate alternative54",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskIntegral",
+      "first_line": 372,
+      "last_line": 376,
+      "sha256": "969F43F7AF8A6264029EABF9B3962E9461AD5B97F82C7276C0E3333243A90073",
+      "authored_formula": "<=61;actual eight kind tests and nonnegative branch",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Convert-TaskControlOperand",
+      "first_line": 377,
+      "last_line": 388,
+      "sha256": "7EA222987257CB45FC35647BCBECD34FF81866DCC297C57C850B70035260C095",
+      "authored_formula": "builtin89;BigInteger53;range_refusal54",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskExactKeys",
+      "first_line": 389,
+      "last_line": 396,
+      "sha256": "9A8567F45E2E60D601D6F3A704382F1958FF7ED37BBBDA1FEF0C882D06F3231F",
+      "authored_formula": "71+81K+64*keyUnits",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L18"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Set-TaskSecondary",
+      "first_line": 397,
+      "last_line": 401,
+      "sha256": "FF03E3455BC4674D846078959C2921B1246B8B01E3B7267A55C3057D006DA6F1",
+      "authored_formula": "44 first-unsaturated;other branches prefixes",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Close-TaskOwner",
+      "first_line": 402,
+      "last_line": 404,
+      "sha256": "72E316378A28206B6F7F76B670939190AC7EE70548BDBFD51E80F02A3D699A38",
+      "authored_formula": "null7,normal12,firstFailure17,secondaryFailure62",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Complete-TaskOwnerClose",
+      "first_line": 405,
+      "last_line": 405,
+      "sha256": "B8ECBE3FAFDBBF6C0A4438CAFCF7015AF7A07395F197C36EA5A14FADF1C7651B",
+      "authored_formula": "normal16;propagate17",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskSecondaryCodes",
+      "first_line": 406,
+      "last_line": 410,
+      "sha256": "93517996E8E9F4A3C62DF5164BB93E83B6300110078F7EB568202764250D92E4",
+      "authored_formula": "506",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskCodecBinding",
+      "first_line": 411,
+      "last_line": 415,
+      "sha256": "EB7E0A604A790D4F170D3A56E92F86A07B232D7A66A2B6060E7133CE305ED903",
+      "authored_formula": "normal18;refusal19",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskIntegerDigits",
+      "first_line": 416,
+      "last_line": 427,
+      "sha256": "003FBA34880FB1BDC76391D1BC9EC4351D158801000CEE6582699FF8D8A906EA",
+      "authored_formula": "negative309;unsigned307",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Independent signed309/unsigned307 with exact18/19 thresholds and default false literal."
+    },
+    {
+      "name": "Get-TaskEscapedStringBytes",
+      "first_line": 428,
+      "last_line": 438,
+      "sha256": "E16DABA3C9A515A74D933AC068D6CBA6577F8B7A5218173320DD304034445CBB",
+      "authored_formula": "148N+75",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Add-TaskJsonBound",
+      "first_line": 439,
+      "last_line": 439,
+      "sha256": "B5F0D9BB9AB9F991FF223DFC1285A281697C2CFB720A0E4894EC075F21EB4F80",
+      "authored_formula": "27+actual_long_conversion<=28;typed long[] identity",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Visit-TaskJsonValue",
+      "first_line": 440,
+      "last_line": 473,
+      "sha256": "5C0E11824A220212FB1A8F4F6818ACDBBC3176678F712AC0B37CC29FC85D4AC6",
+      "authored_formula": "null86;string184+148N;bool115;int455;map185+223K+31separators+212keyUnits+children;array190+21E+31separators+children",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "All null/string/bool/integral/map/array/unsupported branches, caller depth/state/recursive parameters and separators; graph arithmetic reproduced without certifying uncorrected child prices."
+    },
+    {
+      "name": "Measure-TaskJson",
+      "first_line": 474,
+      "last_line": 481,
+      "sha256": "E78FD6B81B027A42C213245FB9BB1B61684F724E8899D1AC4439A38EB968092E",
+      "authored_formula": "104+Ddefault+Visitor",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Join-TaskBoundedNames",
+      "first_line": 482,
+      "last_line": 491,
+      "sha256": "D812256123C623F3C99256FA66CAC03EC1C69C435934989EA75817C6E27274D9",
+      "authored_formula": "66+87K+64*nameUnits",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L12"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskEntries",
+      "first_line": 492,
+      "last_line": 500,
+      "sha256": "2C76B5ED85D473E4C4129079997F9B9175909AD0B33590968264CFB9D6AC78BF",
+      "authored_formula": "54+155D+(196+64N)E+max(0,126+64N-26)",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L13",
+        "L14"
+      ],
+      "whole_review_note": "Whole fixed/directory/candidate/overflow/cleanup paths; explicit type findings in directory/candidate/overflow; no normal terminal added to throwing branch."
+    },
+    {
+      "name": "Copy-TaskOwned",
+      "first_line": 501,
+      "last_line": 505,
+      "sha256": "4FAEC5F4DBCA060864F90DD92C35854129CB3639A12D5AA2D0C88CA54A199B56",
+      "authored_formula": "own285+70B;twoNoLink separate",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Mutate-TaskOwnedBytes",
+      "first_line": 506,
+      "last_line": 510,
+      "sha256": "8D438322970963721084243437F6E4473CF6C0AC57695FE1CDD85820C09A959C",
+      "authored_formula": "263",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskRawJson",
+      "first_line": 511,
+      "last_line": 587,
+      "sha256": "1045DDE01BAC7566821A22CC9251E99BEC1ECBF079ABD5472CC285496EF14A97",
+      "authored_formula": "512L+106;full original token-state grammar",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Whole original grammar classes, all integer/range/UTF16/control/refusal paths; inherited512 coefficient is not separately certified."
+    },
+    {
+      "name": "Assert-TaskRawJsonBytes",
+      "first_line": 588,
+      "last_line": 689,
+      "sha256": "408D55883E67E1FE590C3F4752F0C7EB86A933E25D0AF1E30173B457387AFC75",
+      "authored_formula": "94+536L+max(failure44,compaction51L+21)<=587L+138",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L19"
+      ],
+      "whole_review_note": "Whole grammar/UTF8 validation/compaction/failure path; explicit literal cast omission; original bytes/work limits unchanged."
+    },
+    {
+      "name": "Read-TaskBoundedBytes",
+      "first_line": 690,
+      "last_line": 694,
+      "sha256": "4B8CA888AF65EA910F5FDCA2E2C4BFC9995CAD2DE9D282FFDE2132205E6B03BB",
+      "authored_formula": "198",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L15"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Close-TaskJsonReader",
+      "first_line": 695,
+      "last_line": 699,
+      "sha256": "86FF6D1B87FCA5CCF0391C0817A5EE050191CBE57C021590F7E813330C469FBD",
+      "authored_formula": "max7,12,17,62=62",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Read-TaskDependencyJson",
+      "first_line": 700,
+      "last_line": 718,
+      "sha256": "A9D9C5F4DA1AC33CBD448CFBAA83BDD6F501CD67C3017FC4D4595D27AD42C853",
+      "authored_formula": "357",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L07"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskDependencyString",
+      "first_line": 719,
+      "last_line": 725,
+      "sha256": "A1B455B285F7A73263D21D60A018BA03FF6CB0EE19D66E82E33A81C9302B0BA2",
+      "authored_formula": "97+64N",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L06"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Read-TaskJson",
+      "first_line": 726,
+      "last_line": 735,
+      "sha256": "BD7F95DC4B6A5B04DE0D7426802460AAB2F9DD0467AEBC8474F0BEFB46277165",
+      "authored_formula": "pair662+ReadDependency357+RawBodies",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Bootstrap separate; predecessor/dependency pair662 structure, default and ExpectedHash/Compact branch/caller comma. Whole regeneration required after leaf changes."
+    },
+    {
+      "name": "Encode-TaskJson",
+      "first_line": 736,
+      "last_line": 749,
+      "sha256": "FF51919D5486E83F24F6844530AE14CBD0E9EAF7364B4F6C561AF5BD5808BA46",
+      "authored_formula": "38*(L-1)+176",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L16"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskStageBytes",
+      "first_line": 750,
+      "last_line": 752,
+      "sha256": "41CEEC0A80E810F8CC951C54FFE0CCD7DDA38422783138EF26F3406D228F0596",
+      "authored_formula": "21*S+73*rows;rows<=6S+3 forS>0",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskDocumentWrite",
+      "first_line": 753,
+      "last_line": 757,
+      "sha256": "EECA40CEBD5D341D2A58C6E984206BE53BDB8F36316B58F79B284B084B35CC58",
+      "authored_formula": "64PathN+91+Stage",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Write-TaskJsonBytes",
+      "first_line": 758,
+      "last_line": 761,
+      "sha256": "B8DE29C710613B3E16F39B9FBBF2C467D33F74B29B8B0D900329C590D0511D2D",
+      "authored_formula": "34+DocumentWrite",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Write-TaskJson",
+      "first_line": 762,
+      "last_line": 767,
+      "sha256": "6C653F1737985BEEE7F65EF9324DFCF68DDDE72D20F6F4250FD9156CDB60D44A",
+      "authored_formula": "59+Ddefaults+2DocumentWrite+Encode+MeasureIfNeeded;Visitor separate",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Save-TaskReceipt",
+      "first_line": 768,
+      "last_line": 776,
+      "sha256": "BE0F05E08906BC4D14FE3692134B503B037CE665C6166694E9F46F0904A7847F",
+      "authored_formula": "686+2*DocumentWrite+Encode+Visitor",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskIdentity",
+      "first_line": 777,
+      "last_line": 777,
+      "sha256": "E23648748312EEDAFA2909395636F9371075F3E8601F5A580AE389889C4CA40B",
+      "authored_formula": "equal24;refusal93;descriptor-only callers",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskBoundSourceInteger",
+      "first_line": 778,
+      "last_line": 786,
+      "sha256": "4837738395F5F05AE9B1E872E608EA65890B2CF4F4AE6E1C924E77F3D39D5B71",
+      "authored_formula": "positive54;either actual refusal<=110",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskReservation",
+      "first_line": 787,
+      "last_line": 787,
+      "sha256": "3CA827A88402D9695E7F4955F976AFD9C249A1013721A0456D677459CADB9ACA",
+      "authored_formula": "normal20;refusal caller/witness+Reject in actual controls",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskRetainedReservation",
+      "first_line": 788,
+      "last_line": 788,
+      "sha256": "7F9689E1E793F5F4F33BD1B5C5CD3EB848A14C56DE008716CE5C4D272E1BFCC4",
+      "authored_formula": "normal16;refusal caller/witness+Reject in actual controls",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskAttempt",
+      "first_line": 789,
+      "last_line": 789,
+      "sha256": "4078F861FA9F7845E4D5BDB79596CCA7355ACF6E3820CFF752A7F183C6F763CC",
+      "authored_formula": "normal6;refusal48",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskPredecessor",
+      "first_line": 790,
+      "last_line": 795,
+      "sha256": "681761E0F704F5718B4C28556FBA31837A11E9954C00A81FF25328443979E9F4",
+      "authored_formula": "3557+62=3619",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskPredecessorDescriptor",
+      "first_line": 796,
+      "last_line": 802,
+      "sha256": "36BDAB98314CBB0D43B9A44D90E45EFB81C57074D116FAED961CC0177DB454F2",
+      "authored_formula": "2+4988+32824+3448+300+35+38=41635",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Resolve-TaskInput",
+      "first_line": 803,
+      "last_line": 813,
+      "sha256": "4E5BDEC2369F8F5E7799559DFD2107E2960C413A8C4EAEB9757B9335D6F93C4D",
+      "authored_formula": "own64NameN+135;EntryPath separate",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskPins",
+      "first_line": 814,
+      "last_line": 826,
+      "sha256": "2B01DBC9EFA54DB9374C922FE99934524087F8989287DF231A602C16B99FB274",
+      "authored_formula": "90+50NS+38EG+52*own4+36I+NS*(4+I)",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [
+        "L08",
+        "L09",
+        "L17"
+      ],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskFileSet",
+      "first_line": 827,
+      "last_line": 835,
+      "sha256": "F6E56EAFE2F61EA171AC769D6B2AA34C833F0C52DDF6C488E69CDCB023F3EA9F",
+      "authored_formula": "normal100+83N+78M+64sumUnits;refusal169+90N+87M+64sumUnits+twoJoins",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskReferences",
+      "first_line": 836,
+      "last_line": 840,
+      "sha256": "0B540CB4E0C1AE22D48691CA022DE7B44C686622DDDD7EE7ED939915352C6553",
+      "authored_formula": "54+39E+101F",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskSameReferences",
+      "first_line": 841,
+      "last_line": 841,
+      "sha256": "D30DCCED7B2F18A17A6C777D28A028D1B910DEBE28737410818A71E9CA952589",
+      "authored_formula": "30+51F includesF descriptorIdentity24",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Get-TaskPEHeader",
+      "first_line": 842,
+      "last_line": 846,
+      "sha256": "238BD87174EC1409330E3902602A3F44ED8C443CD18FDEC433053A574748AC0F",
+      "authored_formula": "333",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskConsolePE",
+      "first_line": 847,
+      "last_line": 847,
+      "sha256": "7A29B47575EC105978EB01E1BF1E9D79410A1A107FB926BE345B9CFAC8CC4366",
+      "authored_formula": "normal31;actualGUIrefusal93",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Read-TaskChildResult",
+      "first_line": 848,
+      "last_line": 896,
+      "sha256": "957CC7CC4ABF890AFFD7011FE668182016F4C43816DB34D31D6EEFFF25C0A24C",
+      "authored_formula": "21557+38TextN+12630Controls+8ControlRawCallers+15SummaryRawCallers;Raw/FileSet separate",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Both bounded segments,33slices maximum, raw+exact keys+operand normalization+summary+cleanup; static comparer constructor and transitive exact-key findings apply."
+    },
+    {
+      "name": "Get-TaskBuildArtifacts",
+      "first_line": 897,
+      "last_line": 901,
+      "sha256": "01A41FE37FEE5B66B60E51EF07B4FB00F2165505A8BF2376532ABDC945834C6D",
+      "authored_formula": "47+101E",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Full current body/caller/default/error region checked against declared primitive roles, global schedule and explicit boundary inventory. This REVISE gives no individual or inherited price authority."
+    },
+    {
+      "name": "Assert-TaskDependencies",
+      "first_line": 902,
+      "last_line": 920,
+      "sha256": "F5675EC09ABBF022F77DF332BEEAE07DA0D8B948CAA14BD115E7A41ECFCA000F",
+      "authored_formula": "442+64SourceN+Includes*(115+64N)",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "JObject root/Data/Source/Includes, two optional arrays,1222string calls max, explicit SDK result destinations and new nullable lift propagate."
+    },
+    {
+      "name": "Save-TaskFailureInventory",
+      "first_line": 921,
+      "last_line": 927,
+      "sha256": "BA0AB142357F75C114AA61638B851A87067395DEE710C1D69DF2C7E15076C934",
+      "authored_formula": "193+64FileRows;walker/WriteJson separately composed",
+      "disposition": "WHOLE_SOURCE_AND_CALLER_SPONSORSHIP_REVIEWED_NO_INDIVIDUAL_PRICE_ACCEPTANCE",
+      "findings": [],
+      "whole_review_note": "Caught failed root walk continues to codec; footer remains possible; explicit casts, tuple projections, diagnostic references and write/measure callers retained."
+    }
+  ],
+  "explicit_type_text_inventory": [
+    {
+      "line": 3,
+      "written": "[string]",
+      "source": " [Parameter(Mandatory)][ValidateSet('ClockOracle')][string]$Stage,"
+    },
+    {
+      "line": 4,
+      "written": "[string]",
+      "source": " [Parameter(Mandatory)][string]$Repo,"
+    },
+    {
+      "line": 5,
+      "written": "[string]",
+      "source": " [Parameter(Mandatory)][string]$NewRunRoot,"
+    },
+    {
+      "line": 6,
+      "written": "[string]",
+      "source": " [Parameter(Mandatory)][string]$ReviewedManifestSha256"
+    },
+    {
+      "line": 22,
+      "written": "[int]",
+      "source": " for($taskCharacterIndex=0;$taskCharacterIndex -lt $taskArgumentValue.Length;$taskCharacterIndex++){if([int]$taskArgumentValue[$taskCharacterIndex] -lt 32 -or [int]$taskArgumentValue[$taskCharacterIndex] -gt 126){throw 'PINNED_ASCII_PATH_DOMAIN'}}"
+    },
+    {
+      "line": 22,
+      "written": "[int]",
+      "source": " for($taskCharacterIndex=0;$taskCharacterIndex -lt $taskArgumentValue.Length;$taskCharacterIndex++){if([int]$taskArgumentValue[$taskCharacterIndex] -lt 32 -or [int]$taskArgumentValue[$taskCharacterIndex] -gt 126){throw 'PINNED_ASCII_PATH_DOMAIN'}}"
+    },
+    {
+      "line": 62,
+      "written": "[long]",
+      "source": "function Spend-Task([long]$n){if($n -lt 0 -or $n -gt $script:taskRunnerLimit-$script:taskUnits){throw 'CONTROLLED_RUNNER_SOURCE_WORK_REFUSED'};$script:taskUnits+=$n}"
+    },
+    {
+      "line": 66,
+      "written": "[string]",
+      "source": "function Add-TaskPathCatalogueEntry([string]$Name,[bool]$RepoInput){"
+    },
+    {
+      "line": 75,
+      "written": "[char]",
+      "source": "  if($Name.Length -ge 3 -and $Name[1] -ceq [char]58){"
+    },
+    {
+      "line": 84,
+      "written": "[long]",
+      "source": " $taskMaximum=[long]$taskManifest['inputs'].Count+$taskOwnNames.Count+1+$taskManifest['profile']['declared_success_run_files']+$taskManifest['profile']['declared_failure_extra_files']"
+    },
+    {
+      "line": 86,
+      "written": "[int]",
+      "source": " $script:taskPathCatalogue=@{repo=$taskRepo;base=$taskBase;root=$taskRoot;maximum=[int]$taskMaximum;alias_maximum=(2L*$taskManifest['inputs'].Count+3L*($taskMaximum-$taskManifest['inputs'].Count));rows=[Collections.Generic.List[object]]::new([int]$taskMaximum);inputs=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal);aliases=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal);strings=[Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal);parent_strings=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)}"
+    },
+    {
+      "line": 86,
+      "written": "[int]",
+      "source": " $script:taskPathCatalogue=@{repo=$taskRepo;base=$taskBase;root=$taskRoot;maximum=[int]$taskMaximum;alias_maximum=(2L*$taskManifest['inputs'].Count+3L*($taskMaximum-$taskManifest['inputs'].Count));rows=[Collections.Generic.List[object]]::new([int]$taskMaximum);inputs=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal);aliases=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal);strings=[Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal);parent_strings=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)}"
+    },
+    {
+      "line": 96,
+      "written": "[string]",
+      "source": "function Get-TaskCatalogueString([string]$Path){"
+    },
+    {
+      "line": 108,
+      "written": "[char]",
+      "source": " if($taskRaw.IndexOf([char]126) -ge 0){return [IO.Path]::GetFullPath($taskRaw)}"
+    },
+    {
+      "line": 110,
+      "written": "[char]",
+      "source": " if($taskCanonical.IndexOf([char]126) -ge 0){return $taskCanonical}"
+    },
+    {
+      "line": 133,
+      "written": "[string]",
+      "source": "function Get-TaskCanonicalPath([string]$Path){"
+    },
+    {
+      "line": 134,
+      "written": "[char]",
+      "source": " if((Test-TaskPathCatalogueContext) -and $Path.IndexOf([char]126) -lt 0){"
+    },
+    {
+      "line": 141,
+      "written": "[string]",
+      "source": "function Assert-NoLink([string]$Path){"
+    },
+    {
+      "line": 146,
+      "written": "[string]",
+      "source": "function Get-TaskHash([string]$Path,[long]$Maximum){"
+    },
+    {
+      "line": 146,
+      "written": "[long]",
+      "source": "function Get-TaskHash([string]$Path,[long]$Maximum){"
+    },
+    {
+      "line": 150,
+      "written": "[int]",
+      "source": "  while($taskSeen -lt $taskLength){Spend-Task 32;$taskN=[int][Math]::Min(65536L,$taskLength-$taskSeen);$taskStream.ReadExactly($taskBuffer,0,$taskN);$taskSeen+=$taskN;$taskHash.AppendData($taskBuffer,0,$taskN)}"
+    },
+    {
+      "line": 157,
+      "written": "[byte[]]",
+      "source": "function Get-TaskHashHex($Hash){return [Convert]::ToHexString([byte[]]$Hash.Item2)}"
+    },
+    {
+      "line": 158,
+      "written": "[byte[]]",
+      "source": "function Test-TaskHashValue([byte[]]$Digest,$Expected){"
+    },
+    {
+      "line": 160,
+      "written": "[string]",
+      "source": " if($Expected -is [string]){"
+    },
+    {
+      "line": 164,
+      "written": "[int]",
+      "source": "   $taskByte=[int]$Digest[$taskI]"
+    },
+    {
+      "line": 169,
+      "written": "[byte[]]",
+      "source": " if($Expected -is [byte[]]){"
+    },
+    {
+      "line": 176,
+      "written": "[string]",
+      "source": "function Assert-TaskFreshHashIdentity([string]$Path,$ExpectedBytes,$ExpectedHash,$Observed){"
+    },
+    {
+      "line": 177,
+      "written": "[byte[]]",
+      "source": " if($ExpectedBytes -ne $Observed.Item1 -or -not (Test-TaskHashValue ([byte[]]$Observed.Item2) $ExpectedHash)){"
+    },
+    {
+      "line": 178,
+      "written": "[string]",
+      "source": "  $taskExpectedHex=if($ExpectedHash -is [string]){$ExpectedHash}else{[Convert]::ToHexString([byte[]]$ExpectedHash)}"
+    },
+    {
+      "line": 178,
+      "written": "[byte[]]",
+      "source": "  $taskExpectedHex=if($ExpectedHash -is [string]){$ExpectedHash}else{[Convert]::ToHexString([byte[]]$ExpectedHash)}"
+    },
+    {
+      "line": 183,
+      "written": "[long]",
+      "source": "function Assert-TaskPollAdmission([long]$CompletedPolls){"
+    },
+    {
+      "line": 186,
+      "written": "[string]",
+      "source": "function Invoke-TaskChild([string]$Name,[string]$Executable,[string[]]$Arguments){"
+    },
+    {
+      "line": 186,
+      "written": "[string]",
+      "source": "function Invoke-TaskChild([string]$Name,[string]$Executable,[string[]]$Arguments){"
+    },
+    {
+      "line": 194,
+      "written": "[string]",
+      "source": " $taskObserved=0L;$taskUnretained=0L;$taskWritten=0L;$taskOmitted=0L;$taskSettled=$true;$taskCleanup=[Collections.Generic.List[string]]::new(13);$taskBeforeA=0L;$taskBeforeB=0L;$taskEndA=0L;$taskEndB=0L;$taskPrimary=$null;$taskFooter=$null;$taskPositions=$true"
+    },
+    {
+      "line": 205,
+      "written": "[byte]",
+      "source": "  $taskReadA=$taskProcess.StandardOutput.BaseStream.ReadAtLeastAsync([Memory[byte]]::new($taskA),4096,$false,$taskCancel.Token).AsTask();$taskAccountA=$false"
+    },
+    {
+      "line": 206,
+      "written": "[byte]",
+      "source": "  $taskReadB=$taskProcess.StandardError.BaseStream.ReadAtLeastAsync([Memory[byte]]::new($taskB),4096,$false,$taskCancel.Token).AsTask();$taskAccountB=$false"
+    },
+    {
+      "line": 217,
+      "written": "[byte[]]",
+      "source": "      [byte[]]$taskBuffer=$null;$taskSink=$null;if($taskDirection -eq 0){$taskBuffer=$taskA;$taskSink=$taskOut}else{$taskBuffer=$taskB;$taskSink=$taskErr}"
+    },
+    {
+      "line": 219,
+      "written": "[byte]",
+      "source": "      if($taskDirection -eq 0){$taskReadA=$taskProcess.StandardOutput.BaseStream.ReadAtLeastAsync([Memory[byte]]::new($taskA),4096,$false,$taskCancel.Token).AsTask();$taskAccountA=$false}else{$taskReadB=$taskProcess.StandardError.BaseStream.ReadAtLeastAsync([Memory[byte]]::new($taskB),4096,$false,$taskCancel.Token).AsTask();$taskAccountB=$false}"
+    },
+    {
+      "line": 219,
+      "written": "[byte]",
+      "source": "      if($taskDirection -eq 0){$taskReadA=$taskProcess.StandardOutput.BaseStream.ReadAtLeastAsync([Memory[byte]]::new($taskA),4096,$false,$taskCancel.Token).AsTask();$taskAccountA=$false}else{$taskReadB=$taskProcess.StandardError.BaseStream.ReadAtLeastAsync([Memory[byte]]::new($taskB),4096,$false,$taskCancel.Token).AsTask();$taskAccountB=$false}"
+    },
+    {
+      "line": 261,
+      "written": "[string]",
+      "source": "function Add-TaskChildCleanup([Collections.Generic.List[string]]$Rows,[string]$Code,$Raw,[int]$Slot){"
+    },
+    {
+      "line": 261,
+      "written": "[string]",
+      "source": "function Add-TaskChildCleanup([Collections.Generic.List[string]]$Rows,[string]$Code,$Raw,[int]$Slot){"
+    },
+    {
+      "line": 261,
+      "written": "[int]",
+      "source": "function Add-TaskChildCleanup([Collections.Generic.List[string]]$Rows,[string]$Code,$Raw,[int]$Slot){"
+    },
+    {
+      "line": 269,
+      "written": "[string]",
+      "source": "function Set-TaskRawExit([string]$Name,[bool]$Observed,$Value){"
+    },
+    {
+      "line": 272,
+      "written": "[string]",
+      "source": "function Invoke-TaskFencedChild([string]$Name,[string]$Executable,[string[]]$Arguments,$ExpectedBinary=$null){"
+    },
+    {
+      "line": 272,
+      "written": "[string]",
+      "source": "function Invoke-TaskFencedChild([string]$Name,[string]$Executable,[string[]]$Arguments,$ExpectedBinary=$null){"
+    },
+    {
+      "line": 284,
+      "written": "[string]",
+      "source": "function Replace-TaskBounded([string]$Value,[string]$Token,[string]$Replacement){"
+    },
+    {
+      "line": 284,
+      "written": "[string]",
+      "source": "function Replace-TaskBounded([string]$Value,[string]$Token,[string]$Replacement){"
+    },
+    {
+      "line": 284,
+      "written": "[string]",
+      "source": "function Replace-TaskBounded([string]$Value,[string]$Token,[string]$Replacement){"
+    },
+    {
+      "line": 294,
+      "written": "[string]",
+      "source": "function Reject-TaskGate([string]$Reason,$Witness){$taskE=[InvalidOperationException]::new($Reason);$taskE.Data['gate']=$Reason;$taskE.Data['witness']=$Witness;throw $taskE}"
+    },
+    {
+      "line": 295,
+      "written": "[string]",
+      "source": "function Expect-TaskGate([string]$Id,[scriptblock]$Action,[string]$Reason,$Expected){"
+    },
+    {
+      "line": 295,
+      "written": "[string]",
+      "source": "function Expect-TaskGate([string]$Id,[scriptblock]$Action,[string]$Reason,$Expected){"
+    },
+    {
+      "line": 302,
+      "written": "[long]",
+      "source": "function Add-TaskJsonVisit([long]$Bytes){if($Bytes -lt 0 -or $Bytes -gt $script:taskJsonVisitCap-$script:taskJsonBytes){throw 'Whole finite JSON source-visit cap'};$script:taskJsonBytes+=$Bytes}"
+    },
+    {
+      "line": 304,
+      "written": "[string]",
+      "source": "function Get-TaskBootstrapHash([string]$Path,[long]$ExpectedBytes){"
+    },
+    {
+      "line": 304,
+      "written": "[long]",
+      "source": "function Get-TaskBootstrapHash([string]$Path,[long]$ExpectedBytes){"
+    },
+    {
+      "line": 316,
+      "written": "[int]",
+      "source": "  while($taskSeen -lt $ExpectedBytes){$taskN=[int][Math]::Min(65536L,$ExpectedBytes-$taskSeen);$taskFile.ReadExactly($taskBuffer,0,$taskN);$taskHash.AppendData($taskBuffer,0,$taskN);$taskSeen+=$taskN}"
+    },
+    {
+      "line": 357,
+      "written": "[int]",
+      "source": "function Assert-TaskString($Value,[int]$Maximum=512,[bool]$Ascii=$false){"
+    },
+    {
+      "line": 358,
+      "written": "[string]",
+      "source": " if((Get-TaskRuntimeType $Value) -ne [string] -or $Value.Length -gt $Maximum){throw 'EXACT_BOUNDED_STRING'}"
+    },
+    {
+      "line": 360,
+      "written": "[int]",
+      "source": "  $taskC=[int]$Value[$taskI]"
+    },
+    {
+      "line": 366,
+      "written": "[string]",
+      "source": "function Get-TaskSafePrefix([string]$Value,[int]$Maximum=512){"
+    },
+    {
+      "line": 366,
+      "written": "[int]",
+      "source": "function Get-TaskSafePrefix([string]$Value,[int]$Maximum=512){"
+    },
+    {
+      "line": 374,
+      "written": "[byte]",
+      "source": " if($taskT -ne [sbyte] -and $taskT -ne [byte] -and $taskT -ne [int16] -and $taskT -ne [uint16] -and $taskT -ne [int32] -and $taskT -ne [uint32] -and $taskT -ne [int64] -and $taskT -ne [uint64]){throw 'EXACT_JSON_INTEGRAL_KIND'}"
+    },
+    {
+      "line": 374,
+      "written": "[uint16]",
+      "source": " if($taskT -ne [sbyte] -and $taskT -ne [byte] -and $taskT -ne [int16] -and $taskT -ne [uint16] -and $taskT -ne [int32] -and $taskT -ne [uint32] -and $taskT -ne [int64] -and $taskT -ne [uint64]){throw 'EXACT_JSON_INTEGRAL_KIND'}"
+    },
+    {
+      "line": 374,
+      "written": "[uint64]",
+      "source": " if($taskT -ne [sbyte] -and $taskT -ne [byte] -and $taskT -ne [int16] -and $taskT -ne [uint16] -and $taskT -ne [int32] -and $taskT -ne [uint32] -and $taskT -ne [int64] -and $taskT -ne [uint64]){throw 'EXACT_JSON_INTEGRAL_KIND'}"
+    },
+    {
+      "line": 382,
+      "written": "[uint64]",
+      "source": "  return [uint64]$Value"
+    },
+    {
+      "line": 393,
+      "written": "[string]",
+      "source": " $taskSet=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)"
+    },
+    {
+      "line": 397,
+      "written": "[int]",
+      "source": "function Set-TaskSecondary([int]$Slot,$Raw){"
+    },
+    {
+      "line": 423,
+      "written": "[uint64]",
+      "source": "  $taskUnsigned=[uint64]$Value"
+    },
+    {
+      "line": 428,
+      "written": "[string]",
+      "source": "function Get-TaskEscapedStringBytes([string]$Value){"
+    },
+    {
+      "line": 432,
+      "written": "[int]",
+      "source": "  Spend-Task 1;$taskC=[int]$Value[$taskI]"
+    },
+    {
+      "line": 439,
+      "written": "[long]",
+      "source": "function Add-TaskJsonBound([long[]]$State,[long]$Bytes){if($Bytes -lt 0 -or $Bytes -gt $State[0]-$State[2]){throw 'JSON_PREFLIGHT_BYTE_CAP'};$State[2]+=$Bytes}"
+    },
+    {
+      "line": 440,
+      "written": "[int]",
+      "source": "function Visit-TaskJsonValue($Value,[int]$Depth,[long[]]$State){"
+    },
+    {
+      "line": 448,
+      "written": "[string]",
+      "source": " if($taskT -eq [string]){Add-TaskJsonBound $State (Get-TaskEscapedStringBytes $Value);return}"
+    },
+    {
+      "line": 450,
+      "written": "[byte]",
+      "source": " if($taskT -eq [sbyte] -or $taskT -eq [byte] -or $taskT -eq [int16] -or $taskT -eq [uint16] -or $taskT -eq [int32] -or $taskT -eq [uint32] -or $taskT -eq [int64] -or $taskT -eq [uint64]){Add-TaskJsonBound $State (Get-TaskIntegerDigits $Value);return}"
+    },
+    {
+      "line": 450,
+      "written": "[uint16]",
+      "source": " if($taskT -eq [sbyte] -or $taskT -eq [byte] -or $taskT -eq [int16] -or $taskT -eq [uint16] -or $taskT -eq [int32] -or $taskT -eq [uint32] -or $taskT -eq [int64] -or $taskT -eq [uint64]){Add-TaskJsonBound $State (Get-TaskIntegerDigits $Value);return}"
+    },
+    {
+      "line": 450,
+      "written": "[uint64]",
+      "source": " if($taskT -eq [sbyte] -or $taskT -eq [byte] -or $taskT -eq [int16] -or $taskT -eq [uint16] -or $taskT -eq [int32] -or $taskT -eq [uint32] -or $taskT -eq [int64] -or $taskT -eq [uint64]){Add-TaskJsonBound $State (Get-TaskIntegerDigits $Value);return}"
+    },
+    {
+      "line": 466,
+      "written": "[string]",
+      "source": " if($taskT -eq [object[]] -or $taskT -eq [string[]] -or $taskT -eq [Collections.Generic.List[object]] -or $taskT -eq [Collections.Generic.List[string]]){"
+    },
+    {
+      "line": 474,
+      "written": "[long]",
+      "source": "function Measure-TaskJson($Value,[long]$Maximum=1048576){"
+    },
+    {
+      "line": 482,
+      "written": "[string]",
+      "source": "function Join-TaskBoundedNames([Collections.Generic.List[string]]$Names,[int]$Maximum){"
+    },
+    {
+      "line": 482,
+      "written": "[int]",
+      "source": "function Join-TaskBoundedNames([Collections.Generic.List[string]]$Names,[int]$Maximum){"
+    },
+    {
+      "line": 488,
+      "written": "[Collections.Generic.IEnumerable[string]]",
+      "source": " return [string]::Join('|',[Collections.Generic.IEnumerable[string]]$Names)"
+    },
+    {
+      "line": 492,
+      "written": "[string]",
+      "source": "function Get-TaskEntries([string]$Root,[bool]$Recursive,[int]$Maximum,[Collections.Generic.List[object]]$Destination=$null){"
+    },
+    {
+      "line": 492,
+      "written": "[int]",
+      "source": "function Get-TaskEntries([string]$Root,[bool]$Recursive,[int]$Maximum,[Collections.Generic.List[object]]$Destination=$null){"
+    },
+    {
+      "line": 494,
+      "written": "[int]",
+      "source": " while($taskPending.Count){$taskNext=$taskPending.Dequeue();$taskDirectory=$taskNext['path'];$taskDepth=[int]$taskNext['depth'];if($taskDepth -gt 64){Reject-TaskGate 'DIRECTORY_DEPTH_PROFILE' @{path=$taskDirectory;depth=$taskDepth;maximum=64}};Assert-NoLink $taskDirectory;$taskIterator=$null;$taskIteratorBefore=$script:taskPrimaryRaw;$taskIteratorBody=$null"
+    },
+    {
+      "line": 495,
+      "written": "[string]",
+      "source": "   try{$taskIterator=[IO.Directory]::EnumerateFileSystemEntries($taskDirectory).GetEnumerator();while($taskIterator.MoveNext()){$taskCandidate=[string]$taskIterator.Current;Assert-TaskString $taskCandidate 512;$taskPath=Get-TaskCanonicalPath $taskCandidate;$taskSeen++;if($taskSeen -gt $Maximum){Reject-TaskGate 'DIRECTORY_ENTRY_PROFILE' @{root=$Root;maximum=$Maximum;observed=$taskSeen;overflow_path=$taskPath}};Spend-Task 1;if($taskPath.Length -gt 512){throw 'Finite owned/input path length'};$taskAttributes=[IO.File]::GetAttributes($taskPath);$taskDirectoryFlag=($taskAttributes -band [IO.FileAttributes]::Directory)-ne 0;$taskLink=($taskAttributes -band [IO.FileAttributes]::ReparsePoint)-ne 0;$taskLength=if($taskDirectoryFlag -or $taskLink){0L}else{[IO.FileInfo]::new($taskPath).Length};$taskRows.Add([System.Tuple[object,object,object,object,object]]::new($taskPath,[IO.Path]::GetFileName($taskPath),$taskDirectoryFlag,$taskLength,$taskLink));if($taskLink){throw 'Reparse entry refused before traversal'};if($Recursive -and $taskDirectoryFlag){if($taskDepth -ge 64){Reject-TaskGate 'DIRECTORY_DEPTH_PROFILE' @{path=$taskPath;depth=($taskDepth+1);maximum=64}};$taskPending.Enqueue(@{path=$taskPath;depth=($taskDepth+1)})}}}"
+    },
+    {
+      "line": 501,
+      "written": "[string]",
+      "source": "function Copy-TaskOwned([string]$Source,[string]$Destination,[long]$ExpectedBytes,[long]$Cap){"
+    },
+    {
+      "line": 501,
+      "written": "[string]",
+      "source": "function Copy-TaskOwned([string]$Source,[string]$Destination,[long]$ExpectedBytes,[long]$Cap){"
+    },
+    {
+      "line": 501,
+      "written": "[long]",
+      "source": "function Copy-TaskOwned([string]$Source,[string]$Destination,[long]$ExpectedBytes,[long]$Cap){"
+    },
+    {
+      "line": 501,
+      "written": "[long]",
+      "source": "function Copy-TaskOwned([string]$Source,[string]$Destination,[long]$ExpectedBytes,[long]$Cap){"
+    },
+    {
+      "line": 504,
+      "written": "[int]",
+      "source": " try{$taskIn=[IO.FileStream]::new($Source,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$taskOut=[IO.FileStream]::new($Destination,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None);if($taskIn.Length -ne $ExpectedBytes){throw 'Owned source copy length'};while($taskSeen -lt $ExpectedBytes){Spend-Task 128;$taskN=[int][Math]::Min(65536L,$ExpectedBytes-$taskSeen);$taskIn.ReadExactly($taskBuffer,0,$taskN);if($taskN -gt $Cap-$taskSeen){throw 'Owned control before-write cap'};$taskOut.Write($taskBuffer,0,$taskN);$taskSeen+=$taskN};if($taskIn.ReadByte() -ne -1){throw 'Owned source copy EOF'};$taskOut.Flush($true)}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskOut;Close-TaskOwner $taskIn;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "line": 506,
+      "written": "[string]",
+      "source": "function Mutate-TaskOwnedBytes([string]$Path,[long]$Offset,[byte[]]$Replacement){"
+    },
+    {
+      "line": 506,
+      "written": "[long]",
+      "source": "function Mutate-TaskOwnedBytes([string]$Path,[long]$Offset,[byte[]]$Replacement){"
+    },
+    {
+      "line": 506,
+      "written": "[byte[]]",
+      "source": "function Mutate-TaskOwnedBytes([string]$Path,[long]$Offset,[byte[]]$Replacement){"
+    },
+    {
+      "line": 511,
+      "written": "[string]",
+      "source": "function Assert-TaskRawJson([string]$Text,[int]$MaximumNodes,[int]$MaximumStringUnits,[int]$MaximumDepth){"
+    },
+    {
+      "line": 511,
+      "written": "[int]",
+      "source": "function Assert-TaskRawJson([string]$Text,[int]$MaximumNodes,[int]$MaximumStringUnits,[int]$MaximumDepth){"
+    },
+    {
+      "line": 511,
+      "written": "[int]",
+      "source": "function Assert-TaskRawJson([string]$Text,[int]$MaximumNodes,[int]$MaximumStringUnits,[int]$MaximumDepth){"
+    },
+    {
+      "line": 511,
+      "written": "[int]",
+      "source": "function Assert-TaskRawJson([string]$Text,[int]$MaximumNodes,[int]$MaximumStringUnits,[int]$MaximumDepth){"
+    },
+    {
+      "line": 519,
+      "written": "[int]",
+      "source": "  $taskC=[int]$Text[$taskAt]"
+    },
+    {
+      "line": 536,
+      "written": "[int]",
+      "source": "    $taskUnit=[int]$Text[$taskAt];$taskAt++"
+    },
+    {
+      "line": 540,
+      "written": "[int]",
+      "source": "     if($taskAt -ge $Text.Length){throw 'JSON_RAW_ESCAPE_END'};$taskUnit=[int]$Text[$taskAt];$taskAt++"
+    },
+    {
+      "line": 544,
+      "written": "[int]",
+      "source": "       if($taskAt -ge $Text.Length){throw 'JSON_RAW_UNICODE_END'};$taskHex=[int]$Text[$taskAt];$taskAt++"
+    },
+    {
+      "line": 569,
+      "written": "[int]",
+      "source": "  if($taskAt -ge $Text.Length -or [int]$Text[$taskAt] -lt 48 -or [int]$Text[$taskAt] -gt 57){throw 'JSON_RAW_INTEGER_DIGIT'}"
+    },
+    {
+      "line": 569,
+      "written": "[int]",
+      "source": "  if($taskAt -ge $Text.Length -or [int]$Text[$taskAt] -lt 48 -or [int]$Text[$taskAt] -gt 57){throw 'JSON_RAW_INTEGER_DIGIT'}"
+    },
+    {
+      "line": 570,
+      "written": "[int]",
+      "source": "  $taskLeadingZero=([int]$Text[$taskAt] -eq 48)"
+    },
+    {
+      "line": 571,
+      "written": "[int]",
+      "source": "  while($taskAt -lt $Text.Length -and [int]$Text[$taskAt] -ge 48 -and [int]$Text[$taskAt] -le 57){"
+    },
+    {
+      "line": 571,
+      "written": "[int]",
+      "source": "  while($taskAt -lt $Text.Length -and [int]$Text[$taskAt] -ge 48 -and [int]$Text[$taskAt] -le 57){"
+    },
+    {
+      "line": 581,
+      "written": "[int]",
+      "source": "    $taskDigit=[int]$Text[$taskDigitsStart+$taskCompareAt];$taskLimitDigit=[int]$taskMagnitudeLimit[$taskCompareAt]"
+    },
+    {
+      "line": 581,
+      "written": "[int]",
+      "source": "    $taskDigit=[int]$Text[$taskDigitsStart+$taskCompareAt];$taskLimitDigit=[int]$taskMagnitudeLimit[$taskCompareAt]"
+    },
+    {
+      "line": 588,
+      "written": "[byte[]]",
+      "source": "function Assert-TaskRawJsonBytes([byte[]]$Bytes,[int]$MaximumNodes,[int]$MaximumStringUnits,[int]$MaximumDepth){"
+    },
+    {
+      "line": 588,
+      "written": "[int]",
+      "source": "function Assert-TaskRawJsonBytes([byte[]]$Bytes,[int]$MaximumNodes,[int]$MaximumStringUnits,[int]$MaximumDepth){"
+    },
+    {
+      "line": 588,
+      "written": "[int]",
+      "source": "function Assert-TaskRawJsonBytes([byte[]]$Bytes,[int]$MaximumNodes,[int]$MaximumStringUnits,[int]$MaximumDepth){"
+    },
+    {
+      "line": 588,
+      "written": "[int]",
+      "source": "function Assert-TaskRawJsonBytes([byte[]]$Bytes,[int]$MaximumNodes,[int]$MaximumStringUnits,[int]$MaximumDepth){"
+    },
+    {
+      "line": 599,
+      "written": "[int]",
+      "source": "  $taskC=[int]$Bytes[$taskAt]"
+    },
+    {
+      "line": 616,
+      "written": "[int]",
+      "source": "    $taskUnit=[int]$Bytes[$taskAt];$taskAt++"
+    },
+    {
+      "line": 629,
+      "written": "[int]",
+      "source": "     if($taskAt -ge $Bytes.Length){throw 'JSON_RAW_ESCAPE_END'};$taskUnit=[int]$Bytes[$taskAt];$taskAt++"
+    },
+    {
+      "line": 633,
+      "written": "[int]",
+      "source": "       if($taskAt -ge $Bytes.Length){throw 'JSON_RAW_UNICODE_END'};$taskHex=[int]$Bytes[$taskAt];$taskAt++"
+    },
+    {
+      "line": 650,
+      "written": "[int]",
+      "source": "   for($taskLiteralAt=0;$taskLiteralAt -lt $taskLiteral.Length;$taskLiteralAt++){if($taskAt -ge $Bytes.Length -or $Bytes[$taskAt] -ne [int]$taskLiteral[$taskLiteralAt]){throw 'JSON_RAW_LITERAL'};$taskAt++};continue"
+    },
+    {
+      "line": 658,
+      "written": "[int]",
+      "source": "  if($taskAt -ge $Bytes.Length -or [int]$Bytes[$taskAt] -lt 48 -or [int]$Bytes[$taskAt] -gt 57){throw 'JSON_RAW_INTEGER_DIGIT'}"
+    },
+    {
+      "line": 658,
+      "written": "[int]",
+      "source": "  if($taskAt -ge $Bytes.Length -or [int]$Bytes[$taskAt] -lt 48 -or [int]$Bytes[$taskAt] -gt 57){throw 'JSON_RAW_INTEGER_DIGIT'}"
+    },
+    {
+      "line": 659,
+      "written": "[int]",
+      "source": "  $taskLeadingZero=([int]$Bytes[$taskAt] -eq 48)"
+    },
+    {
+      "line": 660,
+      "written": "[int]",
+      "source": "  while($taskAt -lt $Bytes.Length -and [int]$Bytes[$taskAt] -ge 48 -and [int]$Bytes[$taskAt] -le 57){"
+    },
+    {
+      "line": 660,
+      "written": "[int]",
+      "source": "  while($taskAt -lt $Bytes.Length -and [int]$Bytes[$taskAt] -ge 48 -and [int]$Bytes[$taskAt] -le 57){"
+    },
+    {
+      "line": 670,
+      "written": "[int]",
+      "source": "    $taskDigit=[int]$Bytes[$taskDigitsStart+$taskCompareAt];$taskLimitDigit=[int]$taskMagnitudeLimit[$taskCompareAt]"
+    },
+    {
+      "line": 670,
+      "written": "[int]",
+      "source": "    $taskDigit=[int]$Bytes[$taskDigitsStart+$taskCompareAt];$taskLimitDigit=[int]$taskMagnitudeLimit[$taskCompareAt]"
+    },
+    {
+      "line": 690,
+      "written": "[string]",
+      "source": "function Read-TaskBoundedBytes([string]$Path,[long]$Maximum){"
+    },
+    {
+      "line": 690,
+      "written": "[long]",
+      "source": "function Read-TaskBoundedBytes([string]$Path,[long]$Maximum){"
+    },
+    {
+      "line": 693,
+      "written": "[int]",
+      "source": " try{$taskFile=[IO.FileStream]::new($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read,1,[IO.FileOptions]::SequentialScan);if($taskFile.Length -ne $taskLength){throw 'JSON length changed before bounded allocation'};$taskBytes=[byte[]]::new([int]$taskLength);$taskFile.ReadExactly($taskBytes,0,$taskBytes.Length);if($taskFile.ReadByte() -ne -1){throw 'JSON exact EOF'};return ,$taskBytes}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+    },
+    {
+      "line": 700,
+      "written": "[byte[]]",
+      "source": "function Read-TaskDependencyJson([byte[]]$Bytes,[int]$Length){"
+    },
+    {
+      "line": 700,
+      "written": "[int]",
+      "source": "function Read-TaskDependencyJson([byte[]]$Bytes,[int]$Length){"
+    },
+    {
+      "line": 726,
+      "written": "[string]",
+      "source": "function Read-TaskJson([string]$Path,[long]$Maximum=1048576,[string]$ExpectedSha256=$null){"
+    },
+    {
+      "line": 726,
+      "written": "[long]",
+      "source": "function Read-TaskJson([string]$Path,[long]$Maximum=1048576,[string]$ExpectedSha256=$null){"
+    },
+    {
+      "line": 726,
+      "written": "[string]",
+      "source": "function Read-TaskJson([string]$Path,[long]$Maximum=1048576,[string]$ExpectedSha256=$null){"
+    },
+    {
+      "line": 732,
+      "written": "[int]",
+      "source": " if($Maximum -eq 4194304){$taskCompactLength=Assert-TaskRawJsonBytes $taskBytes (2*[int]$taskManifest['profile']['include_input_count']+256) 512 24;return ,(Read-TaskDependencyJson $taskBytes $taskCompactLength)}else{$taskCompactLength=Assert-TaskRawJsonBytes $taskBytes 2420 270 3}"
+    },
+    {
+      "line": 736,
+      "written": "[long]",
+      "source": "function Encode-TaskJson($Value,[long]$Maximum=1048576,$Measurement=$null){"
+    },
+    {
+      "line": 743,
+      "written": "[string]",
+      "source": " if((Get-TaskRuntimeType $taskText) -ne [string] -or $taskText.Length -ne $Measurement['bytes']-1){throw 'EXACT_PREFLIGHT_SERIALIZED_LENGTH'}"
+    },
+    {
+      "line": 744,
+      "written": "[int]",
+      "source": " for($taskI=0;$taskI -lt $taskText.Length;$taskI++){if([int]$taskText[$taskI] -gt 127 -or [int]$taskText[$taskI] -eq 10 -or [int]$taskText[$taskI] -eq 13){throw 'ESCAPE_NONASCII_COMPRESSED_RESULT'}}"
+    },
+    {
+      "line": 744,
+      "written": "[int]",
+      "source": " for($taskI=0;$taskI -lt $taskText.Length;$taskI++){if([int]$taskText[$taskI] -gt 127 -or [int]$taskText[$taskI] -eq 10 -or [int]$taskText[$taskI] -eq 13){throw 'ESCAPE_NONASCII_COMPRESSED_RESULT'}}"
+    },
+    {
+      "line": 744,
+      "written": "[int]",
+      "source": " for($taskI=0;$taskI -lt $taskText.Length;$taskI++){if([int]$taskText[$taskI] -gt 127 -or [int]$taskText[$taskI] -eq 10 -or [int]$taskText[$taskI] -eq 13){throw 'ESCAPE_NONASCII_COMPRESSED_RESULT'}}"
+    },
+    {
+      "line": 753,
+      "written": "[string]",
+      "source": "function Assert-TaskDocumentWrite([string]$Path,[long]$Length){"
+    },
+    {
+      "line": 753,
+      "written": "[long]",
+      "source": "function Assert-TaskDocumentWrite([string]$Path,[long]$Length){"
+    },
+    {
+      "line": 758,
+      "written": "[string]",
+      "source": "function Write-TaskJsonBytes([string]$Path,[byte[]]$Bytes,[long]$Maximum){"
+    },
+    {
+      "line": 758,
+      "written": "[byte[]]",
+      "source": "function Write-TaskJsonBytes([string]$Path,[byte[]]$Bytes,[long]$Maximum){"
+    },
+    {
+      "line": 758,
+      "written": "[long]",
+      "source": "function Write-TaskJsonBytes([string]$Path,[byte[]]$Bytes,[long]$Maximum){"
+    },
+    {
+      "line": 762,
+      "written": "[string]",
+      "source": "function Write-TaskJson([string]$Path,$Value,[long]$Maximum=1048576,$Measurement=$null){"
+    },
+    {
+      "line": 762,
+      "written": "[long]",
+      "source": "function Write-TaskJson([string]$Path,$Value,[long]$Maximum=1048576,$Measurement=$null){"
+    },
+    {
+      "line": 778,
+      "written": "[string]",
+      "source": "function Assert-TaskBoundSourceInteger([string]$Field,$Value){"
+    },
+    {
+      "line": 787,
+      "written": "[long]",
+      "source": "function Assert-TaskReservation([long]$Total,[long]$Limit){if($null -eq $script:taskReviewedWorkLimit){throw 'UNBOUND_RESEARCH_LIMIT'};if($Total -gt $Limit -or $Total -lt 0 -or $Limit -gt $script:taskReviewedWorkLimit){Reject-TaskGate 'WHOLE_STAGE_WORK_RESERVATION' @{total=$Total;limit=$Limit;global=$script:taskReviewedWorkLimit}}}"
+    },
+    {
+      "line": 787,
+      "written": "[long]",
+      "source": "function Assert-TaskReservation([long]$Total,[long]$Limit){if($null -eq $script:taskReviewedWorkLimit){throw 'UNBOUND_RESEARCH_LIMIT'};if($Total -gt $Limit -or $Total -lt 0 -or $Limit -gt $script:taskReviewedWorkLimit){Reject-TaskGate 'WHOLE_STAGE_WORK_RESERVATION' @{total=$Total;limit=$Limit;global=$script:taskReviewedWorkLimit}}}"
+    },
+    {
+      "line": 788,
+      "written": "[long]",
+      "source": "function Assert-TaskRetainedReservation([long]$Total,[long]$Limit){if($Total -gt $Limit -or $Total -lt 0 -or $Limit -gt 880803840L){Reject-TaskGate 'WHOLE_STAGE_RETAINED_RESERVATION' @{total=$Total;limit=$Limit;global=880803840L}}}"
+    },
+    {
+      "line": 788,
+      "written": "[long]",
+      "source": "function Assert-TaskRetainedReservation([long]$Total,[long]$Limit){if($Total -gt $Limit -or $Total -lt 0 -or $Limit -gt 880803840L){Reject-TaskGate 'WHOLE_STAGE_RETAINED_RESERVATION' @{total=$Total;limit=$Limit;global=880803840L}}}"
+    },
+    {
+      "line": 789,
+      "written": "[string]",
+      "source": "function Assert-TaskAttempt([bool]$Exists,[string]$Path){if($Exists){Reject-TaskGate 'ONE_ATTEMPT_ALREADY_CONSUMED' @{path=$Path;exists=$Exists}}}"
+    },
+    {
+      "line": 803,
+      "written": "[string]",
+      "source": "function Resolve-TaskInput([string]$Name){"
+    },
+    {
+      "line": 817,
+      "written": "[int]",
+      "source": "  $taskActualFiles=@((Get-TaskEntries $taskRootDir $taskDir['recursive'] ([int]$taskDir['entry_count']+1))|Where-Object {-not $_.Item3})"
+    },
+    {
+      "line": 818,
+      "written": "[char]",
+      "source": "  $taskObservedNames=@($taskActualFiles|ForEach-Object {[IO.Path]::GetRelativePath($taskRootDir,$_.Item1).Replace([char]92,[char]47)})"
+    },
+    {
+      "line": 818,
+      "written": "[char]",
+      "source": "  $taskObservedNames=@($taskActualFiles|ForEach-Object {[IO.Path]::GetRelativePath($taskRootDir,$_.Item1).Replace([char]92,[char]47)})"
+    },
+    {
+      "line": 821,
+      "written": "[byte[]]",
+      "source": " $taskMh=Get-TaskHash $taskManifestPath 1048576;if(-not (Test-TaskHashValue ([byte[]]$taskMh.Item2) $taskExpectedManifest)){throw 'Current source manifest changed'}"
+    },
+    {
+      "line": 822,
+      "written": "[string]",
+      "source": " $taskSeen=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal);if($taskManifest['sources'].Count -ne $taskOwnNames.Count){throw 'Current exact own4 source inventory'}"
+    },
+    {
+      "line": 824,
+      "written": "[long]",
+      "source": " $taskSum=0L;foreach($taskPin in $taskManifest['inputs']){$taskPath=Resolve-TaskInput $taskPin['path'];$taskExpectedBytes=$taskPin['bytes'];$taskExpectedHash=$taskPin['sha256'];Assert-TaskFreshHashIdentity $taskPath $taskExpectedBytes $taskExpectedHash (Get-TaskHash $taskPath $taskExpectedBytes);$taskSum+=[long]$taskPin['bytes']}"
+    },
+    {
+      "line": 830,
+      "written": "[string]",
+      "source": " $taskExpectedSet=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal);foreach($taskName in $Expected){Assert-TaskString $taskName 512;if(-not $taskExpectedSet.Add($taskName)){throw 'Duplicate declared expected file name'}}"
+    },
+    {
+      "line": 831,
+      "written": "[string]",
+      "source": " $taskSet=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal);$taskDuplicate='';$taskUnknown=[Collections.Generic.List[string]]::new();$taskMissing=[Collections.Generic.List[string]]::new()"
+    },
+    {
+      "line": 831,
+      "written": "[string]",
+      "source": " $taskSet=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal);$taskDuplicate='';$taskUnknown=[Collections.Generic.List[string]]::new();$taskMissing=[Collections.Generic.List[string]]::new()"
+    },
+    {
+      "line": 831,
+      "written": "[string]",
+      "source": " $taskSet=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal);$taskDuplicate='';$taskUnknown=[Collections.Generic.List[string]]::new();$taskMissing=[Collections.Generic.List[string]]::new()"
+    },
+    {
+      "line": 837,
+      "written": "[string]",
+      "source": " $taskRows=[Collections.Generic.List[object]]::new();$taskNames=[Collections.Generic.List[string]]::new();$taskBytes=0L"
+    },
+    {
+      "line": 838,
+      "written": "[char]",
+      "source": " foreach($taskF in (Get-TaskEntries $taskDataRoot $true 60)){Spend-Task 2;Assert-NoLink $taskF.Item1;if($taskF.Item3){continue};$taskRelative=[IO.Path]::GetRelativePath($taskDataRoot,$taskF.Item1).Replace([char]92,[char]47);$taskNames.Add($taskRelative);if(-not $taskCaps.ContainsKey($taskRelative)){throw 'Unknown reference output before admission'};$taskH=Get-TaskHash $taskF.Item1 $taskCaps[$taskRelative];if($taskH.Item1 -gt 152627224L-$taskBytes){throw 'Complete reference pool cap'};$taskBytes+=$taskH.Item1;$taskRows.Add(@{path=$taskF.Item1;relative_path=$taskRelative;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "line": 838,
+      "written": "[char]",
+      "source": " foreach($taskF in (Get-TaskEntries $taskDataRoot $true 60)){Spend-Task 2;Assert-NoLink $taskF.Item1;if($taskF.Item3){continue};$taskRelative=[IO.Path]::GetRelativePath($taskDataRoot,$taskF.Item1).Replace([char]92,[char]47);$taskNames.Add($taskRelative);if(-not $taskCaps.ContainsKey($taskRelative)){throw 'Unknown reference output before admission'};$taskH=Get-TaskHash $taskF.Item1 $taskCaps[$taskRelative];if($taskH.Item1 -gt 152627224L-$taskBytes){throw 'Complete reference pool cap'};$taskBytes+=$taskH.Item1;$taskRows.Add(@{path=$taskF.Item1;relative_path=$taskRelative;bytes=$taskH.Item1;sha256=(Get-TaskHashHex $taskH);origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "line": 842,
+      "written": "[string]",
+      "source": "function Get-TaskPEHeader([string]$Path){$taskItem=Get-Item -LiteralPath $Path;if($taskItem.Length -gt 33554432 -or $taskItem.Length -lt 88){throw 'PE file size'};$taskFile=$null;$taskBefore=$script:taskPrimaryRaw;$taskBody=$null"
+    },
+    {
+      "line": 853,
+      "written": "[int]",
+      "source": "  Add-TaskJsonVisit $taskLength;$taskBuffer=[byte[]]::new([int]$taskLength);$taskFile.ReadExactly($taskBuffer,0,$taskBuffer.Length)"
+    },
+    {
+      "line": 857,
+      "written": "[string]",
+      "source": "  $taskLines=[Collections.Generic.List[string]]::new(33);$taskStart=0"
+    },
+    {
+      "line": 867,
+      "written": "[string]",
+      "source": "  $taskRecords=[Collections.Generic.List[object]]::new($taskExpected.Count);$taskIds=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)"
+    },
+    {
+      "line": 898,
+      "written": "[string]",
+      "source": " $taskRows=[Collections.Generic.List[object]]::new();$taskSeen=[Collections.Generic.List[string]]::new();$taskSum=0L"
+    },
+    {
+      "line": 923,
+      "written": "[int]",
+      "source": " try{if([IO.Directory]::Exists($taskRoot)){$null=Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']) $taskEntries}}catch{$taskComplete=$false;$taskReason='BOUNDED_FAILURE_WALK_REFUSED';Set-TaskSecondary 8 $_}"
+    },
+    {
+      "line": 941,
+      "written": "[long]",
+      "source": " $taskRunnerLimit=[long]$taskManifest['source_work']['runner_upper'];$taskProducerLimit=[long]$taskManifest['source_work']['producer_upper'];$taskVerifierLimit=[long]$taskManifest['source_work']['verifier_upper'];$taskTotalWork=[long]$taskManifest['source_work']['whole_upper']"
+    },
+    {
+      "line": 941,
+      "written": "[long]",
+      "source": " $taskRunnerLimit=[long]$taskManifest['source_work']['runner_upper'];$taskProducerLimit=[long]$taskManifest['source_work']['producer_upper'];$taskVerifierLimit=[long]$taskManifest['source_work']['verifier_upper'];$taskTotalWork=[long]$taskManifest['source_work']['whole_upper']"
+    },
+    {
+      "line": 941,
+      "written": "[long]",
+      "source": " $taskRunnerLimit=[long]$taskManifest['source_work']['runner_upper'];$taskProducerLimit=[long]$taskManifest['source_work']['producer_upper'];$taskVerifierLimit=[long]$taskManifest['source_work']['verifier_upper'];$taskTotalWork=[long]$taskManifest['source_work']['whole_upper']"
+    },
+    {
+      "line": 941,
+      "written": "[long]",
+      "source": " $taskRunnerLimit=[long]$taskManifest['source_work']['runner_upper'];$taskProducerLimit=[long]$taskManifest['source_work']['producer_upper'];$taskVerifierLimit=[long]$taskManifest['source_work']['verifier_upper'];$taskTotalWork=[long]$taskManifest['source_work']['whole_upper']"
+    },
+    {
+      "line": 957,
+      "written": "[long]",
+      "source": " $taskAuthoredBytes=[long](Get-Item -LiteralPath $taskManifestPath).Length;foreach($taskPin in $taskManifest['sources']){$taskAuthoredBytes+=[long]$taskPin['bytes']};if($taskAuthoredBytes -gt 1048576L){throw 'Own five-file source payload1MiB'}"
+    },
+    {
+      "line": 957,
+      "written": "[long]",
+      "source": " $taskAuthoredBytes=[long](Get-Item -LiteralPath $taskManifestPath).Length;foreach($taskPin in $taskManifest['sources']){$taskAuthoredBytes+=[long]$taskPin['bytes']};if($taskAuthoredBytes -gt 1048576L){throw 'Own five-file source payload1MiB'}"
+    },
+    {
+      "line": 958,
+      "written": "[long]",
+      "source": " $taskControlCaps=0L;foreach($taskC in $taskManifest['control_files']){$taskControlCaps+=[long]$taskC['bytes_cap']};$taskReservedRetained=[long]$taskManifest['profile']['input_bytes']+$taskAuthoredBytes+152627224L+67108864L+67108864L+$taskControlCaps;Assert-TaskRetainedReservation $taskReservedRetained 880803840L"
+    },
+    {
+      "line": 958,
+      "written": "[long]",
+      "source": " $taskControlCaps=0L;foreach($taskC in $taskManifest['control_files']){$taskControlCaps+=[long]$taskC['bytes_cap']};$taskReservedRetained=[long]$taskManifest['profile']['input_bytes']+$taskAuthoredBytes+152627224L+67108864L+67108864L+$taskControlCaps;Assert-TaskRetainedReservation $taskReservedRetained 880803840L"
+    },
+    {
+      "line": 964,
+      "written": "[long]",
+      "source": " $taskCaps=[Collections.Generic.Dictionary[string,long]]::new([StringComparer]::Ordinal);foreach($taskA in $taskManifest['references']){$taskCaps.Add($taskA['path'],[long]$taskA['bytes_cap'])}"
+    },
+    {
+      "line": 965,
+      "written": "[long]",
+      "source": " $taskBuildCaps=[Collections.Generic.Dictionary[string,long]]::new([StringComparer]::Ordinal);foreach($taskA in $taskManifest['compiler_final_outputs']){$taskBuildCaps.Add($taskA['name'],[long]$taskA['bytes_cap'])}"
+    },
+    {
+      "line": 984,
+      "written": "[byte[]]",
+      "source": " $taskMutation=Mutate-TaskOwnedBytes $taskMutantBundle 0 ([byte[]]@([byte]($taskFirst -bxor 1)));$taskCorrupt=Get-TaskHash $taskMutantBundle 98009"
+    },
+    {
+      "line": 984,
+      "written": "[byte]",
+      "source": " $taskMutation=Mutate-TaskOwnedBytes $taskMutantBundle 0 ([byte[]]@([byte]($taskFirst -bxor 1)));$taskCorrupt=Get-TaskHash $taskMutantBundle 98009"
+    },
+    {
+      "line": 989,
+      "written": "[string]",
+      "source": " $taskArguments=[Collections.Generic.List[string]]::new(28)"
+    },
+    {
+      "line": 995,
+      "written": "[long]",
+      "source": " $taskGuiMutation=Mutate-TaskOwnedBytes $taskGuiPath ([long]$taskPE['offset']+24+68) ([BitConverter]::GetBytes([uint16]2));$taskGui=Get-TaskPEHeader $taskGuiPath"
+    },
+    {
+      "line": 995,
+      "written": "[uint16]",
+      "source": " $taskGuiMutation=Mutate-TaskOwnedBytes $taskGuiPath ([long]$taskPE['offset']+24+68) ([BitConverter]::GetBytes([uint16]2));$taskGui=Get-TaskPEHeader $taskGuiPath"
+    },
+    {
+      "line": 998,
+      "written": "[string]",
+      "source": " $taskProduce=Invoke-TaskFencedChild 'oracle-produce' $taskBinary @('produce',$taskDataRoot,$taskExpectedManifest,[string]$taskRunnerLimit,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 998,
+      "written": "[string]",
+      "source": " $taskProduce=Invoke-TaskFencedChild 'oracle-produce' $taskBinary @('produce',$taskDataRoot,$taskExpectedManifest,[string]$taskRunnerLimit,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 998,
+      "written": "[string]",
+      "source": " $taskProduce=Invoke-TaskFencedChild 'oracle-produce' $taskBinary @('produce',$taskDataRoot,$taskExpectedManifest,[string]$taskRunnerLimit,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 1006,
+      "written": "[string]",
+      "source": " $taskVerify=Invoke-TaskFencedChild 'independent-full-verify' $taskBinary @('verify',$taskDataRoot,$taskExpectedManifest,[string]$taskPrior,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 1006,
+      "written": "[string]",
+      "source": " $taskVerify=Invoke-TaskFencedChild 'independent-full-verify' $taskBinary @('verify',$taskDataRoot,$taskExpectedManifest,[string]$taskPrior,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 1006,
+      "written": "[string]",
+      "source": " $taskVerify=Invoke-TaskFencedChild 'independent-full-verify' $taskBinary @('verify',$taskDataRoot,$taskExpectedManifest,[string]$taskPrior,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 1011,
+      "written": "[string]",
+      "source": " $taskExpectedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskN in $taskCaps.Keys){$taskExpectedRunFiles.Add('data/'+$taskN)};foreach($taskN in $taskBuildCaps.Keys){$taskExpectedRunFiles.Add('build/'+$taskN)};foreach($taskC in $taskManifest['control_files']){$taskExpectedRunFiles.Add($taskC['path'])};foreach($taskN in @('stdout.log','stderr.log','receipt.json','consumed.json')){$taskExpectedRunFiles.Add('stage/'+$taskN)}"
+    },
+    {
+      "line": 1012,
+      "written": "[string]",
+      "source": " $taskObservedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskF in (Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']))){Assert-NoLink $taskF.Item1;if(-not $taskF.Item3){$taskObservedRunFiles.Add([IO.Path]::GetRelativePath($taskRoot,$taskF.Item1).Replace([char]92,[char]47))}}"
+    },
+    {
+      "line": 1012,
+      "written": "[int]",
+      "source": " $taskObservedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskF in (Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']))){Assert-NoLink $taskF.Item1;if(-not $taskF.Item3){$taskObservedRunFiles.Add([IO.Path]::GetRelativePath($taskRoot,$taskF.Item1).Replace([char]92,[char]47))}}"
+    },
+    {
+      "line": 1012,
+      "written": "[char]",
+      "source": " $taskObservedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskF in (Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']))){Assert-NoLink $taskF.Item1;if(-not $taskF.Item3){$taskObservedRunFiles.Add([IO.Path]::GetRelativePath($taskRoot,$taskF.Item1).Replace([char]92,[char]47))}}"
+    },
+    {
+      "line": 1012,
+      "written": "[char]",
+      "source": " $taskObservedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskF in (Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']))){Assert-NoLink $taskF.Item1;if(-not $taskF.Item3){$taskObservedRunFiles.Add([IO.Path]::GetRelativePath($taskRoot,$taskF.Item1).Replace([char]92,[char]47))}}"
+    },
+    {
+      "line": 1017,
+      "written": "[long]",
+      "source": " $taskAdmitted=[long]$taskManifest['profile']['input_bytes']+$taskAuthoredBytes;foreach($taskA in $taskArtifacts){$taskAdmitted+=[long]$taskA['bytes']}"
+    },
+    {
+      "line": 1017,
+      "written": "[long]",
+      "source": " $taskAdmitted=[long]$taskManifest['profile']['input_bytes']+$taskAuthoredBytes;foreach($taskA in $taskArtifacts){$taskAdmitted+=[long]$taskA['bytes']}"
+    }
+  ],
+  "static_property_sites": [
+    {
+      "line": 86,
+      "source": " $script:taskPathCatalogue=@{repo=$taskRepo;base=$taskBase;root=$taskRoot;maximum=[int]$taskMaximum;alias_maximum=(2L*$taskManifest['inputs'].Count+3L*($taskMaximum-$taskManifest['inputs'].Count));rows=[Collections.Generic.List[object]]::new([int]$taskMaximum);inputs=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal);aliases=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal);strings=[Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal);parent_strings=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)}",
+      "occurrences": 4
+    },
+    {
+      "line": 393,
+      "source": " $taskSet=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)",
+      "occurrences": 1
+    },
+    {
+      "line": 822,
+      "source": " $taskSeen=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal);if($taskManifest['sources'].Count -ne $taskOwnNames.Count){throw 'Current exact own4 source inventory'}",
+      "occurrences": 1
+    },
+    {
+      "line": 830,
+      "source": " $taskExpectedSet=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal);foreach($taskName in $Expected){Assert-TaskString $taskName 512;if(-not $taskExpectedSet.Add($taskName)){throw 'Duplicate declared expected file name'}}",
+      "occurrences": 1
+    },
+    {
+      "line": 831,
+      "source": " $taskSet=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal);$taskDuplicate='';$taskUnknown=[Collections.Generic.List[string]]::new();$taskMissing=[Collections.Generic.List[string]]::new()",
+      "occurrences": 1
+    },
+    {
+      "line": 867,
+      "source": "  $taskRecords=[Collections.Generic.List[object]]::new($taskExpected.Count);$taskIds=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)",
+      "occurrences": 1
+    },
+    {
+      "line": 952,
+      "source": " $taskInputIndex=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::OrdinalIgnoreCase);foreach($taskPin in $taskManifest['inputs']){$taskPath=Resolve-TaskInput $taskPin['path'];if($taskPath.Length -gt 512 -or $taskInputIndex.ContainsKey($taskPath)){throw 'Exact unique input paths'};$taskInputIndex.Add($taskPath,$taskPin)}",
+      "occurrences": 1
+    },
+    {
+      "line": 954,
+      "source": " $taskIncludeIndex=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::OrdinalIgnoreCase);foreach($taskPair in $taskInputIndex.GetEnumerator()){$taskIncludeIndex.Add($taskPair.Key,$taskPair.Value)}",
+      "occurrences": 1
+    },
+    {
+      "line": 964,
+      "source": " $taskCaps=[Collections.Generic.Dictionary[string,long]]::new([StringComparer]::Ordinal);foreach($taskA in $taskManifest['references']){$taskCaps.Add($taskA['path'],[long]$taskA['bytes_cap'])}",
+      "occurrences": 1
+    },
+    {
+      "line": 965,
+      "source": " $taskBuildCaps=[Collections.Generic.Dictionary[string,long]]::new([StringComparer]::Ordinal);foreach($taskA in $taskManifest['compiler_final_outputs']){$taskBuildCaps.Add($taskA['name'],[long]$taskA['bytes_cap'])}",
+      "occurrences": 1
+    }
+  ]
+}

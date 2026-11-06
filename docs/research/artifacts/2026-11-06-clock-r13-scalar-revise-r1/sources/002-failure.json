@@ -1,0 +1,6 @@
+{
+  "exit_code": 1,
+  "phase": "Python source compilation before authoring",
+  "reason": "Reserved Python keyword finally used as dict keyword label; no target or output executed",
+  "source_sha256": "18331D1131DBC17B2928742919B9FEF708FC969CA664BB6A812F0EE70DB2FDB0"
+}

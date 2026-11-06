@@ -54,7 +54,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Current app code isd3ec661:491 local pure checks and GUI3 compile-only passed; exact-code CI42146047209
    passed all ten jobs. Later evidence/docs commits use the separate docs-only CI path, with runtime jobs skipped.
    The latest research runner R13 passed1,491 functional source checks. Its whole operation-budget review
-   has found corrections; no new scalar price is accepted. All target execution guards remain false.
+   returned REVISE; no new scalar price is accepted. All target execution guards remain false.
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
    reader actually passed88 types/391 declared fields; this supplies no live object-size or whole-fit result.
    Next: finish the whole numeric critique and review the concrete owned-process supervisor proposal,
@@ -80,6 +80,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Preserve the whole rejected R13 source-count proposal
+
+- Archived44 complete proposal/helper/subject/critic/boundary records. Fresh independent review passed2,123 checks over74 bodies,54 families/six schedules and330 actual calls, but returned REVISE; the proposed5,536,151,256 is not accepted.
+- Missing type/getter/result/coercion/fixed-source actions,315-versus330 inventory and the fourth Fresh-refusal route require a full successor. Author/critic failures and navigation corrections remain intact; no patched whole price or resource/execution credit is supplied.
+- A new R2 author is rebuilding every body/caller/family/phase and needs a different fresh critic. ADR-0090 stays Proposed/REVISE while all five protocol contracts are corrected; no dependent source is authorized.
 
 ## 2026-11-06 - Review a concrete owned-process architecture before code
 

@@ -1,0 +1,221 @@
+{
+  "schema": "INDEPENDENT_RECOMPOSITION_OF_UNACCEPTED_PROPOSAL_V1",
+  "phases": [
+    {
+      "id": "P0",
+      "proposal_sum": 733250550,
+      "source_profiles": {
+        "H": 1225,
+        "hash_bodies": 7862,
+        "walkers": 32,
+        "directories": 721,
+        "rows": 1124,
+        "walker_Canonical": 1188,
+        "NoLink": 1978,
+        "Canonical": 3166,
+        "Resolve": 2472,
+        "EntryPath": 5638,
+        "FileSet_normal_calls": 31,
+        "FileSet_normal_NM": 1045,
+        "Measure": 0,
+        "Encode": 0,
+        "DocumentWrite": 0,
+        "raw_byte_calls": 2,
+        "raw_byte_units": 601619,
+        "raw_string_calls": 0,
+        "raw_string_units": 0,
+        "fresh_identity": 1224,
+        "hex_tests": 1225,
+        "wire_hex": 0,
+        "outer_async_reads": 0
+      },
+      "prices_accepted": false
+    },
+    {
+      "id": "P1",
+      "proposal_sum": 761503292,
+      "source_profiles": {
+        "H": 1228,
+        "hash_bodies": 7868,
+        "walkers": 40,
+        "directories": 807,
+        "rows": 1247,
+        "walker_Canonical": 1327,
+        "NoLink": 2069,
+        "Canonical": 3396,
+        "Resolve": 2473,
+        "EntryPath": 5869,
+        "FileSet_normal_calls": 31,
+        "FileSet_normal_NM": 1045,
+        "Measure": 4,
+        "Encode": 4,
+        "DocumentWrite": 7,
+        "raw_byte_calls": 5,
+        "raw_byte_units": 601680,
+        "raw_string_calls": 0,
+        "raw_string_units": 0,
+        "fresh_identity": 1226,
+        "hex_tests": 1227,
+        "wire_hex": 2,
+        "outer_async_reads": 0
+      },
+      "prices_accepted": false
+    },
+    {
+      "id": "P2",
+      "proposal_sum": 3705175061,
+      "source_profiles": {
+        "H": 3685,
+        "hash_bodies": 26728,
+        "walkers": 360,
+        "directories": 2505,
+        "rows": 5039,
+        "walker_Canonical": 5759,
+        "NoLink": 6288,
+        "Canonical": 12048,
+        "Resolve": 6198,
+        "EntryPath": 18246,
+        "FileSet_normal_calls": 94,
+        "FileSet_normal_NM": 3138,
+        "Measure": 4,
+        "Encode": 4,
+        "DocumentWrite": 7,
+        "raw_byte_calls": 6,
+        "raw_byte_units": 4795984,
+        "raw_string_calls": 0,
+        "raw_string_units": 0,
+        "fresh_identity": 3675,
+        "hex_tests": 3677,
+        "wire_hex": 7,
+        "outer_async_reads": 259
+      },
+      "prices_accepted": false
+    },
+    {
+      "id": "P3",
+      "proposal_sum": 4161328300,
+      "source_profiles": {
+        "H": 6192,
+        "hash_bodies": 45306,
+        "walkers": 682,
+        "directories": 4265,
+        "rows": 8899,
+        "walker_Canonical": 10263,
+        "NoLink": 10677,
+        "Canonical": 20941,
+        "Resolve": 8700,
+        "EntryPath": 29641,
+        "FileSet_normal_calls": 159,
+        "FileSet_normal_NM": 5343,
+        "Measure": 5,
+        "Encode": 5,
+        "DocumentWrite": 9,
+        "raw_byte_calls": 6,
+        "raw_byte_units": 4795984,
+        "raw_string_calls": 4,
+        "raw_string_units": 65536,
+        "fresh_identity": 6124,
+        "hex_tests": 6127,
+        "wire_hex": 63,
+        "outer_async_reads": 518
+      },
+      "prices_accepted": false
+    },
+    {
+      "id": "P4",
+      "proposal_sum": 4777752378,
+      "source_profiles": {
+        "H": 9931,
+        "hash_bodies": 73350,
+        "walkers": 1037,
+        "directories": 6825,
+        "rows": 13964,
+        "walker_Canonical": 16038,
+        "NoLink": 17207,
+        "Canonical": 33246,
+        "Resolve": 12453,
+        "EntryPath": 45699,
+        "FileSet_normal_calls": 256,
+        "FileSet_normal_NM": 8615,
+        "Measure": 6,
+        "Encode": 6,
+        "DocumentWrite": 11,
+        "raw_byte_calls": 6,
+        "raw_byte_units": 4795984,
+        "raw_string_calls": 16,
+        "raw_string_units": 131072,
+        "fresh_identity": 9797,
+        "hex_tests": 9802,
+        "wire_hex": 126,
+        "outer_async_reads": 777
+      },
+      "prices_accepted": false
+    },
+    {
+      "id": "P5",
+      "proposal_sum": 5536151256,
+      "source_profiles": {
+        "H": 9936,
+        "hash_bodies": 73432,
+        "walkers": 1039,
+        "directories": 6827,
+        "rows": 13976,
+        "walker_Canonical": 16054,
+        "NoLink": 17214,
+        "Canonical": 33269,
+        "Resolve": 13673,
+        "EntryPath": 46942,
+        "FileSet_normal_calls": 256,
+        "FileSet_normal_NM": 8615,
+        "Measure": 11,
+        "Encode": 7,
+        "DocumentWrite": 13,
+        "raw_byte_calls": 6,
+        "raw_byte_units": 4795984,
+        "raw_string_calls": 16,
+        "raw_string_units": 131072,
+        "fresh_identity": 9797,
+        "hex_tests": 9802,
+        "wire_hex": 131,
+        "outer_async_reads": 777
+      },
+      "prices_accepted": false
+    }
+  ],
+  "fresh_refusal_schedule": {
+    "frozen_counts": [
+      2,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "source_possible_joint_route": [
+      {
+        "line": 985,
+        "region": "previous caught predecessor negative control",
+        "Fresh_refusals": 1
+      },
+      {
+        "line": 276,
+        "region": "native fenced pre-Pins sees same-length changed admitted input",
+        "Fresh_refusals": 1
+      },
+      {
+        "line": 279,
+        "region": "mandatory finally Pins rechecks same changed admitted input",
+        "Fresh_refusals": 1
+      },
+      {
+        "line": 280,
+        "region": "same finally binary hash checks independently changed executable",
+        "Fresh_refusals": 1
+      }
+    ],
+    "needed_joined_refusals": 4,
+    "first_native_route_phase": "P3",
+    "note": "A source-domain possibility, not an executed trace. Successful earlier controls are followed by two independent same-length file changes. Pre-Pins refuses before launch; finally still reaches both checks. No quiet-output law, target execution, foreign normal-slot slack, or extra helper calls are inferred. Whole successor must rebuild refusal scheduling or prove an explicit source/contract exclusion."
+  },
+  "formula_authority": "Arithmetic only; all54factors remain unaccepted pending complete successor."
+}

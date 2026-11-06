@@ -1,0 +1,4 @@
+{
+  "exit_code": 1,
+  "reason": "Review helper tried relative_to(ROOT) on a fixed admitted external SDK path; no subject changed and no target executed."
+}

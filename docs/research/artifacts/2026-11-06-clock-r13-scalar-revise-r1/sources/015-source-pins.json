@@ -1,0 +1,156 @@
+{
+  "schema": "R13_COMPLETE_RUNNER_CENSUS_PROPOSAL_PINS_V1",
+  "state": "SEALED_WHOLE_UNACCEPTED_PROPOSAL_FOR_FRESH_INDEPENDENT_NUMERIC_REVIEW",
+  "whole_proposal": 5536151256,
+  "own_files": [
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/authoring-attempt-r1/failure.json",
+      "bytes": 269,
+      "sha256": "4F49B12001BAA7E054075CCC236EC6C4E39D5997BD5E4C571905CC5508983095"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/authoring-attempt-r1/prepare-inputs.py",
+      "bytes": 12738,
+      "sha256": "18331D1131DBC17B2928742919B9FEF708FC969CA664BB6A812F0EE70DB2FDB0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/authoring-attempt-r2/build-census.py",
+      "bytes": 23060,
+      "sha256": "A8BEB719342AA4D9477389FF8EDEAACBC6530023D7EBF7FC12C329F14763DF1F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/authoring-attempt-r2/failure.json",
+      "bytes": 349,
+      "sha256": "96746BF5E702F8873F3FEA4BDCE22A5562FA378359A6B738F46F1A875B22093B"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/authoring-notes.md",
+      "bytes": 7165,
+      "sha256": "952E262809B1729E50809BF3885598E46B9E75BAB6DFC5B64DAE30CFF8C2249C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/body-operands.json",
+      "bytes": 236291,
+      "sha256": "C06647E2A7CDCEBFDD4B71A692448E95BC511DCC26723927D749A605D5EFC1E3"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/build-census.py",
+      "bytes": 23035,
+      "sha256": "6FE869C9F41F3DDF5F9B2C9F0783959A251C50D57896BC2089ACFB85F15B0DB2"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/census.json",
+      "bytes": 320489,
+      "sha256": "9DAEFFB03433D0A6D215054462A69D67A2DD79B9A1267F747B70C84DA9EC7024"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/census.md",
+      "bytes": 4252,
+      "sha256": "3B7C3F71A9635D395A7C77D3C3D601190BCE30D09FC337D13D81A5B40C66DFB5"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/checks.json",
+      "bytes": 238937,
+      "sha256": "F14062C8D368E3C7AF7612CDC83C55A2825078BA6009359B30C4B8FDD9155ADD"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/first-green-whole-source-freeze.json",
+      "bytes": 3324,
+      "sha256": "B64ACA5B72E5BE414C5ECE0714DB3BF7C5BC75FDC240E81130ADE2CA434DA67A"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/prepare-inputs.py",
+      "bytes": 12788,
+      "sha256": "B57FB6AE3534ADEFB5EBDFC4346D6B97093123B24896BE908A531974469A5923"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r1/source-inventory.json",
+      "bytes": 284551,
+      "sha256": "AB4896DD70F780913140EAB92473A5DBCE744DF85E98B07215895C7A04E61672"
+    }
+  ],
+  "subject": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "bytes": 108428,
+      "sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/README.md",
+      "bytes": 23499,
+      "sha256": "7243B4D955A821A59340928CE3D06D2810C85B9D58C5792AA97B8F34CC565512"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+      "bytes": 503610,
+      "sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3"
+    }
+  ],
+  "lineage": [
+    {
+      "path": "build-ci/20261106-clock-r13-independent-functional-review-r1/review.json",
+      "bytes": 2567,
+      "sha256": "9A429533FF5A1990B75A29B3C899A113CB0156C499535DFF32ED8FD6BA415F0D"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-independent-functional-review-r1/source-pins.json",
+      "bytes": 1369,
+      "sha256": "18A892A3244AFEE9DA8264F1FD7D8130B6DE3616C9E60ECEBEC2E89AB5E0CBEA"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-source-authoring-r1/source-pins.json",
+      "bytes": 5626,
+      "sha256": "C0910CCA2D0B8AE0ABCEE842B18F7F1BD7E4B42A188309693F8A9F39BFB089BB"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "bytes": 143375,
+      "sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/source-pins.json",
+      "bytes": 6709,
+      "sha256": "10BABDD0C7348784BD0DD410EFC6D79611339CD5A797055C199CD1C49E6374EA"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/review.md",
+      "bytes": 10140,
+      "sha256": "09DA62377E4A222DB2A87451B4A7A91546D98B371ACC9FC79FCB5A8782DD99A4"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/review.json",
+      "bytes": 10507,
+      "sha256": "241BFC147A6AECA36396BE566F6AFBA89FD60193D4462A911BE439F84328D9B4"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-leaf-census-conventions.md",
+      "bytes": 1746,
+      "sha256": "DE33D91712372C2FE887A02FB137AA9A96C8C3BB93CB0D88BF57AA32DBEAE564"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-bulk-leaf-clarification.md",
+      "bytes": 2153,
+      "sha256": "268597D1F066779CE76DACFDBBC384FC452DC6B9AD319419F52DE597242BB3E8"
+    }
+  ],
+  "source_or_target_changed": false,
+  "target_executed": false,
+  "work_limit_selected": false,
+  "Data_defined": false,
+  "resource_fit_or_GO": false
+}
