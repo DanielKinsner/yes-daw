@@ -1,0 +1,45 @@
+{
+  "schema": "OWN_HYPOTHESIS_CHECK_LINEAGE_AND_README_WORDING_ERRATUM_R1",
+  "scope": "Metadata wording correction only; frozen source reasoning and verdict unchanged",
+  "actual_checker_invocations": 2,
+  "first_invocation": "Failed before report creation because HTML inline-tag whitespace broke exact prose matching; original helper and failed checks preserved",
+  "correction": "Own document text normalization now collapses whitespace; unchanged source/doc facts then passed53 checks on invocation2, the first passing invocation",
+  "README_wording_erratum": "Final paragraph says first checker attempt. Read as first passing checker attempt, which was invocation2. No subject/compiler/program/API query was run",
+  "frozen_files": [
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/README.md",
+      "bytes": 4759,
+      "sha256": "9C9FAF50A22480A3B26EC85E9096F63D85E8D0851C1C339A0111EF478807063B"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/hypothesis.json",
+      "bytes": 17979,
+      "sha256": "79F75D9781519941917CA43897512121649E3776406D724971033E6ACB578AF9"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/source-pins.json",
+      "bytes": 5104,
+      "sha256": "CE24C6F2BFAFAB572422BD6EE61FF8B18DEC80257B3B541FB14BB2B97FD8A68B"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/evidence/own-check-attempt-r1/seal-hypothesis.py",
+      "bytes": 24963,
+      "sha256": "85E7939D89E91883603941387841843EE597DB1C266016E926DC933169919734"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/evidence/own-check-attempt-r1/failed-checks.json",
+      "bytes": 2774,
+      "sha256": "066E85350042248AE6494438D4254DBB6885BCAE525DF118652B4529D3E36203"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/seal-hypothesis.py",
+      "bytes": 24981,
+      "sha256": "68893D73C28789B13FDBAEEB2DAA5B6726A517D1F41C3CDD14657278592BCD90"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/checks.json",
+      "bytes": 4455,
+      "sha256": "84980A866AA4366E5285C89FFE3F5C1A7D1AC9ED926EEA62C090DC3E4F44BE88"
+    }
+  ]
+}

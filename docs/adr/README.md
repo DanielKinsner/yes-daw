@@ -96,6 +96,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0078](0078-ship-first-cadence.md) | Ship-first cadence: keep CI green, RTSan/TSan, data-safety tests and a regression test per found bug; drop per-gate mutations, UI critics, rubric gates and per-unit drives; short STATUS with a scoreboard (supersedes ADR-0075's cadence) | Accepted |
 | [0084](0084-musical-audio-channel-equivalence.md) | Musical channel equivalence: complete worker classification, one physical instance, logical stereo materialization and ready-only descriptor identity | Accepted |
 | [0085](0085-owned-musical-call-recipes.md) | Owned single-pass Musical call recipes, exact request provenance and prepaid same-origin dispatch/accounting | Accepted |
+| [0090](0090-clock-research-owned-process-supervisor.md) | Clock-research child ownership, bounded native capture and exact request/terminal transport | Proposed - independent review REVISE |
 
 ## Decision status (the five research forks)
 

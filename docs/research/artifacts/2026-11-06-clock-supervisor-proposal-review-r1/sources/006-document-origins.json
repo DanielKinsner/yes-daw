@@ -1,0 +1,51 @@
+[
+  {
+    "file": "GetModuleFileNameW.html",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulefilenamew",
+    "HTTP_date": "Fri, 06 Nov 2026 10:51:52 GMT",
+    "bytes": 55811,
+    "sha256": "582E52B1260E24BDF39099B4E16BCF3D2C5643417B4F0ECD303BCF1FF32B4E77"
+  },
+  {
+    "file": "GetModuleFileNameExW.html",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-getmodulefilenameexw",
+    "HTTP_date": "Fri, 06 Nov 2026 10:51:52 GMT",
+    "bytes": 57331,
+    "sha256": "917FFA431D919C4F8700A0B595701663EA6037798AEB5418679DAB7322D6BC6A"
+  },
+  {
+    "file": "JobObjects.html",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects",
+    "HTTP_date": "Fri, 06 Nov 2026 10:51:52 GMT",
+    "bytes": 61310,
+    "sha256": "5FF20D6006F8C1D5220BE714DD5A178B3C763821A0A3E310622BE01593537365"
+  },
+  {
+    "file": "UpdateProcThreadAttribute.html",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute",
+    "HTTP_date": "Fri, 06 Nov 2026 10:51:52 GMT",
+    "bytes": 85404,
+    "sha256": "5C5EDAC3051614C7D5A86EE0FBE2757922C96EC12BB9361988B073F4968747DC"
+  },
+  {
+    "file": "JobBasicAccounting.html",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_accounting_information",
+    "HTTP_date": "Fri, 06 Nov 2026 10:51:53 GMT",
+    "bytes": 52750,
+    "sha256": "C4D7350D9436073509FE73D145D43DA7F3E67AAC5C0E1F3BB180EF98A33C0117"
+  },
+  {
+    "file": "CancelPendingIO.html",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/canceling-pending-i-o-operations",
+    "HTTP_date": "Fri, 06 Nov 2026 10:51:53 GMT",
+    "bytes": 62002,
+    "sha256": "F216F0B069E7A560E12A53F7F3788590F345432CCC82CD230A168A9ABD0A436F"
+  },
+  {
+    "file": "AnonymousPipes.html",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/ipc/anonymous-pipe-operations",
+    "HTTP_date": "Fri, 06 Nov 2026 10:51:53 GMT",
+    "bytes": 50322,
+    "sha256": "451BD28B2C84755EB5CD117930BFE272E57E704746411179E687C10CFE261D5E"
+  }
+]

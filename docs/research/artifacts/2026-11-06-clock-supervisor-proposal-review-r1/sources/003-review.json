@@ -1,0 +1,578 @@
+{
+  "schema": "CLOCK_SUPERVISOR_ARCHITECTURE_INDEPENDENT_REVIEW_R1",
+  "verdict": "REVISE_PROPOSED_ARCHITECTURE_EXACT_PROTOCOL_AND_GATE_ORDER",
+  "scope": "Whole ADR and source-plan critique only; S1 architecture direction supported. No executable source/ADR acceptance/compile/run/metadata/target/GUI/Git authority granted.",
+  "check_count": 54,
+  "source_subjects_preserved": true,
+  "supported": [
+    "132-byte request header and41,252 compiler/18,636 native request maxima;224-byte proposed terminal arithmetic.",
+    "Private job/no breakaway/exact inherited stdio/creation-time feature obligation without invented atomicity.",
+    "Two fixed4096 worker buffers with coordinator stage scan/check/write and no quiet-output/cap/free shortcut.",
+    "Actual raw target exit, worker/spool/job settlement, abnormal helper quarantine/no next child.",
+    "Whole controller+supervisor+actual target accounting under unchanged32MiB; transport outside stage remains counted.",
+    "Headless fixed-console source profile, no deliberately crashing/WER fixture, narrow ProcessPath premise and all current HOLD/GO boundaries."
+  ],
+  "whole_coverage": [
+    {
+      "id": "architecture_scope",
+      "ADR_lines": [
+        8,
+        38
+      ],
+      "plan_lines": [
+        1,
+        18
+      ],
+      "verdict": "SUPPORTED_ARCHITECTURE_DIRECTION",
+      "finding": "Research-only S1/S2/S3 choice, frozen predecessors, no production/file-format/RT/golden rewrite, no present authoring/compile/run authority."
+    },
+    {
+      "id": "containment",
+      "ADR_lines": [
+        40,
+        54
+      ],
+      "plan_lines": [
+        63,
+        68
+      ],
+      "verdict": "SUPPORTED_AS_QUALIFICATION_OBLIGATION",
+      "finding": "Private noninheritable job, no breakaway, creation-time job list, inherited stdio exclusions and no invented atomic/creator-death proof. Actual profile/SDK semantics remain HOLD until qualified."
+    },
+    {
+      "id": "capture_stage",
+      "ADR_lines": [
+        56,
+        74
+      ],
+      "plan_lines": [
+        70,
+        81
+      ],
+      "verdict": "SUPPORTED_POLICY_NOT_YET_COMPLETE_STATE_MACHINE",
+      "finding": "Exactly two fixed4096 buffers, coordinator-only appends, current full stage scan/check before each write, no quiet-output premise, no anonymous-pipe overlapped shortcut and explicit headless profile. Ready/ack/error/settlement transitions and diagnostic projection still need closure."
+    },
+    {
+      "id": "request_wire",
+      "ADR_lines": [
+        76,
+        95
+      ],
+      "plan_lines": [
+        13,
+        18,
+        47,
+        53
+      ],
+      "verdict": "REVISE_EXACT_CONTRACT",
+      "finding": "Header132, compilermax41252 and nativemax18636 are correct. Run-identity encoding, raw request-path command grammar, field-specific original string guards and supervisor-versus-target environment recipe remain deferred."
+    },
+    {
+      "id": "terminal_wire",
+      "ADR_lines": [
+        97,
+        113
+      ],
+      "plan_lines": [
+        20,
+        45,
+        83,
+        88
+      ],
+      "verdict": "REVISE_EXACT_CONTRACT",
+      "finding": "224-byte LE arithmetic is correct. Values needed for physical-prefix/start diagnostics are not encoded; independent timeout/poll/log distinctions, precise validity/status/error/counter invariants and bit-exact signed parent exit projection are unspecified."
+    },
+    {
+      "id": "settlement",
+      "ADR_lines": [
+        115,
+        127
+      ],
+      "plan_lines": [
+        77,
+        88
+      ],
+      "verdict": "SUPPORTED_CONSERVATIVE_FAILURE_POLICY",
+      "finding": "Target exit distinct from helper exit; workers/output/job settlement all required; cancellation/close/notifications do not imply settlement; missing/partial/abnormal remains quarantine/no next child. Counter and owner cutoff ambiguity must still be resolved before code."
+    },
+    {
+      "id": "resource_and_metering",
+      "ADR_lines": [
+        129,
+        142
+      ],
+      "plan_lines": [
+        16,
+        18,
+        77,
+        81,
+        94,
+        107
+      ],
+      "verdict": "REVISE_SOURCE_METER_CUTOFF_AND_TAIL_SPONSORSHIP",
+      "finding": "Whole32MiB, source/resource unknowns, no opacity/free/GC/cap transfer and narrow ProcessPath correspondence are supported. SourceUsed snapshot versus publication/cleanup tail and same-origin reservation partitions are not defined."
+    },
+    {
+      "id": "gates_and_tests",
+      "ADR_lines": [
+        144,
+        155
+      ],
+      "plan_lines": [
+        7,
+        11,
+        55,
+        68,
+        94,
+        128
+      ],
+      "verdict": "REVISE_GATE_ORDER_WORDING",
+      "finding": "Independent whole reviews and separate compile-only/actual execution gates are correct. Complete native/profile/source pricing before implementation conflicts with later source-census and compile-only ABI steps; make the source-authoring gate distinct from complete executable acceptance."
+    }
+  ],
+  "wire_arithmetic": {
+    "request_offsets": [
+      {
+        "field": "magic",
+        "offset": 0,
+        "bytes": 8
+      },
+      {
+        "field": "version",
+        "offset": 8,
+        "bytes": 4
+      },
+      {
+        "field": "totalBytes",
+        "offset": 12,
+        "bytes": 4
+      },
+      {
+        "field": "childIndex",
+        "offset": 16,
+        "bytes": 4
+      },
+      {
+        "field": "argumentCount",
+        "offset": 20,
+        "bytes": 4
+      },
+      {
+        "field": "environmentCount",
+        "offset": 24,
+        "bytes": 4
+      },
+      {
+        "field": "reservation",
+        "offset": 28,
+        "bytes": 8
+      },
+      {
+        "field": "manifestSHA",
+        "offset": 36,
+        "bytes": 32
+      },
+      {
+        "field": "runSHA",
+        "offset": 68,
+        "bytes": 32
+      },
+      {
+        "field": "targetSHA",
+        "offset": 100,
+        "bytes": 32
+      }
+    ],
+    "request_header": 132,
+    "max_compiler_request": 41252,
+    "max_native_request": 18636,
+    "terminal_offsets": [
+      {
+        "field": "magic",
+        "offset": 0,
+        "bytes": 8
+      },
+      {
+        "field": "version",
+        "offset": 8,
+        "bytes": 4
+      },
+      {
+        "field": "totalBytes",
+        "offset": 12,
+        "bytes": 4
+      },
+      {
+        "field": "childIndex",
+        "offset": 16,
+        "bytes": 4
+      },
+      {
+        "field": "flags",
+        "offset": 20,
+        "bytes": 4
+      },
+      {
+        "field": "targetPid",
+        "offset": 24,
+        "bytes": 4
+      },
+      {
+        "field": "targetRawExit",
+        "offset": 28,
+        "bytes": 4
+      },
+      {
+        "field": "status",
+        "offset": 32,
+        "bytes": 4
+      },
+      {
+        "field": "primarySite",
+        "offset": 36,
+        "bytes": 4
+      },
+      {
+        "field": "primaryError",
+        "offset": 40,
+        "bytes": 4
+      },
+      {
+        "field": "firstSecondaryError",
+        "offset": 44,
+        "bytes": 4
+      },
+      {
+        "field": "secondaryFailureCount",
+        "offset": 48,
+        "bytes": 8
+      },
+      {
+        "field": "sourceUsed",
+        "offset": 56,
+        "bytes": 8
+      },
+      {
+        "field": "manifestSHA",
+        "offset": 64,
+        "bytes": 32
+      },
+      {
+        "field": "runSHA",
+        "offset": 96,
+        "bytes": 32
+      },
+      {
+        "field": "targetSHA",
+        "offset": 128,
+        "bytes": 32
+      },
+      {
+        "field": "stdoutObserved",
+        "offset": 160,
+        "bytes": 8
+      },
+      {
+        "field": "stdoutWritten",
+        "offset": 168,
+        "bytes": 8
+      },
+      {
+        "field": "stdoutOmitted",
+        "offset": 176,
+        "bytes": 8
+      },
+      {
+        "field": "stdoutUnretained",
+        "offset": 184,
+        "bytes": 8
+      },
+      {
+        "field": "stderrObserved",
+        "offset": 192,
+        "bytes": 8
+      },
+      {
+        "field": "stderrWritten",
+        "offset": 200,
+        "bytes": 8
+      },
+      {
+        "field": "stderrOmitted",
+        "offset": 208,
+        "bytes": 8
+      },
+      {
+        "field": "stderrUnretained",
+        "offset": 216,
+        "bytes": 8
+      }
+    ],
+    "proposed_terminal_bytes": 224,
+    "recommended_positions_only_successor_bytes": 256
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "priority": "P1",
+      "title": "Terminal observation bits lack the physical position values required by the existing diagnostics",
+      "paths": [
+        {
+          "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\docs\\adr\\0090-clock-research-owned-process-supervisor.md",
+          "lines": [
+            97,
+            113
+          ]
+        },
+        {
+          "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\docs\\plans\\2026-11-06-clock-supervisor-source-plan.md",
+          "lines": [
+            38,
+            45
+          ]
+        }
+      ],
+      "evidence": {
+        "stdout_start": 100,
+        "observed_completed_chunk": 4096,
+        "confirmed_successful_write": 0,
+        "write_failure_possible_physical_advance": 3,
+        "observed_final_position": 103,
+        "original_diagnostics": {
+          "stdout_start": 100,
+          "raw_stdout_bytes": 3,
+          "raw_bytes_retained": 0,
+          "observed_not_confirmed_retained": 4096
+        },
+        "current_terminal_pipe_fields": {
+          "observed": 4096,
+          "written": 0,
+          "omitted": 0,
+          "unretained": 4096,
+          "final_position_observed_flag": true
+        },
+        "missing": "No224-byte field carries100 or103/3, and no parent before/after stat/immutability procedure is specified. Repurposing written would erase the confirmed-write distinction."
+      },
+      "required_fix": "Add four explicit u64 stdout/stderr start/end positions with separate observation flags, derive the new exact256-byte length, and define unavailable values plus ordered/end>=start checks. Keep confirmed written counters separate. Alternatively retain224 only with a complete reviewed parent before/after position/immutability protocol that really reconstructs all original start/physical-prefix values; the current docs do not specify one.",
+      "scope": "This is an encoding/diagnostic correspondence gap, not a request to manufacture physical progress on write failure."
+    },
+    {
+      "id": "F2",
+      "priority": "P1",
+      "title": "Define exact terminal reason/validity/status/projection rules instead of deferring them",
+      "paths": [
+        {
+          "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\docs\\adr\\0090-clock-research-owned-process-supervisor.md",
+          "lines": [
+            103,
+            113
+          ]
+        },
+        {
+          "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\docs\\plans\\2026-11-06-clock-supervisor-source-plan.md",
+          "lines": [
+            20,
+            45,
+            83,
+            88
+          ]
+        }
+      ],
+      "evidence": {
+        "deadline_counterexample": {
+          "case_A": "Elapsed1800s body deadline reached before7200 polls: timed_out=true,poll_limited=false.",
+          "case_B": "After the7200th250ms sleep, next poll admission refuses before elapsed check: timed_out=false,poll_limited=true.",
+          "shared_terminal_class": {
+            "status": 3,
+            "primarySite": 7,
+            "native_error_observed": false
+          },
+          "gap": "No independent timed_out/poll_limited flags or semantic reason code. A generic site7 cannot project both existing booleans."
+        },
+        "raw_exit_counterexample": "targetRawExit=0x80000000 is a valid ordinary nonzero32-bit process exit and corresponds to parent int32 -2147483648, not a checked positive int conversion.",
+        "other_unresolved_cases": [
+          "Shared raw-log cap versus complete-stage-pool cap versus non-cap stage guard; original log_cap/omitted booleans and witnesses differ.",
+          "A worker gets100 bytes in completed inner reads then errors before publishing a full/EOF-short chunk: define observed/omitted/unretained and parent projection; a generic settled-read phrase is insufficient.",
+          "First secondary failure may be semantic, followed by a native cleanup error: define count, first native error/site and existing primary/first-secondary ownership.",
+          "Position observations are not byte-counter validity. Define which prefix counters remain exact when a worker is still live, without unsynchronized reads or numeric-zero success."
+        ]
+      },
+      "required_fix": "Provide a normative flag/status/site/reason table and cross-field admission matrix, including independent timeout/poll-limit/log-cap distinctions, status0/1 versus refusal/quarantine prerequisites, signed raw-exit bit reinterpretation, counter snapshots/overflow, EOF/settlement relationships and all parent child-row/cleanup/primary-secondary projections. Add needed flags/reason fields explicitly and recompute length if fields change. Do not infer reasons from metered usage or generic site7."
+    },
+    {
+      "id": "F3",
+      "priority": "P1",
+      "title": "Complete the request launch/identity/environment contract before architecture acceptance",
+      "paths": [
+        {
+          "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\docs\\adr\\0090-clock-research-owned-process-supervisor.md",
+          "lines": [
+            83,
+            95
+          ]
+        },
+        {
+          "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\docs\\plans\\2026-11-06-clock-supervisor-source-plan.md",
+          "lines": [
+            13,
+            18,
+            47,
+            53,
+            63,
+            68
+          ]
+        }
+      ],
+      "evidence": {
+        "path_grammar": "The plan expressly defers executable quoting, prefix and hex/NUL/EOF grammar; at most512 units is ambiguous between decoded path cells and the encoded token.",
+        "run_identity": "Canonical run-identity SHA has no defined domain tag, source fields, normalization/case/slash rules or byte serialization. Copying a label is not computing the expected current identity.",
+        "environment": "The eight target values/order are named, but the supervisor launch environment and target native environment-block construction/order/NUL rules are not specified. No environment inheritance must cover both processes.",
+        "string_profile": "Original target arguments and environment values use ASCII32..126 with length<=512; other paths use their corresponding valid-UTF16/length/filesystem guards. Applying one blanket stricter guard or treating embedded NUL/unknown roots as C strings is not correspondence."
+      },
+      "required_fix": "Specify one exact bounded raw command-line grammar (including executable token, fixed argument prefix, decoded<=512 UTF16 cells/encoded extent, uppercase/lowercase hex decision, quoting, surrogate/NUL and no-extra-argument rules). Define canonical run-identity input bytes and exact expected childIndex/argc/envcount/identity binding. Define both helper and target explicit environment recipes, sorted/native block layout and full source-field string guards while preserving existing28/6 and eight-value target domain. Add a bounded request parser/check sequence before any length-based access/allocation or target creation."
+    },
+    {
+      "id": "F4",
+      "priority": "P1",
+      "title": "Define the source-counter observation cutoff and prepaid cleanup/publication tail",
+      "paths": [
+        {
+          "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\docs\\adr\\0090-clock-research-owned-process-supervisor.md",
+          "lines": [
+            84,
+            85,
+            99,
+            106,
+            146,
+            150
+          ]
+        },
+        {
+          "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\docs\\plans\\2026-11-06-clock-supervisor-source-plan.md",
+          "lines": [
+            16,
+            18,
+            24,
+            26,
+            77,
+            88,
+            99,
+            107
+          ]
+        }
+      ],
+      "evidence": "The terminal contains supervisorSourceUsed, yet encoding/writing/flushing/publishing the terminal and final cleanup themselves execute source operations after a snapshot. Source-counter observed alone does not say whether it is a prefix debit or complete usage. Budget exhaustion/failure must still pay for bounded cancellation, owner settlement attempts and an honest terminal/unknown record; no partition/cutoff/overflow rule is defined.",
+      "required_fix": "Define the same-origin caller slice, predecode/unknown-usage ownership, body versus mandatory bounded cleanup/publication reservation, exact debit/observation cutoff and checked overflow behavior. Label/report a prefix observation honestly or establish the accepted precharge/tail accounting rule; do not silently count future work as already observed or reset the runner budget. Parent composition must retain the full reservation whenever complete usage is unavailable."
+    },
+    {
+      "id": "F5",
+      "priority": "P2",
+      "title": "Separate architecture/source-authoring review from complete source/native/resource execution proof",
+      "paths": [
+        {
+          "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\docs\\adr\\0090-clock-research-owned-process-supervisor.md",
+          "lines": [
+            146,
+            150
+          ]
+        },
+        {
+          "path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\docs\\plans\\2026-11-06-clock-supervisor-source-plan.md",
+          "lines": [
+            7,
+            11,
+            55,
+            68,
+            94,
+            117
+          ]
+        }
+      ],
+      "evidence": "ADR146\u2013148 requires complete source-work sponsorship and native/profile premises before implementation; the plan then authors the source, obtains a whole source census and later uses compile-only qualification for binary/ABI association. Read literally, final source/native facts are prerequisites for producing the source/object needed to establish them. The plan also requires every protocol ambiguity resolved before accepting ADR, so these missing exact contracts cannot simply be left to code.",
+      "required_fix": "State the ordered gates explicitly: accepted exact architecture/protocol/owner/funding strategy -> authorized source-only candidate -> whole functional/census/resource proposal with all premises recorded -> separately reviewed bounded compile-only purpose qualification where needed -> complete actual source/native/resource/binding acceptance before any helper/fixture/Clock execution. Keep every execution gate closed until its own proof, without demanding nonexistent final-source/ABI facts merely to author an unrun candidate."
+    }
+  ],
+  "recommendation": "Revise the complete proposed docs with exact protocol/projections and noncircular gates, preserve R1, then obtain fresh whole critic review. Source implementation remains unauthorized.",
+  "verified_files": [
+    {
+      "path": "docs/adr/0090-clock-research-owned-process-supervisor.md",
+      "bytes": 9593,
+      "sha256": "697F696166AF1BB47C3CFC4844EF213A8B56D24A4B8371C2497D23C8A0B252EB"
+    },
+    {
+      "path": "docs/plans/2026-11-06-clock-supervisor-source-plan.md",
+      "bytes": 7923,
+      "sha256": "050294B6C025D2131BF222234BEC811FB59666BC3CFE414E286FE5E7B1DC6709"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/hypothesis.json",
+      "bytes": 17979,
+      "sha256": "79F75D9781519941917CA43897512121649E3776406D724971033E6ACB578AF9"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json",
+      "bytes": 30471,
+      "sha256": "01B4289C2F8E521093987C259D15C5DD4BBF2388EFD9E594A90319C9B0BB5EE6"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/lineage-erratum.json",
+      "bytes": 2257,
+      "sha256": "75CA597ADFEA5D75B6639252C4F9F2FD42FC14A3F5FF76139E67685736163374"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/document-origins.json",
+      "bytes": 2136,
+      "sha256": "B95A0CBAC814CCC3B1723B607B6B05BD3E82CE9E454FA83149A966525375844C"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/GetModuleFileNameW.html",
+      "bytes": 55811,
+      "sha256": "582E52B1260E24BDF39099B4E16BCF3D2C5643417B4F0ECD303BCF1FF32B4E77"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/GetModuleFileNameExW.html",
+      "bytes": 57331,
+      "sha256": "917FFA431D919C4F8700A0B595701663EA6037798AEB5418679DAB7322D6BC6A"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/JobObjects.html",
+      "bytes": 61310,
+      "sha256": "5FF20D6006F8C1D5220BE714DD5A178B3C763821A0A3E310622BE01593537365"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/UpdateProcThreadAttribute.html",
+      "bytes": 85404,
+      "sha256": "5C5EDAC3051614C7D5A86EE0FBE2757922C96EC12BB9361988B073F4968747DC"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/JobBasicAccounting.html",
+      "bytes": 52750,
+      "sha256": "C4D7350D9436073509FE73D145D43DA7F3E67AAC5C0E1F3BB180EF98A33C0117"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/CancelPendingIO.html",
+      "bytes": 62002,
+      "sha256": "F216F0B069E7A560E12A53F7F3788590F345432CCC82CD230A168A9ABD0A436F"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/AnonymousPipes.html",
+      "bytes": 50322,
+      "sha256": "451BD28B2C84755EB5CD117930BFE272E57E704746411179E687C10CFE261D5E"
+    }
+  ],
+  "execution": {
+    "subject_code": false,
+    "PowerShell_parse_AST_import": false,
+    "metadata_reader": false,
+    "compiler": false,
+    "program": false,
+    "Clock_stage": false,
+    "GUI": false,
+    "Git": false
+  }
+}

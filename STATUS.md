@@ -81,6 +81,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-06 - Review a concrete owned-process architecture before code
+
+- Proposed ADR-0090 and its source plan select a native research supervisor with owned job/capture/transport, preserving the existing budgets and headless constraints. Archived27 source-options and19 whole-critic records.
+- Fresh whole review passed54 own checks but returned REVISE: position values, complete protocol/projections, request/run/environment bytes, metering tails and noncircular gate order need correction. The exact rejected proposal and its sources are preserved; no architecture acceptance, dependent code or execution is granted.
+- Next: revise all five contracts and obtain a fresh whole critic, while R13 scalar and native-child owner reviews continue. Path evidence f6b0694 passed docs-only CI42208770658; app code remains d3ec661.
+
 ## 2026-11-06 - Preserve fresh path-string owners and clear resource gaps
 
 - Archived29 complete source/helper/input records. The P_fresh author passed58 checks over82 sites, preserving the archive-path read failure and resolving the original bytes through their manifest mapping.

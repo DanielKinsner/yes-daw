@@ -1,0 +1,26 @@
+[
+  {
+    "file": "Environment.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Environment.cs",
+    "bytes": 11109,
+    "sha256": "7775CCCE66F1199DC6666BF36252D82FEBFE102D49C0DA5AC7F8DA13ABA8150F"
+  },
+  {
+    "file": "Environment.Windows.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Environment.Windows.cs",
+    "bytes": 14177,
+    "sha256": "23B411301AF821AB96D762F09DDA504F77A9204F1BA9283D82A405F777F87D85"
+  },
+  {
+    "file": "Interop.GetModuleFileName.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/Interop/Windows/Kernel32/Interop.GetModuleFileName.cs",
+    "bytes": 580,
+    "sha256": "339C92575CBAAFBBABD53EAD33BF362402330454203166AD00BF0D947629308C"
+  },
+  {
+    "file": "Interop.GetModuleFileNameEx.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/Interop/Windows/Kernel32/Interop.GetModuleFileNameEx.cs",
+    "bytes": 617,
+    "sha256": "A727B74D3951122B5DC654975FB429E7DD20533CDB0284DE2DA7A2821193C6C2"
+  }
+]

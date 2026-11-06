@@ -1,0 +1,99 @@
+{
+  "schema": "CLOCK_SUPERVISOR_ARCHITECTURE_REVIEW_PINS_R1",
+  "verdict": "REVISE_PROPOSED_ARCHITECTURE_EXACT_PROTOCOL_AND_GATE_ORDER",
+  "verified_inputs": [
+    {
+      "path": "docs/adr/0090-clock-research-owned-process-supervisor.md",
+      "bytes": 9593,
+      "sha256": "697F696166AF1BB47C3CFC4844EF213A8B56D24A4B8371C2497D23C8A0B252EB"
+    },
+    {
+      "path": "docs/plans/2026-11-06-clock-supervisor-source-plan.md",
+      "bytes": 7923,
+      "sha256": "050294B6C025D2131BF222234BEC811FB59666BC3CFE414E286FE5E7B1DC6709"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/hypothesis.json",
+      "bytes": 17979,
+      "sha256": "79F75D9781519941917CA43897512121649E3776406D724971033E6ACB578AF9"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json",
+      "bytes": 30471,
+      "sha256": "01B4289C2F8E521093987C259D15C5DD4BBF2388EFD9E594A90319C9B0BB5EE6"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/lineage-erratum.json",
+      "bytes": 2257,
+      "sha256": "75CA597ADFEA5D75B6639252C4F9F2FD42FC14A3F5FF76139E67685736163374"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/document-origins.json",
+      "bytes": 2136,
+      "sha256": "B95A0CBAC814CCC3B1723B607B6B05BD3E82CE9E454FA83149A966525375844C"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/GetModuleFileNameW.html",
+      "bytes": 55811,
+      "sha256": "582E52B1260E24BDF39099B4E16BCF3D2C5643417B4F0ECD303BCF1FF32B4E77"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/GetModuleFileNameExW.html",
+      "bytes": 57331,
+      "sha256": "917FFA431D919C4F8700A0B595701663EA6037798AEB5418679DAB7322D6BC6A"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/JobObjects.html",
+      "bytes": 61310,
+      "sha256": "5FF20D6006F8C1D5220BE714DD5A178B3C763821A0A3E310622BE01593537365"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/UpdateProcThreadAttribute.html",
+      "bytes": 85404,
+      "sha256": "5C5EDAC3051614C7D5A86EE0FBE2757922C96EC12BB9361988B073F4968747DC"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/JobBasicAccounting.html",
+      "bytes": 52750,
+      "sha256": "C4D7350D9436073509FE73D145D43DA7F3E67AAC5C0E1F3BB180EF98A33C0117"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/CancelPendingIO.html",
+      "bytes": 62002,
+      "sha256": "F216F0B069E7A560E12A53F7F3788590F345432CCC82CD230A168A9ABD0A436F"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/AnonymousPipes.html",
+      "bytes": 50322,
+      "sha256": "451BD28B2C84755EB5CD117930BFE272E57E704746411179E687C10CFE261D5E"
+    }
+  ],
+  "review_outputs": [
+    {
+      "path": "build-ci/20261106-clock-supervisor-architecture-independent-review-r1/review.json",
+      "bytes": 22507,
+      "sha256": "319512FD08A16D03848771AF5750F7C9571A2EEE082B3EE3E9EF7F3F30A883DE"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-architecture-independent-review-r1/review.md",
+      "bytes": 3772,
+      "sha256": "F4EB5BB7FD7A00119B62787DB69E6AE23E7859E397BDEEE5DE8828B5DD7A769C"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-architecture-independent-review-r1/checks.json",
+      "bytes": 5777,
+      "sha256": "DB4708EEEB154DBF12144E87FB855B9773098116821C65293119E9C8152E919F"
+    }
+  ],
+  "own_checker": {
+    "path": "build-ci/20261106-clock-supervisor-architecture-independent-review-r1/check.py",
+    "bytes": 24359,
+    "sha256": "AFE9201747281B6538BC6CDCC7B21F97736ABAC47CB941E4BBE44A13618FBCC6"
+  },
+  "no_target_execution": true
+}

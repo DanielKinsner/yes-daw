@@ -1,0 +1,218 @@
+{
+  "schema": "SOURCE_DOCUMENT_INTEGER_CHECKS_V1",
+  "count": 53,
+  "checks": [
+    {
+      "id": "FROZEN_V_JSON_SEAL",
+      "pass": true
+    },
+    {
+      "id": "FROZEN_V_PINS_SEAL",
+      "pass": true
+    },
+    {
+      "id": "V_STAYS_HOLD",
+      "pass": true
+    },
+    {
+      "id": "ENV_PROCESS_PATH_CACHE",
+      "pass": true
+    },
+    {
+      "id": "ENV_PROCESS_PATH_NULL",
+      "pass": true
+    },
+    {
+      "id": "CURRENT_PROCESS_MODULE_ZERO",
+      "pass": true
+    },
+    {
+      "id": "CURRENT_PATH_START_MAX_PATH",
+      "pass": true
+    },
+    {
+      "id": "PATH_GROWS_BEFORE_RETURN",
+      "pass": true
+    },
+    {
+      "id": "DIRECT_KERNEL32_GETMODULEFILENAME",
+      "pass": true
+    },
+    {
+      "id": "OLD_STRIPS_EXTENDED_PREFIX",
+      "pass": true
+    },
+    {
+      "id": "OLD_MODULE_POPULATION_ARRAY",
+      "pass": true
+    },
+    {
+      "id": "DIRECT_QUERY_NO_MODULE_ENUMERATION",
+      "pass": true
+    },
+    {
+      "id": "DIRECT_QUERY_NO_HARD_BUFFER_CAP",
+      "pass": true
+    },
+    {
+      "id": "OFFICIAL_PINNED_DOTNET_ORIGIN_Environment.cs",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_HASH_Environment.cs",
+      "pass": true
+    },
+    {
+      "id": "OFFICIAL_PINNED_DOTNET_ORIGIN_Environment.Windows.cs",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_HASH_Environment.Windows.cs",
+      "pass": true
+    },
+    {
+      "id": "OFFICIAL_PINNED_DOTNET_ORIGIN_Interop.GetModuleFileName.cs",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_HASH_Interop.GetModuleFileName.cs",
+      "pass": true
+    },
+    {
+      "id": "OFFICIAL_PINNED_DOTNET_ORIGIN_Interop.GetModuleFileNameEx.cs",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_HASH_Interop.GetModuleFileNameEx.cs",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_DOMAIN_GetModuleFileNameW.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_HASH_GetModuleFileNameW.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_DOMAIN_GetModuleFileNameExW.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_HASH_GetModuleFileNameExW.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_DOMAIN_JobObjects.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_HASH_JobObjects.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_DOMAIN_UpdateProcThreadAttribute.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_HASH_UpdateProcThreadAttribute.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_DOMAIN_JobBasicAccounting.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_HASH_JobBasicAccounting.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_DOMAIN_CancelPendingIO.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_HASH_CancelPendingIO.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_DOMAIN_AnonymousPipes.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_DOCUMENT_HASH_AnonymousPipes.html",
+      "pass": true
+    },
+    {
+      "id": "DOC_CURRENT_EXECUTABLE",
+      "pass": true
+    },
+    {
+      "id": "DOC_LOAD_PATH_FORMAT",
+      "pass": true
+    },
+    {
+      "id": "DOC_CURRENT_PROCESS_PREFERRED_DIRECT_API",
+      "pass": true
+    },
+    {
+      "id": "DOC_CREATION_TIME_JOB_ATTRIBUTE",
+      "pass": true
+    },
+    {
+      "id": "DOC_HANDLE_INHERITANCE_LIST",
+      "pass": true
+    },
+    {
+      "id": "DOC_LAST_HANDLE_JOB_KILL",
+      "pass": true
+    },
+    {
+      "id": "DOC_BREAKAWAY_IS_SEPARATE",
+      "pass": true
+    },
+    {
+      "id": "DOC_NOTIFICATIONS_NOT_ALL_GUARANTEED",
+      "pass": true
+    },
+    {
+      "id": "DOC_JOB_SIGNAL_IS_LIMIT_CASE",
+      "pass": true
+    },
+    {
+      "id": "DOC_ACTIVE_PROCESS_COUNT",
+      "pass": true
+    },
+    {
+      "id": "DOC_CANCELLATION_NOT_GUARANTEED",
+      "pass": true
+    },
+    {
+      "id": "DOC_ANON_NO_OVERLAPPED",
+      "pass": true
+    },
+    {
+      "id": "SELECTED_FIXED_HOST_PATH_UNDER260",
+      "pass": true
+    },
+    {
+      "id": "THREE_PARALLEL_DESIGN_OPTIONS",
+      "pass": true
+    },
+    {
+      "id": "TEN_REQUIRED_DESIGN_CLOSURES",
+      "pass": true
+    },
+    {
+      "id": "SEVEN_SOURCE_FAILURE_SCENARIOS",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_JSON_PRESERVED_AFTER_READ",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_PINS_PRESERVED_AFTER_READ",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,146 @@
+[
+  {
+    "id": "FROZEN_V_JSON_SEAL",
+    "pass": true
+  },
+  {
+    "id": "FROZEN_V_PINS_SEAL",
+    "pass": true
+  },
+  {
+    "id": "V_STAYS_HOLD",
+    "pass": true
+  },
+  {
+    "id": "ENV_PROCESS_PATH_CACHE",
+    "pass": true
+  },
+  {
+    "id": "ENV_PROCESS_PATH_NULL",
+    "pass": true
+  },
+  {
+    "id": "CURRENT_PROCESS_MODULE_ZERO",
+    "pass": true
+  },
+  {
+    "id": "CURRENT_PATH_START_MAX_PATH",
+    "pass": true
+  },
+  {
+    "id": "PATH_GROWS_BEFORE_RETURN",
+    "pass": true
+  },
+  {
+    "id": "DIRECT_KERNEL32_GETMODULEFILENAME",
+    "pass": true
+  },
+  {
+    "id": "OLD_STRIPS_EXTENDED_PREFIX",
+    "pass": true
+  },
+  {
+    "id": "OLD_MODULE_POPULATION_ARRAY",
+    "pass": true
+  },
+  {
+    "id": "DIRECT_QUERY_NO_MODULE_ENUMERATION",
+    "pass": true
+  },
+  {
+    "id": "DIRECT_QUERY_NO_HARD_BUFFER_CAP",
+    "pass": true
+  },
+  {
+    "id": "OFFICIAL_PINNED_DOTNET_ORIGIN_Environment.cs",
+    "pass": true
+  },
+  {
+    "id": "SOURCE_HASH_Environment.cs",
+    "pass": true
+  },
+  {
+    "id": "OFFICIAL_PINNED_DOTNET_ORIGIN_Environment.Windows.cs",
+    "pass": true
+  },
+  {
+    "id": "SOURCE_HASH_Environment.Windows.cs",
+    "pass": true
+  },
+  {
+    "id": "OFFICIAL_PINNED_DOTNET_ORIGIN_Interop.GetModuleFileName.cs",
+    "pass": true
+  },
+  {
+    "id": "SOURCE_HASH_Interop.GetModuleFileName.cs",
+    "pass": true
+  },
+  {
+    "id": "OFFICIAL_PINNED_DOTNET_ORIGIN_Interop.GetModuleFileNameEx.cs",
+    "pass": true
+  },
+  {
+    "id": "SOURCE_HASH_Interop.GetModuleFileNameEx.cs",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_DOMAIN_GetModuleFileNameW.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_HASH_GetModuleFileNameW.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_DOMAIN_GetModuleFileNameExW.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_HASH_GetModuleFileNameExW.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_DOMAIN_JobObjects.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_HASH_JobObjects.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_DOMAIN_UpdateProcThreadAttribute.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_HASH_UpdateProcThreadAttribute.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_DOMAIN_JobBasicAccounting.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_HASH_JobBasicAccounting.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_DOMAIN_CancelPendingIO.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_HASH_CancelPendingIO.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_DOMAIN_AnonymousPipes.html",
+    "pass": true
+  },
+  {
+    "id": "PRIMARY_DOCUMENT_HASH_AnonymousPipes.html",
+    "pass": true
+  },
+  {
+    "id": "DOC_CURRENT_EXECUTABLE",
+    "pass": false
+  }
+]

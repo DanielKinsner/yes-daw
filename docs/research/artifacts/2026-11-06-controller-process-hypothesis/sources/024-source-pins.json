@@ -1,0 +1,121 @@
+{
+  "schema": "OWNED_PROCESS_HYPOTHESIS_SOURCE_PINS_R1",
+  "verdict": "RECOMMEND_S1_NATIVE_SUPERVISOR_AS_CONDITIONAL_NEXT_SOURCE_DESIGN_NOT_IMPLEMENTATION_ACCEPTANCE",
+  "inputs": [
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json",
+      "bytes": 30471,
+      "sha256": "01B4289C2F8E521093987C259D15C5DD4BBF2388EFD9E594A90319C9B0BB5EE6"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/source-pins.json",
+      "bytes": 16001,
+      "sha256": "7A9C4E971FE3340ED28342CE60836DBC46A3B8FE0AE9E9E1388B011113F11C45"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary/Environment.cs",
+      "bytes": 11109,
+      "sha256": "7775CCCE66F1199DC6666BF36252D82FEBFE102D49C0DA5AC7F8DA13ABA8150F"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary/Environment.Windows.cs",
+      "bytes": 14177,
+      "sha256": "23B411301AF821AB96D762F09DDA504F77A9204F1BA9283D82A405F777F87D85"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary/Interop.GetModuleFileName.cs",
+      "bytes": 580,
+      "sha256": "339C92575CBAAFBBABD53EAD33BF362402330454203166AD00BF0D947629308C"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/ProcessManager.Win32.cs",
+      "bytes": 19296,
+      "sha256": "7DE5864A6A39EA84DDC268D9BB61472E8A9C27CD5ECF1A3A1389E418BC8AE942"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/origins.json",
+      "bytes": 1351,
+      "sha256": "DB01E0140B0D8150B04DA04B90103DBC07F4E929671047E29B4FC354A55C18D1"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary/Interop.GetModuleFileNameEx.cs",
+      "bytes": 617,
+      "sha256": "A727B74D3951122B5DC654975FB429E7DD20533CDB0284DE2DA7A2821193C6C2"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/document-origins.json",
+      "bytes": 2136,
+      "sha256": "B95A0CBAC814CCC3B1723B607B6B05BD3E82CE9E454FA83149A966525375844C"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/GetModuleFileNameW.html",
+      "bytes": 55811,
+      "sha256": "582E52B1260E24BDF39099B4E16BCF3D2C5643417B4F0ECD303BCF1FF32B4E77"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/GetModuleFileNameExW.html",
+      "bytes": 57331,
+      "sha256": "917FFA431D919C4F8700A0B595701663EA6037798AEB5418679DAB7322D6BC6A"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/JobObjects.html",
+      "bytes": 61310,
+      "sha256": "5FF20D6006F8C1D5220BE714DD5A178B3C763821A0A3E310622BE01593537365"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/UpdateProcThreadAttribute.html",
+      "bytes": 85404,
+      "sha256": "5C5EDAC3051614C7D5A86EE0FBE2757922C96EC12BB9361988B073F4968747DC"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/JobBasicAccounting.html",
+      "bytes": 52750,
+      "sha256": "C4D7350D9436073509FE73D145D43DA7F3E67AAC5C0E1F3BB180EF98A33C0117"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/CancelPendingIO.html",
+      "bytes": 62002,
+      "sha256": "F216F0B069E7A560E12A53F7F3788590F345432CCC82CD230A168A9ABD0A436F"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/AnonymousPipes.html",
+      "bytes": 50322,
+      "sha256": "451BD28B2C84755EB5CD117930BFE272E57E704746411179E687C10CFE261D5E"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/hypothesis.json",
+      "bytes": 17979,
+      "sha256": "79F75D9781519941917CA43897512121649E3776406D724971033E6ACB578AF9"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/README.md",
+      "bytes": 4759,
+      "sha256": "9C9FAF50A22480A3B26EC85E9096F63D85E8D0851C1C339A0111EF478807063B"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/checks.json",
+      "bytes": 4455,
+      "sha256": "84980A866AA4366E5285C89FFE3F5C1A7D1AC9ED926EEA62C090DC3E4F44BE88"
+    }
+  ],
+  "own_source_data_helpers": [
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/fetch-primary.py",
+      "bytes": 1307,
+      "sha256": "27796A8A8AB7D3319DCC790F0785B886EC4DE5FFA40BCFB1ABFBA401A0156628"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/fetch-documents.py",
+      "bytes": 1637,
+      "sha256": "6FA03016FFD2AF9D3DC94835394F3E75058CFB16654004AD4AD066C8D101F634"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/seal-hypothesis.py",
+      "bytes": 24981,
+      "sha256": "68893D73C28789B13FDBAEEB2DAA5B6726A517D1F41C3CDD14657278592BCD90"
+    }
+  ],
+  "no_target_source_or_execution": true
+}

@@ -1,0 +1,253 @@
+{
+  "schema": "OWN_ARCHITECTURE_SOURCE_DATA_CHECKS_V1",
+  "count": 54,
+  "checks": [
+    {
+      "id": "ADR_PROPOSED_R1_EXACT_SEAL",
+      "pass": true
+    },
+    {
+      "id": "PLAN_PROPOSED_R1_EXACT_SEAL",
+      "pass": true
+    },
+    {
+      "id": "ADR_IS_PROPOSED",
+      "pass": true
+    },
+    {
+      "id": "NO_CURRENT_IMPLEMENTATION_AUTHORITY",
+      "pass": true
+    },
+    {
+      "id": "FROZEN_HYPOTHESIS_SEAL",
+      "pass": true
+    },
+    {
+      "id": "FROZEN_HYPOTHESIS_IS_SOURCE_ONLY",
+      "pass": true
+    },
+    {
+      "id": "FROZEN_V_BASELINE_SEAL",
+      "pass": true
+    },
+    {
+      "id": "FROZEN_R12_SOURCE_SEAL",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_CORRESPONDENCE_ANCHOR_0",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_CORRESPONDENCE_ANCHOR_1",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_CORRESPONDENCE_ANCHOR_2",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_CORRESPONDENCE_ANCHOR_3",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_CORRESPONDENCE_ANCHOR_4",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_CORRESPONDENCE_ANCHOR_5",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_CORRESPONDENCE_ANCHOR_6",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_CORRESPONDENCE_ANCHOR_7",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_CORRESPONDENCE_ANCHOR_8",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_CORRESPONDENCE_ANCHOR_9",
+      "pass": true
+    },
+    {
+      "id": "BASELINE_CORRESPONDENCE_ANCHOR_10",
+      "pass": true
+    },
+    {
+      "id": "REQUEST_HEADER132",
+      "pass": true
+    },
+    {
+      "id": "REQUEST_COMPILER_STRINGS40",
+      "pass": true
+    },
+    {
+      "id": "REQUEST_COMPILER_MAX41252",
+      "pass": true
+    },
+    {
+      "id": "REQUEST_NATIVE_STRINGS18",
+      "pass": true
+    },
+    {
+      "id": "REQUEST_NATIVE_MAX18636",
+      "pass": true
+    },
+    {
+      "id": "TERMINAL224",
+      "pass": true
+    },
+    {
+      "id": "NO_POSITION_VALUES_IN224",
+      "pass": true
+    },
+    {
+      "id": "FOUR_NEW_U64_POSITIONS_WOULD_BE256",
+      "pass": true
+    },
+    {
+      "id": "EXISTING_REQUEST_RESERVATION_OFFSET_IS28",
+      "pass": true
+    },
+    {
+      "id": "EXPLICIT_LE_REQUIRED_FOR_UNALIGNED_FIELD",
+      "pass": true
+    },
+    {
+      "id": "PINNED_PRIMARY_DOCUMENT_GetModuleFileNameW.html",
+      "pass": true
+    },
+    {
+      "id": "PINNED_PRIMARY_DOCUMENT_GetModuleFileNameExW.html",
+      "pass": true
+    },
+    {
+      "id": "PINNED_PRIMARY_DOCUMENT_JobObjects.html",
+      "pass": true
+    },
+    {
+      "id": "PINNED_PRIMARY_DOCUMENT_UpdateProcThreadAttribute.html",
+      "pass": true
+    },
+    {
+      "id": "PINNED_PRIMARY_DOCUMENT_JobBasicAccounting.html",
+      "pass": true
+    },
+    {
+      "id": "PINNED_PRIMARY_DOCUMENT_CancelPendingIO.html",
+      "pass": true
+    },
+    {
+      "id": "PINNED_PRIMARY_DOCUMENT_AnonymousPipes.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_CONTRACT_UpdateProcThreadAttribute.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_CONTRACT_JobObjects.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_CONTRACT_JobBasicAccounting.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_CONTRACT_CancelPendingIO.html",
+      "pass": true
+    },
+    {
+      "id": "PRIMARY_CONTRACT_AnonymousPipes.html",
+      "pass": true
+    },
+    {
+      "id": "PARTIAL_WRITE_COUNTEREXAMPLE_COHERENT",
+      "pass": true
+    },
+    {
+      "id": "RAW_EXIT_SIGNED_PROJECTION_0",
+      "pass": true
+    },
+    {
+      "id": "RAW_EXIT_SIGNED_PROJECTION_2",
+      "pass": true
+    },
+    {
+      "id": "RAW_EXIT_SIGNED_PROJECTION_2147483647",
+      "pass": true
+    },
+    {
+      "id": "RAW_EXIT_SIGNED_PROJECTION_2147483648",
+      "pass": true
+    },
+    {
+      "id": "RAW_EXIT_SIGNED_PROJECTION_4294967295",
+      "pass": true
+    },
+    {
+      "id": "NO_TIMEOUT_POLL_LOG_FLAGS_DEFINED",
+      "pass": true
+    },
+    {
+      "id": "REQUEST_GRAMMAR_STILL_DEFERRED",
+      "pass": true
+    },
+    {
+      "id": "CROSS_FIELD_RULES_NOT_EXPLICIT_MATRIX",
+      "pass": true
+    },
+    {
+      "id": "FIVE_CONCRETE_FINDINGS",
+      "pass": true
+    },
+    {
+      "id": "WHOLE_EIGHT_COVERAGE_GROUPS",
+      "pass": true
+    },
+    {
+      "id": "SUBJECT_PRESERVED_0090-clock-research-owned-process-supervisor.md",
+      "pass": true
+    },
+    {
+      "id": "SUBJECT_PRESERVED_2026-11-06-clock-supervisor-source-plan.md",
+      "pass": true
+    }
+  ],
+  "position_counterexample": {
+    "stdout_start": 100,
+    "observed_completed_chunk": 4096,
+    "confirmed_successful_write": 0,
+    "write_failure_possible_physical_advance": 3,
+    "observed_final_position": 103,
+    "original_diagnostics": {
+      "stdout_start": 100,
+      "raw_stdout_bytes": 3,
+      "raw_bytes_retained": 0,
+      "observed_not_confirmed_retained": 4096
+    },
+    "current_terminal_pipe_fields": {
+      "observed": 4096,
+      "written": 0,
+      "omitted": 0,
+      "unretained": 4096,
+      "final_position_observed_flag": true
+    },
+    "missing": "No224-byte field carries100 or103/3, and no parent before/after stat/immutability procedure is specified. Repurposing written would erase the confirmed-write distinction."
+  },
+  "deadline_counterexample": {
+    "case_A": "Elapsed1800s body deadline reached before7200 polls: timed_out=true,poll_limited=false.",
+    "case_B": "After the7200th250ms sleep, next poll admission refuses before elapsed check: timed_out=false,poll_limited=true.",
+    "shared_terminal_class": {
+      "status": 3,
+      "primarySite": 7,
+      "native_error_observed": false
+    },
+    "gap": "No independent timed_out/poll_limited flags or semantic reason code. A generic site7 cannot project both existing booleans."
+  }
+}
