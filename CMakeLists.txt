@@ -913,6 +913,20 @@ target_link_libraries(YesDawClickPositionCacheCheck PRIVATE Catch2::Catch2WithMa
 yesdaw_harden(YesDawClickPositionCacheCheck)
 add_test(NAME YesDawClickPositionCacheCheck COMMAND $<TARGET_FILE:YesDawClickPositionCacheCheck>)
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME YesDawFrozenProofCompilePolicyCheck
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/tests/frozen-proof-compile-tests.py")
+if (CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$" AND NOT YESDAW_SANITIZER)
+  get_target_property(_yesdaw_proof_launcher YesDawClickPositionCacheCheck CXX_COMPILER_LAUNCHER)
+  if (NOT _yesdaw_proof_launcher OR _yesdaw_proof_launcher MATCHES "-NOTFOUND$")
+    set(_yesdaw_proof_launcher "")
+  endif()
+  list(LENGTH _yesdaw_proof_launcher _yesdaw_proof_launcher_count)
+  set_property(TARGET YesDawClickPositionCacheCheck PROPERTY CXX_COMPILER_LAUNCHER
+    "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/frozen-proof-compile.py"
+    --launcher-count "${_yesdaw_proof_launcher_count}" -- ${_yesdaw_proof_launcher})
+endif()
+
 # --- Scheduler/robustness check (H9; deterministic scheduled render + transport/fuzz/plugin gates) ---
 # --- Track instrument check (G3.1 / ADR-0047: N event inputs merge; one instrument per Track) ---
 add_executable(YesDawTrackInstrumentCheck tests/track_instrument_tests.cpp)
