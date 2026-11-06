@@ -1,0 +1,141 @@
+{
+  "schema": "R11_FIXED_PARSED_GRAPH_SOURCE_UPPER_R1",
+  "status": "CONDITIONAL_PARTIAL_SOURCE_EQUATIONS_NO_GLOBAL_FIT",
+  "inputs": [
+    {
+      "name": "bootstrap",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/source-manifest.json",
+      "sha256": "52E3482AF966C562CBFB5119F145B79BC762C3EA8B17D050DC9CFF96CDF54F4D",
+      "graph": {
+        "counts": {
+          "maps": 1456,
+          "arrays": 1282,
+          "fields": 6074,
+          "scalars": 7207,
+          "integer_over_Int64": 0
+        },
+        "families": {
+          "jobject": 163072,
+          "jarray": 123072,
+          "jproperty_and_list": 777472,
+          "jvalue": 461248,
+          "jcontainer_lists": 387592,
+          "jobject_dictionaries": 667264,
+          "parsed_ordered_maps": 1236144,
+          "parsed_arrays": 61728,
+          "strings": 994216,
+          "scalar_box_upper": 80928,
+          "conversion_enumerators": 191056
+        },
+        "subtotal": 5143792,
+        "omitted_not_zero": [
+          "reader/writer instance and JsonPosition stack owners",
+          "serializer/settings/resolver source-created controlled owners where contract includes them",
+          "all raw bytes/decoded inputs/reader and StringBuffer arrays",
+          "opaque general CLR heap remains unqualified, not zero"
+        ]
+      }
+    },
+    {
+      "name": "predecessor",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/runs/20261105-171222-6659395/stages/DefinitionFreeze/bundle.json",
+      "sha256": "28909B793046C026890456FA59A841DA2B75450B60AAD5E8DD3888DFCCB23E71",
+      "graph": {
+        "counts": {
+          "maps": 244,
+          "arrays": 2,
+          "fields": 1088,
+          "scalars": 1086,
+          "integer_over_Int64": 0
+        },
+        "families": {
+          "jobject": 27328,
+          "jarray": 192,
+          "jproperty_and_list": 139264,
+          "jvalue": 69504,
+          "jcontainer_lists": 46320,
+          "jobject_dictionaries": 114832,
+          "parsed_ordered_maps": 206976,
+          "parsed_arrays": 1992,
+          "strings": 221504,
+          "scalar_box_upper": 12432,
+          "conversion_enumerators": 23504
+        },
+        "subtotal": 863848,
+        "omitted_not_zero": [
+          "reader/writer instance and JsonPosition stack owners",
+          "serializer/settings/resolver source-created controlled owners where contract includes them",
+          "all raw bytes/decoded inputs/reader and StringBuffer arrays",
+          "opaque general CLR heap remains unqualified, not zero"
+        ]
+      }
+    }
+  ],
+  "layout_rule": "Pinned Windows x64 CoreCLR ordinary AutoLayout only: every primitive/reference field charged an8-byte slot, value structs recursively at their conservative field-slot widths, inherited fields retained, object header16 and round8 with minimum24. Exact compiled instance-field metadata selects JContainer event fields. This is an upper from HandleAutoLayout and ordinary base-size source, not an offset/runtime-size measurement. Reference-class normal fields have alignment<=8; no explicit layout/SIMD/COM/custom size on these types. The publicly measured array/string/Dictionary/Hashtable coefficients are separately used. All source-created old arrays retained.",
+  "class_upper_bytes": {
+    "JToken": 48,
+    "JContainer": 88,
+    "JObject": 112,
+    "JArray": 96,
+    "JProperty": 104,
+    "JPropertyList": 24,
+    "JValue": 64,
+    "JPropertyKeyedCollection_including_Collection_base": 32,
+    "List_or_ArrayList": 40,
+    "OrderedDictionary": 64,
+    "OrderedHashtable": 80,
+    "boxed_DictionaryEntry": 32
+  },
+  "hashtable_examples": [
+    {
+      "entries": 0,
+      "inserted_bucket_capacities": [
+        3
+      ]
+    },
+    {
+      "entries": 2,
+      "inserted_bucket_capacities": [
+        3
+      ]
+    },
+    {
+      "entries": 3,
+      "inserted_bucket_capacities": [
+        7
+      ]
+    },
+    {
+      "entries": 4,
+      "inserted_bucket_capacities": [
+        7
+      ]
+    },
+    {
+      "entries": 5,
+      "inserted_bucket_capacities": [
+        7
+      ]
+    },
+    {
+      "entries": 8,
+      "inserted_bucket_capacities": [
+        11,
+        23
+      ]
+    },
+    {
+      "entries": 55,
+      "inserted_bucket_capacities": [
+        89
+      ]
+    }
+  ],
+  "exact_metadata_inventory_sha256": "B50DB68E7E10D67E12D3380FCD5D528C02F80F83155F3593E8C88392227C37FD",
+  "exact_enumerator_inventory_sha256": "EA5A5F25A40F2017BD7BE223104C210887B4A3203281FA6E16445E823C6FBF80",
+  "representation_limits": "Not finite measured class sizes, no allocation delta/peak/live/reclaim observation. Token strings may alias via property-name tables but one fresh string per token safely bounds this family. No duplicate properties in these two pinned data artifacts. Arbitrary dependency/report and failure prefix need separate graph equations. Cannot transfer after changing final canonical union/manifest. All unlisted owners remain named, not zero.",
+  "no_authority": [
+    "No target execution",
+    "No binding/prices/fit/GO"
+  ]
+}

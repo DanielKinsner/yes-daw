@@ -1,0 +1,161 @@
+{
+  "schema": "R11_FIXED_DATA_READER_SOURCE_BOUND_INPUTS_R1",
+  "scope": "Independent immutable JSON DATA lexical arithmetic, no target parser/helper/SDK execution, no observed private reader capacity or global fit.",
+  "reader_source": {
+    "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/JsonTextReader.cs",
+    "sha256": "A9F79EBF4527275D5DE362DD9160F8B246CF34A5D1F767B4A978ECF420C36039"
+  },
+  "proof_status": "CONDITIONAL_SOURCE_UPPER_REQUIRES_INDEPENDENT_REVIEW",
+  "inputs": [
+    {
+      "name": "bootstrap",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/source-manifest.json",
+      "sha256": "52E3482AF966C562CBFB5119F145B79BC762C3EA8B17D050DC9CFF96CDF54F4D",
+      "raw_bytes": 499536,
+      "raw_array_request": 499560,
+      "compacted_source_string_request": 812240,
+      "lexical": {
+        "compacted_units": 406106,
+        "shift_calls": 13158,
+        "string_tokens": 11583,
+        "escaped_string_tokens": 0,
+        "max_string_wire_units": 437,
+        "max_number_units": 19,
+        "maximum_shift_gap": 438,
+        "maximum_shift_gap_start": 390074,
+        "maximum_shift_gap_end": 390512,
+        "conservative_window_units": 444,
+        "capacity_upper": 8192,
+        "all_doubling_capacities": [
+          1024,
+          2048,
+          4096,
+          8192
+        ],
+        "all_reader_array_requests_including_headers": 30816,
+        "string_buffer_requests_including_header": 0
+      },
+      "graph": {
+        "map_count": 1456,
+        "map_fields": 6074,
+        "map_field_histogram": {
+          "2": 6,
+          "3": 130,
+          "4": 1239,
+          "5": 51,
+          "6": 7,
+          "7": 1,
+          "8": 2,
+          "9": 1,
+          "10": 2,
+          "11": 1,
+          "12": 1,
+          "13": 1,
+          "14": 2,
+          "15": 1,
+          "16": 2,
+          "17": 1,
+          "22": 2,
+          "23": 1,
+          "24": 2,
+          "29": 1,
+          "40": 1,
+          "55": 1
+        },
+        "array_count": 1282,
+        "array_elements": 3870,
+        "array_length_histogram": {
+          "0": 1,
+          "1": 1218,
+          "2": 12,
+          "3": 13,
+          "4": 4,
+          "5": 9,
+          "6": 4,
+          "7": 2,
+          "8": 1,
+          "9": 1,
+          "10": 1,
+          "11": 2,
+          "12": 2,
+          "22": 1,
+          "28": 1,
+          "31": 1,
+          "49": 1,
+          "56": 1,
+          "66": 1,
+          "76": 1,
+          "91": 1,
+          "97": 1,
+          "320": 1,
+          "361": 1,
+          "1220": 1
+        },
+        "strings": 11583,
+        "string_units": 356257,
+        "string_requests": 994216,
+        "integer_count": 1575,
+        "bool_count": 111,
+        "null_count": 12
+      }
+    },
+    {
+      "name": "predecessor",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/runs/20261105-171222-6659395/stages/DefinitionFreeze/bundle.json",
+      "sha256": "28909B793046C026890456FA59A841DA2B75450B60AAD5E8DD3888DFCCB23E71",
+      "raw_bytes": 98009,
+      "raw_array_request": 98040,
+      "compacted_source_string_request": 196040,
+      "lexical": {
+        "compacted_units": 98008,
+        "shift_calls": 2167,
+        "string_tokens": 1915,
+        "escaped_string_tokens": 244,
+        "max_string_wire_units": 288,
+        "max_number_units": 11,
+        "maximum_shift_gap": 289,
+        "maximum_shift_gap_start": 43571,
+        "maximum_shift_gap_end": 43860,
+        "conservative_window_units": 295,
+        "capacity_upper": 8192,
+        "all_doubling_capacities": [
+          1024,
+          2048,
+          4096,
+          8192
+        ],
+        "all_reader_array_requests_including_headers": 30816,
+        "string_buffer_requests_including_header": 2072
+      },
+      "graph": {
+        "map_count": 244,
+        "map_fields": 1088,
+        "map_field_histogram": {
+          "4": 151,
+          "5": 92,
+          "24": 1
+        },
+        "array_count": 2,
+        "array_elements": 243,
+        "array_length_histogram": {
+          "96": 1,
+          "147": 1
+        },
+        "strings": 1915,
+        "string_units": 87443,
+        "string_requests": 221504,
+        "integer_count": 252,
+        "bool_count": 7,
+        "null_count": 0
+      }
+    }
+  ],
+  "proof": "Reader shifts before every quoted string/property (after opening quote) and number. Gap G between successive such sites, including start/end, covers every intervening literal/delimiter run and token. U=G+6 includes reached lookahead/sentinel slack. At a non-shifting site C-charPos>0.1C; C>=16U leaves >U spare, so no append replacement before the next site. At a shifting site count/positions reset. Nonappend reads retain<=5 required characters and cannot replace C>=1024. Append growth is exact doubling because required<=5. Starting at1024, C never exceeds nextPow2(max(1024,16U)); all older arrays remain charged. Source byte identity and ASCII validation make these gap facts exact for only the two pinned inputs. Generic compiler-dependency and changed manifest require separate bounds.",
+  "no_credit": [
+    "No physical free/reclaim",
+    "No whole CLR heap fit",
+    "No target parser or protocol execution",
+    "No binding/price/GO",
+    "No profile transfer after canonical input-union changes"
+  ]
+}

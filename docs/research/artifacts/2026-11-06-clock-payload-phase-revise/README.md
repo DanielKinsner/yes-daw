@@ -1,0 +1,7 @@
+# Six-phase payload proposal: independent verdict REVISE
+
+The first six-phase packet names13 ownership families and leaves residual Delta terms explicit. Independent review passed105 mechanical checks but rejected treating those equations as a complete evaluated payload bound. Selected typed partial uppers establish neither fit nor NOFIT; exceeding a cap with a loose upper is not a lower-bound counterexample.
+
+The concrete source-domain defect is that successful-main quiet-output laws do not cover admitted crash/loader/extra-output paths. The actual result reader admits up to65536 stdout bytes, nonempty stderr and empty LF lines. Stage scan counts must therefore cover0/7/264/523/782/784 rather than nominal0/7/264/267/270/272. Captured arrays/strings/slices, reader/StringBuffer capacities, clone/writer/DTO/path/environment/native-child owners and every residual must join the true prefixes and first-refusal paths. Dispose, null, scope, pool return or hypothetical GC does not refund earlier requests.
+
+The corrected successor remains in progress and must also use the new R12 functional source and final canonical inputs. This archive preserves the original conditional packet, helper sources and independent REVISE evidence unchanged in meaning. Original bytes are recoverable from archive-manifest.json. No cap or admitted domain changed; no target parser/compiler/program/stage, app window, desktop input or audio/MIDI device ran. Complete payload fit, binding and execution remain held.

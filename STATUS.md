@@ -106,6 +106,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-06 - Preserve the rejected first payload-phase proposal
+
+- Archived24 original phase/helper/review records. Independent review is REVISE: named residual equations are not an evaluated whole payload bound.
+- Crash/loader/extra-output paths require later stage scan counts523/782/784, beyond the successful-main quiet-output counts. Caps and failure domain remain unchanged.
+- The corrected R12 join is in progress, including controlled stored boxes, native-child payload and first-refusal ownership. No fit, NOFIT, binding or execution is certified; continue headlessly.
+
 ## 2026-11-06 - Preserve conditional controller environment closure
 
 - Archived12 source/checker/review records with the complete1,245-file primary-source inventory; independent conditional review passed1,293 checks.

@@ -1,0 +1,896 @@
+{
+  "schema": "R11_PHASE_PACKET_INDEPENDENT_DATA_SOURCE_ARITHMETIC_REVIEW_R1",
+  "check_count": 105,
+  "checks": [
+    {
+      "name": "external_packet_pin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/derive-fixed-graphs.py",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/derive-fixed-inputs.py",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/derive-phases.py",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/fixed-graphs.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/fixed-inputs.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/phases.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/array-enumerators-source.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/Array.Enumerators.cs",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/methodtablebuilder-source.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/methodtablebuilder.cpp",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/object-source.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/object.h",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/powershell-OrderedHashtable.cs",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/reader-bound.md",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/report.md",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/seal.py",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/source-owner-sites.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/source-manifest.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/run-clock.ps1",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/clock_stage.cpp",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/source-pins.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/review-pins.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-managed-payload-abi-probe-source-r2/execution-r1/receipt.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-managed-file-type-inventory-source-r1/execution-r2/inventory.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-managed-file-type-inventory-source-r2/source-pins.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-managed-file-type-inventory-source-r2/execution-r1/inventory.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/collection-primary-sources.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/codec-primary-sources.json",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/JsonTextReader.cs",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-json-primary-sources/powershell-JsonObject.cs",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Hashtable.cs",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "raw_pin:build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/List.cs",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "compacted_data_value:bootstrap",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "fixed_input:bootstrap:raw_bytes",
+      "pass": true,
+      "detail": 499536
+    },
+    {
+      "name": "fixed_input:bootstrap:raw_array_request",
+      "pass": true,
+      "detail": 499560
+    },
+    {
+      "name": "fixed_input:bootstrap:compacted_source_string_request",
+      "pass": true,
+      "detail": 812240
+    },
+    {
+      "name": "fixed_input:bootstrap:compacted_units",
+      "pass": true,
+      "detail": 406106
+    },
+    {
+      "name": "fixed_input:bootstrap:maximum_shift_gap",
+      "pass": true,
+      "detail": 438
+    },
+    {
+      "name": "fixed_input:bootstrap:capacity_upper",
+      "pass": true,
+      "detail": 8192
+    },
+    {
+      "name": "fixed_input:bootstrap:all_reader_array_requests_including_headers",
+      "pass": true,
+      "detail": 30816
+    },
+    {
+      "name": "compacted_data_value:predecessor",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "fixed_input:predecessor:raw_bytes",
+      "pass": true,
+      "detail": 98009
+    },
+    {
+      "name": "fixed_input:predecessor:raw_array_request",
+      "pass": true,
+      "detail": 98040
+    },
+    {
+      "name": "fixed_input:predecessor:compacted_source_string_request",
+      "pass": true,
+      "detail": 196040
+    },
+    {
+      "name": "fixed_input:predecessor:compacted_units",
+      "pass": true,
+      "detail": 98008
+    },
+    {
+      "name": "fixed_input:predecessor:maximum_shift_gap",
+      "pass": true,
+      "detail": 289
+    },
+    {
+      "name": "fixed_input:predecessor:capacity_upper",
+      "pass": true,
+      "detail": 8192
+    },
+    {
+      "name": "fixed_input:predecessor:all_reader_array_requests_including_headers",
+      "pass": true,
+      "detail": 30816
+    },
+    {
+      "name": "fixed_graph_families:bootstrap",
+      "pass": true,
+      "detail": {
+        "jobject": 163072,
+        "jproperty_and_list": 777472,
+        "conversion_enumerators": 191056,
+        "jcontainer_lists": 387592,
+        "jobject_dictionaries": 667264,
+        "parsed_ordered_maps": 1236144,
+        "strings": 994216,
+        "jvalue": 461248,
+        "scalar_box_upper": 80928,
+        "jarray": 123072,
+        "parsed_arrays": 61728
+      }
+    },
+    {
+      "name": "fixed_graph_subtotal:bootstrap",
+      "pass": true,
+      "detail": 5143792
+    },
+    {
+      "name": "fixed_graph_count:bootstrap:maps",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "fixed_graph_count:bootstrap:fields",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "fixed_graph_count:bootstrap:scalars",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "fixed_graph_count:bootstrap:arrays",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "fixed_graph_families:predecessor",
+      "pass": true,
+      "detail": {
+        "jobject": 27328,
+        "jproperty_and_list": 139264,
+        "conversion_enumerators": 23504,
+        "jcontainer_lists": 46320,
+        "jobject_dictionaries": 114832,
+        "parsed_ordered_maps": 206976,
+        "strings": 221504,
+        "jvalue": 69504,
+        "scalar_box_upper": 12432,
+        "jarray": 192,
+        "parsed_arrays": 1992
+      }
+    },
+    {
+      "name": "fixed_graph_subtotal:predecessor",
+      "pass": true,
+      "detail": 863848
+    },
+    {
+      "name": "fixed_graph_count:predecessor:maps",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "fixed_graph_count:predecessor:fields",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "fixed_graph_count:predecessor:scalars",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "fixed_graph_count:predecessor:arrays",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "htable_insertion8",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "htable_fixed_maps_under_collision_threshold",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_walker_rows:P0",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_directory_iterations:P0",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_hashes:P0",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_selected_family_sum:P0",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_typed_join:P0",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_walker_rows:P1",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_directory_iterations:P1",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_hashes:P1",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_selected_family_sum:P1",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_typed_join:P1",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_walker_rows:P2",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_directory_iterations:P2",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_hashes:P2",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_selected_family_sum:P2",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_typed_join:P2",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_walker_rows:P3",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_directory_iterations:P3",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_hashes:P3",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_selected_family_sum:P3",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_typed_join:P3",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_walker_rows:P4",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_directory_iterations:P4",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_hashes:P4",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_selected_family_sum:P4",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_typed_join:P4",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_walker_rows:P5",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_directory_iterations:P5",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_hashes:P5",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_selected_family_sum:P5",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "nominal_typed_join:P5",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "namespace_row_recipe",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "namespace_directory_recipe",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "owner_text_inventory187",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "thirteen_named_residual_families",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "writer_doc_loose_upper_arithmetic",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "hash_carrier_proposal_only_arithmetic",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "contract_pin",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "stdout_guard_only",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "empty_LF_slices_skipped",
+      "pass": true,
+      "detail": null
+    }
+  ],
+  "failures": [],
+  "verified_input_pins": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/derive-fixed-graphs.py",
+      "bytes": 8577,
+      "sha256": "678E2314CE1DF7A99C5FAD29715EA60210869B1B4094C1F5F1C401CBB3840E4A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/derive-fixed-inputs.py",
+      "bytes": 8206,
+      "sha256": "90D732C8EA8300B1D75731FFB36343ADBD64524242720CA308DD616E1E7568E7"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/derive-phases.py",
+      "bytes": 17414,
+      "sha256": "B504F5645A097FF0D72EF6DB236600242DFCEC7A8AFFB2AA056C57B42F34C8E8"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/fixed-graphs.json",
+      "bytes": 5160,
+      "sha256": "273425A9D93E3592C7389B25005CFC51CDBFD1E7D638D2662530FB2AEB2A8B48"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/fixed-inputs.json",
+      "bytes": 5451,
+      "sha256": "AA9331358E90A402CCBE77D96C81B8BF8D6F4ACFDB4DFDF2227F22FE224C1477"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/phases.json",
+      "bytes": 19528,
+      "sha256": "EB245E1845CB1FBCF49234228DE313B6277F9473BFF811AB5F92EDDF99B91526"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/array-enumerators-source.json",
+      "bytes": 287,
+      "sha256": "212A008DFA3756BD55A59E089140DF051EB2725731EACFBA9213542C5B47EED5"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/Array.Enumerators.cs",
+      "bytes": 5085,
+      "sha256": "98205FA16B5E6F9C3B2F321AC4F98CEF967E0DF02EE2B0B8DE934020326E8B5C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/methodtablebuilder-source.json",
+      "bytes": 363,
+      "sha256": "D0589A70D40E7F0D34A7F77A4ACA39C88818016AE23C1DD4D30B3CEE85F49BE7"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/methodtablebuilder.cpp",
+      "bytes": 523219,
+      "sha256": "5CF474871165D7929C3A0A65B5B2111A3ACB2F580E2BF3F209EFFA224690F4E3"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/object-source.json",
+      "bytes": 243,
+      "sha256": "1AE1FF37BC02D5F97EFBF5F01C98F0A1F2541C8C9830649FD7D6D324EA7D7E62"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/object.h",
+      "bytes": 77019,
+      "sha256": "2E8A83DC0D88E87892D5406ABEC00E49E05323FEF0830BABD13DA38F9DDAB813"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/powershell-OrderedHashtable.cs",
+      "bytes": 7168,
+      "sha256": "3EBA4DCF974F671A29828E0B0D9D878E413BCB50BA56C17F7D9A67A0CF315953"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/reader-bound.md",
+      "bytes": 4037,
+      "sha256": "84860B5A94AFE96F95651692DFF6388EAE17CD98720178ECF2381EF4039F3E15"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/report.md",
+      "bytes": 9267,
+      "sha256": "E247A5479F986165C8554BBD1C2CBF343CFC75F2D7277C4AE5F7913926D97930"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/seal.py",
+      "bytes": 4819,
+      "sha256": "7AEEA05F326A1849C84A6484F478951A50B2E51CE825FBB6980B558B67429305"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/source-owner-sites.json",
+      "bytes": 59886,
+      "sha256": "BF85DDF12629EE63DD140702FAB4FA4801EE16F5816BA110DEA12158385F8A69"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/source-manifest.json",
+      "bytes": 499536,
+      "sha256": "52E3482AF966C562CBFB5119F145B79BC762C3EA8B17D050DC9CFF96CDF54F4D"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/run-clock.ps1",
+      "bytes": 104162,
+      "sha256": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/source-pins.json",
+      "bytes": 5096,
+      "sha256": "4ED7FBFC23870A0FD8F1A05DCB11FCC92CE3A74C41B39FD1DFD8F65F2233EF3B"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "bytes": 143375,
+      "sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/review-pins.json",
+      "bytes": 6227,
+      "sha256": "C9AC2C6D0D3C18C1BC03FA009E45BF4547CCB86AD07347DFC8C3240FFDCB0C29"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/execution-r1/receipt.json",
+      "bytes": 2316,
+      "sha256": "39A59FC9C42715C339B6F2AD7AB1456B3850F645A6E884F9CBDC2144A3189A50"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r1/execution-r2/inventory.json",
+      "bytes": 35291,
+      "sha256": "B50DB68E7E10D67E12D3380FCD5D528C02F80F83155F3593E8C88392227C37FD"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r2/source-pins.json",
+      "bytes": 8712,
+      "sha256": "72F84E45F43CB4ED86E91B6C1CCB464A904E043E5338FAF941C47284E69DC7DC"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r2/execution-r1/inventory.json",
+      "bytes": 41601,
+      "sha256": "EA5A5F25A40F2017BD7BE223104C210887B4A3203281FA6E16445E823C6FBF80"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/collection-primary-sources.json",
+      "bytes": 1854,
+      "sha256": "F5AE94FCC7CEE69C334D0BB5746389AD454F5AD4EBB3A6BA751458EF4ABD4AA0"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/codec-primary-sources.json",
+      "bytes": 2668,
+      "sha256": "6191D44BAC343814028802C4E8C75E07E7BAC3051FB3055B777A917A3A4DD419"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/JsonTextReader.cs",
+      "bytes": 101923,
+      "sha256": "A9F79EBF4527275D5DE362DD9160F8B246CF34A5D1F767B4A978ECF420C36039"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/powershell-JsonObject.cs",
+      "bytes": 37049,
+      "sha256": "B0673F6376217F1104293297F0B2E3C7C9F928045F8435CD93865EF024E287B0"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "bytes": 5167,
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Hashtable.cs",
+      "bytes": 63165,
+      "sha256": "BC06B72D387FAE36844C63ADA61D0AB5BC447E9710AA3891906EE4E923DE674C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "bytes": 93117,
+      "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/List.cs",
+      "bytes": 43437,
+      "sha256": "1346574BE64B5708F97AAA196AD474A63FF52F6D977D7AE18C366A600766F036"
+    }
+  ],
+  "fixed_lexical_recompute": [
+    {
+      "raw_bytes": 499536,
+      "raw_array_request": 499560,
+      "compacted_source_string_request": 812240,
+      "compacted_units": 406106,
+      "maximum_shift_gap": 438,
+      "capacity_upper": 8192,
+      "all_reader_array_requests_including_headers": 30816
+    },
+    {
+      "raw_bytes": 98009,
+      "raw_array_request": 98040,
+      "compacted_source_string_request": 196040,
+      "compacted_units": 98008,
+      "maximum_shift_gap": 289,
+      "capacity_upper": 8192,
+      "all_reader_array_requests_including_headers": 30816
+    }
+  ],
+  "fixed_graph_recompute": [
+    {
+      "name": "bootstrap",
+      "families": {
+        "jobject": 163072,
+        "jproperty_and_list": 777472,
+        "conversion_enumerators": 191056,
+        "jcontainer_lists": 387592,
+        "jobject_dictionaries": 667264,
+        "parsed_ordered_maps": 1236144,
+        "strings": 994216,
+        "jvalue": 461248,
+        "scalar_box_upper": 80928,
+        "jarray": 123072,
+        "parsed_arrays": 61728
+      },
+      "subtotal": 5143792
+    },
+    {
+      "name": "predecessor",
+      "families": {
+        "jobject": 27328,
+        "jproperty_and_list": 139264,
+        "conversion_enumerators": 23504,
+        "jcontainer_lists": 46320,
+        "jobject_dictionaries": 114832,
+        "parsed_ordered_maps": 206976,
+        "strings": 221504,
+        "jvalue": 69504,
+        "scalar_box_upper": 12432,
+        "jarray": 192,
+        "parsed_arrays": 1992
+      },
+      "subtotal": 863848
+    }
+  ],
+  "nominal_phase_recompute": [
+    {
+      "id": "P0",
+      "stage_calls": 0,
+      "E": 1124,
+      "D": 721,
+      "H": 1225,
+      "selected": 1048736,
+      "typed_partial": 8728032
+    },
+    {
+      "id": "P1",
+      "stage_calls": 7,
+      "E": 1247,
+      "D": 807,
+      "H": 1228,
+      "selected": 1083296,
+      "typed_partial": 8762592
+    },
+    {
+      "id": "P2",
+      "stage_calls": 264,
+      "E": 5039,
+      "D": 2505,
+      "H": 3685,
+      "selected": 3823064,
+      "typed_partial": 25134136
+    },
+    {
+      "id": "P3",
+      "stage_calls": 267,
+      "E": 7363,
+      "D": 4009,
+      "H": 6192,
+      "selected": 6251408,
+      "typed_partial": 27576248
+    },
+    {
+      "id": "P4",
+      "stage_calls": 270,
+      "E": 10892,
+      "D": 6313,
+      "H": 9931,
+      "selected": 9754760,
+      "typed_partial": 31118164
+    },
+    {
+      "id": "P5",
+      "stage_calls": 272,
+      "E": 10904,
+      "D": 6315,
+      "H": 9936,
+      "selected": 9759376,
+      "typed_partial": 31122780
+    }
+  ],
+  "cap_domain_alternatives": [
+    {
+      "id": "P0",
+      "cap_domain_stage_calls": 0,
+      "reported_stage_calls": 0,
+      "additional_stage_calls": 0,
+      "additional_selected_row_slots": 0,
+      "additional_selected_requests_before_other_residuals": 0
+    },
+    {
+      "id": "P1",
+      "cap_domain_stage_calls": 7,
+      "reported_stage_calls": 7,
+      "additional_stage_calls": 0,
+      "additional_selected_row_slots": 0,
+      "additional_selected_requests_before_other_residuals": 0
+    },
+    {
+      "id": "P2",
+      "cap_domain_stage_calls": 264,
+      "reported_stage_calls": 264,
+      "additional_stage_calls": 0,
+      "additional_selected_row_slots": 0,
+      "additional_selected_requests_before_other_residuals": 0
+    },
+    {
+      "id": "P3",
+      "cap_domain_stage_calls": 523,
+      "reported_stage_calls": 267,
+      "additional_stage_calls": 256,
+      "additional_selected_row_slots": 1536,
+      "additional_selected_requests_before_other_residuals": 350208
+    },
+    {
+      "id": "P4",
+      "cap_domain_stage_calls": 782,
+      "reported_stage_calls": 270,
+      "additional_stage_calls": 512,
+      "additional_selected_row_slots": 3072,
+      "additional_selected_requests_before_other_residuals": 700416
+    },
+    {
+      "id": "P5",
+      "cap_domain_stage_calls": 784,
+      "reported_stage_calls": 272,
+      "additional_stage_calls": 512,
+      "additional_selected_row_slots": 3072,
+      "additional_selected_requests_before_other_residuals": 700416
+    }
+  ],
+  "meaning": "Arithmetic reproduces nominal conditional worksheet, not source proof of its quiet-output premise or a whole numeric capacity upper. No author helper/target invoked."
+}

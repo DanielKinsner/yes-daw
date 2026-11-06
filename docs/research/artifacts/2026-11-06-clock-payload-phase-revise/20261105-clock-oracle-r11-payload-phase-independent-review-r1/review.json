@@ -1,0 +1,193 @@
+{
+  "schema": "R11_SIX_PHASE_PAYLOAD_WHOLE_INDEPENDENT_SOURCE_REVIEW_R1",
+  "verdict": "REVISE_WHOLE_CONDITIONAL_JOIN_UNCLOSED_NATIVE_OUTPUT_CAP_DOMAIN_BRANCHES",
+  "subject_manifest_sha256": "4D8B292BA5096826E21E9F16806CFDF36C26383DFCD35FFF67927FFA692AB61D",
+  "report_sha256": "E247A5479F986165C8554BBD1C2CBF343CFC75F2D7277C4AE5F7913926D97930",
+  "phases_sha256": "EB245E1845CB1FBCF49234228DE313B6277F9473BFF811AB5F92EDDF99B91526",
+  "arithmetic_checks": 105,
+  "arithmetic_failures": [],
+  "whole_source_verdict_is_not_arithmetic_pass": true,
+  "blocking_findings": [
+    {
+      "id": "F1",
+      "title": "Main-only native output law is not a full admitted-output/failure qualification",
+      "source": "run-clock.ps1 Invoke-TaskChild158..232,Get-TaskStageBytes690..692,Read-TaskChildResult788..836,main/finally/failure source paths",
+      "mechanism": "Every child retains up to1MiB through4096-minimum reads, permitting257 positive stage admissions. ReadChildResult only bounds stdout<=65536, skips empty LF slices and never rejects stderr. Native crash/loader/extra-success-noise output is not closed by the own-main1064/2662/1294 law.",
+      "affected_phases": [
+        "P3",
+        "P4",
+        "P5"
+      ],
+      "required": "Keep the existing small-output branch conditional; join finite cap-domain alternatives or separately prove an exact supported output premise. No source narrowing/cap change.",
+      "cap_domain_alternatives": [
+        {
+          "id": "P0",
+          "cap_domain_stage_calls": 0,
+          "reported_stage_calls": 0,
+          "additional_stage_calls": 0,
+          "additional_selected_row_slots": 0,
+          "additional_selected_requests_before_other_residuals": 0
+        },
+        {
+          "id": "P1",
+          "cap_domain_stage_calls": 7,
+          "reported_stage_calls": 7,
+          "additional_stage_calls": 0,
+          "additional_selected_row_slots": 0,
+          "additional_selected_requests_before_other_residuals": 0
+        },
+        {
+          "id": "P2",
+          "cap_domain_stage_calls": 264,
+          "reported_stage_calls": 264,
+          "additional_stage_calls": 0,
+          "additional_selected_row_slots": 0,
+          "additional_selected_requests_before_other_residuals": 0
+        },
+        {
+          "id": "P3",
+          "cap_domain_stage_calls": 523,
+          "reported_stage_calls": 267,
+          "additional_stage_calls": 256,
+          "additional_selected_row_slots": 1536,
+          "additional_selected_requests_before_other_residuals": 350208
+        },
+        {
+          "id": "P4",
+          "cap_domain_stage_calls": 782,
+          "reported_stage_calls": 270,
+          "additional_stage_calls": 512,
+          "additional_selected_row_slots": 3072,
+          "additional_selected_requests_before_other_residuals": 700416
+        },
+        {
+          "id": "P5",
+          "cap_domain_stage_calls": 784,
+          "reported_stage_calls": 272,
+          "additional_stage_calls": 512,
+          "additional_selected_row_slots": 3072,
+          "additional_selected_requests_before_other_residuals": 700416
+        }
+      ],
+      "simpler_failed_exit_alternatives": {
+        "failed_producer_stage_calls": 521,
+        "failed_verifier_after_quiet_producer_stage_calls": 524
+      },
+      "affected_selected_and_residual_families": [
+        "W tuple/queued-map/stored-scalar families",
+        "A stage-six-name arrays",
+        "W/A List/Queue/ToArray/pipeline owners",
+        "P/V fresh paths/iterators",
+        "E refusal/footer owners",
+        "R native original captures and source/slice strings",
+        "J native reader/StringBuffer arrays and parsed/instance owners"
+      ],
+      "no_total_undercount_or_NOFIT_inference": true
+    },
+    {
+      "id": "F2",
+      "title": "Residual exclusions do not explicitly restore the excess selected owners",
+      "mechanism": "Delta excludes selected row/box/stage-array and native capture/reader subfamilies after charging only main-law constants. A V stream-buffer or J generic-graph/instance term does not itself specify their missing excess.",
+      "required": "Recompose affected branches or add explicit nonzero source-indexed excess equations, including all additional container/copy/iterator/path/error ownership. Other loose upper slack is no proof of the separately stated counts.",
+      "same_underlying_output_premise_as_F1": true
+    }
+  ],
+  "phase_assessment": [
+    {
+      "id": "P0",
+      "nominal_typed_partial": 8728032,
+      "nominal_arithmetic_reproduced": true,
+      "count_scope": "Source-supported counted-family prefix; all residuals still unclosed"
+    },
+    {
+      "id": "P1",
+      "nominal_typed_partial": 8762592,
+      "nominal_arithmetic_reproduced": true,
+      "count_scope": "Source-supported counted-family prefix; all residuals still unclosed"
+    },
+    {
+      "id": "P2",
+      "nominal_typed_partial": 25134136,
+      "nominal_arithmetic_reproduced": true,
+      "count_scope": "Source-supported counted-family prefix; all residuals still unclosed"
+    },
+    {
+      "id": "P3",
+      "nominal_typed_partial": 27576248,
+      "nominal_arithmetic_reproduced": true,
+      "count_scope": "Conditional on unclosed native quiet-output law; cap-domain alternative required"
+    },
+    {
+      "id": "P4",
+      "nominal_typed_partial": 31118164,
+      "nominal_arithmetic_reproduced": true,
+      "count_scope": "Conditional on unclosed native quiet-output law; cap-domain alternative required"
+    },
+    {
+      "id": "P5",
+      "nominal_typed_partial": 31122780,
+      "nominal_arithmetic_reproduced": true,
+      "count_scope": "Conditional on unclosed native quiet-output law; cap-domain alternative required"
+    }
+  ],
+  "supported_partial_equations": {
+    "fixed_data_lexical_scans": [
+      {
+        "raw_bytes": 499536,
+        "raw_array_request": 499560,
+        "compacted_source_string_request": 812240,
+        "compacted_units": 406106,
+        "maximum_shift_gap": 438,
+        "capacity_upper": 8192,
+        "all_reader_array_requests_including_headers": 30816
+      },
+      {
+        "raw_bytes": 98009,
+        "raw_array_request": 98040,
+        "compacted_source_string_request": 196040,
+        "compacted_units": 98008,
+        "maximum_shift_gap": 289,
+        "capacity_upper": 8192,
+        "all_reader_array_requests_including_headers": 30816
+      }
+    ],
+    "fixed_graph_subtotals": [
+      5143792,
+      863848
+    ],
+    "reader_fixed_capacity": 8192,
+    "reader_fixed_all_arrays_each": 30816,
+    "reader_generic_report_U": 21966,
+    "reader_generic_report_capacity": 262144,
+    "reader_generic_report_old_arrays": 1046744,
+    "native_16_initial_arrays_33152": "Main-only wire conditional, not universal admitted-output branch",
+    "full_reader1141528_and_StringBuffer6216": "Nominal arithmetic only pending the native-output premise",
+    "hashtable8_insertions": "11 buckets then23; unused OrderedHashtable base bucket arrays included",
+    "layout_scope": "Selected ordinary x64 source/compiled-field-shape association; conservative class-slot/value-packing uppers, not observed offsets or physical class sizes",
+    "iterator_scope": "Actual JObject state/KeyValuePair/this/inner fields; List reference enumerator24-value/40-boxed selected sequential case; other iterators and instance/stack owners remain named residuals",
+    "source_owner_candidates187": "Exact text marker index reproduces; not a complete source allocator/binder census",
+    "residual_families13": "All named and not assigned0; their index is not thirteen evaluated finite equations or a closed allocation ownership proof",
+    "normal_hashes9936_FileSet259_clone11082_writer_document34410869": "Nominal worksheets/arithmetic, not a whole source or capacity acceptance"
+  },
+  "remaining_source_qualifications": [
+    "Every13-family site/capacity/copy/box/iterator/codec/exception-witness ownership and disjoint subtraction; restore all cap-domain excess",
+    "Generic dependency and native parsed graphs,UInt64/BigInteger extra owners,reader/writer/position-stack/serializer/settings source owners",
+    "Exact PS literal/compiler/pipeline/binder/typed/ToArray copies remain controlled payload despite opaque primitive CPU/general heap",
+    "Canonical original-path input/source/contract/census/review/resource/binding union and fixed-root catalogue geometry; no old1458/187423/453759 transfer",
+    "Successful and first-refusing directory/path/native-pool capacities,unknown andtilde fallback,all fresh filesystem/hash checks",
+    "Per-child incoming native environment/key/value/Hashtable/Dictionary capture plus poststartup/import/config writers;14-key seed and8-key outgoing set are not incoming bounds",
+    "Explicit gate/witness/Data carrier/DTO/footer/copy terms stay nonzero controlled obligations; opaque Exception/ErrorRecord general heap remains unqualified under exact accepted contract",
+    "All request lifetimes are cumulative; no null/scope/Clear/Dispose/ReturnBuffer/assumedGC physical release credit"
+  ],
+  "classification": {
+    "global_numeric_upper": false,
+    "fit": false,
+    "NOFIT": false,
+    "actual_coexisting_lower": false,
+    "physical_RSS_or_reclaim": false,
+    "source_prices_or_Data_binding": false,
+    "execution_GO": false
+  },
+  "preservation": "Subject,all earlier packets and target source unchanged; provisional R11 allguardsfalse/unrun. No source/domain/cap amendment authorized by this review.",
+  "operations": "Independent ordinary file/source/data JSON/hash/string/integer arithmetic only. No subject helper imported/executed; no target PS parse/AST/import/compiler/program/stage/assembly/native/GUI/device/Git/CI."
+}

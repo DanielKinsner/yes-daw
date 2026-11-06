@@ -1,0 +1,241 @@
+{
+  "schema": "R11_SIX_PHASE_PAYLOAD_INDEPENDENT_WHOLE_REVIEW_PINS_R1",
+  "verdict": "REVISE_WHOLE_CONDITIONAL_JOIN_UNCLOSED_NATIVE_OUTPUT_CAP_DOMAIN_BRANCHES",
+  "subject_pins": {
+    "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/source-pins.json",
+    "bytes": 10653,
+    "sha256": "4D8B292BA5096826E21E9F16806CFDF36C26383DFCD35FFF67927FFA692AB61D"
+  },
+  "verified_subject_and_input_files": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/derive-fixed-graphs.py",
+      "bytes": 8577,
+      "sha256": "678E2314CE1DF7A99C5FAD29715EA60210869B1B4094C1F5F1C401CBB3840E4A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/derive-fixed-inputs.py",
+      "bytes": 8206,
+      "sha256": "90D732C8EA8300B1D75731FFB36343ADBD64524242720CA308DD616E1E7568E7"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/derive-phases.py",
+      "bytes": 17414,
+      "sha256": "B504F5645A097FF0D72EF6DB236600242DFCEC7A8AFFB2AA056C57B42F34C8E8"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/fixed-graphs.json",
+      "bytes": 5160,
+      "sha256": "273425A9D93E3592C7389B25005CFC51CDBFD1E7D638D2662530FB2AEB2A8B48"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/fixed-inputs.json",
+      "bytes": 5451,
+      "sha256": "AA9331358E90A402CCBE77D96C81B8BF8D6F4ACFDB4DFDF2227F22FE224C1477"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/phases.json",
+      "bytes": 19528,
+      "sha256": "EB245E1845CB1FBCF49234228DE313B6277F9473BFF811AB5F92EDDF99B91526"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/array-enumerators-source.json",
+      "bytes": 287,
+      "sha256": "212A008DFA3756BD55A59E089140DF051EB2725731EACFBA9213542C5B47EED5"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/Array.Enumerators.cs",
+      "bytes": 5085,
+      "sha256": "98205FA16B5E6F9C3B2F321AC4F98CEF967E0DF02EE2B0B8DE934020326E8B5C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/methodtablebuilder-source.json",
+      "bytes": 363,
+      "sha256": "D0589A70D40E7F0D34A7F77A4ACA39C88818016AE23C1DD4D30B3CEE85F49BE7"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/methodtablebuilder.cpp",
+      "bytes": 523219,
+      "sha256": "5CF474871165D7929C3A0A65B5B2111A3ACB2F580E2BF3F209EFFA224690F4E3"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/object-source.json",
+      "bytes": 243,
+      "sha256": "1AE1FF37BC02D5F97EFBF5F01C98F0A1F2541C8C9830649FD7D6D324EA7D7E62"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/object.h",
+      "bytes": 77019,
+      "sha256": "2E8A83DC0D88E87892D5406ABEC00E49E05323FEF0830BABD13DA38F9DDAB813"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/primary-sources/powershell-OrderedHashtable.cs",
+      "bytes": 7168,
+      "sha256": "3EBA4DCF974F671A29828E0B0D9D878E413BCB50BA56C17F7D9A67A0CF315953"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/reader-bound.md",
+      "bytes": 4037,
+      "sha256": "84860B5A94AFE96F95651692DFF6388EAE17CD98720178ECF2381EF4039F3E15"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/report.md",
+      "bytes": 9267,
+      "sha256": "E247A5479F986165C8554BBD1C2CBF343CFC75F2D7277C4AE5F7913926D97930"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/seal.py",
+      "bytes": 4819,
+      "sha256": "7AEEA05F326A1849C84A6484F478951A50B2E51CE825FBB6980B558B67429305"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/source-owner-sites.json",
+      "bytes": 59886,
+      "sha256": "BF85DDF12629EE63DD140702FAB4FA4801EE16F5816BA110DEA12158385F8A69"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/source-manifest.json",
+      "bytes": 499536,
+      "sha256": "52E3482AF966C562CBFB5119F145B79BC762C3EA8B17D050DC9CFF96CDF54F4D"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/run-clock.ps1",
+      "bytes": 104162,
+      "sha256": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/source-pins.json",
+      "bytes": 5096,
+      "sha256": "4ED7FBFC23870A0FD8F1A05DCB11FCC92CE3A74C41B39FD1DFD8F65F2233EF3B"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "bytes": 143375,
+      "sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/review-pins.json",
+      "bytes": 6227,
+      "sha256": "C9AC2C6D0D3C18C1BC03FA009E45BF4547CCB86AD07347DFC8C3240FFDCB0C29"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/execution-r1/receipt.json",
+      "bytes": 2316,
+      "sha256": "39A59FC9C42715C339B6F2AD7AB1456B3850F645A6E884F9CBDC2144A3189A50"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r1/execution-r2/inventory.json",
+      "bytes": 35291,
+      "sha256": "B50DB68E7E10D67E12D3380FCD5D528C02F80F83155F3593E8C88392227C37FD"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r2/source-pins.json",
+      "bytes": 8712,
+      "sha256": "72F84E45F43CB4ED86E91B6C1CCB464A904E043E5338FAF941C47284E69DC7DC"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r2/execution-r1/inventory.json",
+      "bytes": 41601,
+      "sha256": "EA5A5F25A40F2017BD7BE223104C210887B4A3203281FA6E16445E823C6FBF80"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/collection-primary-sources.json",
+      "bytes": 1854,
+      "sha256": "F5AE94FCC7CEE69C334D0BB5746389AD454F5AD4EBB3A6BA751458EF4ABD4AA0"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/codec-primary-sources.json",
+      "bytes": 2668,
+      "sha256": "6191D44BAC343814028802C4E8C75E07E7BAC3051FB3055B777A917A3A4DD419"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/JsonTextReader.cs",
+      "bytes": 101923,
+      "sha256": "A9F79EBF4527275D5DE362DD9160F8B246CF34A5D1F767B4A978ECF420C36039"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/powershell-JsonObject.cs",
+      "bytes": 37049,
+      "sha256": "B0673F6376217F1104293297F0B2E3C7C9F928045F8435CD93865EF024E287B0"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "bytes": 5167,
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Hashtable.cs",
+      "bytes": 63165,
+      "sha256": "BC06B72D387FAE36844C63ADA61D0AB5BC447E9710AA3891906EE4E923DE674C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "bytes": 93117,
+      "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/List.cs",
+      "bytes": 43437,
+      "sha256": "1346574BE64B5708F97AAA196AD474A63FF52F6D977D7AE18C366A600766F036"
+    }
+  ],
+  "additional_source_reads": [
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/primary-sources/ArrayList.cs",
+      "bytes": 91650,
+      "sha256": "99072C93345E43B487250931548039DD419A8E02F6C63BD73D39AC1CC6F89BAC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/primary-sources/OrderedDictionary.cs",
+      "bytes": 23159,
+      "sha256": "E369315F40BD415CFC2514CEB35DC32D9C3A8A3103FEB51B54F5FCDE87045786"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/primary-sources/JTokenWriter.cs",
+      "bytes": 17989,
+      "sha256": "3320A0118184D75F22C510616C959B6A45A168CBC72BD8E72D4EAC9DBE8B767C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/primary-sources/JsonSerializerInternalReader.cs",
+      "bytes": 125104,
+      "sha256": "0EFFC6DD400D90679FDCDBF48525D851FE93A790E14F648F8B163762B2E67CF0"
+    }
+  ],
+  "review_evidence": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-independent-review-r1/audit.py",
+      "bytes": 8963,
+      "sha256": "BFFCBE1B2E8C4CA54493A63C358785FE7BE4FADF9D0E095F3B41383762280C46"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-independent-review-r1/mechanical-evidence.json",
+      "bytes": 26104,
+      "sha256": "BE79C50069CAD7B8FC1E7478FF51536B4AB3EC15615C6B63A015A927C719BCE8"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-independent-review-r1/review.json",
+      "bytes": 9714,
+      "sha256": "10E3A83BF991AA1D5B19AF83A214DF2527F6372926E1322D0AA9051C4652C170"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-independent-review-r1/review.md",
+      "bytes": 12509,
+      "sha256": "0661306BE3DC17AAAEE863970313CE4A66781339F9A74C6E11F38C0DE6F47BD8"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-independent-review-r1/seal.py",
+      "bytes": 8313,
+      "sha256": "4D35B512196C0C1941CD1C5D1710E6FD01E6C9AFCE6B683FA8C7B9C5918F8312"
+    }
+  ],
+  "scope": "Whole REVISE of conditional join. Nominal arithmetic and fixed source/data partial equations only; no fit/NOFIT/global numerical upper, Data orGO. Subject unchanged."
+}
