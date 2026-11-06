@@ -231,6 +231,21 @@ struct MusicalClickLookup
 
 class MusicalClickMap
 {
+    friend class PlaybackEngine;
+    struct PositionCacheCell
+    {
+        std::size_t segment = 0;
+        std::uint64_t ordinal = 0, control = 0;
+        click_detail::Enclosure value;
+        std::uint8_t kind = 0;
+    };
+    struct PositionCacheView
+    {
+        PositionCacheCell* cells = nullptr;
+        std::size_t count = 0;
+        const MusicalClickMap* owner = nullptr;
+        std::uint64_t control = 0;
+    };
     struct LocatedOnset
     {
         MusicalClickLookup lookup;
@@ -252,6 +267,7 @@ public:
         const MusicalClickMap* map_ = nullptr;
         LocatedOnset pending_;
         MusicalClickLookup preparation_;
+        PositionCacheView positionCache_;
         std::int64_t cursor_ = 0, end_ = 0;
         std::size_t firstSegment_ = 0, lastSegment_ = 0;
         std::uint64_t firstOrdinal_ = 0, lastOrdinal_ = 0, ordinalStride_ = 0;
@@ -568,6 +584,8 @@ public:
 
 private:
     using Enclosure = click_detail::Enclosure;
+    [[nodiscard]] Window onsetsInRangeCached (std::int64_t firstFrame, std::int64_t endFrame,
+                                              const PositionCacheView& cache) const noexcept;
 
     struct TempoSegment
     {
@@ -885,28 +903,50 @@ private:
                               std::nextafter (center + error, INFINITY), false });
     }
 
+    [[nodiscard]] Enclosure cachedPositionForOrdinal (const Segment& segment, std::uint64_t ordinal,
+        bool tight, const PositionCacheView* cache) const noexcept
+    {
+        if (cache == nullptr || cache->cells == nullptr || cache->count == 0 || cache->owner != this)
+            return tight ? positionForOrdinal (segment, ordinal) : roughPositionForOrdinal (segment, ordinal);
+        const auto segmentIndex = static_cast<std::size_t> (&segment - segments_.data());
+        const auto kind = static_cast<std::uint8_t> (tight ? 2 : 1);
+        auto hash = ordinal ^ (static_cast<std::uint64_t> (segmentIndex) * UINT64_C (0x9e3779b97f4a7c15))
+            ^ (static_cast<std::uint64_t> (kind) * UINT64_C (0xd6e8feb86659fd93));
+        hash ^= hash >> 30; hash *= UINT64_C (0xbf58476d1ce4e5b9);
+        hash ^= hash >> 27; hash *= UINT64_C (0x94d049bb133111eb);
+        hash ^= hash >> 31;
+        auto& cell = cache->cells[static_cast<std::size_t> (hash) & (cache->count - 1u)];
+        if (cell.kind == kind && cell.segment == segmentIndex && cell.ordinal == ordinal
+            && cell.control == cache->control)
+            return cell.value;
+        const auto value = tight ? positionForOrdinal (segment, ordinal) : roughPositionForOrdinal (segment, ordinal);
+        cell = { segmentIndex, ordinal, cache->control, value, kind };
+        return value;
+    }
+
     [[nodiscard]] click_detail::Order comparisonForOrdinal (const Segment& segment, std::uint64_t ordinal,
-                                                            std::int64_t frame, MusicalClickLookup& work) const noexcept
+                                                            std::int64_t frame, MusicalClickLookup& work,
+                                                            const PositionCacheView* cache) const noexcept
     {
         ++work.ordinalProbes; ++work.roughProbes;
         const auto roughPosition = ordinal == 0 ? segment.roughFirst
-            : ordinal == segment.lastOrdinal ? segment.roughLast : roughPositionForOrdinal (segment, ordinal);
+            : ordinal == segment.lastOrdinal ? segment.roughLast : cachedPositionForOrdinal (segment, ordinal, false, cache);
         const auto rough = click_detail::compare (roughPosition, frame);
         if (rough != click_detail::Order::Uncertain)
             return rough;
         ++work.ordinalProbes; ++work.tightProbes;
         const auto tightPosition = ordinal == 0 ? segment.first
-            : ordinal == segment.lastOrdinal ? segment.last : positionForOrdinal (segment, ordinal);
+            : ordinal == segment.lastOrdinal ? segment.last : cachedPositionForOrdinal (segment, ordinal, true, cache);
         return click_detail::compare (tightPosition, frame);
     }
 
     [[nodiscard]] Enclosure countedPositionForOrdinal (const Segment& segment, std::uint64_t ordinal,
-                                                       MusicalClickLookup& work) const noexcept
+                                                       MusicalClickLookup& work, const PositionCacheView* cache) const noexcept
     {
         ++work.ordinalProbes; ++work.tightProbes;
         if (ordinal == 0) return segment.first;
         if (ordinal == segment.lastOrdinal) return segment.last;
-        return positionForOrdinal (segment, ordinal);
+        return cachedPositionForOrdinal (segment, ordinal, true, cache);
     }
 
     [[nodiscard]] static TimeLookupStatus certifyFloor (Enclosure position, std::int64_t& frame) noexcept
@@ -929,7 +969,8 @@ private:
     [[nodiscard]] LocatedOnset findOnset (std::int64_t minimumFrame,
                                          std::size_t firstIndex, std::uint64_t firstOrdinal,
                                          std::size_t lastIndex, std::uint64_t lastOrdinal,
-                                         std::uint64_t ordinalStride = 0) const noexcept
+                                         std::uint64_t ordinalStride = 0,
+                                         const PositionCacheView* cache = nullptr) const noexcept
     {
         using click_detail::Order;
         LocatedOnset located;
@@ -1027,7 +1068,7 @@ private:
                         haveHint = false;
                 }
                 --remaining;
-                const auto order = comparisonForOrdinal (segment, mid, minimumFrame, result);
+                const auto order = comparisonForOrdinal (segment, mid, minimumFrame, result, cache);
                 if (order == Order::Before) first = mid + 1u;
                 else
                 {
@@ -1044,7 +1085,7 @@ private:
             }
         }
         const auto possibleOrdinal = first;
-        auto position = countedPositionForOrdinal (segment, first, result);
+        auto position = countedPositionForOrdinal (segment, first, result, cache);
         auto order = click_detail::compare (position, minimumFrame);
         if (order == Order::Before && firstSegment == lastIndex && first == ordinalEnd)
             return located;
@@ -1057,11 +1098,11 @@ private:
             while (first < last)
             {
                 const auto mid = first + (last - first) / 2u;
-                const auto comparison = comparisonForOrdinal (segment, mid, minimumFrame, result);
+                const auto comparison = comparisonForOrdinal (segment, mid, minimumFrame, result, cache);
                 if (comparison == Order::AtOrAfter) last = mid;
                 else first = mid + 1u;
             }
-            position = countedPositionForOrdinal (segment, first, result);
+            position = countedPositionForOrdinal (segment, first, result, cache);
             order = click_detail::compare (position, minimumFrame);
         }
         if (order != Order::AtOrAfter)
@@ -1098,7 +1139,7 @@ private:
             const auto untilDownbeat = segment.meter.numerator - first % segment.meter.numerator;
             if (untilDownbeat <= ordinalEnd - first)
             {
-                const auto accent = comparisonForOrdinal (segment, first + untilDownbeat, result.frame + 1, result);
+                const auto accent = comparisonForOrdinal (segment, first + untilDownbeat, result.frame + 1, result, cache);
                 result.downbeat = accent == Order::Before;
                 uncertainAccent = accent == Order::Uncertain;
             }
@@ -1107,7 +1148,7 @@ private:
                 const auto previousDownbeat = first - first % segment.meter.numerator;
                 if (previousDownbeat >= possibleOrdinal)
                 {
-                    const auto accent = comparisonForOrdinal (segment, previousDownbeat, minimumFrame, result);
+                    const auto accent = comparisonForOrdinal (segment, previousDownbeat, minimumFrame, result, cache);
                     result.downbeat = accent == Order::AtOrAfter;
                     uncertainAccent = uncertainAccent || accent == Order::Uncertain;
                 }
@@ -1172,7 +1213,14 @@ private:
 inline MusicalClickMap::Window MusicalClickMap::onsetsInRange (std::int64_t firstFrame,
                                                               std::int64_t endFrame) const noexcept
 {
+    return onsetsInRangeCached (firstFrame, endFrame, {});
+}
+
+inline MusicalClickMap::Window MusicalClickMap::onsetsInRangeCached (std::int64_t firstFrame,
+    std::int64_t endFrame, const PositionCacheView& cache) const noexcept
+{
     Window window;
+    window.positionCache_ = cache;
     window.map_ = this;
     window.cursor_ = firstFrame;
     window.end_ = endFrame;
@@ -1187,7 +1235,7 @@ inline MusicalClickMap::Window MusicalClickMap::onsetsInRange (std::int64_t firs
         return window;
     const auto lastIndex = segments_.empty() ? 0u : segments_.size() - 1u;
     const auto lastOrdinal = segments_.empty() ? 0u : segments_.back().lastOrdinal;
-    auto first = findOnset (firstFrame, 0, 0, lastIndex, lastOrdinal);
+    auto first = findOnset (firstFrame, 0, 0, lastIndex, lastOrdinal, 0, &window.positionCache_);
     window.preparation_ = first.lookup;
     window.hasPending_ = true;
     window.done_ = false;
@@ -1199,7 +1247,7 @@ inline MusicalClickMap::Window MusicalClickMap::onsetsInRange (std::int64_t firs
         window.pending_ = first;
         return window;
     }
-    const auto after = findOnset (endFrame, first.segment, first.ordinal, lastIndex, lastOrdinal);
+    const auto after = findOnset (endFrame, first.segment, first.ordinal, lastIndex, lastOrdinal, 0, &window.positionCache_);
     window.preparation_.ordinalProbes += after.lookup.ordinalProbes;
     window.preparation_.roughProbes += after.lookup.roughProbes;
     window.preparation_.tightProbes += after.lookup.tightProbes;
@@ -1247,7 +1295,7 @@ inline MusicalClickLookup MusicalClickMap::Window::next() noexcept
             return {};
         }
         located = map_->findOnset (cursor_, firstSegment_, firstOrdinal_, lastSegment_, lastOrdinal_,
-                                  allowOrdinalHints_ ? ordinalStride_ : 0u);
+                                  allowOrdinalHints_ ? ordinalStride_ : 0u, &positionCache_);
     }
     if (located.lookup.status != TimeLookupStatus::Ok || ! located.lookup.found)
     {

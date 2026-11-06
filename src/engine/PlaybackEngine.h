@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <atomic>
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -643,7 +644,8 @@ private:
             if (rowsPerEntry > static_cast<std::uint64_t> (INT64_MAX))
                 return;
             constexpr auto metadata = sizeof (clickCacheEntries_) + sizeof (clickCacheRows_)
-                + sizeof (clickCacheRowsPerEntry_) + sizeof (clickCacheNextEntry_);
+                + sizeof (clickCacheRowsPerEntry_) + sizeof (clickCacheNextEntry_)
+                + sizeof (clickPositionCacheCells_);
             if constexpr (metadata >= kClickCacheMaxRequestedBytes)
                 return;
             const auto maximumRows = (kClickCacheMaxRequestedBytes - metadata) / sizeof (CachedClickOnset);
@@ -663,7 +665,25 @@ private:
                 return;
             clickCacheRows_ = std::move (prepared);
             clickCacheRowsPerEntry_ = rowsPerEntry;
+            prepareClickPositionCache (kClickCacheMaxRequestedBytes - metadata
+                - clickCacheRows_.capacity() * sizeof (CachedClickOnset));
         }
+    }
+
+    void prepareClickPositionCache (std::size_t availableBytes)
+    {
+        if (metronomeClock_ == nullptr) return;
+        using Cell = MusicalClickMap::PositionCacheCell;
+        const auto maximum = availableBytes / sizeof (Cell);
+        const auto count = std::bit_floor (std::min (maximum, std::size_t { 16384 }));
+        if (count < 64u || count > maximum) return;
+        std::vector<Cell> prepared;
+        if (count > prepared.max_size()) return;
+        try { prepared.resize (count); }
+        catch (const std::bad_alloc&) { return; }
+        catch (const std::length_error&) { return; }
+        if (prepared.capacity() > maximum) return;
+        clickPositionCacheCells_ = std::move (prepared);
     }
 
     // Numeric controls only: nearest with traps masked; flush modes remain part of the key.
@@ -755,6 +775,24 @@ private:
         }
     }
 
+    [[nodiscard]] MusicalClickMap::Window makeClickWindow (const MusicalClickMap* clock,
+        std::int64_t first, std::int64_t end, std::int64_t minimumOnset,
+        std::int64_t endOnset) noexcept YESDAW_RT_HOT
+    {
+        if (loopEnabled_ && ! clickPositionCacheCells_.empty() && clock == metronomeClock_.get()
+            && minimumOnset == 0 && endOnset == INT64_MAX)
+        {
+            ClickCacheNumericContext context;
+            if (readClickCacheNumericContext (context))
+            {
+                const MusicalClickMap::PositionCacheView cache {
+                    clickPositionCacheCells_.data(), clickPositionCacheCells_.size(), clock, context.control };
+                return clock->onsetsInRangeCached (first, end, cache);
+            }
+        }
+        return clock->onsetsInRange (first, end);
+    }
+
     // AUDIO THREAD: enumerate distinct onset Frames, including preceding five-millisecond
     // tails after a seek. Per-output-sample work is only precomputed-table reads and summing.
     void overlayMetronome (float* const* outputs, int channels, int offset, int frames,
@@ -831,7 +869,8 @@ private:
         auto* recording = selected.replay ? nullptr : selected.entry;
         const auto* replay = selected.replay ? selected.entry : nullptr;
         std::size_t replayRow = 0;
-        auto window = replay == nullptr ? clock->onsetsInRange (firstFrame, queryEnd) : MusicalClickMap::Window {};
+        auto window = replay == nullptr
+            ? makeClickWindow (clock, firstFrame, queryEnd, minimumOnset, endOnset) : MusicalClickMap::Window {};
         for (;;)
         {
             CachedClickOnset onset;
@@ -1142,6 +1181,7 @@ private:
     std::vector<float>         metronomeDownbeatClick_;
     std::array<ClickCacheEntry, kClickCacheEntries> clickCacheEntries_ {};
     std::vector<CachedClickOnset> clickCacheRows_; // Control allocates/reclaims; Audio indexes only.
+    std::vector<MusicalClickMap::PositionCacheCell> clickPositionCacheCells_;
     std::size_t clickCacheRowsPerEntry_ = 0, clickCacheNextEntry_ = 0;
 
     SampleRate         sampleRate_ {};

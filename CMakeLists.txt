@@ -906,6 +906,13 @@ target_link_libraries(YesDawClickQueryCacheCheck PRIVATE Catch2::Catch2WithMain 
 yesdaw_harden(YesDawClickQueryCacheCheck)
 add_test(NAME YesDawClickQueryCacheCheck COMMAND $<TARGET_FILE:YesDawClickQueryCacheCheck>)
 
+add_executable(YesDawClickPositionCacheCheck tests/playback_click_position_cache_tests.cpp)
+target_include_directories(YesDawClickPositionCacheCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawClickPositionCacheCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawClickPositionCacheCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
+yesdaw_harden(YesDawClickPositionCacheCheck)
+add_test(NAME YesDawClickPositionCacheCheck COMMAND $<TARGET_FILE:YesDawClickPositionCacheCheck>)
+
 # --- Scheduler/robustness check (H9; deterministic scheduled render + transport/fuzz/plugin gates) ---
 # --- Track instrument check (G3.1 / ADR-0047: N event inputs merge; one instrument per Track) ---
 add_executable(YesDawTrackInstrumentCheck tests/track_instrument_tests.cpp)
@@ -1329,6 +1336,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawOfflineRenderCheck
   YesDawPlaybackCheck
   YesDawClickQueryCacheCheck
+  YesDawClickPositionCacheCheck
   YesDawSchedulerCheck
   YesDawLoudnessCheck
   YesDawDawprojectPrimitivesCheck

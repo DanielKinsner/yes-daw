@@ -147,7 +147,11 @@ jobs:
 
       - name: Test local Clang diagnostic policy
         if: runner.os == 'Windows'
-        run: pwsh -NoProfile -File tools/tests/clang-diagnostic-policy-tests.ps1
+        run: |
+          pwsh -NoProfile -File tools/tests/clang-diagnostic-policy-tests.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pwsh -NoProfile -File tools/tests/clang-position-footprint-policy-tests.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Configure (Release — Debug hangs on JUCE asserts in CI)
         id: configure
