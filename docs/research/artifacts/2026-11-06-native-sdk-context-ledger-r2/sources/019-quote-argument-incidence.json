@@ -1,0 +1,197 @@
+{
+  "rows": [
+    {
+      "line": 70,
+      "source_line": "  const auto dispatch=units(verify?Family::WordReadDispatch:Family::WordWriteDispatch,words);",
+      "written_calls": [
+        "units"
+      ],
+      "scalar_parameter_incidence_upper": 2,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 71,
+      "source_line": "  const auto fast=units(verify?Family::WordReadFast:Family::WordWriteFast,words-fallback);",
+      "written_calls": [
+        "units"
+      ],
+      "scalar_parameter_incidence_upper": 2,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 72,
+      "source_line": "  const auto slow=units(verify?Family::WordReadFallback:Family::WordWriteFallback,fallback);",
+      "written_calls": [
+        "units"
+      ],
+      "scalar_parameter_incidence_upper": 2,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 73,
+      "source_line": "  return plus(dispatch,plus(fast,slow));",
+      "written_calls": [
+        "plus",
+        "plus"
+      ],
+      "scalar_parameter_incidence_upper": 4,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 77,
+      "source_line": "  const auto api=verify?plus(price(Family::ProductionInverseNative),price(Family::ProductionForwardInverse)):",
+      "written_calls": [
+        "plus",
+        "price",
+        "price"
+      ],
+      "scalar_parameter_incidence_upper": 4,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 78,
+      "source_line": "   plus(price(Family::QcInverseNative),price(Family::QcForwardNative));",
+      "written_calls": [
+        "plus",
+        "price",
+        "price"
+      ],
+      "scalar_parameter_incidence_upper": 4,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 79,
+      "source_line": "  const auto outer=price(verify?Family::InverseVerifyOuter:Family::InverseProduceOuter);",
+      "written_calls": [
+        "price"
+      ],
+      "scalar_parameter_incidence_upper": 1,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 80,
+      "source_line": "  return plus(times(records,plus(api,outer)),wordUnits(verify,2*records));",
+      "written_calls": [
+        "plus",
+        "times",
+        "plus",
+        "wordUnits"
+      ],
+      "scalar_parameter_incidence_upper": 8,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 85,
+      "source_line": "  const auto fractional=price(verify?(ramp?Family::ProductionForwardRamp:Family::ProductionForwardConstant):",
+      "written_calls": [
+        "price"
+      ],
+      "scalar_parameter_incidence_upper": 1,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 87,
+      "source_line": "  const auto zero=price(verify?(ramp?Family::ProductionForwardZeroRamp:Family::ProductionForwardZeroConstant):Family::PortZero);",
+      "written_calls": [
+        "price"
+      ],
+      "scalar_parameter_incidence_upper": 1,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 88,
+      "source_line": "  const auto cut=price(Family::RationalCut);",
+      "written_calls": [
+        "price"
+      ],
+      "scalar_parameter_incidence_upper": 1,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 89,
+      "source_line": "  const auto fractionalQueries=times(queries-zeros,plus(cut,times(2,fractional)));",
+      "written_calls": [
+        "times",
+        "plus",
+        "times"
+      ],
+      "scalar_parameter_incidence_upper": 6,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 90,
+      "source_line": "  const auto zeroQueries=times(zeros,plus(cut,times(2,zero)));",
+      "written_calls": [
+        "times",
+        "plus",
+        "times"
+      ],
+      "scalar_parameter_incidence_upper": 6,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 91,
+      "source_line": "  const auto records=plus(units(Family::DenseOuter,N+1),wordUnits(verify,N+1));",
+      "written_calls": [
+        "plus",
+        "units",
+        "wordUnits"
+      ],
+      "scalar_parameter_incidence_upper": 6,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 92,
+      "source_line": "  return plus(plus(fractionalQueries,zeroQueries),records);",
+      "written_calls": [
+        "plus",
+        "plus"
+      ],
+      "scalar_parameter_incidence_upper": 4,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 95,
+      "source_line": "  auto total=price(verify?Family::ChildFixedVerify:Family::ChildFixedProduce);",
+      "written_calls": [
+        "price"
+      ],
+      "scalar_parameter_incidence_upper": 1,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 96,
+      "source_line": "  if(!verify)total=plus(total,units(Family::PortCacheRefill,27*153611));",
+      "written_calls": [
+        "plus",
+        "units"
+      ],
+      "scalar_parameter_incidence_upper": 4,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 99,
+      "source_line": "   for(int map=0;map<9;++map)total=plus(total,fixtureUnits(verify,10*R,g,map));",
+      "written_calls": [
+        "plus",
+        "fixtureUnits"
+      ],
+      "scalar_parameter_incidence_upper": 6,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    },
+    {
+      "line": 101,
+      "source_line": "  return plus(total,inverseUnits(verify,inverseUpper));",
+      "written_calls": [
+        "plus",
+        "inverseUnits"
+      ],
+      "scalar_parameter_incidence_upper": 4,
+      "rule": "This is the source-indexed per-line call-argument parameter incidence, not measured invocation or exact simultaneous object count. Full-expression ownership retains initialized outer parameters while nested operands run. Split alternatives at ?: and sequential statements; do not multiply by loop visits."
+    }
+  ],
+  "complete_scope": "Every nested quote-call written line in CPP45\u2013103; actual corresponding body parameter widths/types already in the93 exact named scope ledger. Constructor/cast type names and unevaluated operands are not function calls.",
+  "critical_tree": "inverseUnits return plus(times(records,plus(api,outer)),wordUnits(verify,2*records)): outer argument slots, nested times/plus scalar slots and wordUnits formal verify/words remain distinct when initialized; price/units wrappers carry their own Family/scalar parameters, not copied Catalogue referents.",
+  "new_ABI_fact": null,
+  "numeric_whole_upper": null
+}

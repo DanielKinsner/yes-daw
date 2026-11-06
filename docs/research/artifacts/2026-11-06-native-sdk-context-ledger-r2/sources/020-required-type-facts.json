@@ -1,0 +1,287 @@
+{
+  "facts": [
+    {
+      "id": "P",
+      "sizeof": 8,
+      "reason": "194-cell pointer.sizeof; ordinary selected raw pointer parameters",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "Z",
+      "sizeof": 8,
+      "reason": "size_t.sizeof",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "DIFF",
+      "sizeof": 8,
+      "reason": "selected x64 ptrdiff_t is signed64; pointer-difference type source+SDK profile, numeric ABI association remains independent",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "D",
+      "sizeof": 8,
+      "reason": "double.sizeof",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "B",
+      "sizeof": 1,
+      "reason": "bool.sizeof",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "CH",
+      "sizeof": 1,
+      "reason": "char.sizeof",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "IL",
+      "sizeof": 16,
+      "reason": "ChangeInitializerList.sizeof",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "ITER",
+      "sizeof": 8,
+      "reason": "actual selected const iterator sizeof cells",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "NUL",
+      "sizeof": null,
+      "reason": "actual nullptr_t reference-bound materialization; no pointer-width guess",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "PRED",
+      "sizeof": null,
+      "reason": "instantiate actual qc/time stateless predicate closure, one at a time",
+      "needed_new_fact": false,
+      "type_alias_only": true
+    },
+    {
+      "id": "LESS",
+      "sizeof": null,
+      "reason": "std::less<void> by-value predicate at upper_bound4",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "EQ",
+      "sizeof": null,
+      "reason": "std::equal_to<void> by-value predicate at equal4",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "FA",
+      "sizeof": null,
+      "reason": "std::_Fake_allocator standalone actual objects",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "FP",
+      "sizeof": null,
+      "reason": "std::_Fake_proxy_ptr_impl standalone proxy",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "TG",
+      "sizeof": null,
+      "reason": "std::_Tidy_guard<std::vector<qc::Change>> actual guard",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "TAG_ZERO",
+      "sizeof": null,
+      "reason": "std::_Zero_then_variadic_args_t by-value compressed-pair formal",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "TAG_ONE",
+      "sizeof": null,
+      "reason": "std::_One_then_variadic_args_t by-value compressed-pair formal",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "TAG_CONCAT",
+      "sizeof": null,
+      "reason": "std::_String_constructor_concat_tag by-value concat formal",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "ALLOC_CHANGE",
+      "sizeof": null,
+      "reason": "std::allocator<qc::Change> default/copy-return temporary",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "ALLOC_CHAR",
+      "sizeof": null,
+      "reason": "std::allocator<char> copy-return temporary",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "L_APPEND",
+      "sizeof": null,
+      "reason": "exact SDK_append_grow closure",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "L_INSERT",
+      "sizeof": null,
+      "reason": "exact SDK_insert_grow closure",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "EXDATA",
+      "sizeof": null,
+      "reason": "::__std_exception_data automatic _InitData at exception message constructor",
+      "needed_new_fact": true,
+      "type_alias_only": false
+    },
+    {
+      "id": "TempoMapView",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Actual by-value Time::build formal; type missing from194 cells",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_work_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_carry_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_invalid_native_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_get",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_q_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_truncated_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_trailing_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_metadata_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_prefix_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_ramp_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_inverse_whole_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_inverse_fraction_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_nextBit",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_qc_tick_comparator",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_time_tick_comparator",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    },
+    {
+      "id": "OWN_CLOSURE_time_native_comparator",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true
+    }
+  ],
+  "existing_layout_cells_used": 194,
+  "new_measurements_performed": 0,
+  "minimality": "No fake size for empty types. No _Leave_proxy_unbound, iterator string _Tidy_deallocate_guard, ASan/debug proxy or unequal-allocator guard size is requested because those branches are not reached. Distinct specializations are not equated without an accepted ABI theorem. Further general runtime bookkeeping is outside this source-object scope and unqualified, not zero."
+}

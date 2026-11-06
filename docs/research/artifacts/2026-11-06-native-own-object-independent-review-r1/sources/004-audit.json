@@ -1,0 +1,395 @@
+{
+  "schema": "CLOCK_NATIVE_RESOURCE_EXISTING_BOUNDARY_AUDIT_R1",
+  "verdict": "APPLY_EXISTING_CONTROLLED_SOURCE_BOUNDARY_WITH_NARROW_UNCERTAIN_SUBCASES_HOLD",
+  "recommendation": "A: complete controlled source objects/buffers and identity/phase gates; disclose general-runtime limits; do not demand or claim whole-process RSS/CRT proof",
+  "authority": {
+    "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+    "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010",
+    "excerpts": [
+      {
+        "lines": [
+          21,
+          29
+        ],
+        "text": "Research retains 840MiB admitted artifacts, 32MiB controlled explicit scratch,\n1800s per child, one heavy headless lane, one-use/unreset accounting and actual\ncancellation/reap/read settlement/quarantine. Compiler CPU/internal heap/RSS and\ntemporary peak disk remain unqualified. No renderer, Ready or activation credit.\n\nThe NEW limit is NOT SELECTED. First close the exact complete runner/producer/\nverifier upper U and their payload/error lifetimes. Derive one finite checked\nlimit from that U, then obtain independent review before immutable data binding.\nChoose no convenient power of two, padding, multiplier, split or budget reset."
+      },
+      {
+        "lines": [
+          35,
+          53
+        ],
+        "text": "- Count each reached scalar/literal read, destination initialization/write,\n  arithmetic/bitwise/comparison/boolean/conversion, selected branch, call entry/\n  dispatch/return and actual loop/control event once. This is not CPU cycles.\n- Caller evaluation supplies the source read of a by-value copy. Callee parameter\n  initialization supplies its destination write; do not invent a second source\n  read for the same copy. Reference arguments do not copy their referents.\n- Guaranteed direct prvalue construction initializes its destination once.\n  Optional NRVO alternatives retain their real copy/move obligations.\n- Uninitialized storage has no invented zero value or write. Explicit constructor\n  entry/return and any independently defined lifetime event are separate facts.\n- Expand selected C++ SDK/STL and our helper bodies under the pinned source and\n  compiler profile. No optimizer or new opaque-category discount supplies fit.\n- Existing OS/CRT/libm and CLR codec/JSON runtime internals remain the declared\n  primitive CPU/general-heap boundary. Public source availability does not move\n  that boundary. Audit behavior and every controlled payload/clone/temporary\n  without claiming primitive CPU, general CLR heap, allocator overhead or RSS.\n- Count all quotation, Catalogue, Meter/Spend, validation, default/aggregate,\n  receipt, failure and retirement source in a finite nonrecursive schedule.\n  Reservations/quoted upper work are distinct from measured actual visits."
+      },
+      {
+        "lines": [
+          95,
+          110
+        ],
+        "text": "encode. Include preprocessing clones, escape/output buffers, returned UTF16,\nReplace/LF results if retained, UTF8 bytes, prior buffers, parsed results, source\ncontainers and quarantine in simultaneous payload phases. No 32MiB fit is granted.\n\n## Other mandatory source corrections\n\nAdmit Repo/NewRunRoot and derived suffix lengths before variable path copies/\nscans. Bound C++ argv root/manifest/mode before std::string/strcmp traversal or\nenforce an equally explicit exact launcher domain. Bound C++ exception diagnostic\noutput. Use bounded structured failure-inventory diagnostics, not full messages.\n\nPreserve the primary error/raw child result separately from footer/fence/serializer\nfailures; a throwing finally fence must not replace the primary cause. Record both\noutcomes and keep raw exits/logs. Footer failure always prevents certification.\nDo not serialize opaque Exception/ErrorRecord graphs into the controlled schema or\nclaim their general CLR heap is bounded by the controlled scratch worksheet."
+      },
+      {
+        "lines": [
+          112,
+          122
+        ],
+        "text": "Include actual split/filter callback prefixes and join delimiters, or replace them\nwith genuine reviewed bounded source. Close all bootstrap/34 existing helpers/new\nhelpers/main/76 C++ families and their transitive source/error/instrumentation rows.\nRecompute exact lineage/namespace/include/hash/byte/slot profiles, including every\nnew source, contract, census and eventual constant-data identity. Equal bytes do\nnot merge distinct paths or simultaneous owners.\n\nNew sources retain false guards and unbound private immutable Catalogue data.\nFresh whole functional review precedes complete independent census/lifetime review,\nderived-limit review, binding-source review and separate root one-attempt GO.\nNo source maximum, partial floor or manual PASS supplies any missing proof."
+      }
+    ]
+  },
+  "classifications": [
+    {
+      "id": "ABI_FRAME",
+      "A": "All real own/selected-STL objects, object padding, parameters/temps/no-NRVO alternatives",
+      "B": "No blanket backend-stack exclusion asserted",
+      "C": "Complete source lifetime and selected layout gates",
+      "uncertain": "Backend-only spill/shadow/frame reservation is not certified; no physical-stack claim; narrow metric interpretation awaits independent review"
+    },
+    {
+      "id": "CRT_FILE_NATIVE",
+      "A": "Stream/source-requested buffers and controlled path/output clones including failures",
+      "B": "Generic primitive FILE/fd/handle/runtime bookkeeping only",
+      "C": "Selected behavior/decomposition for claimed absence or controlled buffers",
+      "uncertain": "Opaque aggregate FILE allocation cannot be entirely discounted if controlled buffer coexists"
+    },
+    {
+      "id": "CRT_STARTUP_TLS",
+      "A": "Explicit source launcher/child string or buffer owners and identified controlled clones",
+      "B": "General CRT startup/TLS/loader/runtime machinery",
+      "C": "Exact input/profile/association facts actually used",
+      "uncertain": "Surfaced argv/env referent clone versus generic startup storage is not itemized expressly; no exclusion-dependent binding"
+    },
+    {
+      "id": "EH_ALLOCATOR",
+      "A": "Actual source thrown objects, real copies/witnesses and bounded source-message copy referents",
+      "B": "Generic EH/TLS/unwinder/allocator headers,rounding,retention/RSS",
+      "C": "Selected message-copy capacity/multiplicity and source/layout association",
+      "uncertain": "Existing CLR exception exclusion does not itself remove C++ source exception/message objects"
+    },
+    {
+      "id": "DATA_AND_PROFILE",
+      "A": "Actual bound Catalogue/data owner if later defined",
+      "B": "No new opaque discount",
+      "C": "Selected compiler/header/source/runtime behavior identities plus actual binding",
+      "uncertain": "No definition or true guards exist"
+    },
+    {
+      "id": "JOINT_CONTROLLER",
+      "A": "Actual simultaneous controlled controller/child/quarantine payload",
+      "B": "General runtime/RSS remains unqualified, not zero",
+      "C": "Complete phase and observed settlement association",
+      "uncertain": "No per-process split/reset or unobserved exit credit"
+    }
+  ],
+  "automatic_object_answer": "A controlled source-object upper can be derived without a physical stack/RSS certificate, conditional on complete objects/temporaries/no-NRVO lifetimes and selected layout correspondence; current2S/4T and unexplained32768 alone are insufficient.",
+  "compile_only_route": "Future separately authored/reviewed/pinned minimal type/layout purpose TU, sizeof/alignof static_asserts only; root GO required before compiler. No link/target main/Catalogue or run. Replica correspondence gate required. Not authored here.",
+  "prior_frozen_owner_packet_unchanged": true,
+  "new_aggregate_upper_fit_Data_flags_or_authority": false,
+  "no_target_or_qualification_execution": true,
+  "checks": [
+    {
+      "name": "whole exact contract",
+      "passed": true
+    },
+    {
+      "name": "122 contract lines",
+      "passed": true
+    },
+    {
+      "name": "authority21-24",
+      "passed": true
+    },
+    {
+      "name": "authority41-46",
+      "passed": true
+    },
+    {
+      "name": "authority47-50",
+      "passed": true
+    },
+    {
+      "name": "authority95-97",
+      "passed": true
+    },
+    {
+      "name": "authority101-104",
+      "passed": true
+    },
+    {
+      "name": "authority109-110",
+      "passed": true
+    },
+    {
+      "name": "authority112-122",
+      "passed": true
+    },
+    {
+      "name": "exact frozen owner pins",
+      "passed": true
+    },
+    {
+      "name": "frozen owner derive.py",
+      "passed": true
+    },
+    {
+      "name": "frozen owner argument.md",
+      "passed": true
+    },
+    {
+      "name": "frozen owner owners.json",
+      "passed": true
+    },
+    {
+      "name": "frozen owner own-check-receipt.json",
+      "passed": true
+    },
+    {
+      "name": "frozen owner first-green-freeze.json",
+      "passed": true
+    },
+    {
+      "name": "frozen input clock_stage.cpp",
+      "passed": true
+    },
+    {
+      "name": "frozen input source-costs.h",
+      "passed": true
+    },
+    {
+      "name": "frozen input source-manifest.json",
+      "passed": true
+    },
+    {
+      "name": "frozen input contract.md",
+      "passed": true
+    },
+    {
+      "name": "frozen input clock_stage.cpp",
+      "passed": true
+    },
+    {
+      "name": "frozen input source-costs.h",
+      "passed": true
+    },
+    {
+      "name": "frozen input Time.h",
+      "passed": true
+    },
+    {
+      "name": "frozen input independent_clock.h",
+      "passed": true
+    },
+    {
+      "name": "frozen input vector",
+      "passed": true
+    },
+    {
+      "name": "frozen input xstring",
+      "passed": true
+    },
+    {
+      "name": "frozen input xmemory",
+      "passed": true
+    },
+    {
+      "name": "frozen input utility",
+      "passed": true
+    },
+    {
+      "name": "frozen input vcruntime_exception.h",
+      "passed": true
+    },
+    {
+      "name": "exception copy request",
+      "passed": true
+    },
+    {
+      "name": "logic_error delegates source message",
+      "passed": true
+    },
+    {
+      "name": "runtime_error delegates source message",
+      "passed": true
+    },
+    {
+      "name": "prior leaf covered ABI_FRAME",
+      "passed": true
+    },
+    {
+      "name": "prior leaf covered CRT_FILE_NATIVE",
+      "passed": true
+    },
+    {
+      "name": "prior leaf covered CRT_STARTUP_TLS",
+      "passed": true
+    },
+    {
+      "name": "prior leaf covered EH_ALLOCATOR",
+      "passed": true
+    },
+    {
+      "name": "prior leaf covered DATA_AND_PROFILE",
+      "passed": true
+    },
+    {
+      "name": "prior leaf covered JOINT_CONTROLLER",
+      "passed": true
+    },
+    {
+      "name": "disclosure Recommendation A",
+      "passed": true
+    },
+    {
+      "name": "disclosure Alternative B",
+      "passed": true
+    },
+    {
+      "name": "disclosure sizeof",
+      "passed": true
+    },
+    {
+      "name": "disclosure 32768",
+      "passed": true
+    },
+    {
+      "name": "disclosure controlled source-object upper",
+      "passed": true
+    },
+    {
+      "name": "disclosure not expressly",
+      "passed": true
+    },
+    {
+      "name": "disclosure No probe or qualification source was authored or run",
+      "passed": true
+    },
+    {
+      "name": "disclosure No price or Data",
+      "passed": true
+    },
+    {
+      "name": "disclosure all original ownersR1",
+      "passed": true
+    },
+    {
+      "name": "exact six prior leaves",
+      "passed": true
+    }
+  ],
+  "input_pins": [
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/source-pins.json",
+      "bytes": 4342,
+      "sha256": "D665AF77E103BDFE8F2D12D81D04F9E90C3C95A430343E673AC0D8F3597C8E4A"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/derive.py",
+      "bytes": 17132,
+      "sha256": "972FED59EC971485B2E3FABE100485B7C703E1995089B903E21B2F56DA1698EA"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/argument.md",
+      "bytes": 12341,
+      "sha256": "800AD9E0F558A7B8B27D0235533642F0925BA60F207A39E1FC586C871C5532D1"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/owners.json",
+      "bytes": 33532,
+      "sha256": "73B9A2C4F0BACC420EA86E87F1BB7EC46098E9CB5806DD2D4B53EC97C514FDBE"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/own-check-receipt.json",
+      "bytes": 492,
+      "sha256": "4F71D625D2F44D6DCFD95D86D336DA562FB29AF64F7C9E7FCE59E0076E4D6FDE"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/first-green-freeze.json",
+      "bytes": 1029,
+      "sha256": "AF60891D04E89790C8E3178482738518C5C174F5F886CC30D798C933B4945ECC"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+      "bytes": 503610,
+      "sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vector",
+      "bytes": 161282,
+      "sha256": "351604D91A2CEAC79F9BD9448C0553CCCC22711E22955B5938EAF41DE98334A6"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xstring",
+      "bytes": 161127,
+      "sha256": "9407C290A1D0C6BEBC42CF131BD04F09A9892F61B713EECB12827C0F6BBC3045"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "bytes": 112178,
+      "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/utility",
+      "bytes": 42347,
+      "sha256": "403BCF5919D0E0371F25A929752F0A05AAE7B0667129D65CFE3A8DFF858E97D6"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_exception.h",
+      "bytes": 3143,
+      "sha256": "0DD3DCC67B655FBFC96708F131C9E7F86416D2DB95FD33B1E7ACC8489F2C32D4"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_exception.h",
+      "bytes": 3143,
+      "sha256": "0DD3DCC67B655FBFC96708F131C9E7F86416D2DB95FD33B1E7ACC8489F2C32D4"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/stdexcept",
+      "bytes": 5213,
+      "sha256": "E677DAF8465DD4B870F420DF9010EE3A17CD80FB6F6F5655F2AD3DC6D8009AE1"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.md",
+      "bytes": 13383,
+      "sha256": "D5E405FCFC94E2E1B9C6936532362592B6F91ADAD2A9DB7DD065F38416D3B44B"
+    }
+  ]
+}

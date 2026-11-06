@@ -1,0 +1,133 @@
+{
+  "schema": "R2_FIRST_COMPLETE_OWN_WHOLE_SOURCE_FREEZE",
+  "files": [
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/argument.md",
+      "bytes": 19293,
+      "sha256": "FBB7ED0CBD158E92AB427C36313E8E7F0F4C14852B7F6C9E070A72AC718F71E9"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/author.py",
+      "bytes": 16584,
+      "sha256": "BD24CA27FCCF2F27207AA359BE6E973F788296EB7F34C91EBEE5A83BF79A0E8B"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/failure.json",
+      "bytes": 647,
+      "sha256": "E51514589990E2BA063B63BA021DCC5E579295E5F3C226AA88D8E12168F0CFC1"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/quote_models.py",
+      "bytes": 8471,
+      "sha256": "2479DD2C70B6DDC5A888CF1B631C2DCCCAA9C82651ED7529868F6E7D97951D38"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/WORKING.md",
+      "bytes": 6819,
+      "sha256": "BC27125DB3EE900D98D3032A89FA4E427DFCFB0EBCC179A6DA0D8D4E49E94534"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/author.py",
+      "bytes": 17001,
+      "sha256": "30A7D5E06827676703378F3BCB7E3F1C09D3AB1F4995B48360CC2A6F66383160"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/authoring.json",
+      "bytes": 336,
+      "sha256": "16C7619CEC8E977382151B97F0DD3AD1976AA5A193BE444FDE5F79C86CE751B3"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/check.py",
+      "bytes": 16534,
+      "sha256": "BB27EADD11FCE81621BCD1F42A493DA24858C71B281DF6DA588A77E5BF4B2BAF"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/checks.json",
+      "bytes": 278417,
+      "sha256": "13C99F23B2782A817FB5DC555ACF0027D432F1607806CF885DD5ED02BA68F8AC"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/closure-incidence.json",
+      "bytes": 26731,
+      "sha256": "5E2B7EC86969A685F2C0904C6469E8ACAD3BF607C8266D54CFA6C2BE25140092"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/context-joins.json",
+      "bytes": 43899,
+      "sha256": "1A6EA8E038131D08EC2FDFFF5804455C1C5EB2EE8FDD6EECDB2FE5331216501C"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/inspection-attempt-r1/failure.json",
+      "bytes": 360,
+      "sha256": "EBD2F5C6764F33E38A3DA2DC825FE0F93E73659717953F35FE4D2AF265388E96"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/inspection-attempt-r1/input.py",
+      "bytes": 388,
+      "sha256": "A536E87E6A43D494F3247AEBD09BFBD520CD4F6FFD8C3DD161FB9F55BF419740"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/layout-source-correspondence.json",
+      "bytes": 60687,
+      "sha256": "72A6B10AFBC8D9BDA54A20EDF2B422FEF528FE6EB59BC0A3BDD23C5F43E39AFB"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/layout_correspondence.py",
+      "bytes": 3582,
+      "sha256": "0F8A75853F41B77413324DB2FD246AACA63D089E85A074B1D98C36A4DEC3B258"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/message-copy-requests.json",
+      "bytes": 4060,
+      "sha256": "BBDEC14FC2B21C88F82EE526904FF6D171F0E390C4130C9D27B944A389469FFA"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/primary-source-pins.json",
+      "bytes": 20944,
+      "sha256": "7D7FC9DC44828E03F8A8F69D83833D31CD4150D92ADC415741112BDA3EE97F99"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/proposal.json",
+      "bytes": 1140,
+      "sha256": "1C292BF340C0967852FBB6398DF69C6390E2BA640A9D928CADA8BB8E586B8191"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/quote-argument-incidence.json",
+      "bytes": 139209,
+      "sha256": "BA2BC0BF2DA1720A855B3839FEE380D25D310E0A76E24DAB8E0F11628C427749"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/quote_models.py",
+      "bytes": 8471,
+      "sha256": "2479DD2C70B6DDC5A888CF1B631C2DCCCAA9C82651ED7529868F6E7D97951D38"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/required-type-facts.json",
+      "bytes": 11509,
+      "sha256": "E7F7C30056A8816FAA801470AFA63936FCF39403626CCF48A95455991CBB3E28"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/selected-sdk-ledger.json",
+      "bytes": 616529,
+      "sha256": "433724242068FB8179EFF74105F81E9E01BDAFC431076CFD6C6CEF1628069BA4"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/WORKING.md",
+      "bytes": 6819,
+      "sha256": "BC27125DB3EE900D98D3032A89FA4E427DFCFB0EBCC179A6DA0D8D4E49E94534"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/written-sdk-ingresses.json",
+      "bytes": 255746,
+      "sha256": "347612323BE6922A2D72072C3E8DC6305C23E560455A55617D993C21BA53B7F7"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/source-pins.json",
+      "bytes": 18682,
+      "sha256": "DE5558C2ADAC149C360994A370F1D95890DE0B567F753E0BB1BCD8E5F16FB757"
+    }
+  ],
+  "checks": 3010,
+  "independent_review_pending": true,
+  "target_execution": false
+}

@@ -1,0 +1,752 @@
+{
+  "contexts": [
+    {
+      "id": "entry_quote",
+      "chain": "main -> Cost::validate/childUpper -> fixtureUnits/inverseUnits -> units/price/times/plus -> Catalogue/gate",
+      "lifetime_rule": "No rate FractionCache or run get exists yet. Nested expression QARG remains separate from full body named objects.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "string_construct"
+      ],
+      "maximum_own_closure_objects": 1,
+      "maximum_SDK_growth_closure_objects": 1,
+      "ABI_or_size_upper": null
+    },
+    {
+      "id": "common_controls",
+      "chain": "main -> run -> controls -> expect action -> reservationGate / endpointGate / productionFrame -> Time forward",
+      "lifetime_rule": "controls finishes before FractionCache/get construction. Each of its three action types is used separately; wrong-rejection overlap is possible.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "vector_init_list",
+        "vector_copy",
+        "vector_move",
+        "vector_assign_fresh",
+        "upper_tick4",
+        "witness_array_equality",
+        "exception_control_nested"
+      ],
+      "maximum_own_closure_objects": 1,
+      "maximum_SDK_growth_closure_objects": 0,
+      "ABI_or_size_upper": null
+    },
+    {
+      "id": "fraction_cache",
+      "chain": "main -> run -> FractionCache constructor -> qc::fractionBounds(nextBit) OR independentFraction -> compareRational -> multiply",
+      "lifetime_rule": "One rate cache under construction. original pair survives conditional evaluation. nextBit and independentFraction occur sequentially, not nested.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "exception_message"
+      ],
+      "maximum_own_closure_objects": 1,
+      "maximum_SDK_growth_closure_objects": 0,
+      "ABI_or_size_upper": null
+    },
+    {
+      "id": "fixture_build",
+      "chain": "main -> run -> CachedPort constructor -> fixtureMap/vector copy -> NumericAClock constructor -> append; separately buildProduction -> productionRows -> Time build -> append",
+      "lifetime_rule": "generator receiver includes its base and vector headers. Production rows/local/reset/no-NRVO destinations and selected vector constructor locals remain live only at their actual construction context.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "vector_init_list",
+        "vector_copy",
+        "vector_move",
+        "vector_assign_fresh",
+        "exception_message"
+      ],
+      "maximum_own_closure_objects": 1,
+      "maximum_SDK_growth_closure_objects": 0,
+      "ABI_or_size_upper": null
+    },
+    {
+      "id": "dense_cached",
+      "chain": "main -> run -> get -> cut<CachedPort> -> CachedPort::frame -> NumericAClock::frame -> segmentFor -> classic upper_bound OR append/scaled",
+      "lifetime_rule": "get remains live. begin/end and predicate/helper objects are in the actual classic iterator chain; the two frame endpoint calls are sequential.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "upper_tick4",
+        "exception_message"
+      ],
+      "maximum_own_closure_objects": 2,
+      "maximum_SDK_growth_closure_objects": 0,
+      "ABI_or_size_upper": null
+    },
+    {
+      "id": "dense_production",
+      "chain": "main -> run -> get -> cut<Production> -> productionFrame -> Time::frameForMusicalTime -> frameForTick -> classic upper_bound/append, then optional fractional upper_bound/scaled",
+      "lifetime_rule": "The whole-Tick upper_bound completes before the fractional upper_bound begins. Preserve active outer locals and Native/MusicalTime parameters; do not multiply predicates by row/word visits.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "upper_tick4"
+      ],
+      "maximum_own_closure_objects": 2,
+      "maximum_SDK_growth_closure_objects": 0,
+      "ABI_or_size_upper": null
+    },
+    {
+      "id": "metadata_build",
+      "chain": "main -> run -> metadata -> productionRows OR field/Text methods/quoted",
+      "lifetime_rule": "Named text caller may coexist with metadata local without NRVO. row arrays and digits/quote loops follow their actual local lifetimes.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "witness_array_equality"
+      ],
+      "maximum_own_closure_objects": 1,
+      "maximum_SDK_growth_closure_objects": 0,
+      "ABI_or_size_upper": null
+    },
+    {
+      "id": "metadata_read",
+      "chain": "main -> run -> readText -> Stream::exact/finish -> textGate -> textWitness/gate",
+      "lifetime_rule": "q remains a live Stream object after finish; the one helper Stream makes2. Regular text, inverse descriptor, read local and discarded return make4 Text objects in the supported longest context.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "string_construct",
+        "string_concat_lvalue",
+        "string_grow_append",
+        "string_grow_insert",
+        "string_take",
+        "exception_control_nested"
+      ],
+      "maximum_own_closure_objects": 1,
+      "maximum_SDK_growth_closure_objects": 1,
+      "ABI_or_size_upper": null
+    },
+    {
+      "id": "metadata_write",
+      "chain": "main -> run -> writeText -> Stream::put/flush/finish",
+      "lifetime_rule": "q plus one write helper Stream. No hidden extra Stream arises from a Stream member call; name String full-expression storage remains distinct.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "string_construct",
+        "string_concat_lvalue",
+        "string_grow_append",
+        "string_grow_insert",
+        "string_take"
+      ],
+      "maximum_own_closure_objects": 1,
+      "maximum_SDK_growth_closure_objects": 1,
+      "ABI_or_size_upper": null
+    },
+    {
+      "id": "fixture_controls",
+      "chain": "main -> run -> expect -> one of q/short/trailing/metadata/prefix/ramp/inverse actions -> gate/Stream/numeric helpers",
+      "lifetime_rule": "One get plus one action closure can coexist. Short/trailing writer blocks finish before their reader action. Prefix/ramp mutant object lifetimes are lexical and not another FractionCache.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "vector_assign_fresh",
+        "upper_tick4",
+        "witness_array_equality",
+        "exception_control_nested",
+        "string_concat_lvalue"
+      ],
+      "maximum_own_closure_objects": 2,
+      "maximum_SDK_growth_closure_objects": 1,
+      "ABI_or_size_upper": null
+    },
+    {
+      "id": "inverse",
+      "chain": "main -> run -> qc inverse OR Time inverse -> classic upper_bound/scaled; then separate forward residual; inv Stream IO",
+      "lifetime_rule": "q object plus inv Stream. Inverse search and forward residual are sequential; original inverse output/run actual/corrupt lifetimes are retained. Branches have distinct closure types.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "upper_prefix3",
+        "upper_tick4",
+        "string_construct",
+        "string_concat_lvalue",
+        "string_grow_append",
+        "string_take",
+        "witness_array_equality"
+      ],
+      "maximum_own_closure_objects": 2,
+      "maximum_SDK_growth_closure_objects": 1,
+      "ABI_or_size_upper": null
+    },
+    {
+      "id": "retirement_failure",
+      "chain": "entered own/selected SDK context -> throw -> source cleanup/Stream destructor -> main or expect handler -> footer",
+      "lifetime_rule": "Destructors unwind after intervening automatic objects end, without heap-free credit. The source cleanup functions are noexcept and do not construct a new Stream/Text. General EH/CRT heap limits are separately disclosed.",
+      "source_component_join": "Named exact body objects + actual 24 materialization groups + live own closure destinations/bodies + selected SDK chain under this context. Automatic loop bodies/word visits sequential. Heap backing and static owners remain separately retained.",
+      "sdk_joins": [
+        "exception_message",
+        "exception_control_nested"
+      ],
+      "maximum_own_closure_objects": 1,
+      "maximum_SDK_growth_closure_objects": 0,
+      "ABI_or_size_upper": null
+    }
+  ],
+  "materialization_groups": [
+    {
+      "id": "rates",
+      "source": "CPP",
+      "lines": [
+        97,
+        100,
+        246,
+        247
+      ],
+      "objects": "rate backing24, initializer-list header16, begin/end8 each, copied R8",
+      "rule": "Already in the two named scope rows. Three iterations and27 fixtures are sequential; do not multiply the live objects by iteration count.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "fixture_initializer_list",
+      "source": "QC",
+      "lines": [
+        30,
+        40
+      ],
+      "objects": "up to4 Change backing elements96 and initializer-list header16",
+      "rule": "The vector return prvalue initializes CachedPort.changes directly. The temporary initializer backing remains through the constructor full expression. Allocator/proxy/constructor locals remain SDK_VECTOR.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "row_return",
+      "source": "CPP",
+      "lines": [
+        204,
+        209,
+        232,
+        258,
+        259
+      ],
+      "objects": "productionRows local96 plus actual caller row destination96",
+      "rule": "Keep the no-NRVO alternative. Both local and the actual caller rows are already named ledger owners; do not add a generic third returned array.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "row_assignment",
+      "source": "CPP",
+      "lines": [
+        207,
+        207
+      ],
+      "objects": "one TempoChange assignment-source temporary24",
+      "rule": "The two assignments are separate full expressions. Their source temporaries do not coexist; rows contains the destination elements.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "production_return_reset",
+      "source": "CPP",
+      "lines": [
+        209,
+        209
+      ],
+      "objects": "buildProduction out64, actual caller Production64, CompiledTempoMap{} reset64 at Time585",
+      "rule": "out and actual caller are named owners; retain reset as a distinct temporary. Move/copy wrapper locals remain SDK_VECTOR; do not clone heap backing solely because two moved headers coexist.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "pair_conditional",
+      "source": "CPP",
+      "lines": [
+        169,
+        169
+      ],
+      "objects": "original pair16, one conditional result pair16",
+      "rule": "original is named. The selected conditional result is a distinct assignment source; independentFraction direct result initializes that result, not an extra intermediate pair.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "pair_forwarded_scalars",
+      "source": "CPP",
+      "lines": [
+        157,
+        163
+      ],
+      "objects": "two int zero temporaries8 total or two double temporaries16 total",
+      "rule": "Pair forwarding-reference construction may materialize these two scalar arguments. Use the real branch types. Pair destination is the actual named caller/result object.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "qc_pair_forwarded_scalars",
+      "source": "QC",
+      "lines": [
+        62,
+        76
+      ],
+      "objects": "zero-branch double prvalues up to16 total; named low/high used by reference on normal branch",
+      "rule": "The pair return initializes its actual caller result directly; named operands are not copied merely for reference binding.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "path_expression",
+      "source": "CPP",
+      "lines": [
+        118,
+        118
+      ],
+      "objects": "two relative-expression String headers plus two path-concat String headers, each32",
+      "rule": "For the longest clock relative expression at251/257, retain up to four simultaneous headers128 across caller and path. Return prvalue/direct destination is not a third path result. Concat helpers/guards/length formals remain SDK_STRING.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "stem_expression",
+      "source": "CPP",
+      "lines": [
+        251,
+        251
+      ],
+      "objects": "four temporary String headers128 plus named stem32",
+      "rule": "number(R), first concat, second concat and number(map) temporaries survive the initializer full expression; final concat initializes stem directly. number Text local is in the large component. Do not add five extra headers to stem.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "control_paths",
+      "source": "CPP",
+      "lines": [
+        255,
+        256
+      ],
+      "objects": "one String concat result32 per active short/trailing constructor expression",
+      "rule": "Each result binds the Stream name reference until its constructor full expression completes. Separate blocks/actions are not simultaneous.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "text_returns",
+      "source": "CPP",
+      "lines": [
+        117,
+        117,
+        146,
+        146,
+        228,
+        237
+      ],
+      "objects": "Text locals, actual named/discarded return destinations; String number result",
+      "rule": "Optional NRVO is not assumed. Text return alternatives are already in the4-Text large component. number returns a String prvalue directly to its actual caller destination.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "dense_cut_result",
+      "source": "CPP",
+      "lines": [
+        251,
+        252
+      ],
+      "objects": "a/z named Cuts32 each, or discarded dense get(i) result Cut32",
+      "rule": "get to cut to admittedCut prvalue returns initialize one actual result. During a dense query retain the one discarded result, not a Cut at each forwarding return.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "native_parameters",
+      "source": "CPP",
+      "lines": [
+        210,
+        220
+      ],
+      "objects": "Native16 and MusicalTime16 by-value formals at their actual called bodies",
+      "rule": "Braced arguments directly initialize formal destinations already present in the named ledger. upper Native in cut is a separate named owner; do not invent a second braced argument clone.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "inverse_return",
+      "source": "QC",
+      "lines": [
+        188,
+        191
+      ],
+      "objects": "named out Native16 and actual return/assignment-source Native16",
+      "rule": "Retain no NRVO. run actual16 is a third, persistent destination at CPP262/265. The named out/run destination already occur in their own rows.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "inverse_output_reset",
+      "source": "TIME",
+      "lines": [
+        793,
+        793
+      ],
+      "objects": "MusicalTime{} assignment-source temporary16",
+      "rule": "timeOut is a reference to the actual caller expected16. The reset source is separate; result16 at846 is named and assigned without a new independent return object.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "endpoint_aggregate",
+      "source": "CPP",
+      "lines": [
+        211,
+        215
+      ],
+      "objects": "one highEndpoint result Native16 initializes named upper; expected Native16 initializes endpointGate parameter",
+      "rule": "Selected conditional braced prvalues use the actual direct destinations. Frame argument Native/MusicalTime formals remain distinct actual named body parameters.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "picks_assignments",
+      "source": "CPP",
+      "lines": [
+        223,
+        223
+      ],
+      "objects": "one Item assignment-source16 and named insertion x16",
+      "rule": "Eight generated and two endpoint brace assignments are separate full expressions. Item array storage is inside Picks248; insertion x is already named.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "witness_chain",
+      "source": "CPP",
+      "lines": [
+        45,
+        46,
+        238,
+        238
+      ],
+      "objects": "expect witness48, gate witness48 when used, Rejection constructor witness48, exception values inside Rejection80",
+      "rule": "Each actual by-value formal is distinct. Direct array result construction initializes its destination once. No-witness success gate has no witness array. Exception members are not counted again outside80.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "rejection_overlap",
+      "source": "CPP",
+      "lines": [
+        238,
+        238
+      ],
+      "objects": "at most two source-created Rejection objects80 each =160 live error payload",
+      "rule": "A caught original can coexist with a new wrong-rejection/cleanup rejection. New Rejection construction does not call gate recursively. This is a separately controlled exception-object payload, not automatic frame padding or general EH heap sizing.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "quote_argument_partial_lifetimes",
+      "source": "CPP",
+      "lines": [
+        73,
+        73,
+        80,
+        80,
+        89,
+        92,
+        101,
+        101,
+        287,
+        287
+      ],
+      "objects": "partially initialized scalar parameters of nested plus/times/units calls",
+      "rule": "The full outer body is entered after its argument evaluations; one full-body inventory per named scope does not automatically sponsor already initialized outer parameters. A source expression/context ledger must count their actual simultaneous parameter objects. Retain term QARG.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "const_reference_scalars",
+      "source": "CPP",
+      "lines": [
+        130,
+        135,
+        234,
+        234
+      ],
+      "objects": "size_t or Tick prvalues materialized for min/max const references",
+      "rule": "Keep the materialized scalar operands. Existing named n or picks values are referenced without a referent clone. Selected min/max parameters are references, not extra scalar copies.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "closure_body_parameters",
+      "source": "CPP/QC/TIME",
+      "lines": [
+        64,
+        67,
+        103,
+        103,
+        251,
+        251,
+        652,
+        652,
+        755,
+        755
+      ],
+      "objects": "nextBit bool bit1; get uint64 i8; each explicit comparator Tick value8",
+      "rule": "These are closure operator body objects beyond the93 named non-closure scopes. The16 closure object layouts remain wholly unqualified; body objects do not price capture layout.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "stream_digits_quote_buffers",
+      "source": "CPP",
+      "lines": [
+        112,
+        115,
+        133,
+        133
+      ],
+      "objects": "digits20, quoted q2, fallback a8",
+      "rule": "Already named body owners; array members65536 are inside Text/Stream. Do not add data/ buffer members a second time.",
+      "status": "SOURCE_REQUIRED_CONTEXT_TERM_NOT_ADDITIVE_GLOBAL_UPPER"
+    },
+    {
+      "id": "bit_cast_prvalue_sources",
+      "source": "CPP",
+      "lines": [
+        252,
+        254,
+        263,
+        264
+      ],
+      "objects": "one uint64_t const-reference-bound source temporary8 for q.word()/inv.word() or bits(frac)^1 at a time",
+      "rule": "The bit_cast _Val parameter is a reference. A prvalue word/xor operand materializes one actual8-byte source; named lvalue bit_cast operands do not create this extra object. Two inverse word reads occur in separate full expressions. Pair forwarded result doubles remain the separate original group.",
+      "status": "SOURCE_REQUIRED_ADDITION_TO_OLD24_GROUPS"
+    }
+  ],
+  "critical_joins": [
+    {
+      "id": "vector_init_list",
+      "chain": [
+        "V_ILIST",
+        "V_CONSTRUCT",
+        "UNINIT_COPY",
+        "COPY_MEMMOVE",
+        "COPY_TAIL"
+      ],
+      "persistent": "actual vector destination; <=4 Change initializer backing; initializer-list formal16; default allocator temp; constructor tag only during meminitializer; _Construct_n fake allocator/proxy and guard persist through copy",
+      "materializations": "two initializer_list.begin/end returned raw pointers bind _Construct_n forwarding refs; two8-byte pointer objects. No extra vector return destination beyond CachedPort.changes.",
+      "maximum_instances": {
+        "V_CONSTRUCT": 1,
+        "FP": 1,
+        "FA": 1,
+        "TG": 1,
+        "ALLOC_CHANGE": 1,
+        "initializer_backing_Change": 4,
+        "forwarded_pointer": 2
+      }
+    },
+    {
+      "id": "vector_copy",
+      "chain": [
+        "V_COPY",
+        "V_CONSTRUCT",
+        "UNINIT_COPY",
+        "COPY_MEMMOVE",
+        "COPY_TAIL"
+      ],
+      "persistent": "CachedPort.changes24 + NumericAClock changes by-value formal24 + destination member24 inside containing CachedPort/base. The fresh copy owns its independent backing.",
+      "materializations": "allocator-select returned allocator is one temp during compressed-pair initializer; _Construct_n forwarding arguments are existing pointer members, not new materialized pointers.",
+      "maximum_instances": {
+        "V_CONSTRUCT": 1,
+        "FP": 1,
+        "FA": 1,
+        "TG": 1,
+        "ALLOC_CHANGE": 1,
+        "independent_vector_headers": 3
+      }
+    },
+    {
+      "id": "vector_move",
+      "chain": [
+        "V_MOVE",
+        "C_ONE",
+        "EXCHANGE",
+        "V_VAL_CTOR"
+      ],
+      "persistent": "source and destination vector headers; no backing clone merely from move. Three exchange nullptr arguments and returned pointer destinations persist through compressed-pair full expression.",
+      "materializations": "3 nullptr_t temporaries (not assumed pointer-sized),3 pointer-return materializations24, and _Vector_val by-value First/Last/End24. exchange::_Old_val one pointer8 during one sibling exchange; siblings execute separately.",
+      "maximum_instances": {
+        "TAG_ONE": 1,
+        "NUL": 3,
+        "forwarded_pointer": 3,
+        "Vector_val_pointer_formal": 3,
+        "exchange_Old_val": 1
+      }
+    },
+    {
+      "id": "vector_assign_fresh",
+      "chain": [
+        "V_ASSIGN_RANGE",
+        "V_ASSIGN_COUNTED",
+        "V_CLEAR",
+        "V_BUY_RAW",
+        "ALLOC_AT_LEAST",
+        "ALLOC_ALLOCATE",
+        "ALLOC_BYTES",
+        "DEFAULT_NEW"
+      ],
+      "persistent": "fresh Production destination/count3or4. Pointer range parameters, unwrap destinations and length/count scalars are separate; no referent copies. Allocation branch completes before copy.",
+      "materializations": "Production.startFrame and qc prefix fill each binds one double+0.0 temp to const reference; known-bit-zero check local _Zero double8 remains an actual object.",
+      "maximum_instances": {
+        "allocated_elements": 4,
+        "D_zero_fill": 1,
+        "BITS_ZERO_Zero": 1,
+        "FP": 0,
+        "TG": 0
+      }
+    },
+    {
+      "id": "string_construct",
+      "chain": [
+        "S_CSTR",
+        "S_CONSTRUCT",
+        "S_ALLOC_CAP",
+        "ALLOC_AT_LEAST",
+        "ALLOC_ALLOCATE",
+        "ALLOC_BYTES",
+        "DEFAULT_NEW"
+      ],
+      "persistent": "actual String32; _Construct source pointer/count; fake allocator+proxy; New_capacity/New_ptr only large branch. Small and large trait calls are sequential.",
+      "materializations": "constructor tag is one value parameter to compressed_pair. Per terminator assign _Elem() materializes one char bound to const char&; no hidden String header.",
+      "maximum_instances": {
+        "FA": 1,
+        "FP": 1,
+        "TAG_ZERO": 1,
+        "terminator_char": 1
+      }
+    },
+    {
+      "id": "string_concat_lvalue",
+      "chain": [
+        "S_PLUS_LP",
+        "S_CONCAT_PTRS",
+        "S_ALLOC_CAP",
+        "ALLOC_AT_LEAST",
+        "ALLOC_ALLOCATE",
+        "ALLOC_BYTES",
+        "DEFAULT_NEW"
+      ],
+      "persistent": "lvalue operands referenced; returned String destination32 is one actual object; concat-tag formal, allocator-copy result, compressed-pair tag, fake allocator/proxy are distinct when active.",
+      "materializations": "Each pointer/size formal is a value object; source strings and contained allocators are not copied as referents.",
+      "maximum_instances": {
+        "TAG_CONCAT": 1,
+        "ALLOC_CHAR": 1,
+        "TAG_ONE": 1,
+        "FA": 1,
+        "FP": 1
+      }
+    },
+    {
+      "id": "string_grow_append",
+      "chain": [
+        "S_PLUS_RP",
+        "S_APPEND_CSTR",
+        "S_APPEND_COUNT",
+        "S_GROW_APPEND",
+        "L_APPEND_CALL",
+        "TRAITS_COPY"
+      ],
+      "persistent": "source String and actual move-return destination are distinct. Growth callback _Fn is one by-value object; its operator adds3 pointer and2 size formals while it remains alive. Allocation and callback phases are sequential.",
+      "materializations": "_Args pointer/count16 are separate by-value copies. The noncapturing append closure initializes Fn directly; no extra caller lambda copy.",
+      "maximum_instances": {
+        "L_APPEND": 1,
+        "lambda_pointer_formals": 3,
+        "lambda_size_formals": 2,
+        "copied_growth_arg_pointer": 1,
+        "copied_growth_arg_size": 1,
+        "terminator_char": 1
+      }
+    },
+    {
+      "id": "string_grow_insert",
+      "chain": [
+        "S_PLUS_PR",
+        "S_INSERT_CSTR",
+        "S_INSERT_COUNT",
+        "S_GROW_INSERT",
+        "L_INSERT_CALL",
+        "TRAITS_COPY"
+      ],
+      "persistent": "source String and actual move-return destination are distinct. Fn remains alive while operator adds3 pointer and3 size formals.",
+      "materializations": "_Args Off/count16 plus pointer8 are separate by-value copies; noncapturing insert closure initializes Fn directly.",
+      "maximum_instances": {
+        "L_INSERT": 1,
+        "lambda_pointer_formals": 3,
+        "lambda_size_formals": 3,
+        "copied_growth_arg_pointer": 1,
+        "copied_growth_arg_size": 2
+      }
+    },
+    {
+      "id": "string_take",
+      "chain": [
+        "S_MOVE",
+        "S_TAKE",
+        "TRAITS_ASSIGN"
+      ],
+      "persistent": "both headers32 coexist. Selected _Can_memcpy_val true for raw pointer/default allocator String under no annotation; two raw pointer locals16.",
+      "materializations": "one char zero temp for terminator reference; source/destination subobjects stay inside measured headers.",
+      "maximum_instances": {
+        "source_and_destination_String": 2,
+        "P_take_locals": 2,
+        "terminator_char": 1
+      }
+    },
+    {
+      "id": "upper_tick4",
+      "chain": [
+        "UB4",
+        "NEXT",
+        "ADVANCE"
+      ],
+      "persistent": "2 input const-iterator formals16 + predicate closure + raw UFirst8 + Count8; each iteration adds Count2/UMid16. next adds First/Off16 and advance Off8.",
+      "materializations": "next returned pointer initializes UMid directly. Alternative Next_iter adds one pointer value formal8 and assigns scalar result; those helper calls are sequential. Return First is a parameter (NRVO forbidden), so actual returned iterator destination8 is separate while First still exists.",
+      "maximum_instances": {
+        "ITER_formals": 2,
+        "own_stateless_predicate": 1,
+        "raw_search_locals": 2,
+        "difference_search_locals": 2,
+        "NEXT_pointer_formal": 1,
+        "NEXT_diff_formal": 1,
+        "ADVANCE_diff_formal": 1,
+        "returned_iterator": 1
+      }
+    },
+    {
+      "id": "upper_prefix3",
+      "chain": [
+        "UB3",
+        "UB4",
+        "NEXT",
+        "ADVANCE"
+      ],
+      "persistent": "outer3arg First/Last16 coexist with inner4arg copies16 and one less<void> predicate. No extra less temporary in addition to its direct value formal.",
+      "materializations": "inner First return initializes the actual outer caller destination through direct prvalue forwarding; no third return iterator invented. A changes.begin()/prefix.begin() sibling subtraction operand may already be initialized and persists through search, so retain one additional8-byte iterator.",
+      "maximum_instances": {
+        "ITER_formals": 4,
+        "LESS": 1,
+        "returned_iterator": 1,
+        "sibling_begin_iterator": 1
+      }
+    },
+    {
+      "id": "witness_array_equality",
+      "chain": [
+        "ARRAY_EQUAL",
+        "EQUAL3",
+        "EQUAL4",
+        "UNWRAP_N"
+      ],
+      "persistent": "the two array48 referents remain existing objects. Three pointer formals24 in equal3 + three24 in equal4 + equal_to<void> value predicate.",
+      "materializations": "unwrapped three pointers24, First1_ch8 and Size8; Idl_distance uses references only; Unwrap_n has one actual difference8 formal. Runtime safe-uint64 memcmp branch selected; predicate body not called.",
+      "maximum_instances": {
+        "EQ": 1,
+        "pointer_formals_equal": 6,
+        "pointer_locals_equal": 4,
+        "diff_local_equal": 1
+      }
+    },
+    {
+      "id": "exception_message",
+      "chain": [
+        "RUNTIME_ERROR",
+        "EXCEPTION_MESSAGE"
+      ],
+      "persistent": "runtime_error/logic_error24 actual exception destination, by-value Message pointer at each constructor layer, and one __std_exception_data aggregate; __std_exception_copy imported primitive remains existing runtime boundary.",
+      "materializations": "fixed literal message clone request is length+1 in separate NativeHeap ledger. Source-derived Rejection uses default exception base, no _InitData; payload80 contains base and witness.",
+      "maximum_instances": {
+        "EXDATA": 1,
+        "exception_Message_formals": 2,
+        "runtime_error_payload": 1
+      }
+    },
+    {
+      "id": "exception_control_nested",
+      "chain": [
+        "ARRAY_EQUAL",
+        "EQUAL3",
+        "EQUAL4"
+      ],
+      "persistent": "caught original Rejection80 can coexist with a new wrong-control/cleanup Rejection80 plus actual gate and Rejection constructor witness48 formals; caught references do not copy exception payloads.",
+      "materializations": "throw prvalue constructs actual exception destination directly. All unwind-held source context stays retained until actual scope ends; no generic EH heap or physical-frame fact is asserted.",
+      "maximum_instances": {
+        "Rejection_payload": 2,
+        "EXDATA": 0
+      }
+    }
+  ],
+  "scope": "Complete finite source/context candidate; numeric/type/native association acceptance remains HOLD."
+}

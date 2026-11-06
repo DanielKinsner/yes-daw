@@ -1,0 +1,440 @@
+{
+  "schema": "RAW_SOURCE_WRAPPER_R1",
+  "verdict": "PRESERVATION_ONLY_ORIGINAL_CANDIDATE_UNACCEPTED",
+  "source_packet": "build-ci/20261106-native-sdk-context-independent-review-r2",
+  "source_packet_pins_sha256": "9EF6B5B2CF12DBC3AD7E34BE0BA97C9C626956A117F25EB65BAF9CD4C9DEC7C8",
+  "source_packet_files": 10,
+  "associated_attempt_folder": null,
+  "textual_and_source_rows": 61,
+  "raw_preserved_rows": 0,
+  "inputs": [
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/argument.md",
+      "bytes": 10149,
+      "sha256": "D5A97BB11B4CE99B71B4F4E4ED1ADD0B7B841D94ECC67A41646F0D496717459B"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/closure-contexts.json",
+      "bytes": 21474,
+      "sha256": "3F2637E77ADE705F1E4870C6C845F51AE5BAF6A0114FB0157107CA74509DB7AA"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/envelope.json",
+      "bytes": 29437,
+      "sha256": "9315AEABE07E63F702A75A088A875D5C13FCF1F124126EC3601DAB84B822FFD8"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/first-green-freeze.json",
+      "bytes": 2515,
+      "sha256": "98C23B436B9B256DC28407A64FF10C8453C5C14D8A063F9ABE17275C8216DA06"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/own-named-objects.json",
+      "bytes": 108214,
+      "sha256": "7CFD16768ACCD87A8457E262F5838D6AA4C0E10A84D7F4D4ADCD44DB71875E4A"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/source-pins.json",
+      "bytes": 8326,
+      "sha256": "F252B5B6EBEAB13FDBE6AE35FB5FA177CA0F01FBEE36433ED3C10AA71A20B4A3"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/execution-r1/layout-values.json",
+      "bytes": 30879,
+      "sha256": "03A663FFA001DEAE6C284517D71B54607081F6017C1AF40A98B30B40945E750D"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/profile.json",
+      "bytes": 1767,
+      "sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r1/first-green-freeze.json",
+      "bytes": 1000,
+      "sha256": "F054826B2C1C16FE35DAAF9E5C3935241EB0E07540FCF9B82D0F919E0692BDC6"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r1/review.json",
+      "bytes": 280384,
+      "sha256": "09D97A3A2A8F4B73CC78070569D2C4EAA42EA3FF54A9EFA56EF4E252283DEBE1"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r1/review.md",
+      "bytes": 11680,
+      "sha256": "B5C9765AA9B3ACA5ECFCBCF94B5AB663F83D2C8CE7B5867C49CE43A4C4CC3505"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r1/source-pins.json",
+      "bytes": 12652,
+      "sha256": "D66C6A8C97359967B11C8D4CBA591FE2862715929ED57C4BAE4951C8A3EAE7C8"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/check.py",
+      "bytes": 31479,
+      "sha256": "7FDA08DD00B535C704B68561B6B8C28BFC1CAD4C95AA0BBDD1F69B3F465B1B23"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/failed-own-attempt-01/check.py",
+      "bytes": 30934,
+      "sha256": "A9342A7352E5999F3F17E569DD6B719FE71757B9E9EAA99A9FA9B2AF769C49D7"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/failed-own-attempt-01/failure.json",
+      "bytes": 78555,
+      "sha256": "A9D574012681FD46EDEA19FDA87DC96274A5827331657F91B158597429F900BC"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/failed-own-attempt-02/check.py",
+      "bytes": 31268,
+      "sha256": "93B8E74AE53183D9F04F1FF4046D24C5B5B9B353B8CF27A7613C828576903057"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/failed-own-attempt-02/failure.json",
+      "bytes": 133975,
+      "sha256": "4EBED5E75EEEFDFCE3C30D74517FFA11083050080CCFF49F29C588B6C1B4E60D"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/first-green-freeze.json",
+      "bytes": 2234,
+      "sha256": "A4750DF44528EE379BF31BDC26D5FE9F073711597D9AB977FD618DAAD5CE0693"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/own-check-receipt.json",
+      "bytes": 599,
+      "sha256": "D37E0C294CB2BDCC3A7C31D8AB3DF8DEE5247F3CDFDCF47B5ECFE8A6C3596173"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/review.json",
+      "bytes": 364647,
+      "sha256": "5D3039FA208D7BE0481A99E3CAF6B73B72AB8A33F74206C8CCE45794F0D7D962"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/review.md",
+      "bytes": 9452,
+      "sha256": "D4A912C80D3A4A83AD5FCECDAB1E431FC2BEFE7CCDC85D75EE690F22DF2BAF2B"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/source-pins.json",
+      "bytes": 20929,
+      "sha256": "9EF6B5B2CF12DBC3AD7E34BE0BA97C9C626956A117F25EB65BAF9CD4C9DEC7C8"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r1/argument.md",
+      "bytes": 8502,
+      "sha256": "F7094A103EFD968EED295ACC7DB92D0B8D2142F2E1D9DB58C18BE5D9453E9F17"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r1/closure-incidence.json",
+      "bytes": 26563,
+      "sha256": "60D3775FAA489ECBE57C1775F2F99859C0C98D6F4BA70B638482717AF941C13B"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r1/context-joins.json",
+      "bytes": 34045,
+      "sha256": "F9CA218282B57529E1EA4978B99540467FC31B9018D4C26FCE32E8997B6AF18C"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r1/first-green-freeze.json",
+      "bytes": 11617,
+      "sha256": "74717481007876FB89E4206DB4D2829AD0CE3FC0115ACBAD1772F70D320BEB43"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r1/message-copy-requests.json",
+      "bytes": 4060,
+      "sha256": "BBDEC14FC2B21C88F82EE526904FF6D171F0E390C4130C9D27B944A389469FFA"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r1/quote-argument-incidence.json",
+      "bytes": 11432,
+      "sha256": "1CE7B5E206CBF368C10C5BC06F8CBED7B76DD908D55B592C028BE0CCA47BF167"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r1/required-type-facts.json",
+      "bytes": 8572,
+      "sha256": "24F27842C31604B19D9F3B89373DB4AD2E766DE02242CB312F1D64D462CB6615"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r1/selected-sdk-ledger.json",
+      "bytes": 348469,
+      "sha256": "A9D7178024F69CF0FB4FADA0406AB7A5310914881D1169FD6C64236D54613119"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r1/source-pins.json",
+      "bytes": 9740,
+      "sha256": "814915EDB72EFD1049EF15D543C6647F1AD648A54214B1B80D6803695B0DD6FF"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r1/written-sdk-ingresses.json",
+      "bytes": 255746,
+      "sha256": "347612323BE6922A2D72072C3E8DC6305C23E560455A55617D993C21BA53B7F7"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/WORKING.md",
+      "bytes": 6819,
+      "sha256": "BC27125DB3EE900D98D3032A89FA4E427DFCFB0EBCC179A6DA0D8D4E49E94534"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/argument.md",
+      "bytes": 19293,
+      "sha256": "FBB7ED0CBD158E92AB427C36313E8E7F0F4C14852B7F6C9E070A72AC718F71E9"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/WORKING.md",
+      "bytes": 6819,
+      "sha256": "BC27125DB3EE900D98D3032A89FA4E427DFCFB0EBCC179A6DA0D8D4E49E94534"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/author.py",
+      "bytes": 16584,
+      "sha256": "BD24CA27FCCF2F27207AA359BE6E973F788296EB7F34C91EBEE5A83BF79A0E8B"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/failure.json",
+      "bytes": 647,
+      "sha256": "E51514589990E2BA063B63BA021DCC5E579295E5F3C226AA88D8E12168F0CFC1"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/quote_models.py",
+      "bytes": 8471,
+      "sha256": "2479DD2C70B6DDC5A888CF1B631C2DCCCAA9C82651ED7529868F6E7D97951D38"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/author.py",
+      "bytes": 17001,
+      "sha256": "30A7D5E06827676703378F3BCB7E3F1C09D3AB1F4995B48360CC2A6F66383160"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/authoring.json",
+      "bytes": 336,
+      "sha256": "16C7619CEC8E977382151B97F0DD3AD1976AA5A193BE444FDE5F79C86CE751B3"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/check.py",
+      "bytes": 16534,
+      "sha256": "BB27EADD11FCE81621BCD1F42A493DA24858C71B281DF6DA588A77E5BF4B2BAF"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/checks.json",
+      "bytes": 278417,
+      "sha256": "13C99F23B2782A817FB5DC555ACF0027D432F1607806CF885DD5ED02BA68F8AC"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/closure-incidence.json",
+      "bytes": 26731,
+      "sha256": "5E2B7EC86969A685F2C0904C6469E8ACAD3BF607C8266D54CFA6C2BE25140092"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/context-joins.json",
+      "bytes": 43899,
+      "sha256": "1A6EA8E038131D08EC2FDFFF5804455C1C5EB2EE8FDD6EECDB2FE5331216501C"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/inspection-attempt-r1/failure.json",
+      "bytes": 360,
+      "sha256": "EBD2F5C6764F33E38A3DA2DC825FE0F93E73659717953F35FE4D2AF265388E96"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/inspection-attempt-r1/input.py",
+      "bytes": 388,
+      "sha256": "A536E87E6A43D494F3247AEBD09BFBD520CD4F6FFD8C3DD161FB9F55BF419740"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/layout-source-correspondence.json",
+      "bytes": 60687,
+      "sha256": "72A6B10AFBC8D9BDA54A20EDF2B422FEF528FE6EB59BC0A3BDD23C5F43E39AFB"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/layout_correspondence.py",
+      "bytes": 3582,
+      "sha256": "0F8A75853F41B77413324DB2FD246AACA63D089E85A074B1D98C36A4DEC3B258"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/message-copy-requests.json",
+      "bytes": 4060,
+      "sha256": "BBDEC14FC2B21C88F82EE526904FF6D171F0E390C4130C9D27B944A389469FFA"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/primary-source-pins.json",
+      "bytes": 20944,
+      "sha256": "7D7FC9DC44828E03F8A8F69D83833D31CD4150D92ADC415741112BDA3EE97F99"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/proposal.json",
+      "bytes": 1140,
+      "sha256": "1C292BF340C0967852FBB6398DF69C6390E2BA640A9D928CADA8BB8E586B8191"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/quote-argument-incidence.json",
+      "bytes": 139209,
+      "sha256": "BA2BC0BF2DA1720A855B3839FEE380D25D310E0A76E24DAB8E0F11628C427749"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/quote_models.py",
+      "bytes": 8471,
+      "sha256": "2479DD2C70B6DDC5A888CF1B631C2DCCCAA9C82651ED7529868F6E7D97951D38"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/required-type-facts.json",
+      "bytes": 11509,
+      "sha256": "E7F7C30056A8816FAA801470AFA63936FCF39403626CCF48A95455991CBB3E28"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/selected-sdk-ledger.json",
+      "bytes": 616529,
+      "sha256": "433724242068FB8179EFF74105F81E9E01BDAFC431076CFD6C6CEF1628069BA4"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/written-sdk-ingresses.json",
+      "bytes": 255746,
+      "sha256": "347612323BE6922A2D72072C3E8DC6305C23E560455A55617D993C21BA53B7F7"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    }
+  ],
+  "external_identity_rows_verified_not_byte_archived": [
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/__msvc_iter_core.hpp",
+      "bytes": 19655,
+      "sha256": "4FE1273BD571601435C7032DABF6E57B88F84B1740BC65768E00CCDC60B1C9AD"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/__msvc_sanitizer_annotate_container.hpp",
+      "bytes": 7597,
+      "sha256": "50D83B50FD98DF02F58C3C643B5BC26313968A9EDD75A485F7AF4A24CFCEF8E1"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/__msvc_string_view.hpp",
+      "bytes": 83111,
+      "sha256": "957AE97E03169F46D8D9B77C9DC5AB3F66C619BE5A228D062499B60B8D336C47"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/array",
+      "bytes": 29292,
+      "sha256": "48D2C6C4926E08D0D96F41E59F69513737F76107530F68C94D5D9FE668689A15"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/bit",
+      "bytes": 8838,
+      "sha256": "F08C873229E5C11B6E89A0D47C5CA5E2555947321AA382BF52224D041648D483"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cmath",
+      "bytes": 71762,
+      "sha256": "3F10507B4BCA07CD07B7B4AE1403377634A37E91459305094E9F8CBA34DD8CA5"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cstddef",
+      "bytes": 4015,
+      "sha256": "8388948EFA6DC3B3B20866FA1C3057EA53B8DFD028F22ABE1D7DCE23EF1D9ECC"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cstdlib",
+      "bytes": 2532,
+      "sha256": "0A7EDD2C3BA954E98AA26894F28C3EB7FB9B0BA748261EC6E568563ED17B2FC4"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/exception",
+      "bytes": 13509,
+      "sha256": "F656E780C4B7DE2D580F34E2C96D9992F8F0D154D068235BA5BEE709AE0334A2"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/initializer_list",
+      "bytes": 1888,
+      "sha256": "6FF91697D3FC1734976F2290DCA64DB6FF910A7D7ADD242029F692C745AC4558"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/limits",
+      "bytes": 27227,
+      "sha256": "5CDA311B1B514CDEA1FDDA5C1B53865A85C9288EF50D59B7B8F09802BF9BC60B"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/stdexcept",
+      "bytes": 5213,
+      "sha256": "E677DAF8465DD4B870F420DF9010EE3A17CD80FB6F6F5655F2AD3DC6D8009AE1"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/type_traits",
+      "bytes": 108106,
+      "sha256": "357E102B4E6AB85A864980A01BBA28440791311DF288B8987B580E577C928D5C"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/utility",
+      "bytes": 42347,
+      "sha256": "403BCF5919D0E0371F25A929752F0A05AAE7B0667129D65CFE3A8DFF858E97D6"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime.h",
+      "bytes": 11851,
+      "sha256": "A2FE9117DC2640E243F91FA94E1D05FC35083218C2A67A446DB9E34CECE779B5"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_exception.h",
+      "bytes": 3143,
+      "sha256": "0DD3DCC67B655FBFC96708F131C9E7F86416D2DB95FD33B1E7ACC8489F2C32D4"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_new.h",
+      "bytes": 5531,
+      "sha256": "8EE45E7DB7F08475D1DDF33D493FD7CB5CD10B54B4756B39156C8548281B3E63"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vector",
+      "bytes": 161282,
+      "sha256": "351604D91A2CEAC79F9BD9448C0553CCCC22711E22955B5938EAF41DE98334A6"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "bytes": 112178,
+      "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xstring",
+      "bytes": 161127,
+      "sha256": "9407C290A1D0C6BEBC42CF131BD04F09A9892F61B713EECB12827C0F6BBC3045"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xutility",
+      "bytes": 331853,
+      "sha256": "D5959E0964EA09991888E5B45EECFD8C71C094034261489FBB450C2F2F450EF5"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals.h",
+      "bytes": 17704,
+      "sha256": "A186476441EAA158056BE01DA9A1473217E14A7CC33365CBD0B6C9115833E0DC"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals_core.h",
+      "bytes": 104524,
+      "sha256": "5070449E37A1735ADF49204A12C7A7D5EFA145D6AA607720AEF5ADBD2C57EF83"
+    },
+    {
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_math.h",
+      "bytes": 39299,
+      "sha256": "CA2F0F25B2E07B3613984EFD1135DD9F1D0786FABAA56DA2BA3C83B1A23EB918"
+    }
+  ],
+  "target_execution": false
+}

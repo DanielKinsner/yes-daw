@@ -1,0 +1,9 @@
+{
+  "kind": "read-only diagnostic schema error; no candidate or target execution",
+  "error": "KeyError: 'reference_parameters'",
+  "input": "input.py",
+  "line": 6,
+  "source_changed": false,
+  "numeric_or_functional_target_finding": false,
+  "supported_correction": "Inspect actual row schema and use its references key; do not invent a new schema field."
+}

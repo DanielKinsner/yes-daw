@@ -1,0 +1,1176 @@
+{
+  "schema": "COMPILE_ONLY_NATIVE_OBJECT_LAYOUT_VALUES_R1",
+  "object_bytes": 2845,
+  "object_sha256": "FE84226C8D35C527BF5EBE7386887BDD4259D6421E00722A7D05D96E62C34949",
+  "machine": 34404,
+  "sections": 6,
+  "cells": 194,
+  "rows": [
+    {
+      "name": "pointer.sizeof",
+      "expression": "sizeof(void*)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "pointer.alignof",
+      "expression": "alignof(void*)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "size_t.sizeof",
+      "expression": "sizeof(std::size_t)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "size_t.alignof",
+      "expression": "alignof(std::size_t)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "bool.sizeof",
+      "expression": "sizeof(bool)",
+      "kind": "sizeof",
+      "value": 1
+    },
+    {
+      "name": "bool.alignof",
+      "expression": "alignof(bool)",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "char.sizeof",
+      "expression": "sizeof(char)",
+      "kind": "sizeof",
+      "value": 1
+    },
+    {
+      "name": "char.alignof",
+      "expression": "alignof(char)",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "unsigned_char.sizeof",
+      "expression": "sizeof(unsigned char)",
+      "kind": "sizeof",
+      "value": 1
+    },
+    {
+      "name": "unsigned_char.alignof",
+      "expression": "alignof(unsigned char)",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "int.sizeof",
+      "expression": "sizeof(int)",
+      "kind": "sizeof",
+      "value": 4
+    },
+    {
+      "name": "int.alignof",
+      "expression": "alignof(int)",
+      "kind": "alignof",
+      "value": 4
+    },
+    {
+      "name": "unsigned.sizeof",
+      "expression": "sizeof(unsigned)",
+      "kind": "sizeof",
+      "value": 4
+    },
+    {
+      "name": "unsigned.alignof",
+      "expression": "alignof(unsigned)",
+      "kind": "alignof",
+      "value": 4
+    },
+    {
+      "name": "u64.sizeof",
+      "expression": "sizeof(std::uint64_t)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "u64.alignof",
+      "expression": "alignof(std::uint64_t)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Tick.sizeof",
+      "expression": "sizeof(qc::Tick)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "Tick.alignof",
+      "expression": "alignof(qc::Tick)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "double.sizeof",
+      "expression": "sizeof(double)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "double.alignof",
+      "expression": "alignof(double)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Rejection.sizeof",
+      "expression": "sizeof(layout_purpose::Rejection)",
+      "kind": "sizeof",
+      "value": 80
+    },
+    {
+      "name": "Rejection.alignof",
+      "expression": "alignof(layout_purpose::Rejection)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "CleanupCloseState.sizeof",
+      "expression": "sizeof(layout_purpose::CleanupCloseState)",
+      "kind": "sizeof",
+      "value": 24
+    },
+    {
+      "name": "CleanupCloseState.alignof",
+      "expression": "alignof(layout_purpose::CleanupCloseState)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Cost.sizeof",
+      "expression": "sizeof(layout_purpose::Cost)",
+      "kind": "sizeof",
+      "value": 1
+    },
+    {
+      "name": "Cost.alignof",
+      "expression": "alignof(layout_purpose::Cost)",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "Meter.sizeof",
+      "expression": "sizeof(layout_purpose::Meter)",
+      "kind": "sizeof",
+      "value": 24
+    },
+    {
+      "name": "Meter.alignof",
+      "expression": "alignof(layout_purpose::Meter)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Text.sizeof",
+      "expression": "sizeof(layout_purpose::Text)",
+      "kind": "sizeof",
+      "value": 65544
+    },
+    {
+      "name": "Text.alignof",
+      "expression": "alignof(layout_purpose::Text)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Stream.sizeof",
+      "expression": "sizeof(layout_purpose::Stream)",
+      "kind": "sizeof",
+      "value": 65584
+    },
+    {
+      "name": "Stream.alignof",
+      "expression": "alignof(layout_purpose::Stream)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Pair128.sizeof",
+      "expression": "sizeof(layout_purpose::Pair128)",
+      "kind": "sizeof",
+      "value": 16
+    },
+    {
+      "name": "Pair128.alignof",
+      "expression": "alignof(layout_purpose::Pair128)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "FractionCache.sizeof",
+      "expression": "sizeof(layout_purpose::FractionCache)",
+      "kind": "sizeof",
+      "value": 11784
+    },
+    {
+      "name": "FractionCache.alignof",
+      "expression": "alignof(layout_purpose::FractionCache)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "CachedPort.sizeof",
+      "expression": "sizeof(layout_purpose::CachedPort)",
+      "kind": "sizeof",
+      "value": 160
+    },
+    {
+      "name": "CachedPort.alignof",
+      "expression": "alignof(layout_purpose::CachedPort)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Picks.sizeof",
+      "expression": "sizeof(layout_purpose::Picks)",
+      "kind": "sizeof",
+      "value": 248
+    },
+    {
+      "name": "Picks.alignof",
+      "expression": "alignof(layout_purpose::Picks)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Bounds.sizeof",
+      "expression": "sizeof(layout_purpose::Bounds)",
+      "kind": "sizeof",
+      "value": 104
+    },
+    {
+      "name": "Bounds.alignof",
+      "expression": "alignof(layout_purpose::Bounds)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "PicksItem.sizeof",
+      "expression": "sizeof(layout_purpose::Picks::Item)",
+      "kind": "sizeof",
+      "value": 16
+    },
+    {
+      "name": "PicksItem.alignof",
+      "expression": "alignof(layout_purpose::Picks::Item)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "qcChange.sizeof",
+      "expression": "sizeof(qc::Change)",
+      "kind": "sizeof",
+      "value": 24
+    },
+    {
+      "name": "qcChange.alignof",
+      "expression": "alignof(qc::Change)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "qcNative.sizeof",
+      "expression": "sizeof(qc::Native)",
+      "kind": "sizeof",
+      "value": 16
+    },
+    {
+      "name": "qcNative.alignof",
+      "expression": "alignof(qc::Native)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "qcCut.sizeof",
+      "expression": "sizeof(qc::Cut)",
+      "kind": "sizeof",
+      "value": 32
+    },
+    {
+      "name": "qcCut.alignof",
+      "expression": "alignof(qc::Cut)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "NumericAClock.sizeof",
+      "expression": "sizeof(qc::NumericAClock)",
+      "kind": "sizeof",
+      "value": 56
+    },
+    {
+      "name": "NumericAClock.alignof",
+      "expression": "alignof(qc::NumericAClock)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "TempoChange.sizeof",
+      "expression": "sizeof(yesdaw::engine::TempoChange)",
+      "kind": "sizeof",
+      "value": 24
+    },
+    {
+      "name": "TempoChange.alignof",
+      "expression": "alignof(yesdaw::engine::TempoChange)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "MusicalTime.sizeof",
+      "expression": "sizeof(yesdaw::engine::MusicalTime)",
+      "kind": "sizeof",
+      "value": 16
+    },
+    {
+      "name": "MusicalTime.alignof",
+      "expression": "alignof(yesdaw::engine::MusicalTime)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "SampleRate.sizeof",
+      "expression": "sizeof(yesdaw::engine::SampleRate)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "SampleRate.alignof",
+      "expression": "alignof(yesdaw::engine::SampleRate)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Production.sizeof",
+      "expression": "sizeof(yesdaw::engine::CompiledTempoMap)",
+      "kind": "sizeof",
+      "value": 64
+    },
+    {
+      "name": "Production.alignof",
+      "expression": "alignof(yesdaw::engine::CompiledTempoMap)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Family.sizeof",
+      "expression": "sizeof(clock_stage::source_costs::Family)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "Family.alignof",
+      "expression": "alignof(clock_stage::source_costs::Family)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "TempoCurve.sizeof",
+      "expression": "sizeof(yesdaw::engine::TempoCurve)",
+      "kind": "sizeof",
+      "value": 1
+    },
+    {
+      "name": "TempoCurve.alignof",
+      "expression": "alignof(yesdaw::engine::TempoCurve)",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "TimeLookupStatus.sizeof",
+      "expression": "sizeof(yesdaw::engine::TimeLookupStatus)",
+      "kind": "sizeof",
+      "value": 1
+    },
+    {
+      "name": "TimeLookupStatus.alignof",
+      "expression": "alignof(yesdaw::engine::TimeLookupStatus)",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "FamilyBound.sizeof",
+      "expression": "sizeof(clock_stage::source_costs::FamilyBound)",
+      "kind": "sizeof",
+      "value": 16
+    },
+    {
+      "name": "FamilyBound.alignof",
+      "expression": "alignof(clock_stage::source_costs::FamilyBound)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "WholeBound.sizeof",
+      "expression": "sizeof(clock_stage::source_costs::WholeBound)",
+      "kind": "sizeof",
+      "value": 32
+    },
+    {
+      "name": "WholeBound.alignof",
+      "expression": "alignof(clock_stage::source_costs::WholeBound)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Catalogue.sizeof",
+      "expression": "sizeof(clock_stage::source_costs::Catalogue)",
+      "kind": "sizeof",
+      "value": 1248
+    },
+    {
+      "name": "Catalogue.alignof",
+      "expression": "alignof(clock_stage::source_costs::Catalogue)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "FamilyRows.sizeof",
+      "expression": "sizeof(std::array<clock_stage::source_costs::FamilyBound,clock_stage::source_costs::familyCount>)",
+      "kind": "sizeof",
+      "value": 1216
+    },
+    {
+      "name": "FamilyRows.alignof",
+      "expression": "alignof(std::array<clock_stage::source_costs::FamilyBound,clock_stage::source_costs::familyCount>)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "DoublePair.sizeof",
+      "expression": "sizeof(std::pair<double,double>)",
+      "kind": "sizeof",
+      "value": 16
+    },
+    {
+      "name": "DoublePair.alignof",
+      "expression": "alignof(std::pair<double,double>)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "ChangeVector.sizeof",
+      "expression": "sizeof(std::vector<qc::Change>)",
+      "kind": "sizeof",
+      "value": 24
+    },
+    {
+      "name": "ChangeVector.alignof",
+      "expression": "alignof(std::vector<qc::Change>)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "TempoVector.sizeof",
+      "expression": "sizeof(std::vector<yesdaw::engine::TempoChange>)",
+      "kind": "sizeof",
+      "value": 24
+    },
+    {
+      "name": "TempoVector.alignof",
+      "expression": "alignof(std::vector<yesdaw::engine::TempoChange>)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "DoubleVector.sizeof",
+      "expression": "sizeof(std::vector<double>)",
+      "kind": "sizeof",
+      "value": 24
+    },
+    {
+      "name": "DoubleVector.alignof",
+      "expression": "alignof(std::vector<double>)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "String.sizeof",
+      "expression": "sizeof(std::string)",
+      "kind": "sizeof",
+      "value": 32
+    },
+    {
+      "name": "String.alignof",
+      "expression": "alignof(std::string)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "ChangeIterator.sizeof",
+      "expression": "sizeof(std::vector<qc::Change>::iterator)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "ChangeIterator.alignof",
+      "expression": "alignof(std::vector<qc::Change>::iterator)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "ChangeConstIterator.sizeof",
+      "expression": "sizeof(std::vector<qc::Change>::const_iterator)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "ChangeConstIterator.alignof",
+      "expression": "alignof(std::vector<qc::Change>::const_iterator)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "TempoIterator.sizeof",
+      "expression": "sizeof(std::vector<yesdaw::engine::TempoChange>::iterator)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "TempoIterator.alignof",
+      "expression": "alignof(std::vector<yesdaw::engine::TempoChange>::iterator)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "TempoConstIterator.sizeof",
+      "expression": "sizeof(std::vector<yesdaw::engine::TempoChange>::const_iterator)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "TempoConstIterator.alignof",
+      "expression": "alignof(std::vector<yesdaw::engine::TempoChange>::const_iterator)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "DoubleIterator.sizeof",
+      "expression": "sizeof(std::vector<double>::iterator)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "DoubleIterator.alignof",
+      "expression": "alignof(std::vector<double>::iterator)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "DoubleConstIterator.sizeof",
+      "expression": "sizeof(std::vector<double>::const_iterator)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "DoubleConstIterator.alignof",
+      "expression": "alignof(std::vector<double>::const_iterator)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "StringIterator.sizeof",
+      "expression": "sizeof(std::string::iterator)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "StringIterator.alignof",
+      "expression": "alignof(std::string::iterator)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "StringConstIterator.sizeof",
+      "expression": "sizeof(std::string::const_iterator)",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "StringConstIterator.alignof",
+      "expression": "alignof(std::string::const_iterator)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "ChangeInitializerList.sizeof",
+      "expression": "sizeof(std::initializer_list<qc::Change>)",
+      "kind": "sizeof",
+      "value": 16
+    },
+    {
+      "name": "ChangeInitializerList.alignof",
+      "expression": "alignof(std::initializer_list<qc::Change>)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "RateInitializerList.sizeof",
+      "expression": "sizeof(std::initializer_list<std::uint64_t>)",
+      "kind": "sizeof",
+      "value": 16
+    },
+    {
+      "name": "RateInitializerList.alignof",
+      "expression": "alignof(std::initializer_list<std::uint64_t>)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Exception.sizeof",
+      "expression": "sizeof(std::exception)",
+      "kind": "sizeof",
+      "value": 24
+    },
+    {
+      "name": "Exception.alignof",
+      "expression": "alignof(std::exception)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "RuntimeError.sizeof",
+      "expression": "sizeof(std::runtime_error)",
+      "kind": "sizeof",
+      "value": 24
+    },
+    {
+      "name": "RuntimeError.alignof",
+      "expression": "alignof(std::runtime_error)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "LogicError.sizeof",
+      "expression": "sizeof(std::logic_error)",
+      "kind": "sizeof",
+      "value": 24
+    },
+    {
+      "name": "LogicError.alignof",
+      "expression": "alignof(std::logic_error)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "TextBuffer.sizeof",
+      "expression": "sizeof(std::array<char,65536>)",
+      "kind": "sizeof",
+      "value": 65536
+    },
+    {
+      "name": "TextBuffer.alignof",
+      "expression": "alignof(std::array<char,65536>)",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "StreamBuffer.sizeof",
+      "expression": "sizeof(std::array<unsigned char,65536>)",
+      "kind": "sizeof",
+      "value": 65536
+    },
+    {
+      "name": "StreamBuffer.alignof",
+      "expression": "alignof(std::array<unsigned char,65536>)",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "FractionRows.sizeof",
+      "expression": "sizeof(std::array<std::pair<double,double>,735>)",
+      "kind": "sizeof",
+      "value": 11760
+    },
+    {
+      "name": "FractionRows.alignof",
+      "expression": "alignof(std::array<std::pair<double,double>,735>)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Witness6.sizeof",
+      "expression": "sizeof(std::array<std::uint64_t,6>)",
+      "kind": "sizeof",
+      "value": 48
+    },
+    {
+      "name": "Witness6.alignof",
+      "expression": "alignof(std::array<std::uint64_t,6>)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "ProductionRows4.sizeof",
+      "expression": "sizeof(std::array<yesdaw::engine::TempoChange,4>)",
+      "kind": "sizeof",
+      "value": 96
+    },
+    {
+      "name": "ProductionRows4.alignof",
+      "expression": "alignof(std::array<yesdaw::engine::TempoChange,4>)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "FixtureRows4.sizeof",
+      "expression": "sizeof(std::array<qc::Change,4>)",
+      "kind": "sizeof",
+      "value": 96
+    },
+    {
+      "name": "FixtureRows4.alignof",
+      "expression": "alignof(std::array<qc::Change,4>)",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Digits20.sizeof",
+      "expression": "sizeof(char[20])",
+      "kind": "sizeof",
+      "value": 20
+    },
+    {
+      "name": "Digits20.alignof",
+      "expression": "alignof(char[20])",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "Quoted2.sizeof",
+      "expression": "sizeof(char[2])",
+      "kind": "sizeof",
+      "value": 2
+    },
+    {
+      "name": "Quoted2.alignof",
+      "expression": "alignof(char[2])",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "Fallback8.sizeof",
+      "expression": "sizeof(unsigned char[8])",
+      "kind": "sizeof",
+      "value": 8
+    },
+    {
+      "name": "Fallback8.alignof",
+      "expression": "alignof(unsigned char[8])",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "Owned9.sizeof",
+      "expression": "sizeof(unsigned char[9])",
+      "kind": "sizeof",
+      "value": 9
+    },
+    {
+      "name": "Owned9.alignof",
+      "expression": "alignof(unsigned char[9])",
+      "kind": "alignof",
+      "value": 1
+    },
+    {
+      "name": "Constants5.sizeof",
+      "expression": "sizeof(double[5])",
+      "kind": "sizeof",
+      "value": 40
+    },
+    {
+      "name": "Constants5.alignof",
+      "expression": "alignof(double[5])",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "Rates3.sizeof",
+      "expression": "sizeof(std::uint64_t[3])",
+      "kind": "sizeof",
+      "value": 24
+    },
+    {
+      "name": "Rates3.alignof",
+      "expression": "alignof(std::uint64_t[3])",
+      "kind": "alignof",
+      "value": 8
+    },
+    {
+      "name": "CleanupCloseState.offsetof.failures",
+      "expression": "offsetof(layout_purpose::CleanupCloseState,failures)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "CleanupCloseState.offsetof.firstReturn",
+      "expression": "offsetof(layout_purpose::CleanupCloseState,firstReturn)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "CleanupCloseState.offsetof.firstErrno",
+      "expression": "offsetof(layout_purpose::CleanupCloseState,firstErrno)",
+      "kind": "public-standard-layout-offset",
+      "value": 12
+    },
+    {
+      "name": "CleanupCloseState.offsetof.firstSite",
+      "expression": "offsetof(layout_purpose::CleanupCloseState,firstSite)",
+      "kind": "public-standard-layout-offset",
+      "value": 16
+    },
+    {
+      "name": "Meter.offsetof.used",
+      "expression": "offsetof(layout_purpose::Meter,used)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "Meter.offsetof.reserved",
+      "expression": "offsetof(layout_purpose::Meter,reserved)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "Meter.offsetof.prior",
+      "expression": "offsetof(layout_purpose::Meter,prior)",
+      "kind": "public-standard-layout-offset",
+      "value": 16
+    },
+    {
+      "name": "Text.offsetof.data",
+      "expression": "offsetof(layout_purpose::Text,data)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "Text.offsetof.size",
+      "expression": "offsetof(layout_purpose::Text,size)",
+      "kind": "public-standard-layout-offset",
+      "value": 65536
+    },
+    {
+      "name": "Stream.offsetof.file",
+      "expression": "offsetof(layout_purpose::Stream,file)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "Stream.offsetof.buffer",
+      "expression": "offsetof(layout_purpose::Stream,buffer)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "Stream.offsetof.at",
+      "expression": "offsetof(layout_purpose::Stream,at)",
+      "kind": "public-standard-layout-offset",
+      "value": 65544
+    },
+    {
+      "name": "Stream.offsetof.size",
+      "expression": "offsetof(layout_purpose::Stream,size)",
+      "kind": "public-standard-layout-offset",
+      "value": 65552
+    },
+    {
+      "name": "Stream.offsetof.bytes",
+      "expression": "offsetof(layout_purpose::Stream,bytes)",
+      "kind": "public-standard-layout-offset",
+      "value": 65560
+    },
+    {
+      "name": "Stream.offsetof.maximum",
+      "expression": "offsetof(layout_purpose::Stream,maximum)",
+      "kind": "public-standard-layout-offset",
+      "value": 65568
+    },
+    {
+      "name": "Stream.offsetof.write",
+      "expression": "offsetof(layout_purpose::Stream,write)",
+      "kind": "public-standard-layout-offset",
+      "value": 65576
+    },
+    {
+      "name": "Pair128.offsetof.high",
+      "expression": "offsetof(layout_purpose::Pair128,high)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "Pair128.offsetof.low",
+      "expression": "offsetof(layout_purpose::Pair128,low)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "FractionCache.offsetof.rows",
+      "expression": "offsetof(layout_purpose::FractionCache,rows)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "FractionCache.offsetof.N",
+      "expression": "offsetof(layout_purpose::FractionCache,N)",
+      "kind": "public-standard-layout-offset",
+      "value": 11760
+    },
+    {
+      "name": "FractionCache.offsetof.g",
+      "expression": "offsetof(layout_purpose::FractionCache,g)",
+      "kind": "public-standard-layout-offset",
+      "value": 11768
+    },
+    {
+      "name": "FractionCache.offsetof.count",
+      "expression": "offsetof(layout_purpose::FractionCache,count)",
+      "kind": "public-standard-layout-offset",
+      "value": 11776
+    },
+    {
+      "name": "PicksItem.offsetof.index",
+      "expression": "offsetof(layout_purpose::Picks::Item,index)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "PicksItem.offsetof.slot",
+      "expression": "offsetof(layout_purpose::Picks::Item,slot)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "Picks.offsetof.items",
+      "expression": "offsetof(layout_purpose::Picks,items)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "Picks.offsetof.values",
+      "expression": "offsetof(layout_purpose::Picks,values)",
+      "kind": "public-standard-layout-offset",
+      "value": 160
+    },
+    {
+      "name": "Picks.offsetof.next",
+      "expression": "offsetof(layout_purpose::Picks,next)",
+      "kind": "public-standard-layout-offset",
+      "value": 240
+    },
+    {
+      "name": "Bounds.offsetof.R",
+      "expression": "offsetof(layout_purpose::Bounds,R)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "Bounds.offsetof.N",
+      "expression": "offsetof(layout_purpose::Bounds,N)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "Bounds.offsetof.W",
+      "expression": "offsetof(layout_purpose::Bounds,W)",
+      "kind": "public-standard-layout-offset",
+      "value": 16
+    },
+    {
+      "name": "Bounds.offsetof.map",
+      "expression": "offsetof(layout_purpose::Bounds,map)",
+      "kind": "public-standard-layout-offset",
+      "value": 24
+    },
+    {
+      "name": "Bounds.offsetof.begin",
+      "expression": "offsetof(layout_purpose::Bounds,begin)",
+      "kind": "public-standard-layout-offset",
+      "value": 32
+    },
+    {
+      "name": "Bounds.offsetof.end",
+      "expression": "offsetof(layout_purpose::Bounds,end)",
+      "kind": "public-standard-layout-offset",
+      "value": 64
+    },
+    {
+      "name": "Bounds.offsetof.D",
+      "expression": "offsetof(layout_purpose::Bounds,D)",
+      "kind": "public-standard-layout-offset",
+      "value": 96
+    },
+    {
+      "name": "qcChange.offsetof.tick",
+      "expression": "offsetof(qc::Change,tick)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "qcChange.offsetof.bpm",
+      "expression": "offsetof(qc::Change,bpm)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "qcChange.offsetof.ramp",
+      "expression": "offsetof(qc::Change,ramp)",
+      "kind": "public-standard-layout-offset",
+      "value": 16
+    },
+    {
+      "name": "qcNative.offsetof.whole",
+      "expression": "offsetof(qc::Native,whole)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "qcNative.offsetof.frac",
+      "expression": "offsetof(qc::Native,frac)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "qcCut.offsetof.admitted",
+      "expression": "offsetof(qc::Cut,admitted)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "qcCut.offsetof.floor",
+      "expression": "offsetof(qc::Cut,floor)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "qcCut.offsetof.low",
+      "expression": "offsetof(qc::Cut,low)",
+      "kind": "public-standard-layout-offset",
+      "value": 16
+    },
+    {
+      "name": "qcCut.offsetof.high",
+      "expression": "offsetof(qc::Cut,high)",
+      "kind": "public-standard-layout-offset",
+      "value": 24
+    },
+    {
+      "name": "TempoChange.offsetof.tick",
+      "expression": "offsetof(yesdaw::engine::TempoChange,tick)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "TempoChange.offsetof.bpm",
+      "expression": "offsetof(yesdaw::engine::TempoChange,bpm)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "TempoChange.offsetof.curveToNext",
+      "expression": "offsetof(yesdaw::engine::TempoChange,curveToNext)",
+      "kind": "public-standard-layout-offset",
+      "value": 16
+    },
+    {
+      "name": "MusicalTime.offsetof.tick",
+      "expression": "offsetof(yesdaw::engine::MusicalTime,tick)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "MusicalTime.offsetof.frac",
+      "expression": "offsetof(yesdaw::engine::MusicalTime,frac)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "SampleRate.offsetof.hz",
+      "expression": "offsetof(yesdaw::engine::SampleRate,hz)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "FamilyBound.offsetof.family",
+      "expression": "offsetof(clock_stage::source_costs::FamilyBound,family)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "FamilyBound.offsetof.upperUnits",
+      "expression": "offsetof(clock_stage::source_costs::FamilyBound,upperUnits)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "WholeBound.offsetof.runnerUpper",
+      "expression": "offsetof(clock_stage::source_costs::WholeBound,runnerUpper)",
+      "kind": "public-standard-layout-offset",
+      "value": 0
+    },
+    {
+      "name": "WholeBound.offsetof.producerUpper",
+      "expression": "offsetof(clock_stage::source_costs::WholeBound,producerUpper)",
+      "kind": "public-standard-layout-offset",
+      "value": 8
+    },
+    {
+      "name": "WholeBound.offsetof.verifierUpper",
+      "expression": "offsetof(clock_stage::source_costs::WholeBound,verifierUpper)",
+      "kind": "public-standard-layout-offset",
+      "value": 16
+    },
+    {
+      "name": "WholeBound.offsetof.totalUpper",
+      "expression": "offsetof(clock_stage::source_costs::WholeBound,totalUpper)",
+      "kind": "public-standard-layout-offset",
+      "value": 24
+    },
+    {
+      "name": "compiler.MSC_FULL_VER",
+      "expression": "_MSC_FULL_VER",
+      "kind": "profile-constant",
+      "value": 194435228
+    },
+    {
+      "name": "compiler.MSC_VER",
+      "expression": "_MSC_VER",
+      "kind": "profile-constant",
+      "value": 1944
+    },
+    {
+      "name": "compiler.CRT_PACKING",
+      "expression": "_CRT_PACKING",
+      "kind": "profile-constant",
+      "value": 8
+    },
+    {
+      "name": "compiler.ITERATOR_DEBUG_LEVEL",
+      "expression": "_ITERATOR_DEBUG_LEVEL",
+      "kind": "profile-constant",
+      "value": 0
+    },
+    {
+      "name": "source.familyCount",
+      "expression": "clock_stage::source_costs::familyCount",
+      "kind": "profile-constant",
+      "value": 76
+    }
+  ],
+  "scope": "Actual constant compiler type/layout values only. No code loaded/run, no Clock execution, no frame/RSS/resource fit or Data.",
+  "no_native_execution": true
+}

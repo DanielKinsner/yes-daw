@@ -63,17 +63,18 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
    reader actually passed88 types/391 declared fields. A separate /c-only purpose now measured194 type/layout
    cells; this supplies selected object-size evidence, without physical-frame, whole-fit or Clock-run credit.
-   A frozen native-object proposal lists93 named scopes/16 closures; its777 own checks preserve explicit
-   unknown SDK/context/layout terms. The measured405,128-byte large-object component is not whole fit.
-   The selected C++ helper/context R1 also returned REVISE for three source-incidence gaps; complete R2 is
-   frozen after3,010 own source checks and under a fresh whole critic. Thirty layout facts remain null.
+   The native-object proposal's93 declaration scopes and405,128-byte large-object component now have an
+   independent scoped acceptance after2,240 checks; their surrounding context union and whole fit remain open.
+   Complete SDK/contextR2 has conditional source-incidence/minimal-type acceptance after1,990 independent
+   checks. All30 exact type layouts remain null; a separate compile-only purpose is being prepared.
    ADR-0090's complete supervisor protocol passed115 independent checks; its v2 diagnostic delta is Accepted.
    The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
    is REVISE, with no runtime credit. A different fresh critic returned R13 scalarR2 REVISE after3,770
    source/data checks: four source-sponsorship omissions remain in that proposal. Complete scalarR3 is now
    frozen at5,577,542,589 after9,244 own checks; a fresh whole critic's18,310 checks support conditional
    acceptance for exact R13 only. No total/price transfers to R16/R17, and no combined limit or fit is accepted.
-   Next: complete the source-bounded supervisor successor and SDK/contextR2 reviews, then resource/native/binding proof
+   Next: complete the source-bounded R17 supervisor review, exact-layout qualification and whole all-language
+   census, then joined resource/native/binding proof
    before any Clock attempt. Detailed evidence and earlier
    source revisions remain in the dated entries below; Dan is not a tester or approval gate.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
@@ -96,6 +97,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Accept the two native-resource source components within their scopes
+
+- Complete [SDK/contextR2](docs/research/artifacts/2026-11-06-native-sdk-context-ledger-r2/sources/024-argument.md) passed its [fresh whole review](docs/research/artifacts/2026-11-06-native-sdk-context-independent-review-r2/sources/022-review.md): conditional acceptance of167 inventory identities,12 contexts/14 joins/25 groups,27 typed quote rows and the30 exact necessary missing type facts. All new layouts remain null;1,990 independent source/data checks passed. Both own-checker failures are preserved.
+- A different [fresh scoped review](docs/research/artifacts/2026-11-06-native-own-object-independent-review-r1/sources/039-review.md) accepts all93 declaration scopes and the conservative405,128-byte large-object component after2,240 checks. Main186/run1419/union4810 are declaration widths, not a coexistence or physical-frame bound. The old invalid-native comparator candidate is explicitly excluded; current R2 corrects it.
+- Root adopts those two limited source verdicts. The actual surrounding owner/context union,30 exact sizeof/alignof associations, compiler/header/native profile, controlled backing/path/FILE/message/static/quarantined owners and joint32MiB phase equation remain unfinished. Separate bounded compile-only purpose source is being prepared; no compiler/helper/Clock execution is authorized by this checkpoint.
+- All three source/review archives passed staged membership, original-byte reconstruction and Git whitespace checks. The prior commit1e3a7f1 passed docs-only CI42245865634 with runtime/package/sanitizer jobs skipped. R17 is frozen after1,671 own checks and under fresh whole functional review; its complete all-language work census is being authored.
 
 ## 2026-11-06 - Accept R16 functional source correspondence; close progress in a successor
 

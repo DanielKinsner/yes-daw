@@ -1,0 +1,5 @@
+{
+  "schema": "RAW_PRESERVATION_PAYLOADS_V1",
+  "rows": [],
+  "scope": "Opaque raw preservation; cached bytecode is not an execution input or authority"
+}

@@ -1,0 +1,13 @@
+{
+  "stage": "PREPARED_COMPLETE_R2_DATA_NOT_YET_WHOLE_CHECKED",
+  "rows": 167,
+  "contexts": 12,
+  "joins": 14,
+  "materialization_groups": 25,
+  "own_closures": 16,
+  "selected_SDK_closures": 1,
+  "conditional_needed_type_facts": 30,
+  "quote_source_rows": 27,
+  "all_numeric_OTHER_child_jointfit": null,
+  "target_execution": false
+}

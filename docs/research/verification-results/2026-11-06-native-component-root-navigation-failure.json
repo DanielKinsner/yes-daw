@@ -1,0 +1,7 @@
+{
+  "action": "Assemble root adoption receipt from already checked sources",
+  "raw_exit": 1,
+  "error": "FileNotFoundError: build-ci/20261106-native-own-object-independent-review-r1/first-green-review-freeze.json",
+  "supported_correction": "Actual enumerated filename is first-green-freeze.json; no subject or archive edit and no receipt was created",
+  "target_execution": false
+}

@@ -1,0 +1,34 @@
+{
+  "status": "COMPLETE",
+  "verdict": "ACCEPT_EXACT_93_DECLARATION_WIDTH_AND_LARGE_COMPONENT_ONLY",
+  "findings_in_own93": [],
+  "ancillary_not_adopted": [
+    {
+      "id": "H1",
+      "source": "closure-contexts.json candidate common-controls expression",
+      "claim": "invalid-native may enter Time comparator",
+      "reason": "frac1 rejects at Time731 before frameForTick/search; already corrected by current SDK/contextR2. No old-context acceptance follows."
+    }
+  ],
+  "verification": {
+    "checks": 2240,
+    "failed": 0,
+    "scopes": 93,
+    "closure_identities": 16,
+    "old_materialization_groups": 24,
+    "old_contexts": 12,
+    "layout_cells": 194,
+    "main_declaration_width": 186,
+    "run_declaration_width": 1419,
+    "declaration_sum": 4810,
+    "large_component": 405128
+  },
+  "TempoMapView_layout": null,
+  "OTHER": null,
+  "whole_child": null,
+  "joint_fit": null,
+  "current_SDK_context_acceptance": false,
+  "physical_frame_acceptance": false,
+  "native_binding_price_limit_Data_execution": false,
+  "argument": "review.md"
+}

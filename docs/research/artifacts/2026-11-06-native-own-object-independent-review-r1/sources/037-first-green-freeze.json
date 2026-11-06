@@ -1,0 +1,91 @@
+{
+  "status": "FIRST_COMPLETE_INDEPENDENT_WHOLE_OWN93_SOURCE_GREEN_FROZEN",
+  "checks": 2240,
+  "failed": 0,
+  "files": [
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/complete-inputs.json",
+      "bytes": 13001,
+      "sha256": "4885A83145135E59BCF5051779A5299014CFD7DF3AAE1E2C1909E95619737ACE"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/complete-inputs.zip",
+      "bytes": 755018,
+      "sha256": "A74AA6C8C4D79A2CC67DD1957E1D349E67C0BA4737817FAFFFBFA2D48374FE6C"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/check.py",
+      "bytes": 18531,
+      "sha256": "0D2FFE533BA1D315DE4DB23845E28B810163F327005C244DD08D6F34C7CE0CB3"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/checks.json",
+      "bytes": 275248,
+      "sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/review.json",
+      "bytes": 1060,
+      "sha256": "433C4D23BA6844E8E6FF47A829A9BFFF9338101EBA379AFB9CB1B98C12C86FEB"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/review.md",
+      "bytes": 13118,
+      "sha256": "B11998C7A2558413061D46898B604A9314D8CBB3E68F09E3FBE967B6F5F9E97B"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/source-coverage.json",
+      "bytes": 167054,
+      "sha256": "843D0AEF0608515187CCF48B768146ED911AA23633A0F9D76A8C600C7060955B"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/source-pins.json",
+      "bytes": 14089,
+      "sha256": "5B6ED5587CD416EBD1DDB852810C6F55E40DC7455D7F3B529EA0FE7F24CF54DD"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/result.json",
+      "bytes": 275248,
+      "sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/stdout.txt",
+      "bytes": 51,
+      "sha256": "D8E95DA7F80134DCA71F5B5C03FCF68F16644A382E9FFCCBE783886466B89910"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/check.py",
+      "bytes": 18531,
+      "sha256": "0D2FFE533BA1D315DE4DB23845E28B810163F327005C244DD08D6F34C7CE0CB3"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/checks.json",
+      "bytes": 275248,
+      "sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/review.json",
+      "bytes": 1060,
+      "sha256": "433C4D23BA6844E8E6FF47A829A9BFFF9338101EBA379AFB9CB1B98C12C86FEB"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/review.md",
+      "bytes": 13118,
+      "sha256": "B11998C7A2558413061D46898B604A9314D8CBB3E68F09E3FBE967B6F5F9E97B"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/source-coverage.json",
+      "bytes": 167054,
+      "sha256": "843D0AEF0608515187CCF48B768146ED911AA23633A0F9D76A8C600C7060955B"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/source-pins.json",
+      "bytes": 14089,
+      "sha256": "5B6ED5587CD416EBD1DDB852810C6F55E40DC7455D7F3B529EA0FE7F24CF54DD"
+    }
+  ],
+  "scope": "EXACT_NAMED_DECLARATION_WIDTH_AND_LARGE_OWNER_COMPONENT_ONLY",
+  "subject_firstgreen": "98C23B436B9B256DC28407A64FF10C8453C5C14D8A063F9ABE17275C8216DA06",
+  "target_execution": false,
+  "OTHER_whole_native_joint_fit_Data_or_GO": false
+}

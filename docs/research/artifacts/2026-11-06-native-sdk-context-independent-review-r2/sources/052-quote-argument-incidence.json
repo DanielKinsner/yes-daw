@@ -1,0 +1,3661 @@
+{
+  "schema": "R2_TYPED_QUOTE_AND_GUARD_FULL_EXPRESSION_INCIDENCE",
+  "rows": [
+    {
+      "line": 65,
+      "source_line": " static std::uint64_t units(Family id,std::uint64_t count){return times(count,price(id));}",
+      "full_expressions": [
+        {
+          "owner": "CPP65/full-expression0",
+          "tree": {
+            "call": "times",
+            "arguments": [
+              {
+                "value": "count"
+              },
+              {
+                "call": "price",
+                "arguments": [
+                  {
+                    "value": "id"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP65/full-expression0",
+              "method": "times",
+              "parameters": [
+                {
+                  "name": "count",
+                  "type": "U64",
+                  "owner": "CPP65/full-expression0/param0"
+                },
+                {
+                  "name": "value",
+                  "type": "U64",
+                  "owner": "CPP65/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::times",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP65/full-expression0/arg1",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP65/full-expression0/arg1/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 1,
+              "call_activation": "CPP65/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP65/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP65/full-expression0/param0",
+                  "method": "times",
+                  "parameter": "count",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 8,
+          "all_actual_formal_owners": [
+            {
+              "name": "count",
+              "type": "U64",
+              "owner": "CPP65/full-expression0/param0"
+            },
+            {
+              "name": "value",
+              "type": "U64",
+              "owner": "CPP65/full-expression0/param1"
+            },
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP65/full-expression0/arg1/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1,
+            "U64": 2
+          },
+          "formal_declaration_union_selected_bytes": 24,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 70,
+      "source_line": "  const auto dispatch=units(verify?Family::WordReadDispatch:Family::WordWriteDispatch,words);",
+      "full_expressions": [
+        {
+          "owner": "CPP70/full-expression0",
+          "tree": {
+            "call": "units",
+            "arguments": [
+              {
+                "value": "verify-selected dispatch Family"
+              },
+              {
+                "value": "words"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP70/full-expression0",
+              "method": "units",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP70/full-expression0/param0"
+                },
+                {
+                  "name": "count",
+                  "type": "U64",
+                  "owner": "CPP70/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::units",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP70/full-expression0/param0"
+            },
+            {
+              "name": "count",
+              "type": "U64",
+              "owner": "CPP70/full-expression0/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1,
+            "U64": 1
+          },
+          "formal_declaration_union_selected_bytes": 16,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 71,
+      "source_line": "  const auto fast=units(verify?Family::WordReadFast:Family::WordWriteFast,words-fallback);",
+      "full_expressions": [
+        {
+          "owner": "CPP71/full-expression0",
+          "tree": {
+            "call": "units",
+            "arguments": [
+              {
+                "value": "verify-selected fast Family"
+              },
+              {
+                "value": "words-fallback"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP71/full-expression0",
+              "method": "units",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP71/full-expression0/param0"
+                },
+                {
+                  "name": "count",
+                  "type": "U64",
+                  "owner": "CPP71/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::units",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP71/full-expression0/param0"
+            },
+            {
+              "name": "count",
+              "type": "U64",
+              "owner": "CPP71/full-expression0/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1,
+            "U64": 1
+          },
+          "formal_declaration_union_selected_bytes": 16,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 72,
+      "source_line": "  const auto slow=units(verify?Family::WordReadFallback:Family::WordWriteFallback,fallback);",
+      "full_expressions": [
+        {
+          "owner": "CPP72/full-expression0",
+          "tree": {
+            "call": "units",
+            "arguments": [
+              {
+                "value": "verify-selected fallback Family"
+              },
+              {
+                "value": "fallback"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP72/full-expression0",
+              "method": "units",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP72/full-expression0/param0"
+                },
+                {
+                  "name": "count",
+                  "type": "U64",
+                  "owner": "CPP72/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::units",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP72/full-expression0/param0"
+            },
+            {
+              "name": "count",
+              "type": "U64",
+              "owner": "CPP72/full-expression0/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1,
+            "U64": 1
+          },
+          "formal_declaration_union_selected_bytes": 16,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 73,
+      "source_line": "  return plus(dispatch,plus(fast,slow));",
+      "full_expressions": [
+        {
+          "owner": "CPP73/full-expression0",
+          "tree": {
+            "call": "plus",
+            "arguments": [
+              {
+                "value": "dispatch"
+              },
+              {
+                "call": "plus",
+                "arguments": [
+                  {
+                    "value": "fast"
+                  },
+                  {
+                    "value": "slow"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP73/full-expression0",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP73/full-expression0/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP73/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP73/full-expression0/arg1",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP73/full-expression0/arg1/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP73/full-expression0/arg1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 1,
+              "call_activation": "CPP73/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP73/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP73/full-expression0/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 8,
+          "all_actual_formal_owners": [
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP73/full-expression0/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP73/full-expression0/param1"
+            },
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP73/full-expression0/arg1/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP73/full-expression0/arg1/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 4
+          },
+          "formal_declaration_union_selected_bytes": 32,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 77,
+      "source_line": "  const auto api=verify?plus(price(Family::ProductionInverseNative),price(Family::ProductionForwardInverse)):",
+      "full_expressions": [
+        {
+          "owner": "CPP77/full-expression0",
+          "tree": {
+            "call": "plus",
+            "arguments": [
+              {
+                "call": "price",
+                "arguments": [
+                  {
+                    "value": "ProductionInverseNative"
+                  }
+                ]
+              },
+              {
+                "call": "price",
+                "arguments": [
+                  {
+                    "value": "ProductionForwardInverse"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP77/full-expression0",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP77/full-expression0/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP77/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP77/full-expression0/arg0",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP77/full-expression0/arg0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP77/full-expression0/arg1",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP77/full-expression0/arg1/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 0,
+              "call_activation": "CPP77/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 0,
+              "call_activation": "CPP77/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP77/full-expression0/param1",
+                  "method": "plus",
+                  "parameter": "b",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP77/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP77/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP77/full-expression0/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 8,
+          "all_actual_formal_owners": [
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP77/full-expression0/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP77/full-expression0/param1"
+            },
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP77/full-expression0/arg0/param0"
+            },
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP77/full-expression0/arg1/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 2,
+            "U64": 2
+          },
+          "formal_declaration_union_selected_bytes": 32,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 78,
+      "source_line": "   plus(price(Family::QcInverseNative),price(Family::QcForwardNative));",
+      "full_expressions": [
+        {
+          "owner": "CPP78/full-expression0",
+          "tree": {
+            "call": "plus",
+            "arguments": [
+              {
+                "call": "price",
+                "arguments": [
+                  {
+                    "value": "QcInverseNative"
+                  }
+                ]
+              },
+              {
+                "call": "price",
+                "arguments": [
+                  {
+                    "value": "QcForwardNative"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP78/full-expression0",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP78/full-expression0/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP78/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP78/full-expression0/arg0",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP78/full-expression0/arg0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP78/full-expression0/arg1",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP78/full-expression0/arg1/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 0,
+              "call_activation": "CPP78/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 0,
+              "call_activation": "CPP78/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP78/full-expression0/param1",
+                  "method": "plus",
+                  "parameter": "b",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP78/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP78/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP78/full-expression0/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 8,
+          "all_actual_formal_owners": [
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP78/full-expression0/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP78/full-expression0/param1"
+            },
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP78/full-expression0/arg0/param0"
+            },
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP78/full-expression0/arg1/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 2,
+            "U64": 2
+          },
+          "formal_declaration_union_selected_bytes": 32,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 79,
+      "source_line": "  const auto outer=price(verify?Family::InverseVerifyOuter:Family::InverseProduceOuter);",
+      "full_expressions": [
+        {
+          "owner": "CPP79/full-expression0",
+          "tree": {
+            "call": "price",
+            "arguments": [
+              {
+                "value": "verify-selected inverse outer Family"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP79/full-expression0",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP79/full-expression0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP79/full-expression0/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1
+          },
+          "formal_declaration_union_selected_bytes": 8,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 80,
+      "source_line": "  return plus(times(records,plus(api,outer)),wordUnits(verify,2*records));",
+      "full_expressions": [
+        {
+          "owner": "CPP80/full-expression0",
+          "tree": {
+            "call": "plus",
+            "arguments": [
+              {
+                "call": "times",
+                "arguments": [
+                  {
+                    "value": "records"
+                  },
+                  {
+                    "call": "plus",
+                    "arguments": [
+                      {
+                        "value": "api"
+                      },
+                      {
+                        "value": "outer"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "call": "wordUnits",
+                "arguments": [
+                  {
+                    "value": "verify"
+                  },
+                  {
+                    "value": "2*records"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP80/full-expression0",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP80/full-expression0/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP80/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP80/full-expression0/arg0",
+              "method": "times",
+              "parameters": [
+                {
+                  "name": "count",
+                  "type": "U64",
+                  "owner": "CPP80/full-expression0/arg0/param0"
+                },
+                {
+                  "name": "value",
+                  "type": "U64",
+                  "owner": "CPP80/full-expression0/arg0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::times",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP80/full-expression0/arg0/arg1",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP80/full-expression0/arg0/arg1/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP80/full-expression0/arg0/arg1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP80/full-expression0/arg1",
+              "method": "wordUnits",
+              "parameters": [
+                {
+                  "name": "verify",
+                  "type": "B",
+                  "owner": "CPP80/full-expression0/arg1/param0"
+                },
+                {
+                  "name": "words",
+                  "type": "U64",
+                  "owner": "CPP80/full-expression0/arg1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::wordUnits",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 0,
+              "call_activation": "CPP80/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "times",
+                "plus"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP80/full-expression0/arg0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP80/full-expression0/arg0",
+              "partial_owners": [
+                {
+                  "owner": "CPP80/full-expression0/arg0/param0",
+                  "method": "times",
+                  "parameter": "count",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 0,
+              "call_activation": "CPP80/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP80/full-expression0/param1",
+                  "method": "plus",
+                  "parameter": "b",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "times",
+                "plus"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP80/full-expression0/arg0",
+              "partial_owners": [
+                {
+                  "owner": "CPP80/full-expression0/param1",
+                  "method": "plus",
+                  "parameter": "b",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP80/full-expression0/arg0",
+              "partial_owners": [
+                {
+                  "owner": "CPP80/full-expression0/param1",
+                  "method": "plus",
+                  "parameter": "b",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                },
+                {
+                  "owner": "CPP80/full-expression0/arg0/param0",
+                  "method": "times",
+                  "parameter": "count",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {
+                "U64": 2
+              },
+              "selected_representation_bytes": 16
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP80/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "wordUnits"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP80/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP80/full-expression0/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "wordUnits"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 16,
+          "all_actual_formal_owners": [
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP80/full-expression0/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP80/full-expression0/param1"
+            },
+            {
+              "name": "count",
+              "type": "U64",
+              "owner": "CPP80/full-expression0/arg0/param0"
+            },
+            {
+              "name": "value",
+              "type": "U64",
+              "owner": "CPP80/full-expression0/arg0/param1"
+            },
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP80/full-expression0/arg0/arg1/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP80/full-expression0/arg0/arg1/param1"
+            },
+            {
+              "name": "verify",
+              "type": "B",
+              "owner": "CPP80/full-expression0/arg1/param0"
+            },
+            {
+              "name": "words",
+              "type": "U64",
+              "owner": "CPP80/full-expression0/arg1/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 7,
+            "B": 1
+          },
+          "formal_declaration_union_selected_bytes": 57,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 85,
+      "source_line": "  const auto fractional=price(verify?(ramp?Family::ProductionForwardRamp:Family::ProductionForwardConstant):",
+      "full_expressions": [
+        {
+          "owner": "CPP85/full-expression0",
+          "tree": {
+            "call": "price",
+            "arguments": [
+              {
+                "value": "verify/ramp-selected fractional Family"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP85/full-expression0",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP85/full-expression0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP85/full-expression0/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1
+          },
+          "formal_declaration_union_selected_bytes": 8,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 87,
+      "source_line": "  const auto zero=price(verify?(ramp?Family::ProductionForwardZeroRamp:Family::ProductionForwardZeroConstant):Family::PortZero);",
+      "full_expressions": [
+        {
+          "owner": "CPP87/full-expression0",
+          "tree": {
+            "call": "price",
+            "arguments": [
+              {
+                "value": "verify/ramp-selected zero Family"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP87/full-expression0",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP87/full-expression0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP87/full-expression0/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1
+          },
+          "formal_declaration_union_selected_bytes": 8,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 88,
+      "source_line": "  const auto cut=price(Family::RationalCut);",
+      "full_expressions": [
+        {
+          "owner": "CPP88/full-expression0",
+          "tree": {
+            "call": "price",
+            "arguments": [
+              {
+                "value": "RationalCut"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP88/full-expression0",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP88/full-expression0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP88/full-expression0/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1
+          },
+          "formal_declaration_union_selected_bytes": 8,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 89,
+      "source_line": "  const auto fractionalQueries=times(queries-zeros,plus(cut,times(2,fractional)));",
+      "full_expressions": [
+        {
+          "owner": "CPP89/full-expression0",
+          "tree": {
+            "call": "times",
+            "arguments": [
+              {
+                "value": "queries-zeros"
+              },
+              {
+                "call": "plus",
+                "arguments": [
+                  {
+                    "value": "cut"
+                  },
+                  {
+                    "call": "times",
+                    "arguments": [
+                      {
+                        "value": "literal2"
+                      },
+                      {
+                        "value": "fractional"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP89/full-expression0",
+              "method": "times",
+              "parameters": [
+                {
+                  "name": "count",
+                  "type": "U64",
+                  "owner": "CPP89/full-expression0/param0"
+                },
+                {
+                  "name": "value",
+                  "type": "U64",
+                  "owner": "CPP89/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::times",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP89/full-expression0/arg1",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP89/full-expression0/arg1/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP89/full-expression0/arg1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP89/full-expression0/arg1/arg1",
+              "method": "times",
+              "parameters": [
+                {
+                  "name": "count",
+                  "type": "U64",
+                  "owner": "CPP89/full-expression0/arg1/arg1/param0"
+                },
+                {
+                  "name": "value",
+                  "type": "U64",
+                  "owner": "CPP89/full-expression0/arg1/arg1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::times",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 1,
+              "call_activation": "CPP89/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "plus",
+                "times"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP89/full-expression0/arg1",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "times"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP89/full-expression0/arg1",
+              "partial_owners": [
+                {
+                  "owner": "CPP89/full-expression0/arg1/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "times"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP89/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP89/full-expression0/param0",
+                  "method": "times",
+                  "parameter": "count",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "plus",
+                "times"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP89/full-expression0/arg1",
+              "partial_owners": [
+                {
+                  "owner": "CPP89/full-expression0/param0",
+                  "method": "times",
+                  "parameter": "count",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "times"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP89/full-expression0/arg1",
+              "partial_owners": [
+                {
+                  "owner": "CPP89/full-expression0/param0",
+                  "method": "times",
+                  "parameter": "count",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                },
+                {
+                  "owner": "CPP89/full-expression0/arg1/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "times"
+              ],
+              "type_counts": {
+                "U64": 2
+              },
+              "selected_representation_bytes": 16
+            }
+          ],
+          "maximum_partial_parameter_component": 16,
+          "all_actual_formal_owners": [
+            {
+              "name": "count",
+              "type": "U64",
+              "owner": "CPP89/full-expression0/param0"
+            },
+            {
+              "name": "value",
+              "type": "U64",
+              "owner": "CPP89/full-expression0/param1"
+            },
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP89/full-expression0/arg1/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP89/full-expression0/arg1/param1"
+            },
+            {
+              "name": "count",
+              "type": "U64",
+              "owner": "CPP89/full-expression0/arg1/arg1/param0"
+            },
+            {
+              "name": "value",
+              "type": "U64",
+              "owner": "CPP89/full-expression0/arg1/arg1/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 6
+          },
+          "formal_declaration_union_selected_bytes": 48,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 90,
+      "source_line": "  const auto zeroQueries=times(zeros,plus(cut,times(2,zero)));",
+      "full_expressions": [
+        {
+          "owner": "CPP90/full-expression0",
+          "tree": {
+            "call": "times",
+            "arguments": [
+              {
+                "value": "zeros"
+              },
+              {
+                "call": "plus",
+                "arguments": [
+                  {
+                    "value": "cut"
+                  },
+                  {
+                    "call": "times",
+                    "arguments": [
+                      {
+                        "value": "literal2"
+                      },
+                      {
+                        "value": "zero"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP90/full-expression0",
+              "method": "times",
+              "parameters": [
+                {
+                  "name": "count",
+                  "type": "U64",
+                  "owner": "CPP90/full-expression0/param0"
+                },
+                {
+                  "name": "value",
+                  "type": "U64",
+                  "owner": "CPP90/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::times",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP90/full-expression0/arg1",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP90/full-expression0/arg1/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP90/full-expression0/arg1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP90/full-expression0/arg1/arg1",
+              "method": "times",
+              "parameters": [
+                {
+                  "name": "count",
+                  "type": "U64",
+                  "owner": "CPP90/full-expression0/arg1/arg1/param0"
+                },
+                {
+                  "name": "value",
+                  "type": "U64",
+                  "owner": "CPP90/full-expression0/arg1/arg1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::times",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 1,
+              "call_activation": "CPP90/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "plus",
+                "times"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP90/full-expression0/arg1",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "times"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP90/full-expression0/arg1",
+              "partial_owners": [
+                {
+                  "owner": "CPP90/full-expression0/arg1/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "times"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP90/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP90/full-expression0/param0",
+                  "method": "times",
+                  "parameter": "count",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "plus",
+                "times"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP90/full-expression0/arg1",
+              "partial_owners": [
+                {
+                  "owner": "CPP90/full-expression0/param0",
+                  "method": "times",
+                  "parameter": "count",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "times"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP90/full-expression0/arg1",
+              "partial_owners": [
+                {
+                  "owner": "CPP90/full-expression0/param0",
+                  "method": "times",
+                  "parameter": "count",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                },
+                {
+                  "owner": "CPP90/full-expression0/arg1/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "times"
+              ],
+              "type_counts": {
+                "U64": 2
+              },
+              "selected_representation_bytes": 16
+            }
+          ],
+          "maximum_partial_parameter_component": 16,
+          "all_actual_formal_owners": [
+            {
+              "name": "count",
+              "type": "U64",
+              "owner": "CPP90/full-expression0/param0"
+            },
+            {
+              "name": "value",
+              "type": "U64",
+              "owner": "CPP90/full-expression0/param1"
+            },
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP90/full-expression0/arg1/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP90/full-expression0/arg1/param1"
+            },
+            {
+              "name": "count",
+              "type": "U64",
+              "owner": "CPP90/full-expression0/arg1/arg1/param0"
+            },
+            {
+              "name": "value",
+              "type": "U64",
+              "owner": "CPP90/full-expression0/arg1/arg1/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 6
+          },
+          "formal_declaration_union_selected_bytes": 48,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 91,
+      "source_line": "  const auto records=plus(units(Family::DenseOuter,N+1),wordUnits(verify,N+1));",
+      "full_expressions": [
+        {
+          "owner": "CPP91/full-expression0",
+          "tree": {
+            "call": "plus",
+            "arguments": [
+              {
+                "call": "units",
+                "arguments": [
+                  {
+                    "value": "DenseOuter"
+                  },
+                  {
+                    "value": "N+1"
+                  }
+                ]
+              },
+              {
+                "call": "wordUnits",
+                "arguments": [
+                  {
+                    "value": "verify"
+                  },
+                  {
+                    "value": "N+1"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP91/full-expression0",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP91/full-expression0/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP91/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP91/full-expression0/arg0",
+              "method": "units",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP91/full-expression0/arg0/param0"
+                },
+                {
+                  "name": "count",
+                  "type": "U64",
+                  "owner": "CPP91/full-expression0/arg0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::units",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP91/full-expression0/arg1",
+              "method": "wordUnits",
+              "parameters": [
+                {
+                  "name": "verify",
+                  "type": "B",
+                  "owner": "CPP91/full-expression0/arg1/param0"
+                },
+                {
+                  "name": "words",
+                  "type": "U64",
+                  "owner": "CPP91/full-expression0/arg1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::wordUnits",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 0,
+              "call_activation": "CPP91/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "units"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 0,
+              "call_activation": "CPP91/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP91/full-expression0/param1",
+                  "method": "plus",
+                  "parameter": "b",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "units"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP91/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "wordUnits"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP91/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP91/full-expression0/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "wordUnits"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 8,
+          "all_actual_formal_owners": [
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP91/full-expression0/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP91/full-expression0/param1"
+            },
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP91/full-expression0/arg0/param0"
+            },
+            {
+              "name": "count",
+              "type": "U64",
+              "owner": "CPP91/full-expression0/arg0/param1"
+            },
+            {
+              "name": "verify",
+              "type": "B",
+              "owner": "CPP91/full-expression0/arg1/param0"
+            },
+            {
+              "name": "words",
+              "type": "U64",
+              "owner": "CPP91/full-expression0/arg1/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1,
+            "U64": 4,
+            "B": 1
+          },
+          "formal_declaration_union_selected_bytes": 41,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 92,
+      "source_line": "  return plus(plus(fractionalQueries,zeroQueries),records);",
+      "full_expressions": [
+        {
+          "owner": "CPP92/full-expression0",
+          "tree": {
+            "call": "plus",
+            "arguments": [
+              {
+                "call": "plus",
+                "arguments": [
+                  {
+                    "value": "fractionalQueries"
+                  },
+                  {
+                    "value": "zeroQueries"
+                  }
+                ]
+              },
+              {
+                "value": "records"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP92/full-expression0",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP92/full-expression0/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP92/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP92/full-expression0/arg0",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP92/full-expression0/arg0/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP92/full-expression0/arg0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 0,
+              "call_activation": "CPP92/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 0,
+              "call_activation": "CPP92/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP92/full-expression0/param1",
+                  "method": "plus",
+                  "parameter": "b",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 8,
+          "all_actual_formal_owners": [
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP92/full-expression0/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP92/full-expression0/param1"
+            },
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP92/full-expression0/arg0/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP92/full-expression0/arg0/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 4
+          },
+          "formal_declaration_union_selected_bytes": 32,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 95,
+      "source_line": "  auto total=price(verify?Family::ChildFixedVerify:Family::ChildFixedProduce);",
+      "full_expressions": [
+        {
+          "owner": "CPP95/full-expression0",
+          "tree": {
+            "call": "price",
+            "arguments": [
+              {
+                "value": "verify-selected child-fixed Family"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP95/full-expression0",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP95/full-expression0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP95/full-expression0/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1
+          },
+          "formal_declaration_union_selected_bytes": 8,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 96,
+      "source_line": "  if(!verify)total=plus(total,units(Family::PortCacheRefill,27*153611));",
+      "full_expressions": [
+        {
+          "owner": "CPP96/full-expression0",
+          "tree": {
+            "call": "plus",
+            "arguments": [
+              {
+                "value": "total"
+              },
+              {
+                "call": "units",
+                "arguments": [
+                  {
+                    "value": "PortCacheRefill"
+                  },
+                  {
+                    "value": "27*153611"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP96/full-expression0",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP96/full-expression0/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP96/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP96/full-expression0/arg1",
+              "method": "units",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP96/full-expression0/arg1/param0"
+                },
+                {
+                  "name": "count",
+                  "type": "U64",
+                  "owner": "CPP96/full-expression0/arg1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::units",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 1,
+              "call_activation": "CPP96/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "units"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP96/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP96/full-expression0/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "units"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 8,
+          "all_actual_formal_owners": [
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP96/full-expression0/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP96/full-expression0/param1"
+            },
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP96/full-expression0/arg1/param0"
+            },
+            {
+              "name": "count",
+              "type": "U64",
+              "owner": "CPP96/full-expression0/arg1/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1,
+            "U64": 3
+          },
+          "formal_declaration_union_selected_bytes": 32,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 99,
+      "source_line": "   for(int map=0;map<9;++map)total=plus(total,fixtureUnits(verify,10*R,g,map));",
+      "full_expressions": [
+        {
+          "owner": "CPP99/full-expression0",
+          "tree": {
+            "call": "plus",
+            "arguments": [
+              {
+                "value": "total"
+              },
+              {
+                "call": "fixtureUnits",
+                "arguments": [
+                  {
+                    "value": "verify"
+                  },
+                  {
+                    "value": "10*R"
+                  },
+                  {
+                    "value": "g"
+                  },
+                  {
+                    "value": "map"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP99/full-expression0",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP99/full-expression0/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP99/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP99/full-expression0/arg1",
+              "method": "fixtureUnits",
+              "parameters": [
+                {
+                  "name": "verify",
+                  "type": "B",
+                  "owner": "CPP99/full-expression0/arg1/param0"
+                },
+                {
+                  "name": "N",
+                  "type": "U64",
+                  "owner": "CPP99/full-expression0/arg1/param1"
+                },
+                {
+                  "name": "g",
+                  "type": "U64",
+                  "owner": "CPP99/full-expression0/arg1/param2"
+                },
+                {
+                  "name": "map",
+                  "type": "I32",
+                  "owner": "CPP99/full-expression0/arg1/param3"
+                }
+              ],
+              "normal_body_owner": "own93::fixtureUnits",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 1,
+              "call_activation": "CPP99/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "fixtureUnits"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP99/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP99/full-expression0/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "fixtureUnits"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 8,
+          "all_actual_formal_owners": [
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP99/full-expression0/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP99/full-expression0/param1"
+            },
+            {
+              "name": "verify",
+              "type": "B",
+              "owner": "CPP99/full-expression0/arg1/param0"
+            },
+            {
+              "name": "N",
+              "type": "U64",
+              "owner": "CPP99/full-expression0/arg1/param1"
+            },
+            {
+              "name": "g",
+              "type": "U64",
+              "owner": "CPP99/full-expression0/arg1/param2"
+            },
+            {
+              "name": "map",
+              "type": "I32",
+              "owner": "CPP99/full-expression0/arg1/param3"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 4,
+            "B": 1,
+            "I32": 1
+          },
+          "formal_declaration_union_selected_bytes": 37,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 101,
+      "source_line": "  return plus(total,inverseUnits(verify,inverseUpper));",
+      "full_expressions": [
+        {
+          "owner": "CPP101/full-expression0",
+          "tree": {
+            "call": "plus",
+            "arguments": [
+              {
+                "value": "total"
+              },
+              {
+                "call": "inverseUnits",
+                "arguments": [
+                  {
+                    "value": "verify"
+                  },
+                  {
+                    "value": "inverseUpper"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP101/full-expression0",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP101/full-expression0/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP101/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP101/full-expression0/arg1",
+              "method": "inverseUnits",
+              "parameters": [
+                {
+                  "name": "verify",
+                  "type": "B",
+                  "owner": "CPP101/full-expression0/arg1/param0"
+                },
+                {
+                  "name": "records",
+                  "type": "U64",
+                  "owner": "CPP101/full-expression0/arg1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::inverseUnits",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 1,
+              "call_activation": "CPP101/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "inverseUnits"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP101/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP101/full-expression0/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "inverseUnits"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 8,
+          "all_actual_formal_owners": [
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP101/full-expression0/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP101/full-expression0/param1"
+            },
+            {
+              "name": "verify",
+              "type": "B",
+              "owner": "CPP101/full-expression0/arg1/param0"
+            },
+            {
+              "name": "records",
+              "type": "U64",
+              "owner": "CPP101/full-expression0/arg1/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 3,
+            "B": 1
+          },
+          "formal_declaration_union_selected_bytes": 25,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 187,
+      "source_line": "  if(saved!=t.whole){meter.add(Cost::price(Family::PortCacheRefill));gate(++misses<=153611,\"PORT_CACHE_MISS_PROFILE\");",
+      "full_expressions": [
+        {
+          "owner": "CPP187/full-expression0",
+          "tree": {
+            "call": "Meter.add",
+            "arguments": [
+              {
+                "call": "price",
+                "arguments": [
+                  {
+                    "value": "PortCacheRefill"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP187/full-expression0",
+              "method": "Meter.add",
+              "parameters": [
+                {
+                  "name": "n",
+                  "type": "U64",
+                  "owner": "CPP187/full-expression0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::Meter.add",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP187/full-expression0/arg0",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP187/full-expression0/arg0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 0,
+              "call_activation": "CPP187/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            }
+          ],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "n",
+              "type": "U64",
+              "owner": "CPP187/full-expression0/param0"
+            },
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP187/full-expression0/arg0/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1,
+            "U64": 1
+          },
+          "formal_declaration_union_selected_bytes": 16,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 245,
+      "source_line": " meter.add(Cost::price(verify?Family::ChildFixedVerify:Family::ChildFixedProduce));controls(totalWork);std::uint64_t entries=0,inverseRecords=0;bool wordControl=false,inverseControl=false,prefixControl=false,rampControl=false,metadataControl=false;",
+      "full_expressions": [
+        {
+          "owner": "CPP245/full-expression0",
+          "tree": {
+            "call": "Meter.add",
+            "arguments": [
+              {
+                "call": "price",
+                "arguments": [
+                  {
+                    "value": "verify-selected child-fixed Family"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP245/full-expression0",
+              "method": "Meter.add",
+              "parameters": [
+                {
+                  "name": "n",
+                  "type": "U64",
+                  "owner": "CPP245/full-expression0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::Meter.add",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP245/full-expression0/arg0",
+              "method": "price",
+              "parameters": [
+                {
+                  "name": "id",
+                  "type": "FAMILY",
+                  "owner": "CPP245/full-expression0/arg0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::price",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 0,
+              "call_activation": "CPP245/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "price"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            }
+          ],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "n",
+              "type": "U64",
+              "owner": "CPP245/full-expression0/param0"
+            },
+            {
+              "name": "id",
+              "type": "FAMILY",
+              "owner": "CPP245/full-expression0/arg0/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "FAMILY": 1,
+            "U64": 1
+          },
+          "formal_declaration_union_selected_bytes": 16,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 250,
+      "source_line": "   meter.add(Cost::fixtureUnits(verify,N,fractions.g,map));",
+      "full_expressions": [
+        {
+          "owner": "CPP250/full-expression0",
+          "tree": {
+            "call": "Meter.add",
+            "arguments": [
+              {
+                "call": "fixtureUnits",
+                "arguments": [
+                  {
+                    "value": "verify"
+                  },
+                  {
+                    "value": "N"
+                  },
+                  {
+                    "value": "fractions.g"
+                  },
+                  {
+                    "value": "map"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP250/full-expression0",
+              "method": "Meter.add",
+              "parameters": [
+                {
+                  "name": "n",
+                  "type": "U64",
+                  "owner": "CPP250/full-expression0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::Meter.add",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP250/full-expression0/arg0",
+              "method": "fixtureUnits",
+              "parameters": [
+                {
+                  "name": "verify",
+                  "type": "B",
+                  "owner": "CPP250/full-expression0/arg0/param0"
+                },
+                {
+                  "name": "N",
+                  "type": "U64",
+                  "owner": "CPP250/full-expression0/arg0/param1"
+                },
+                {
+                  "name": "g",
+                  "type": "U64",
+                  "owner": "CPP250/full-expression0/arg0/param2"
+                },
+                {
+                  "name": "map",
+                  "type": "I32",
+                  "owner": "CPP250/full-expression0/arg0/param3"
+                }
+              ],
+              "normal_body_owner": "own93::fixtureUnits",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 0,
+              "call_activation": "CPP250/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "fixtureUnits"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            }
+          ],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "n",
+              "type": "U64",
+              "owner": "CPP250/full-expression0/param0"
+            },
+            {
+              "name": "verify",
+              "type": "B",
+              "owner": "CPP250/full-expression0/arg0/param0"
+            },
+            {
+              "name": "N",
+              "type": "U64",
+              "owner": "CPP250/full-expression0/arg0/param1"
+            },
+            {
+              "name": "g",
+              "type": "U64",
+              "owner": "CPP250/full-expression0/arg0/param2"
+            },
+            {
+              "name": "map",
+              "type": "I32",
+              "owner": "CPP250/full-expression0/arg0/param3"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 3,
+            "B": 1,
+            "I32": 1
+          },
+          "formal_declaration_union_selected_bytes": 29,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 261,
+      "source_line": "    meter.add(Cost::inverseUnits(verify,std::uint64_t(b.D)));",
+      "full_expressions": [
+        {
+          "owner": "CPP261/full-expression0",
+          "tree": {
+            "call": "Meter.add",
+            "arguments": [
+              {
+                "call": "inverseUnits",
+                "arguments": [
+                  {
+                    "value": "verify"
+                  },
+                  {
+                    "value": "std::uint64_t(b.D)"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP261/full-expression0",
+              "method": "Meter.add",
+              "parameters": [
+                {
+                  "name": "n",
+                  "type": "U64",
+                  "owner": "CPP261/full-expression0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::Meter.add",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP261/full-expression0/arg0",
+              "method": "inverseUnits",
+              "parameters": [
+                {
+                  "name": "verify",
+                  "type": "B",
+                  "owner": "CPP261/full-expression0/arg0/param0"
+                },
+                {
+                  "name": "records",
+                  "type": "U64",
+                  "owner": "CPP261/full-expression0/arg0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::inverseUnits",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 0,
+              "call_activation": "CPP261/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "inverseUnits"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            }
+          ],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "n",
+              "type": "U64",
+              "owner": "CPP261/full-expression0/param0"
+            },
+            {
+              "name": "verify",
+              "type": "B",
+              "owner": "CPP261/full-expression0/arg0/param0"
+            },
+            {
+              "name": "records",
+              "type": "U64",
+              "owner": "CPP261/full-expression0/arg0/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 2,
+            "B": 1
+          },
+          "formal_declaration_union_selected_bytes": 17,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 285,
+      "source_line": " Cost::validate();const auto producerUpper=Cost::childUpper(false),verifierUpper=Cost::childUpper(true);const auto& whole=Cost::catalogue().whole();",
+      "full_expressions": [
+        {
+          "owner": "CPP285/full-expression0",
+          "tree": {
+            "call": "childUpper",
+            "arguments": [
+              {
+                "value": "false"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP285/full-expression0",
+              "method": "childUpper",
+              "parameters": [
+                {
+                  "name": "verify",
+                  "type": "B",
+                  "owner": "CPP285/full-expression0/param0"
+                }
+              ],
+              "normal_body_owner": "own93::childUpper",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "verify",
+              "type": "B",
+              "owner": "CPP285/full-expression0/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "B": 1
+          },
+          "formal_declaration_union_selected_bytes": 1,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        },
+        {
+          "owner": "CPP285/full-expression1",
+          "tree": {
+            "call": "childUpper",
+            "arguments": [
+              {
+                "value": "true"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP285/full-expression1",
+              "method": "childUpper",
+              "parameters": [
+                {
+                  "name": "verify",
+                  "type": "B",
+                  "owner": "CPP285/full-expression1/param0"
+                }
+              ],
+              "normal_body_owner": "own93::childUpper",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [],
+          "maximum_partial_parameter_component": 0,
+          "all_actual_formal_owners": [
+            {
+              "name": "verify",
+              "type": "B",
+              "owner": "CPP285/full-expression1/param0"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "B": 1
+          },
+          "formal_declaration_union_selected_bytes": 1,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 287,
+      "source_line": " const auto composed=Cost::plus(runner,Cost::plus(producerUpper,verifierUpper));reservationGate(composed,workLimit());",
+      "full_expressions": [
+        {
+          "owner": "CPP287/full-expression0",
+          "tree": {
+            "call": "plus",
+            "arguments": [
+              {
+                "value": "runner"
+              },
+              {
+                "call": "plus",
+                "arguments": [
+                  {
+                    "value": "producerUpper"
+                  },
+                  {
+                    "value": "verifierUpper"
+                  }
+                ]
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP287/full-expression0",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP287/full-expression0/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP287/full-expression0/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP287/full-expression0/arg1",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP287/full-expression0/arg1/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP287/full-expression0/arg1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 1,
+              "call_activation": "CPP287/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP287/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP287/full-expression0/param0",
+                  "method": "plus",
+                  "parameter": "a",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 8,
+          "all_actual_formal_owners": [
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP287/full-expression0/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP287/full-expression0/param1"
+            },
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP287/full-expression0/arg1/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP287/full-expression0/arg1/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 4
+          },
+          "formal_declaration_union_selected_bytes": 32,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        },
+        {
+          "owner": "CPP287/full-expression1",
+          "tree": {
+            "call": "reservationGate",
+            "arguments": [
+              {
+                "value": "composed"
+              },
+              {
+                "call": "workLimit",
+                "arguments": []
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP287/full-expression1",
+              "method": "reservationGate",
+              "parameters": [
+                {
+                  "name": "total",
+                  "type": "U64",
+                  "owner": "CPP287/full-expression1/param0"
+                },
+                {
+                  "name": "limit",
+                  "type": "U64",
+                  "owner": "CPP287/full-expression1/param1"
+                }
+              ],
+              "normal_body_owner": "own93::reservationGate",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP287/full-expression1/arg1",
+              "method": "workLimit",
+              "parameters": [],
+              "normal_body_owner": "own93::workLimit",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 1,
+              "call_activation": "CPP287/full-expression1",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "workLimit"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 1,
+              "call_activation": "CPP287/full-expression1",
+              "partial_owners": [
+                {
+                  "owner": "CPP287/full-expression1/param0",
+                  "method": "reservationGate",
+                  "parameter": "total",
+                  "type": "U64",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "workLimit"
+              ],
+              "type_counts": {
+                "U64": 1
+              },
+              "selected_representation_bytes": 8
+            }
+          ],
+          "maximum_partial_parameter_component": 8,
+          "all_actual_formal_owners": [
+            {
+              "name": "total",
+              "type": "U64",
+              "owner": "CPP287/full-expression1/param0"
+            },
+            {
+              "name": "limit",
+              "type": "U64",
+              "owner": "CPP287/full-expression1/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 2
+          },
+          "formal_declaration_union_selected_bytes": 16,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    },
+    {
+      "line": 288,
+      "source_line": " gate(whole.totalUpper==composed&&total==composed&&prior==(verify?Cost::plus(runner,producerUpper):runner),\"DISJOINT_CHILD_RESERVATION\",{prior,runner,total,composed});Meter meter(prior,verify?verifierUpper:producerUpper);run(verify,root,manifest,meter,total);return 0;",
+      "full_expressions": [
+        {
+          "owner": "CPP288/full-expression0",
+          "tree": {
+            "call": "gate3",
+            "arguments": [
+              {
+                "builtin_expression_with_selected_call": {
+                  "call": "plus",
+                  "arguments": [
+                    {
+                      "value": "runner"
+                    },
+                    {
+                      "value": "producerUpper"
+                    }
+                  ]
+                },
+                "result_type": "B"
+              },
+              {
+                "value": "DISJOINT_CHILD_RESERVATION literal"
+              },
+              {
+                "value": "direct Witness6 aggregate formal"
+              }
+            ]
+          },
+          "actual_call_activations": [
+            {
+              "activation": "CPP288/full-expression0",
+              "method": "gate3",
+              "parameters": [
+                {
+                  "name": "ok",
+                  "type": "B",
+                  "owner": "CPP288/full-expression0/param0"
+                },
+                {
+                  "name": "reason",
+                  "type": "P",
+                  "owner": "CPP288/full-expression0/param1"
+                },
+                {
+                  "name": "witness",
+                  "type": "WITNESS6",
+                  "owner": "CPP288/full-expression0/param2"
+                }
+              ],
+              "normal_body_owner": "own93::gate3",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            },
+            {
+              "activation": "CPP288/full-expression0/arg0/builtin",
+              "method": "plus",
+              "parameters": [
+                {
+                  "name": "a",
+                  "type": "U64",
+                  "owner": "CPP288/full-expression0/arg0/builtin/param0"
+                },
+                {
+                  "name": "b",
+                  "type": "U64",
+                  "owner": "CPP288/full-expression0/arg0/builtin/param1"
+                }
+              ],
+              "normal_body_owner": "own93::plus",
+              "normal_body_scope_status": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED"
+            }
+          ],
+          "partial_lifetime_alternatives": [
+            {
+              "while_argument": 0,
+              "call_activation": "CPP288/full-expression0",
+              "partial_owners": [],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {},
+              "selected_representation_bytes": 0
+            },
+            {
+              "while_argument": 0,
+              "call_activation": "CPP288/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP288/full-expression0/param1",
+                  "method": "gate3",
+                  "parameter": "reason",
+                  "type": "P",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {
+                "P": 1
+              },
+              "selected_representation_bytes": 8
+            },
+            {
+              "while_argument": 0,
+              "call_activation": "CPP288/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP288/full-expression0/param2",
+                  "method": "gate3",
+                  "parameter": "witness",
+                  "type": "WITNESS6",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {
+                "WITNESS6": 1
+              },
+              "selected_representation_bytes": 48
+            },
+            {
+              "while_argument": 0,
+              "call_activation": "CPP288/full-expression0",
+              "partial_owners": [
+                {
+                  "owner": "CPP288/full-expression0/param1",
+                  "method": "gate3",
+                  "parameter": "reason",
+                  "type": "P",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                },
+                {
+                  "owner": "CPP288/full-expression0/param2",
+                  "method": "gate3",
+                  "parameter": "witness",
+                  "type": "WITNESS6",
+                  "entered_body": false,
+                  "initialization": "completed before selected other argument begins"
+                }
+              ],
+              "selected_inner_calls": [
+                "plus"
+              ],
+              "type_counts": {
+                "P": 1,
+                "WITNESS6": 1
+              },
+              "selected_representation_bytes": 56
+            }
+          ],
+          "maximum_partial_parameter_component": 56,
+          "all_actual_formal_owners": [
+            {
+              "name": "ok",
+              "type": "B",
+              "owner": "CPP288/full-expression0/param0"
+            },
+            {
+              "name": "reason",
+              "type": "P",
+              "owner": "CPP288/full-expression0/param1"
+            },
+            {
+              "name": "witness",
+              "type": "WITNESS6",
+              "owner": "CPP288/full-expression0/param2"
+            },
+            {
+              "name": "a",
+              "type": "U64",
+              "owner": "CPP288/full-expression0/arg0/builtin/param0"
+            },
+            {
+              "name": "b",
+              "type": "U64",
+              "owner": "CPP288/full-expression0/arg0/builtin/param1"
+            }
+          ],
+          "formal_declaration_union_by_type": {
+            "U64": 2,
+            "B": 1,
+            "P": 1,
+            "WITNESS6": 1
+          },
+          "formal_declaration_union_selected_bytes": 73,
+          "formal_union_scope": "Finite source expression owner union, not an exact simultaneous peak and not added wholesale to own93. Use owner identities once when a full entered body, initialized partial activation or allowed delayed-teardown parameter is selected.",
+          "teardown_rule": "Parameters may persist to the enclosing full-expression where permitted; returned/formal teardown alternatives must remain source/profile-qualified in the whole context. No physical frame/slot reuse or heap-free claim.",
+          "result_rule": "Actual scalar/class result destination initializes the caller/formal once. Arithmetic prvalues do not gain an invented separately stored object."
+        }
+      ],
+      "expression_alternatives": "CPP77/78 are mutually exclusive selected ?: arms; CPP285 initializers and CPP287 statements are sequential; CPP288 quote is verify-only.",
+      "whole_context_QARG": "Maximum over actual expression/entered-body/retained-parameter phases. This table supplies unique partial owners, not a second copy of normal entered own93 parameters."
+    }
+  ],
+  "formal_types": {
+    "price": [
+      [
+        "id",
+        "FAMILY"
+      ]
+    ],
+    "plus": [
+      [
+        "a",
+        "U64"
+      ],
+      [
+        "b",
+        "U64"
+      ]
+    ],
+    "times": [
+      [
+        "count",
+        "U64"
+      ],
+      [
+        "value",
+        "U64"
+      ]
+    ],
+    "units": [
+      [
+        "id",
+        "FAMILY"
+      ],
+      [
+        "count",
+        "U64"
+      ]
+    ],
+    "wordUnits": [
+      [
+        "verify",
+        "B"
+      ],
+      [
+        "words",
+        "U64"
+      ]
+    ],
+    "inverseUnits": [
+      [
+        "verify",
+        "B"
+      ],
+      [
+        "records",
+        "U64"
+      ]
+    ],
+    "fixtureUnits": [
+      [
+        "verify",
+        "B"
+      ],
+      [
+        "N",
+        "U64"
+      ],
+      [
+        "g",
+        "U64"
+      ],
+      [
+        "map",
+        "I32"
+      ]
+    ],
+    "childUpper": [
+      [
+        "verify",
+        "B"
+      ]
+    ],
+    "workLimit": [],
+    "reservationGate": [
+      [
+        "total",
+        "U64"
+      ],
+      [
+        "limit",
+        "U64"
+      ]
+    ],
+    "gate3": [
+      [
+        "ok",
+        "B"
+      ],
+      [
+        "reason",
+        "P"
+      ],
+      [
+        "witness",
+        "WITNESS6"
+      ]
+    ],
+    "Meter.add": [
+      [
+        "n",
+        "U64"
+      ]
+    ]
+  },
+  "selected_representation": {
+    "FAMILY": 8,
+    "U64": 8,
+    "B": 1,
+    "I32": 4,
+    "P": 8,
+    "WITNESS6": 48
+  },
+  "representation_basis": {
+    "FAMILY": "Family enum underlying std::size_t; selected size_t.sizeof8",
+    "U64": "selected u64.sizeof8",
+    "B": "selected bool.sizeof1",
+    "I32": "selected int.sizeof4",
+    "P": "selected pointer.sizeof8",
+    "WITNESS6": "selected Witness6.sizeof48"
+  },
+  "full_whole_upper": null,
+  "own93_source_context_independently_accepted": false,
+  "reference_referent_copy": false,
+  "new_type_measurement": false,
+  "inventory_scope": "Every written Cost quote caller in CPP54-103 and all qualified Cost quote ingresses in the entire CPP; analogous witness/reservation argument parents explicitly included."
+}

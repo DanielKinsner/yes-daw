@@ -1,0 +1,530 @@
+{
+  "schema": "PINNED_SOURCE_PACKET_LOSSLESS_DELIVERY_V1",
+  "original_pins_sha256": "7E1D0E154019681055AF70B6F0277D5811FE9CF243B83CED6F8DCAD9CC06E3D2",
+  "original_verdict": "PRESERVATION_ONLY_ORIGINAL_CANDIDATE_UNACCEPTED",
+  "scope": "Preservation of the named packet only. No new independent source/numeric/resource acceptance, fit, NOFIT, native binding, target execution or feature completion follows.",
+  "files": [
+    {
+      "file": "sources/001-contract.md",
+      "original_path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "original_bytes": 7998,
+      "original_sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-argument.md",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/argument.md",
+      "original_bytes": 10149,
+      "original_sha256": "D5A97BB11B4CE99B71B4F4E4ED1ADD0B7B841D94ECC67A41646F0D496717459B",
+      "bytes": 10149,
+      "sha256": "D5A97BB11B4CE99B71B4F4E4ED1ADD0B7B841D94ECC67A41646F0D496717459B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-closure-contexts.json",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/closure-contexts.json",
+      "original_bytes": 21474,
+      "original_sha256": "3F2637E77ADE705F1E4870C6C845F51AE5BAF6A0114FB0157107CA74509DB7AA",
+      "bytes": 21474,
+      "sha256": "3F2637E77ADE705F1E4870C6C845F51AE5BAF6A0114FB0157107CA74509DB7AA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-envelope.json",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/envelope.json",
+      "original_bytes": 29437,
+      "original_sha256": "9315AEABE07E63F702A75A088A875D5C13FCF1F124126EC3601DAB84B822FFD8",
+      "bytes": 29437,
+      "sha256": "9315AEABE07E63F702A75A088A875D5C13FCF1F124126EC3601DAB84B822FFD8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-first-green-freeze.json",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/first-green-freeze.json",
+      "original_bytes": 2515,
+      "original_sha256": "98C23B436B9B256DC28407A64FF10C8453C5C14D8A063F9ABE17275C8216DA06",
+      "bytes": 2515,
+      "sha256": "98C23B436B9B256DC28407A64FF10C8453C5C14D8A063F9ABE17275C8216DA06",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-own-named-objects.json",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/own-named-objects.json",
+      "original_bytes": 108214,
+      "original_sha256": "7CFD16768ACCD87A8457E262F5838D6AA4C0E10A84D7F4D4ADCD44DB71875E4A",
+      "bytes": 108214,
+      "sha256": "7CFD16768ACCD87A8457E262F5838D6AA4C0E10A84D7F4D4ADCD44DB71875E4A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/007-source-pins.json",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/source-pins.json",
+      "original_bytes": 8326,
+      "original_sha256": "F252B5B6EBEAB13FDBE6AE35FB5FA177CA0F01FBEE36433ED3C10AA71A20B4A3",
+      "bytes": 8326,
+      "sha256": "F252B5B6EBEAB13FDBE6AE35FB5FA177CA0F01FBEE36433ED3C10AA71A20B4A3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/008-layout-values.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/execution-r1/layout-values.json",
+      "original_bytes": 30879,
+      "original_sha256": "03A663FFA001DEAE6C284517D71B54607081F6017C1AF40A98B30B40945E750D",
+      "bytes": 30879,
+      "sha256": "03A663FFA001DEAE6C284517D71B54607081F6017C1AF40A98B30B40945E750D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/009-profile.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/profile.json",
+      "original_bytes": 1767,
+      "original_sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399",
+      "bytes": 1767,
+      "sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/010-first-green-freeze.json",
+      "original_path": "build-ci/20261106-native-sdk-context-independent-review-r1/first-green-freeze.json",
+      "original_bytes": 1000,
+      "original_sha256": "F054826B2C1C16FE35DAAF9E5C3935241EB0E07540FCF9B82D0F919E0692BDC6",
+      "bytes": 1000,
+      "sha256": "F054826B2C1C16FE35DAAF9E5C3935241EB0E07540FCF9B82D0F919E0692BDC6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/011-review.json",
+      "original_path": "build-ci/20261106-native-sdk-context-independent-review-r1/review.json",
+      "original_bytes": 280384,
+      "original_sha256": "09D97A3A2A8F4B73CC78070569D2C4EAA42EA3FF54A9EFA56EF4E252283DEBE1",
+      "bytes": 280384,
+      "sha256": "09D97A3A2A8F4B73CC78070569D2C4EAA42EA3FF54A9EFA56EF4E252283DEBE1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/012-review.md",
+      "original_path": "build-ci/20261106-native-sdk-context-independent-review-r1/review.md",
+      "original_bytes": 11680,
+      "original_sha256": "B5C9765AA9B3ACA5ECFCBCF94B5AB663F83D2C8CE7B5867C49CE43A4C4CC3505",
+      "bytes": 11680,
+      "sha256": "B5C9765AA9B3ACA5ECFCBCF94B5AB663F83D2C8CE7B5867C49CE43A4C4CC3505",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/013-source-pins.json",
+      "original_path": "build-ci/20261106-native-sdk-context-independent-review-r1/source-pins.json",
+      "original_bytes": 12652,
+      "original_sha256": "D66C6A8C97359967B11C8D4CBA591FE2862715929ED57C4BAE4951C8A3EAE7C8",
+      "bytes": 12652,
+      "sha256": "D66C6A8C97359967B11C8D4CBA591FE2862715929ED57C4BAE4951C8A3EAE7C8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/014-argument.md",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r1/argument.md",
+      "original_bytes": 8502,
+      "original_sha256": "F7094A103EFD968EED295ACC7DB92D0B8D2142F2E1D9DB58C18BE5D9453E9F17",
+      "bytes": 8502,
+      "sha256": "F7094A103EFD968EED295ACC7DB92D0B8D2142F2E1D9DB58C18BE5D9453E9F17",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/015-closure-incidence.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r1/closure-incidence.json",
+      "original_bytes": 26563,
+      "original_sha256": "60D3775FAA489ECBE57C1775F2F99859C0C98D6F4BA70B638482717AF941C13B",
+      "bytes": 26563,
+      "sha256": "60D3775FAA489ECBE57C1775F2F99859C0C98D6F4BA70B638482717AF941C13B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/016-context-joins.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r1/context-joins.json",
+      "original_bytes": 34045,
+      "original_sha256": "F9CA218282B57529E1EA4978B99540467FC31B9018D4C26FCE32E8997B6AF18C",
+      "bytes": 34045,
+      "sha256": "F9CA218282B57529E1EA4978B99540467FC31B9018D4C26FCE32E8997B6AF18C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/017-first-green-freeze.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r1/first-green-freeze.json",
+      "original_bytes": 11617,
+      "original_sha256": "74717481007876FB89E4206DB4D2829AD0CE3FC0115ACBAD1772F70D320BEB43",
+      "bytes": 11617,
+      "sha256": "74717481007876FB89E4206DB4D2829AD0CE3FC0115ACBAD1772F70D320BEB43",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/018-message-copy-requests.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r1/message-copy-requests.json",
+      "original_bytes": 4060,
+      "original_sha256": "BBDEC14FC2B21C88F82EE526904FF6D171F0E390C4130C9D27B944A389469FFA",
+      "bytes": 4060,
+      "sha256": "BBDEC14FC2B21C88F82EE526904FF6D171F0E390C4130C9D27B944A389469FFA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/019-quote-argument-incidence.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r1/quote-argument-incidence.json",
+      "original_bytes": 11432,
+      "original_sha256": "1CE7B5E206CBF368C10C5BC06F8CBED7B76DD908D55B592C028BE0CCA47BF167",
+      "bytes": 11432,
+      "sha256": "1CE7B5E206CBF368C10C5BC06F8CBED7B76DD908D55B592C028BE0CCA47BF167",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/020-required-type-facts.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r1/required-type-facts.json",
+      "original_bytes": 8572,
+      "original_sha256": "24F27842C31604B19D9F3B89373DB4AD2E766DE02242CB312F1D64D462CB6615",
+      "bytes": 8572,
+      "sha256": "24F27842C31604B19D9F3B89373DB4AD2E766DE02242CB312F1D64D462CB6615",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/021-selected-sdk-ledger.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r1/selected-sdk-ledger.json",
+      "original_bytes": 348469,
+      "original_sha256": "A9D7178024F69CF0FB4FADA0406AB7A5310914881D1169FD6C64236D54613119",
+      "bytes": 348469,
+      "sha256": "A9D7178024F69CF0FB4FADA0406AB7A5310914881D1169FD6C64236D54613119",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/022-source-pins.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r1/source-pins.json",
+      "original_bytes": 9740,
+      "original_sha256": "814915EDB72EFD1049EF15D543C6647F1AD648A54214B1B80D6803695B0DD6FF",
+      "bytes": 9740,
+      "sha256": "814915EDB72EFD1049EF15D543C6647F1AD648A54214B1B80D6803695B0DD6FF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/023-written-sdk-ingresses.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r1/written-sdk-ingresses.json",
+      "original_bytes": 255746,
+      "original_sha256": "347612323BE6922A2D72072C3E8DC6305C23E560455A55617D993C21BA53B7F7",
+      "bytes": 255746,
+      "sha256": "347612323BE6922A2D72072C3E8DC6305C23E560455A55617D993C21BA53B7F7",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/024-argument.md",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/argument.md",
+      "original_bytes": 19293,
+      "original_sha256": "FBB7ED0CBD158E92AB427C36313E8E7F0F4C14852B7F6C9E070A72AC718F71E9",
+      "bytes": 19293,
+      "sha256": "FBB7ED0CBD158E92AB427C36313E8E7F0F4C14852B7F6C9E070A72AC718F71E9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/025-author.py",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/author.py",
+      "original_bytes": 16584,
+      "original_sha256": "BD24CA27FCCF2F27207AA359BE6E973F788296EB7F34C91EBEE5A83BF79A0E8B",
+      "bytes": 16584,
+      "sha256": "BD24CA27FCCF2F27207AA359BE6E973F788296EB7F34C91EBEE5A83BF79A0E8B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/026-failure.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/failure.json",
+      "original_bytes": 647,
+      "original_sha256": "E51514589990E2BA063B63BA021DCC5E579295E5F3C226AA88D8E12168F0CFC1",
+      "bytes": 647,
+      "sha256": "E51514589990E2BA063B63BA021DCC5E579295E5F3C226AA88D8E12168F0CFC1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/027-quote_models.py",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/quote_models.py",
+      "original_bytes": 8471,
+      "original_sha256": "2479DD2C70B6DDC5A888CF1B631C2DCCCAA9C82651ED7529868F6E7D97951D38",
+      "bytes": 8471,
+      "sha256": "2479DD2C70B6DDC5A888CF1B631C2DCCCAA9C82651ED7529868F6E7D97951D38",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/028-WORKING.md",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/WORKING.md",
+      "original_bytes": 6819,
+      "original_sha256": "BC27125DB3EE900D98D3032A89FA4E427DFCFB0EBCC179A6DA0D8D4E49E94534",
+      "bytes": 6819,
+      "sha256": "BC27125DB3EE900D98D3032A89FA4E427DFCFB0EBCC179A6DA0D8D4E49E94534",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/029-author.py",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/author.py",
+      "original_bytes": 17001,
+      "original_sha256": "30A7D5E06827676703378F3BCB7E3F1C09D3AB1F4995B48360CC2A6F66383160",
+      "bytes": 17001,
+      "sha256": "30A7D5E06827676703378F3BCB7E3F1C09D3AB1F4995B48360CC2A6F66383160",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/030-authoring.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/authoring.json",
+      "original_bytes": 336,
+      "original_sha256": "16C7619CEC8E977382151B97F0DD3AD1976AA5A193BE444FDE5F79C86CE751B3",
+      "bytes": 336,
+      "sha256": "16C7619CEC8E977382151B97F0DD3AD1976AA5A193BE444FDE5F79C86CE751B3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/031-check.py",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/check.py",
+      "original_bytes": 16534,
+      "original_sha256": "BB27EADD11FCE81621BCD1F42A493DA24858C71B281DF6DA588A77E5BF4B2BAF",
+      "bytes": 16534,
+      "sha256": "BB27EADD11FCE81621BCD1F42A493DA24858C71B281DF6DA588A77E5BF4B2BAF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/032-checks.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/checks.json",
+      "original_bytes": 278417,
+      "original_sha256": "13C99F23B2782A817FB5DC555ACF0027D432F1607806CF885DD5ED02BA68F8AC",
+      "bytes": 278417,
+      "sha256": "13C99F23B2782A817FB5DC555ACF0027D432F1607806CF885DD5ED02BA68F8AC",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/033-closure-incidence.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/closure-incidence.json",
+      "original_bytes": 26731,
+      "original_sha256": "5E2B7EC86969A685F2C0904C6469E8ACAD3BF607C8266D54CFA6C2BE25140092",
+      "bytes": 26731,
+      "sha256": "5E2B7EC86969A685F2C0904C6469E8ACAD3BF607C8266D54CFA6C2BE25140092",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/034-context-joins.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/context-joins.json",
+      "original_bytes": 43899,
+      "original_sha256": "1A6EA8E038131D08EC2FDFFF5804455C1C5EB2EE8FDD6EECDB2FE5331216501C",
+      "bytes": 43899,
+      "sha256": "1A6EA8E038131D08EC2FDFFF5804455C1C5EB2EE8FDD6EECDB2FE5331216501C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/035-first-green-freeze.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/first-green-freeze.json",
+      "original_bytes": 5265,
+      "original_sha256": "605F03057C9F7D62468CDD5163D4298C884A4275F04F04EB23935F1504BFAFBE",
+      "bytes": 5265,
+      "sha256": "605F03057C9F7D62468CDD5163D4298C884A4275F04F04EB23935F1504BFAFBE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/036-failure.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/inspection-attempt-r1/failure.json",
+      "original_bytes": 360,
+      "original_sha256": "EBD2F5C6764F33E38A3DA2DC825FE0F93E73659717953F35FE4D2AF265388E96",
+      "bytes": 360,
+      "sha256": "EBD2F5C6764F33E38A3DA2DC825FE0F93E73659717953F35FE4D2AF265388E96",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/037-input.py",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/inspection-attempt-r1/input.py",
+      "original_bytes": 388,
+      "original_sha256": "A536E87E6A43D494F3247AEBD09BFBD520CD4F6FFD8C3DD161FB9F55BF419740",
+      "bytes": 388,
+      "sha256": "A536E87E6A43D494F3247AEBD09BFBD520CD4F6FFD8C3DD161FB9F55BF419740",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/038-layout-source-correspondence.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/layout-source-correspondence.json",
+      "original_bytes": 60687,
+      "original_sha256": "72A6B10AFBC8D9BDA54A20EDF2B422FEF528FE6EB59BC0A3BDD23C5F43E39AFB",
+      "bytes": 60687,
+      "sha256": "72A6B10AFBC8D9BDA54A20EDF2B422FEF528FE6EB59BC0A3BDD23C5F43E39AFB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/039-layout_correspondence.py",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/layout_correspondence.py",
+      "original_bytes": 3582,
+      "original_sha256": "0F8A75853F41B77413324DB2FD246AACA63D089E85A074B1D98C36A4DEC3B258",
+      "bytes": 3582,
+      "sha256": "0F8A75853F41B77413324DB2FD246AACA63D089E85A074B1D98C36A4DEC3B258",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/040-message-copy-requests.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/message-copy-requests.json",
+      "original_bytes": 4060,
+      "original_sha256": "BBDEC14FC2B21C88F82EE526904FF6D171F0E390C4130C9D27B944A389469FFA",
+      "bytes": 4060,
+      "sha256": "BBDEC14FC2B21C88F82EE526904FF6D171F0E390C4130C9D27B944A389469FFA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/041-primary-source-pins.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/primary-source-pins.json",
+      "original_bytes": 20944,
+      "original_sha256": "7D7FC9DC44828E03F8A8F69D83833D31CD4150D92ADC415741112BDA3EE97F99",
+      "bytes": 20944,
+      "sha256": "7D7FC9DC44828E03F8A8F69D83833D31CD4150D92ADC415741112BDA3EE97F99",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/042-proposal.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/proposal.json",
+      "original_bytes": 1140,
+      "original_sha256": "1C292BF340C0967852FBB6398DF69C6390E2BA640A9D928CADA8BB8E586B8191",
+      "bytes": 1140,
+      "sha256": "1C292BF340C0967852FBB6398DF69C6390E2BA640A9D928CADA8BB8E586B8191",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/043-quote-argument-incidence.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/quote-argument-incidence.json",
+      "original_bytes": 139209,
+      "original_sha256": "BA2BC0BF2DA1720A855B3839FEE380D25D310E0A76E24DAB8E0F11628C427749",
+      "bytes": 139209,
+      "sha256": "BA2BC0BF2DA1720A855B3839FEE380D25D310E0A76E24DAB8E0F11628C427749",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/044-quote_models.py",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/quote_models.py",
+      "original_bytes": 8471,
+      "original_sha256": "2479DD2C70B6DDC5A888CF1B631C2DCCCAA9C82651ED7529868F6E7D97951D38",
+      "bytes": 8471,
+      "sha256": "2479DD2C70B6DDC5A888CF1B631C2DCCCAA9C82651ED7529868F6E7D97951D38",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/045-required-type-facts.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/required-type-facts.json",
+      "original_bytes": 11509,
+      "original_sha256": "E7F7C30056A8816FAA801470AFA63936FCF39403626CCF48A95455991CBB3E28",
+      "bytes": 11509,
+      "sha256": "E7F7C30056A8816FAA801470AFA63936FCF39403626CCF48A95455991CBB3E28",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/046-selected-sdk-ledger.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/selected-sdk-ledger.json",
+      "original_bytes": 616529,
+      "original_sha256": "433724242068FB8179EFF74105F81E9E01BDAFC431076CFD6C6CEF1628069BA4",
+      "bytes": 616529,
+      "sha256": "433724242068FB8179EFF74105F81E9E01BDAFC431076CFD6C6CEF1628069BA4",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/047-source-pins.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/source-pins.json",
+      "original_bytes": 18682,
+      "original_sha256": "DE5558C2ADAC149C360994A370F1D95890DE0B567F753E0BB1BCD8E5F16FB757",
+      "bytes": 18682,
+      "sha256": "DE5558C2ADAC149C360994A370F1D95890DE0B567F753E0BB1BCD8E5F16FB757",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/048-WORKING.md",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/WORKING.md",
+      "original_bytes": 6819,
+      "original_sha256": "BC27125DB3EE900D98D3032A89FA4E427DFCFB0EBCC179A6DA0D8D4E49E94534",
+      "bytes": 6819,
+      "sha256": "BC27125DB3EE900D98D3032A89FA4E427DFCFB0EBCC179A6DA0D8D4E49E94534",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/049-written-sdk-ingresses.json",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/written-sdk-ingresses.json",
+      "original_bytes": 255746,
+      "original_sha256": "347612323BE6922A2D72072C3E8DC6305C23E560455A55617D993C21BA53B7F7",
+      "bytes": 255746,
+      "sha256": "347612323BE6922A2D72072C3E8DC6305C23E560455A55617D993C21BA53B7F7",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/050-builder.py",
+      "original_path": "build-ci/20261106-native-sdk-ledger-r2-delivery-r1/builder.py",
+      "original_bytes": 4858,
+      "original_sha256": "F15AFB9DBB38DA545525B9921ECECA03F42883517189B2777F520DA5391B2644",
+      "bytes": 4858,
+      "sha256": "F15AFB9DBB38DA545525B9921ECECA03F42883517189B2777F520DA5391B2644",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/051-freeze.json",
+      "original_path": "build-ci/20261106-native-sdk-ledger-r2-delivery-r1/freeze.json",
+      "original_bytes": 693,
+      "original_sha256": "D6E76926B0EF6A3D15C7E3F2FDC1A8D6FEF26FC1B3FF5C2E602808EBE45A66B5",
+      "bytes": 693,
+      "sha256": "D6E76926B0EF6A3D15C7E3F2FDC1A8D6FEF26FC1B3FF5C2E602808EBE45A66B5",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/052-raw-payloads.json",
+      "original_path": "build-ci/20261106-native-sdk-ledger-r2-delivery-r1/raw-payloads.json",
+      "original_bytes": 155,
+      "original_sha256": "656D24D68FB22B11C1B1C8DA345044F09640B6D4DAB327AF8164F5D6A32B86E4",
+      "bytes": 155,
+      "sha256": "656D24D68FB22B11C1B1C8DA345044F09640B6D4DAB327AF8164F5D6A32B86E4",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/053-README.md",
+      "original_path": "build-ci/20261106-native-sdk-ledger-r2-delivery-r1/README.md",
+      "original_bytes": 562,
+      "original_sha256": "8F339FCF369C971C0C58B4307C53ED5961C8052F0AE467EF3BD2EEE26CEDAAC7",
+      "bytes": 562,
+      "sha256": "8F339FCF369C971C0C58B4307C53ED5961C8052F0AE467EF3BD2EEE26CEDAAC7",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/054-source-pins.json",
+      "original_path": "build-ci/20261106-native-sdk-ledger-r2-delivery-r1/source-pins.json",
+      "original_bytes": 17358,
+      "original_sha256": "7E1D0E154019681055AF70B6F0277D5811FE9CF243B83CED6F8DCAD9CC06E3D2",
+      "bytes": 17358,
+      "sha256": "7E1D0E154019681055AF70B6F0277D5811FE9CF243B83CED6F8DCAD9CC06E3D2",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/055-clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/056-source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/057-independent_clock.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "original_bytes": 9187,
+      "original_sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/058-Time.h",
+      "original_path": "src/engine/Time.h",
+      "original_bytes": 49489,
+      "original_sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

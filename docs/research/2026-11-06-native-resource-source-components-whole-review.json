@@ -1,0 +1,84 @@
+{
+  "scope": "TWO_INDEPENDENTLY_REVIEWED_SOURCE_COMPONENTS_NOT_WHOLE_RESOURCE_FIT",
+  "SDK_context_R2": {
+    "root_disposition": "CONDITIONAL_ACCEPT_NEW_SOURCE_INCIDENCE_AND_MINIMAL_TYPE_SET_ONLY",
+    "review_json_sha256": "5D3039FA208D7BE0481A99E3CAF6B73B72AB8A33F74206C8CCE45794F0D7D962",
+    "review_argument_sha256": "D4A912C80D3A4A83AD5FCECDAB1E431FC2BEFE7CCDC85D75EE690F22DF2BAF2B",
+    "review_pins_sha256": "9EF6B5B2CF12DBC3AD7E34BE0BA97C9C626956A117F25EB65BAF9CD4C9DEC7C8",
+    "review_freeze_sha256": "A4750DF44528EE379BF31BDC26D5FE9F073711597D9AB977FD618DAAD5CE0693",
+    "independent_source_data_checks": 1990,
+    "candidate_pins_sha256": "DE5558C2ADAC149C360994A370F1D95890DE0B567F753E0BB1BCD8E5F16FB757",
+    "candidate_whole_freeze_sha256": "605F03057C9F7D62468CDD5163D4298C884A4275F04F04EB23935F1504BFAFBE",
+    "inventory_rows": 167,
+    "selected_rows": 165,
+    "excluded_rows": 2,
+    "contexts": 12,
+    "critical_joins": 14,
+    "materialization_groups": 25,
+    "typed_quote_source_rows": 27,
+    "own_closures": 16,
+    "SDK_closures": 1,
+    "necessary_exact_type_facts": 30,
+    "all_new_layouts_null": true,
+    "prior_two_own_checker_failures_preserved": true
+  },
+  "own93": {
+    "root_disposition": "ACCEPT_EXACT_93_DECLARATION_WIDTH_AND_LARGE_COMPONENT_ONLY",
+    "review_json_sha256": "433C4D23BA6844E8E6FF47A829A9BFFF9338101EBA379AFB9CB1B98C12C86FEB",
+    "review_argument_sha256": "B11998C7A2558413061D46898B604A9314D8CBB3E68F09E3FBE967B6F5F9E97B",
+    "review_pins_sha256": "5B6ED5587CD416EBD1DDB852810C6F55E40DC7455D7F3B529EA0FE7F24CF54DD",
+    "review_freeze_sha256": "1065BD9C0F97223098153A74B11C6FF1F4EBCE07528B706E764F82F57F87A80A",
+    "independent_source_data_checks": 2240,
+    "candidate_pins_sha256": "F252B5B6EBEAB13FDBE6AE35FB5FA177CA0F01FBEE36433ED3C10AA71A20B4A3",
+    "candidate_first_green_freeze_sha256": "98C23B436B9B256DC28407A64FF10C8453C5C14D8A063F9ABE17275C8216DA06",
+    "main_declaration_width": 186,
+    "run_declaration_width": 1419,
+    "declaration_width_sum_not_coexistence_upper": 4810,
+    "large_component": 405128,
+    "large_expression": "2*65584+4*65544+11784",
+    "ancillary_old_invalid_native_comparator_claim": "NOT_ADOPTED; frac1 rejects before Time search; current SDKR2 corrects it",
+    "TempoMapView_layout": null,
+    "current_surrounding_context_join_accepted": false
+  },
+  "archives": [
+    {
+      "path": "docs/research/artifacts/2026-11-06-native-sdk-context-ledger-r2",
+      "manifest_sha256": "1CEB59E3EF27ED31AFAD2A9C954DE6ABAE17EADB70F6D7497EFA3D773372F3C4",
+      "files": 58,
+      "staged_result": "docs/research/verification-results/2026-11-06-native-sdk-context-ledger-r2.json"
+    },
+    {
+      "path": "docs/research/artifacts/2026-11-06-native-sdk-context-independent-review-r2",
+      "manifest_sha256": "8B7989297AE7FEE033BD6598710F6F33E9977A7AB06FB9AA5F4127E738DA47D5",
+      "files": 66,
+      "staged_result": "docs/research/verification-results/2026-11-06-native-sdk-context-independent-review-r2.json"
+    },
+    {
+      "path": "docs/research/artifacts/2026-11-06-native-own-object-independent-review-r1",
+      "manifest_sha256": "401D308A1BD3C7F7B588F45325D9FCB83C2907F5A6F4EEA0334EE2654F92201E",
+      "files": 53,
+      "staged_result": "docs/research/verification-results/2026-11-06-native-own-object-independent-review-r1.json"
+    }
+  ],
+  "remaining": [
+    "30exactsizeof/alignof+sourceABIidentity",
+    "actualsurroundingowner/contextunion",
+    "selectedcompiler/header/binary/nativeassociation",
+    "controlledbacking/path/FILE/message/static/quarantinedowners",
+    "controller+actualchildphaseequation"
+  ],
+  "separate_compile_only_purpose_source_authoring_authorized": true,
+  "compiler_native_helper_fixture_Clock_execution_authorized": false,
+  "OTHER": null,
+  "whole_child": null,
+  "joint32MiB_fit": null,
+  "prices_combined_U_limit_Data_binding_GO": false,
+  "target_execution": false,
+  "root_pre_adoption_navigation_error": "Wrong own93 freeze filename, corrected to independently enumerated first-green-freeze.json before any receipt creation; failure record retained in build-ci/20261106-native-component-root-adoption-r1/navigation-failure-01.json",
+  "preceding_CI": {
+    "commit": "1e3a7f12d1861d27334621fbd25c434ef930d47c",
+    "run": 42245865634,
+    "conclusion": "success",
+    "scope": "DOCS_ONLY_RUNTIME_PACKAGE_SANITIZER_SKIPPED"
+  }
+}

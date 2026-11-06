@@ -1,0 +1,54 @@
+{
+  "schema": "INDEPENDENT_NATIVE_SDK_R2_FIRST_COMPLETE_OWN_GREEN",
+  "checks": 1990,
+  "postgreen_edit_authorized": false,
+  "all_new_sources_helpers_oracles_outputs_frozen": true,
+  "files": [
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/check.py",
+      "bytes": 31479,
+      "sha256": "7FDA08DD00B535C704B68561B6B8C28BFC1CAD4C95AA0BBDD1F69B3F465B1B23"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/failed-own-attempt-01/check.py",
+      "bytes": 30934,
+      "sha256": "A9342A7352E5999F3F17E569DD6B719FE71757B9E9EAA99A9FA9B2AF769C49D7"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/failed-own-attempt-01/failure.json",
+      "bytes": 78555,
+      "sha256": "A9D574012681FD46EDEA19FDA87DC96274A5827331657F91B158597429F900BC"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/failed-own-attempt-02/check.py",
+      "bytes": 31268,
+      "sha256": "93B8E74AE53183D9F04F1FF4046D24C5B5B9B353B8CF27A7613C828576903057"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/failed-own-attempt-02/failure.json",
+      "bytes": 133975,
+      "sha256": "4EBED5E75EEEFDFCE3C30D74517FFA11083050080CCFF49F29C588B6C1B4E60D"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/own-check-receipt.json",
+      "bytes": 599,
+      "sha256": "D37E0C294CB2BDCC3A7C31D8AB3DF8DEE5247F3CDFDCF47B5ECFE8A6C3596173"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/review.json",
+      "bytes": 364647,
+      "sha256": "5D3039FA208D7BE0481A99E3CAF6B73B72AB8A33F74206C8CCE45794F0D7D962"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/review.md",
+      "bytes": 9452,
+      "sha256": "D4A912C80D3A4A83AD5FCECDAB1E431FC2BEFE7CCDC85D75EE690F22DF2BAF2B"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r2/source-pins.json",
+      "bytes": 20929,
+      "sha256": "9EF6B5B2CF12DBC3AD7E34BE0BA97C9C626956A117F25EB65BAF9CD4C9DEC7C8"
+    }
+  ],
+  "disposition": "CONDITIONAL_ACCEPT_NEW_SOURCE_INCIDENCE_AND_MINIMAL_TYPE_SET_ONLY"
+}

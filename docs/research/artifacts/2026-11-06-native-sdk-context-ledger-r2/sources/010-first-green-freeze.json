@@ -1,0 +1,29 @@
+{
+  "first_complete_own_pass": true,
+  "verdict": "REVISE",
+  "checks": 2497,
+  "files": [
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r1/check.py",
+      "bytes": 13982,
+      "sha256": "6DB299232CFCA1603B58E717EA3B147CA935E6130EFDAE19D2402E9D94EBB050"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r1/review.json",
+      "bytes": 280384,
+      "sha256": "09D97A3A2A8F4B73CC78070569D2C4EAA42EA3FF54A9EFA56EF4E252283DEBE1"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r1/review.md",
+      "bytes": 11680,
+      "sha256": "B5C9765AA9B3ACA5ECFCBCF94B5AB663F83D2C8CE7B5867C49CE43A4C4CC3505"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-independent-review-r1/source-pins.json",
+      "bytes": 12652,
+      "sha256": "D66C6A8C97359967B11C8D4CBA591FE2862715929ED57C4BAE4951C8A3EAE7C8"
+    }
+  ],
+  "whole_review_helpers_oracles_frozen": true,
+  "no_subject_execution": true
+}

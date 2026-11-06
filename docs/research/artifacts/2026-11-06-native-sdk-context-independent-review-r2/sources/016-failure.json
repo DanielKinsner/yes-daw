@@ -1,0 +1,3340 @@
+{
+  "exception": "AssertionError",
+  "message": "typed object S_GROW_INSERT value_parameters _Fn",
+  "checks": [
+    {
+      "name": "no first-green rewrite",
+      "pass": true
+    },
+    {
+      "name": "subject pins exact",
+      "pass": true
+    },
+    {
+      "name": "subject freeze exact",
+      "pass": true
+    },
+    {
+      "name": "subject proposal exact",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/__msvc_iter_core.hpp",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/__msvc_sanitizer_annotate_container.hpp",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/__msvc_string_view.hpp",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/array",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/bit",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cmath",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cstddef",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cstdlib",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/exception",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/initializer_list",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/limits",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/stdexcept",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/type_traits",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/utility",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime.h",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_exception.h",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_new.h",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vector",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xstring",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xutility",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals.h",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals_core.h",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_math.h",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-controlled-object-envelope-r1/argument.md",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-controlled-object-envelope-r1/closure-contexts.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-controlled-object-envelope-r1/envelope.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-controlled-object-envelope-r1/first-green-freeze.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-controlled-object-envelope-r1/own-named-objects.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-controlled-object-envelope-r1/source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-object-layout-purpose-source-r1/execution-r1/layout-values.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-object-layout-purpose-source-r1/profile.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-independent-review-r1/first-green-freeze.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-independent-review-r1/review.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-independent-review-r1/review.md",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-independent-review-r1/source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r1/argument.md",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r1/closure-incidence.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r1/context-joins.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r1/first-green-freeze.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r1/message-copy-requests.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r1/quote-argument-incidence.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r1/required-type-facts.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r1/selected-sdk-ledger.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r1/source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r1/written-sdk-ingresses.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r2/argument.md",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r2/closure-incidence.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r2/context-joins.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r2/layout-source-correspondence.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r2/message-copy-requests.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r2/primary-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r2/quote-argument-incidence.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r2/required-type-facts.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r2/selected-sdk-ledger.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/20261106-native-sdk-context-ledger-r2/written-sdk-ingresses.json",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "pass": true
+    },
+    {
+      "name": "fresh inputs src/engine/Time.h",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/argument.md",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/author.py",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/failure.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/quote_models.py",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/WORKING.md",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/author.py",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/authoring.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/check.py",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/checks.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/closure-incidence.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/context-joins.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/inspection-attempt-r1/failure.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/inspection-attempt-r1/input.py",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/layout-source-correspondence.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/layout_correspondence.py",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/message-copy-requests.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/primary-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/proposal.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/quote-argument-incidence.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/quote_models.py",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/required-type-facts.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/selected-sdk-ledger.json",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/WORKING.md",
+      "pass": true
+    },
+    {
+      "name": "fresh own_files build-ci/20261106-native-sdk-context-ledger-r2/written-sdk-ingresses.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/argument.md",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/author.py",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/failure.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/quote_models.py",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/author-attempt-r1/WORKING.md",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/author.py",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/authoring.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/check.py",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/checks.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/closure-incidence.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/context-joins.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/inspection-attempt-r1/failure.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/inspection-attempt-r1/input.py",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/layout-source-correspondence.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/layout_correspondence.py",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/message-copy-requests.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/primary-source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/proposal.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/quote-argument-incidence.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/quote_models.py",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/required-type-facts.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/selected-sdk-ledger.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/WORKING.md",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/written-sdk-ingresses.json",
+      "pass": true
+    },
+    {
+      "name": "whole frozen subject build-ci/20261106-native-sdk-context-ledger-r2/source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact source-pins.json",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact first-green-freeze.json",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact argument.md",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact envelope.json",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact own-named-objects.json",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact closure-contexts.json",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact CPP",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact QC",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact TIME",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact BOOK",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact vector",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact xmemory",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact xutility",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact xstring",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact array",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact utility",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact type_traits",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact bit",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact limits",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact initializer_list",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact exception",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact stdexcept",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact vcruntime_exception.h",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact vcruntime_new.h",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact vcruntime.h",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact cstddef",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact yvals.h",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact yvals_core.h",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact __msvc_string_view.hpp",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact __msvc_iter_core.hpp",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact __msvc_sanitizer_annotate_container.hpp",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact cmath",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact cstdlib",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact corecrt_math.h",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact layout-values.json",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact contract.md",
+      "pass": true
+    },
+    {
+      "name": "primary alias exact profile.json",
+      "pass": true
+    },
+    {
+      "name": "167 complete identities preserved",
+      "pass": true
+    },
+    {
+      "name": "exactly two unselected insert growth identities",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "source identity V_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_ILIST",
+      "pass": true
+    },
+    {
+      "name": "source identity V_ILIST",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_ILIST",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_ILIST",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_ILIST",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ILIST value_parameters _Ilist",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ILIST materializations default_Al",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_ILIST",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_COPY",
+      "pass": true
+    },
+    {
+      "name": "source identity V_COPY",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_COPY",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_COPY",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_COPY",
+      "pass": true
+    },
+    {
+      "name": "typed object V_COPY locals _Count",
+      "pass": true
+    },
+    {
+      "name": "typed object V_COPY materializations returned_allocator",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_COPY",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_MOVE",
+      "pass": true
+    },
+    {
+      "name": "source identity V_MOVE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_MOVE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_MOVE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_MOVE",
+      "pass": true
+    },
+    {
+      "name": "typed object V_MOVE materializations exchange_null1",
+      "pass": true
+    },
+    {
+      "name": "typed object V_MOVE materializations exchange_null2",
+      "pass": true
+    },
+    {
+      "name": "typed object V_MOVE materializations exchange_null3",
+      "pass": true
+    },
+    {
+      "name": "typed object V_MOVE materializations exchange_result1",
+      "pass": true
+    },
+    {
+      "name": "typed object V_MOVE materializations exchange_result2",
+      "pass": true
+    },
+    {
+      "name": "typed object V_MOVE materializations exchange_result3",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_MOVE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_MOVE_ASSIGN",
+      "pass": true
+    },
+    {
+      "name": "source identity V_MOVE_ASSIGN",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_MOVE_ASSIGN",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_MOVE_ASSIGN",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_MOVE_ASSIGN",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_MOVE_ASSIGN",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_DTOR",
+      "pass": true
+    },
+    {
+      "name": "source identity V_DTOR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_DTOR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_DTOR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_DTOR",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_DTOR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "source identity V_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "typed object V_CONSTRUCT value_parameters _Count",
+      "pass": true
+    },
+    {
+      "name": "typed object V_CONSTRUCT locals _Alproxy_temporary",
+      "pass": true
+    },
+    {
+      "name": "typed object V_CONSTRUCT locals _Proxy",
+      "pass": true
+    },
+    {
+      "name": "typed object V_CONSTRUCT locals _Guard",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_BUY_NONZERO",
+      "pass": true
+    },
+    {
+      "name": "source identity V_BUY_NONZERO",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_BUY_NONZERO",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_BUY_NONZERO",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_BUY_NONZERO",
+      "pass": true
+    },
+    {
+      "name": "typed object V_BUY_NONZERO value_parameters _Newcapacity",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_BUY_NONZERO",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_BUY_RAW",
+      "pass": true
+    },
+    {
+      "name": "source identity V_BUY_RAW",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_BUY_RAW",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_BUY_RAW",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_BUY_RAW",
+      "pass": true
+    },
+    {
+      "name": "typed object V_BUY_RAW value_parameters _Newcapacity",
+      "pass": true
+    },
+    {
+      "name": "typed object V_BUY_RAW locals _Newvec",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_BUY_RAW",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_ASSIGN_FILL",
+      "pass": true
+    },
+    {
+      "name": "source identity V_ASSIGN_FILL",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_ASSIGN_FILL",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_ASSIGN_FILL",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_ASSIGN_FILL",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_FILL value_parameters _Newsize",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_FILL locals _Oldcapacity",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_FILL materializations zero_fill_argument",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_ASSIGN_FILL",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_ASSIGN_RANGE",
+      "pass": true
+    },
+    {
+      "name": "source identity V_ASSIGN_RANGE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_ASSIGN_RANGE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_ASSIGN_RANGE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_ASSIGN_RANGE",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_RANGE value_parameters _First",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_RANGE value_parameters _Last",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_RANGE locals _UFirst",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_RANGE locals _ULast",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_RANGE locals _Length",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_RANGE locals _Count",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_ASSIGN_RANGE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_ASSIGN_COUNTED",
+      "pass": true
+    },
+    {
+      "name": "source identity V_ASSIGN_COUNTED",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_ASSIGN_COUNTED",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_ASSIGN_COUNTED",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_ASSIGN_COUNTED",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_COUNTED value_parameters _First",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_COUNTED value_parameters _Newsize",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ASSIGN_COUNTED locals _Oldcapacity",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_ASSIGN_COUNTED",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_CLEAR",
+      "pass": true
+    },
+    {
+      "name": "source identity V_CLEAR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_CLEAR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_CLEAR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_CLEAR",
+      "pass": true
+    },
+    {
+      "name": "typed object V_CLEAR value_parameters _Newsize",
+      "pass": true
+    },
+    {
+      "name": "typed object V_CLEAR locals _Newcapacity",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_CLEAR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_GROWTH",
+      "pass": true
+    },
+    {
+      "name": "source identity V_GROWTH",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_GROWTH",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_GROWTH",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_GROWTH",
+      "pass": true
+    },
+    {
+      "name": "typed object V_GROWTH value_parameters _Newsize",
+      "pass": true
+    },
+    {
+      "name": "typed object V_GROWTH locals _Oldcapacity",
+      "pass": true
+    },
+    {
+      "name": "typed object V_GROWTH locals _Max",
+      "pass": true
+    },
+    {
+      "name": "typed object V_GROWTH locals _Geometric",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_GROWTH",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_MAX",
+      "pass": true
+    },
+    {
+      "name": "source identity V_MAX",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_MAX",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_MAX",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_MAX",
+      "pass": true
+    },
+    {
+      "name": "typed object V_MAX materializations min_left",
+      "pass": true
+    },
+    {
+      "name": "typed object V_MAX materializations min_right",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_MAX",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_CAPACITY",
+      "pass": true
+    },
+    {
+      "name": "source identity V_CAPACITY",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_CAPACITY",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_CAPACITY",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_CAPACITY",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_CAPACITY",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_TIDY",
+      "pass": true
+    },
+    {
+      "name": "source identity V_TIDY",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_TIDY",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_TIDY",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_TIDY",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_TIDY",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_TAKE",
+      "pass": true
+    },
+    {
+      "name": "source identity V_TAKE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_TAKE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_TAKE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_TAKE",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_TAKE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "source identity V_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "typed object V_VAL_CTOR value_parameters _First",
+      "pass": true
+    },
+    {
+      "name": "typed object V_VAL_CTOR value_parameters _Last",
+      "pass": true
+    },
+    {
+      "name": "typed object V_VAL_CTOR value_parameters _End",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_SIZE_EMPTY",
+      "pass": true
+    },
+    {
+      "name": "source identity V_SIZE_EMPTY",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_SIZE_EMPTY",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_SIZE_EMPTY",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_SIZE_EMPTY",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_SIZE_EMPTY",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_SUBSCRIPT",
+      "pass": true
+    },
+    {
+      "name": "source identity V_SUBSCRIPT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_SUBSCRIPT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_SUBSCRIPT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_SUBSCRIPT",
+      "pass": true
+    },
+    {
+      "name": "typed object V_SUBSCRIPT value_parameters _Pos",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_SUBSCRIPT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_BEGINEND",
+      "pass": true
+    },
+    {
+      "name": "source identity V_BEGINEND",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_BEGINEND",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_BEGINEND",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_BEGINEND",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_BEGINEND",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_ITER_CTOR",
+      "pass": true
+    },
+    {
+      "name": "source identity V_ITER_CTOR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_ITER_CTOR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_ITER_CTOR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_ITER_CTOR",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ITER_CTOR value_parameters _Parg",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ITER_CTOR value_parameters _Pvector",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_ITER_CTOR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_ITER_UNWRAP",
+      "pass": true
+    },
+    {
+      "name": "source identity V_ITER_UNWRAP",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_ITER_UNWRAP",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_ITER_UNWRAP",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_ITER_UNWRAP",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_ITER_UNWRAP",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_ITER_SEEK",
+      "pass": true
+    },
+    {
+      "name": "source identity V_ITER_SEEK",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_ITER_SEEK",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_ITER_SEEK",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_ITER_SEEK",
+      "pass": true
+    },
+    {
+      "name": "typed object V_ITER_SEEK value_parameters _It",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_ITER_SEEK",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_ITER_DIFFERENCE",
+      "pass": true
+    },
+    {
+      "name": "source identity V_ITER_DIFFERENCE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_ITER_DIFFERENCE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_ITER_DIFFERENCE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_ITER_DIFFERENCE",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_ITER_DIFFERENCE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_ITER_EQ",
+      "pass": true
+    },
+    {
+      "name": "source identity V_ITER_EQ",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_ITER_EQ",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_ITER_EQ",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_ITER_EQ",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_ITER_EQ",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_COMPAT",
+      "pass": true
+    },
+    {
+      "name": "source identity V_COMPAT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_COMPAT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_COMPAT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_COMPAT",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_COMPAT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt C_ZERO",
+      "pass": true
+    },
+    {
+      "name": "source identity C_ZERO",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor C_ZERO",
+      "pass": true
+    },
+    {
+      "name": "selected graph children C_ZERO",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child C_ZERO",
+      "pass": true
+    },
+    {
+      "name": "typed object C_ZERO value_parameters unnamed_tag",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope C_ZERO",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt C_ONE",
+      "pass": true
+    },
+    {
+      "name": "source identity C_ONE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor C_ONE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children C_ONE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child C_ONE",
+      "pass": true
+    },
+    {
+      "name": "typed object C_ONE value_parameters unnamed_tag",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope C_ONE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt C_GET_FIRST",
+      "pass": true
+    },
+    {
+      "name": "source identity C_GET_FIRST",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor C_GET_FIRST",
+      "pass": true
+    },
+    {
+      "name": "selected graph children C_GET_FIRST",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child C_GET_FIRST",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope C_GET_FIRST",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_GETAL",
+      "pass": true
+    },
+    {
+      "name": "source identity V_GETAL",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_GETAL",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_GETAL",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_GETAL",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_GETAL",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_GETAL",
+      "pass": true
+    },
+    {
+      "name": "source identity S_GETAL",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_GETAL",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_GETAL",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_GETAL",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_GETAL",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt ALLOC_CTOR",
+      "pass": true
+    },
+    {
+      "name": "source identity ALLOC_CTOR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor ALLOC_CTOR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children ALLOC_CTOR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child ALLOC_CTOR",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope ALLOC_CTOR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt V_VAL_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "source identity V_VAL_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor V_VAL_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children V_VAL_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child V_VAL_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope V_VAL_DEFAULT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "source identity S_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_VAL_CTOR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_UNION_CTOR",
+      "pass": true
+    },
+    {
+      "name": "source identity S_UNION_CTOR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_UNION_CTOR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_UNION_CTOR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_UNION_CTOR",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_UNION_CTOR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_UNION_DTOR",
+      "pass": true
+    },
+    {
+      "name": "source identity S_UNION_DTOR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_UNION_DTOR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_UNION_DTOR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_UNION_DTOR",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_UNION_DTOR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt FA_ALLOC_PROXY",
+      "pass": true
+    },
+    {
+      "name": "source identity FA_ALLOC_PROXY",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor FA_ALLOC_PROXY",
+      "pass": true
+    },
+    {
+      "name": "selected graph children FA_ALLOC_PROXY",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child FA_ALLOC_PROXY",
+      "pass": true
+    },
+    {
+      "name": "typed object FA_ALLOC_PROXY materializations fake_allocator_argument",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope FA_ALLOC_PROXY",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt FA_SWAP",
+      "pass": true
+    },
+    {
+      "name": "source identity FA_SWAP",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor FA_SWAP",
+      "pass": true
+    },
+    {
+      "name": "selected graph children FA_SWAP",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child FA_SWAP",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope FA_SWAP",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt FA_ORPHAN",
+      "pass": true
+    },
+    {
+      "name": "source identity FA_ORPHAN",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor FA_ORPHAN",
+      "pass": true
+    },
+    {
+      "name": "selected graph children FA_ORPHAN",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child FA_ORPHAN",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope FA_ORPHAN",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt FA_ADOPT",
+      "pass": true
+    },
+    {
+      "name": "source identity FA_ADOPT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor FA_ADOPT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children FA_ADOPT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child FA_ADOPT",
+      "pass": true
+    },
+    {
+      "name": "typed object FA_ADOPT value_parameters unnamed_container_pointer",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope FA_ADOPT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt FP_CTOR",
+      "pass": true
+    },
+    {
+      "name": "source identity FP_CTOR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor FP_CTOR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children FP_CTOR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child FP_CTOR",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope FP_CTOR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt FP_RELEASE",
+      "pass": true
+    },
+    {
+      "name": "source identity FP_RELEASE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor FP_RELEASE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children FP_RELEASE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child FP_RELEASE",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope FP_RELEASE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt TG_DTOR",
+      "pass": true
+    },
+    {
+      "name": "source identity TG_DTOR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor TG_DTOR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children TG_DTOR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child TG_DTOR",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope TG_DTOR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt ALLOC_SELECT",
+      "pass": true
+    },
+    {
+      "name": "source identity ALLOC_SELECT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor ALLOC_SELECT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children ALLOC_SELECT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child ALLOC_SELECT",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope ALLOC_SELECT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt ALLOC_MAX",
+      "pass": true
+    },
+    {
+      "name": "source identity ALLOC_MAX",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor ALLOC_MAX",
+      "pass": true
+    },
+    {
+      "name": "selected graph children ALLOC_MAX",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child ALLOC_MAX",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope ALLOC_MAX",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt ALLOC_AT_LEAST",
+      "pass": true
+    },
+    {
+      "name": "source identity ALLOC_AT_LEAST",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor ALLOC_AT_LEAST",
+      "pass": true
+    },
+    {
+      "name": "selected graph children ALLOC_AT_LEAST",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child ALLOC_AT_LEAST",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope ALLOC_AT_LEAST",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt ALLOC_ALLOCATE",
+      "pass": true
+    },
+    {
+      "name": "source identity ALLOC_ALLOCATE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor ALLOC_ALLOCATE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children ALLOC_ALLOCATE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child ALLOC_ALLOCATE",
+      "pass": true
+    },
+    {
+      "name": "typed object ALLOC_ALLOCATE value_parameters _Count",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope ALLOC_ALLOCATE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt SIZE_OF_N",
+      "pass": true
+    },
+    {
+      "name": "source identity SIZE_OF_N",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor SIZE_OF_N",
+      "pass": true
+    },
+    {
+      "name": "selected graph children SIZE_OF_N",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child SIZE_OF_N",
+      "pass": true
+    },
+    {
+      "name": "typed object SIZE_OF_N value_parameters _Count",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope SIZE_OF_N",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt ALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "source identity ALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor ALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "selected graph children ALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child ALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "typed object ALLOC_BYTES value_parameters _Bytes",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope ALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt DEFAULT_NEW",
+      "pass": true
+    },
+    {
+      "name": "source identity DEFAULT_NEW",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor DEFAULT_NEW",
+      "pass": true
+    },
+    {
+      "name": "selected graph children DEFAULT_NEW",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child DEFAULT_NEW",
+      "pass": true
+    },
+    {
+      "name": "typed object DEFAULT_NEW value_parameters _Bytes",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope DEFAULT_NEW",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt ALLOC_DEALLOC",
+      "pass": true
+    },
+    {
+      "name": "source identity ALLOC_DEALLOC",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor ALLOC_DEALLOC",
+      "pass": true
+    },
+    {
+      "name": "selected graph children ALLOC_DEALLOC",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child ALLOC_DEALLOC",
+      "pass": true
+    },
+    {
+      "name": "typed object ALLOC_DEALLOC value_parameters _Ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object ALLOC_DEALLOC value_parameters _Count",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope ALLOC_DEALLOC",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt DEALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "source identity DEALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor DEALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "selected graph children DEALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child DEALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "typed object DEALLOC_BYTES value_parameters _Ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object DEALLOC_BYTES value_parameters _Bytes",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope DEALLOC_BYTES",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt POCMA",
+      "pass": true
+    },
+    {
+      "name": "source identity POCMA",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor POCMA",
+      "pass": true
+    },
+    {
+      "name": "selected graph children POCMA",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child POCMA",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope POCMA",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt UNINIT_COPY",
+      "pass": true
+    },
+    {
+      "name": "source identity UNINIT_COPY",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor UNINIT_COPY",
+      "pass": true
+    },
+    {
+      "name": "selected graph children UNINIT_COPY",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child UNINIT_COPY",
+      "pass": true
+    },
+    {
+      "name": "typed object UNINIT_COPY value_parameters _First",
+      "pass": true
+    },
+    {
+      "name": "typed object UNINIT_COPY value_parameters _Last",
+      "pass": true
+    },
+    {
+      "name": "typed object UNINIT_COPY value_parameters _Dest",
+      "pass": true
+    },
+    {
+      "name": "typed object UNINIT_COPY locals _UFirst",
+      "pass": true
+    },
+    {
+      "name": "typed object UNINIT_COPY locals _ULast",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope UNINIT_COPY",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt UNINIT_COPY_N",
+      "pass": true
+    },
+    {
+      "name": "source identity UNINIT_COPY_N",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor UNINIT_COPY_N",
+      "pass": true
+    },
+    {
+      "name": "selected graph children UNINIT_COPY_N",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child UNINIT_COPY_N",
+      "pass": true
+    },
+    {
+      "name": "typed object UNINIT_COPY_N value_parameters _First",
+      "pass": true
+    },
+    {
+      "name": "typed object UNINIT_COPY_N value_parameters _Dest",
+      "pass": true
+    },
+    {
+      "name": "typed object UNINIT_COPY_N value_parameters _Count",
+      "pass": true
+    },
+    {
+      "name": "typed object UNINIT_COPY_N locals _UFirst",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope UNINIT_COPY_N",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt UNINIT_FILL",
+      "pass": true
+    },
+    {
+      "name": "source identity UNINIT_FILL",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor UNINIT_FILL",
+      "pass": true
+    },
+    {
+      "name": "selected graph children UNINIT_FILL",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child UNINIT_FILL",
+      "pass": true
+    },
+    {
+      "name": "typed object UNINIT_FILL value_parameters _First",
+      "pass": true
+    },
+    {
+      "name": "typed object UNINIT_FILL value_parameters _Count",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope UNINIT_FILL",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt DESTROY_RANGE",
+      "pass": true
+    },
+    {
+      "name": "source identity DESTROY_RANGE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor DESTROY_RANGE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children DESTROY_RANGE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child DESTROY_RANGE",
+      "pass": true
+    },
+    {
+      "name": "typed object DESTROY_RANGE value_parameters _First",
+      "pass": true
+    },
+    {
+      "name": "typed object DESTROY_RANGE value_parameters _Last",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope DESTROY_RANGE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt CONVERT",
+      "pass": true
+    },
+    {
+      "name": "source identity CONVERT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor CONVERT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children CONVERT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child CONVERT",
+      "pass": true
+    },
+    {
+      "name": "typed object CONVERT value_parameters _Len",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope CONVERT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt UNFANCY",
+      "pass": true
+    },
+    {
+      "name": "source identity UNFANCY",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor UNFANCY",
+      "pass": true
+    },
+    {
+      "name": "selected graph children UNFANCY",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child UNFANCY",
+      "pass": true
+    },
+    {
+      "name": "typed object UNFANCY value_parameters _Ptr",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope UNFANCY",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt UNFANCY_NULL",
+      "pass": true
+    },
+    {
+      "name": "source identity UNFANCY_NULL",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor UNFANCY_NULL",
+      "pass": true
+    },
+    {
+      "name": "selected graph children UNFANCY_NULL",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child UNFANCY_NULL",
+      "pass": true
+    },
+    {
+      "name": "typed object UNFANCY_NULL value_parameters _Ptr",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope UNFANCY_NULL",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt REFANCY",
+      "pass": true
+    },
+    {
+      "name": "source identity REFANCY",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor REFANCY",
+      "pass": true
+    },
+    {
+      "name": "selected graph children REFANCY",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child REFANCY",
+      "pass": true
+    },
+    {
+      "name": "typed object REFANCY value_parameters _Ptr",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope REFANCY",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt CONSTRUCT_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "source identity CONSTRUCT_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor CONSTRUCT_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children CONSTRUCT_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child CONSTRUCT_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope CONSTRUCT_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt PLACEMENT_NEW",
+      "pass": true
+    },
+    {
+      "name": "source identity PLACEMENT_NEW",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor PLACEMENT_NEW",
+      "pass": true
+    },
+    {
+      "name": "selected graph children PLACEMENT_NEW",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child PLACEMENT_NEW",
+      "pass": true
+    },
+    {
+      "name": "typed object PLACEMENT_NEW value_parameters _Size",
+      "pass": true
+    },
+    {
+      "name": "typed object PLACEMENT_NEW value_parameters _Where",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope PLACEMENT_NEW",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt DESTROY_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "source identity DESTROY_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor DESTROY_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children DESTROY_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child DESTROY_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope DESTROY_IN_PLACE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_CSTR",
+      "pass": true
+    },
+    {
+      "name": "source identity S_CSTR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_CSTR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_CSTR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_CSTR",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CSTR value_parameters _Ptr",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_CSTR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_PTRCOUNT",
+      "pass": true
+    },
+    {
+      "name": "source identity S_PTRCOUNT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_PTRCOUNT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_PTRCOUNT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_PTRCOUNT",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PTRCOUNT value_parameters _Ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PTRCOUNT value_parameters _Count",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_PTRCOUNT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "source identity S_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONSTRUCT value_parameters _Arg",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONSTRUCT value_parameters _Count",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONSTRUCT locals _Alproxy_temporary",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONSTRUCT locals _Proxy",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONSTRUCT locals _New_capacity",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONSTRUCT locals _New_ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONSTRUCT materializations terminating_zero",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_CONSTRUCT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_MOVE",
+      "pass": true
+    },
+    {
+      "name": "source identity S_MOVE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_MOVE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_MOVE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_MOVE",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_MOVE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_TAKE",
+      "pass": true
+    },
+    {
+      "name": "source identity S_TAKE",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_TAKE",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_TAKE",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_TAKE",
+      "pass": true
+    },
+    {
+      "name": "typed object S_TAKE locals _My_data_mem",
+      "pass": true
+    },
+    {
+      "name": "typed object S_TAKE locals _Right_data_mem",
+      "pass": true
+    },
+    {
+      "name": "typed object S_TAKE materializations terminating_zero",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_TAKE",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_CONCAT_PTRS",
+      "pass": true
+    },
+    {
+      "name": "source identity S_CONCAT_PTRS",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_CONCAT_PTRS",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_CONCAT_PTRS",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_CONCAT_PTRS",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS value_parameters unnamed_tag",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS value_parameters _Left_ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS value_parameters _Right_ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS value_parameters _Left_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS value_parameters _Right_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS locals _New_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS locals _New_capacity",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS locals _Ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS locals _Fancyptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS locals _Alproxy_temporary",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS locals _Proxy",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS materializations returned_allocator",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_PTRS materializations terminating_zero",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_CONCAT_PTRS",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_CONCAT_RR",
+      "pass": true
+    },
+    {
+      "name": "source identity S_CONCAT_RR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_CONCAT_RR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_CONCAT_RR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_CONCAT_RR",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR value_parameters unnamed_tag",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Left_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Right_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Left_capacity",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Right_capacity",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _New_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Max",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _New_capacity",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Fits_in_left",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Fits_in_right",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Ptr_branch_left",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Ptr_branch_right",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Fancyptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Ptr_branch_allocate",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Alproxy_temporary",
+      "pass": true
+    },
+    {
+      "name": "typed object S_CONCAT_RR locals _Proxy",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_CONCAT_RR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_PLUS_LL",
+      "pass": true
+    },
+    {
+      "name": "source identity S_PLUS_LL",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_PLUS_LL",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_PLUS_LL",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_PLUS_LL",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PLUS_LL locals _Left_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PLUS_LL locals _Right_size",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_PLUS_LL",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_PLUS_PL",
+      "pass": true
+    },
+    {
+      "name": "source identity S_PLUS_PL",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_PLUS_PL",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_PLUS_PL",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_PLUS_PL",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PLUS_PL value_parameters _Left",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PLUS_PL locals _Left_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PLUS_PL locals _Right_size",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_PLUS_PL",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_PLUS_LP",
+      "pass": true
+    },
+    {
+      "name": "source identity S_PLUS_LP",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_PLUS_LP",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_PLUS_LP",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_PLUS_LP",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PLUS_LP value_parameters _Right",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PLUS_LP locals _Left_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PLUS_LP locals _Right_size",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_PLUS_LP",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_PLUS_RL",
+      "pass": true
+    },
+    {
+      "name": "source identity S_PLUS_RL",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_PLUS_RL",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_PLUS_RL",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_PLUS_RL",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_PLUS_RL",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_PLUS_RR",
+      "pass": true
+    },
+    {
+      "name": "source identity S_PLUS_RR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_PLUS_RR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_PLUS_RR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_PLUS_RR",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_PLUS_RR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_PLUS_PR",
+      "pass": true
+    },
+    {
+      "name": "source identity S_PLUS_PR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_PLUS_PR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_PLUS_PR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_PLUS_PR",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PLUS_PR value_parameters _Left",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_PLUS_PR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_PLUS_RP",
+      "pass": true
+    },
+    {
+      "name": "source identity S_PLUS_RP",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_PLUS_RP",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_PLUS_RP",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_PLUS_RP",
+      "pass": true
+    },
+    {
+      "name": "typed object S_PLUS_RP value_parameters _Right",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_PLUS_RP",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_APPEND_STRING",
+      "pass": true
+    },
+    {
+      "name": "source identity S_APPEND_STRING",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_APPEND_STRING",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_APPEND_STRING",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_APPEND_STRING",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_APPEND_STRING",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_APPEND_CSTR",
+      "pass": true
+    },
+    {
+      "name": "source identity S_APPEND_CSTR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_APPEND_CSTR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_APPEND_CSTR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_APPEND_CSTR",
+      "pass": true
+    },
+    {
+      "name": "typed object S_APPEND_CSTR value_parameters _Ptr",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_APPEND_CSTR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_APPEND_COUNT",
+      "pass": true
+    },
+    {
+      "name": "source identity S_APPEND_COUNT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_APPEND_COUNT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_APPEND_COUNT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_APPEND_COUNT",
+      "pass": true
+    },
+    {
+      "name": "typed object S_APPEND_COUNT value_parameters _Ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_APPEND_COUNT value_parameters _Count",
+      "pass": true
+    },
+    {
+      "name": "typed object S_APPEND_COUNT locals _Old_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_APPEND_COUNT locals _Old_ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_APPEND_COUNT materializations terminating_zero",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_APPEND_COUNT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_INSERT_CSTR",
+      "pass": true
+    },
+    {
+      "name": "source identity S_INSERT_CSTR",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_INSERT_CSTR",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_INSERT_CSTR",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_INSERT_CSTR",
+      "pass": true
+    },
+    {
+      "name": "typed object S_INSERT_CSTR value_parameters _Off",
+      "pass": true
+    },
+    {
+      "name": "typed object S_INSERT_CSTR value_parameters _Ptr",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_INSERT_CSTR",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_INSERT_COUNT",
+      "pass": true
+    },
+    {
+      "name": "source identity S_INSERT_COUNT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_INSERT_COUNT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_INSERT_COUNT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_INSERT_COUNT",
+      "pass": true
+    },
+    {
+      "name": "typed object S_INSERT_COUNT value_parameters _Off",
+      "pass": true
+    },
+    {
+      "name": "typed object S_INSERT_COUNT value_parameters _Count",
+      "pass": true
+    },
+    {
+      "name": "typed object S_INSERT_COUNT value_parameters _Ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_INSERT_COUNT locals _Old_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_INSERT_COUNT locals _Ptr_shifted_after",
+      "pass": true
+    },
+    {
+      "name": "typed object S_INSERT_COUNT locals _Check_overlap",
+      "pass": true
+    },
+    {
+      "name": "typed object S_INSERT_COUNT locals _Old_ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_INSERT_COUNT locals _Insert_at",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_INSERT_COUNT",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_GROW_APPEND",
+      "pass": true
+    },
+    {
+      "name": "source identity S_GROW_APPEND",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_GROW_APPEND",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_GROW_APPEND",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_GROW_APPEND",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_APPEND value_parameters _Size_increase",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_APPEND value_parameters _Args_count",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_APPEND value_parameters _Args_ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_APPEND value_parameters _Fn",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_APPEND locals _Old_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_APPEND locals _New_size",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_APPEND locals _Old_capacity",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_APPEND locals _New_capacity",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_APPEND locals _New_ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_APPEND locals _Raw_new",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_APPEND locals _Old_ptr",
+      "pass": true
+    },
+    {
+      "name": "explicit return/exception scope S_GROW_APPEND",
+      "pass": true
+    },
+    {
+      "name": "whole primary excerpt S_GROW_INSERT",
+      "pass": true
+    },
+    {
+      "name": "source identity S_GROW_INSERT",
+      "pass": true
+    },
+    {
+      "name": "declaration anchor S_GROW_INSERT",
+      "pass": true
+    },
+    {
+      "name": "selected graph children S_GROW_INSERT",
+      "pass": true
+    },
+    {
+      "name": "no inactive selected child S_GROW_INSERT",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_INSERT value_parameters _Size_increase",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_INSERT value_parameters _Args_off",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_INSERT value_parameters _Args_count",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_INSERT value_parameters _Args_ptr",
+      "pass": true
+    },
+    {
+      "name": "typed object S_GROW_INSERT value_parameters _Fn",
+      "pass": false
+    }
+  ],
+  "wall_seconds": 0.03948959999252111,
+  "subject_execution": false
+}

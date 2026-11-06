@@ -1,0 +1,4389 @@
+{
+  "schema": "WORKING_NATIVE_OWN_NAMED_OBJECT_LEDGER_R1",
+  "state": "INCOMPLETE_NOT_FIRST_COMPLETE_WHOLE_CHECK",
+  "frames": [
+    {
+      "name": "Rejection::Rejection",
+      "source": "CPP",
+      "source_lines": [
+        35,
+        35
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "r"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "Witness6",
+          "names": [
+            "v"
+          ],
+          "count": 1,
+          "qualified_unit_size": 48,
+          "bytes": 48
+        }
+      ],
+      "named_qualified_object_union": 56,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [
+        "new Rejection exception object includes base,reason,values; do not recount these as locals"
+      ],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Rejection::what",
+      "source": "CPP",
+      "source_lines": [
+        36,
+        36
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "rememberCloseFailure",
+      "source": "CPP",
+      "source_lines": [
+        40,
+        40
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "int",
+          "names": [
+            "result",
+            "error"
+          ],
+          "count": 2,
+          "qualified_unit_size": 4,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "site"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "cleanupFileClose",
+      "source": "CPP",
+      "source_lines": [
+        41,
+        41
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "file",
+            "site"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "int",
+          "names": [
+            "result",
+            "error"
+          ],
+          "count": 2,
+          "qualified_unit_size": 4,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 24,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "cleanupDescriptorClose",
+      "source": "CPP",
+      "source_lines": [
+        42,
+        42
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "int",
+          "names": [
+            "descriptor"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        },
+        {
+          "role": "lexical-object",
+          "type": "int",
+          "names": [
+            "result",
+            "error"
+          ],
+          "count": 2,
+          "qualified_unit_size": 4,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 12,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "reportCleanupClose",
+      "source": "CPP",
+      "source_lines": [
+        43,
+        43
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "gate_no_witness",
+      "source": "CPP",
+      "source_lines": [
+        45,
+        45
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "ok"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "r"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 9,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Rejection ctor witness parameter directly initialized from {}; new exception object separate"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "gate_witness",
+      "source": "CPP",
+      "source_lines": [
+        46,
+        46
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "ok"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "r"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "Witness6",
+          "names": [
+            "v"
+          ],
+          "count": 1,
+          "qualified_unit_size": 48,
+          "bytes": 48
+        }
+      ],
+      "named_qualified_object_union": 57,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Rejection ctor distinct copied witness parameter; member values already inside exception object"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "bits",
+      "source": "CPP",
+      "source_lines": [
+        47,
+        47
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "x"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "workLimit",
+      "source": "CPP",
+      "source_lines": [
+        48,
+        48
+      ],
+      "objects": [
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "value"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "reservationGate",
+      "source": "CPP",
+      "source_lines": [
+        49,
+        49
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "total",
+            "limit"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "reviewed"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 24,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "bytesGate_unreached",
+      "source": "CPP",
+      "source_lines": [
+        50,
+        50
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "total",
+            "limit"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "No current source caller; not counted as reached"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Cost::catalogue",
+      "source": "CPP",
+      "source_lines": [
+        55,
+        55
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Cost::price",
+      "source": "CPP",
+      "source_lines": [
+        56,
+        56
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "Family",
+          "names": [
+            "id"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Cost::validate",
+      "source": "CPP",
+      "source_lines": [
+        57,
+        62
+      ],
+      "objects": [
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "book",
+        "whole"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Cost::plus",
+      "source": "CPP",
+      "source_lines": [
+        63,
+        63
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "a",
+            "b"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Cost::times",
+      "source": "CPP",
+      "source_lines": [
+        64,
+        64
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "count",
+            "value"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Cost::units",
+      "source": "CPP",
+      "source_lines": [
+        65,
+        65
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "Family",
+          "names": [
+            "id"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "count"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Cost::wordUnits",
+      "source": "CPP",
+      "source_lines": [
+        66,
+        74
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "verify"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "words"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "chunks",
+            "fallback",
+            "dispatch",
+            "fast",
+            "slow"
+          ],
+          "count": 5,
+          "qualified_unit_size": 8,
+          "bytes": 40
+        }
+      ],
+      "named_qualified_object_union": 49,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Nested plus expression can have an outer partially initialized parameter set while inner plus runs"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Cost::inverseUnits",
+      "source": "CPP",
+      "source_lines": [
+        75,
+        81
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "verify"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "records"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "api",
+            "outer"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 25,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Cost::fixtureUnits",
+      "source": "CPP",
+      "source_lines": [
+        82,
+        93
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "verify"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "N",
+            "g"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "int",
+          "names": [
+            "map"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "queries",
+            "zeros",
+            "fractional",
+            "zero",
+            "cut",
+            "fractionalQueries",
+            "zeroQueries",
+            "records"
+          ],
+          "count": 8,
+          "qualified_unit_size": 8,
+          "bytes": 64
+        },
+        {
+          "role": "lexical-object",
+          "type": "bool",
+          "names": [
+            "ramp"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        }
+      ],
+      "named_qualified_object_union": 86,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Cost::childUpper",
+      "source": "CPP",
+      "source_lines": [
+        94,
+        102
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "verify"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "total",
+            "R",
+            "g"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "int",
+          "names": [
+            "map"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        },
+        {
+          "role": "lexical-object",
+          "type": "Rates3",
+          "names": [
+            "range_backing"
+          ],
+          "count": 1,
+          "qualified_unit_size": 24,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "RateInitializerList",
+          "names": [
+            "range_header"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "pointer",
+          "names": [
+            "range_begin",
+            "range_end"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 85,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "range_reference"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Initializer-list header and backing are distinct; three iterations do not coexist"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Meter::Meter",
+      "source": "CPP",
+      "source_lines": [
+        106,
+        106
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "p",
+            "r"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [
+        "Meter instance24 includes used/reserved/prior"
+      ],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Meter::add",
+      "source": "CPP",
+      "source_lines": [
+        107,
+        107
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "n"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Text::add",
+      "source": "CPP",
+      "source_lines": [
+        111,
+        111
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "s"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [
+        "Text object and data member counted in named component"
+      ],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Text::u",
+      "source": "CPP",
+      "source_lines": [
+        112,
+        112
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "x"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "Digits20",
+          "names": [
+            "digits"
+          ],
+          "count": 1,
+          "qualified_unit_size": 20,
+          "bytes": 20
+        },
+        {
+          "role": "lexical-object",
+          "type": "unsigned",
+          "names": [
+            "n"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        }
+      ],
+      "named_qualified_object_union": 32,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Text::i",
+      "source": "CPP",
+      "source_lines": [
+        113,
+        113
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "Tick",
+          "names": [
+            "x"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Text::boolean",
+      "source": "CPP",
+      "source_lines": [
+        114,
+        114
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "x"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        }
+      ],
+      "named_qualified_object_union": 1,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Text::quoted",
+      "source": "CPP",
+      "source_lines": [
+        115,
+        115
+      ],
+      "objects": [
+        {
+          "role": "lexical-object",
+          "type": "char",
+          "names": [
+            "c"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "Quoted2",
+          "names": [
+            "q"
+          ],
+          "count": 1,
+          "qualified_unit_size": 2,
+          "bytes": 2
+        },
+        {
+          "role": "lexical-object",
+          "type": "StringConstIterator",
+          "names": [
+            "range_begin",
+            "range_end"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 19,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "s",
+        "range_reference"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "number",
+      "source": "CPP",
+      "source_lines": [
+        117,
+        117
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "x"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [
+        "Text t in large component"
+      ],
+      "other_required_context": [
+        "Returned String constructed directly in caller result; actual caller full-expression owner must be listed"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "path",
+      "source": "CPP",
+      "source_lines": [
+        118,
+        118
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "root",
+        "relative"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Two String temporaries/result from concat chain; source-selected move/direct-result fusion still to close"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Stream::Stream",
+      "source": "CPP",
+      "source_lines": [
+        122,
+        126
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "w"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "m"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "int",
+          "names": [
+            "descriptor",
+            "e"
+          ],
+          "count": 2,
+          "qualified_unit_size": 4,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "pointer",
+          "names": [
+            "setvbuf_owner"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 25,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "name"
+      ],
+      "large_or_containing_owner_sponsors": [
+        "Stream instance owns entire buffer plus file/count/mode members"
+      ],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Stream::~Stream",
+      "source": "CPP",
+      "source_lines": [
+        127,
+        127
+      ],
+      "objects": [
+        {
+          "role": "lexical-object",
+          "type": "pointer",
+          "names": [
+            "owner"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Stream::flush",
+      "source": "CPP",
+      "source_lines": [
+        129,
+        129
+      ],
+      "objects": [
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "written"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "int",
+          "names": [
+            "error"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        }
+      ],
+      "named_qualified_object_union": 12,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Stream::put",
+      "source": "CPP",
+      "source_lines": [
+        130,
+        130
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "p"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "size_t",
+          "names": [
+            "n"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "k"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 24,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "std::min second argument is a materialized size_t temporary bound to const reference"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Stream::word_write",
+      "source": "CPP",
+      "source_lines": [
+        131,
+        134
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "x"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "Fallback8",
+          "names": [
+            "a"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Stream::exact",
+      "source": "CPP",
+      "source_lines": [
+        135,
+        135
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "p"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "size_t",
+          "names": [
+            "n"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "k"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 24,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "std::min second argument materialized size_t reference temporary"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Stream::word_read",
+      "source": "CPP",
+      "source_lines": [
+        136,
+        140
+      ],
+      "objects": [
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "x"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Stream::finish",
+      "source": "CPP",
+      "source_lines": [
+        141,
+        141
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "expected"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "int",
+          "names": [
+            "flush_result",
+            "flush_error",
+            "close_result",
+            "close_error"
+          ],
+          "count": 4,
+          "qualified_unit_size": 4,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "pointer",
+          "names": [
+            "owner"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 32,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "writeText",
+      "source": "CPP",
+      "source_lines": [
+        143,
+        143
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "p",
+        "t"
+      ],
+      "large_or_containing_owner_sponsors": [
+        "Stream f in named large component"
+      ],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "textWitness",
+      "source": "CPP",
+      "source_lines": [
+        144,
+        144
+      ],
+      "objects": [
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "ha",
+            "hb"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "first",
+            "a_loop_i",
+            "b_loop_i"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        }
+      ],
+      "named_qualified_object_union": 40,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "a",
+        "b"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Aggregate witness result uses real caller destination; do not add a generic second returned array"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "textGate",
+      "source": "CPP",
+      "source_lines": [
+        145,
+        145
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "observed",
+        "expected"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "textWitness returned array feeds gate by-value parameter; direct result destination fusion required"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "readText",
+      "source": "CPP",
+      "source_lines": [
+        146,
+        146
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "p",
+        "expected"
+      ],
+      "large_or_containing_owner_sponsors": [
+        "Text t and caller Text return destination may coexist without NRVO; Stream f counted in large component"
+      ],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "multiply",
+      "source": "CPP",
+      "source_lines": [
+        148,
+        148
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "a",
+            "b"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "high",
+            "low"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 32,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Pair128 braced return directly initializes its actual caller result"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "compareRational",
+      "source": "CPP",
+      "source_lines": [
+        149,
+        155
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "encoding",
+            "numerator",
+            "denominator"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "unsigned",
+          "names": [
+            "exponent",
+            "shift"
+          ],
+          "count": 2,
+          "qualified_unit_size": 4,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "Pair128",
+          "names": [
+            "product",
+            "target"
+          ],
+          "count": 2,
+          "qualified_unit_size": 16,
+          "bytes": 32
+        }
+      ],
+      "named_qualified_object_union": 64,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "independentFraction",
+      "source": "CPP",
+      "source_lines": [
+        156,
+        164
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "n",
+            "d"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "low",
+            "high",
+            "middle",
+            "upper"
+          ],
+          "count": 4,
+          "qualified_unit_size": 8,
+          "bytes": 32
+        },
+        {
+          "role": "lexical-object",
+          "type": "unsigned",
+          "names": [
+            "iterations"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        }
+      ],
+      "named_qualified_object_union": 52,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Pair forwarding constructor may bind scalar prvalues as real temporaries; branch integer-zero versus double return operands differ"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "FractionCache::FractionCache",
+      "source": "CPP",
+      "source_lines": [
+        167,
+        170
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "n"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "independent"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "r"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "DoublePair",
+          "names": [
+            "original"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 33,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [
+        "FractionCache instance includes735 rows and N/g/count"
+      ],
+      "other_required_context": [
+        "conditional Pair result before assignment into row; ctor/ref temporaries still need exclusive caller ledger"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "CachedPort::CachedPort",
+      "source": "CPP",
+      "source_lines": [
+        184,
+        184
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "r"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "int",
+          "names": [
+            "map"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        }
+      ],
+      "named_qualified_object_union": 12,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "m"
+      ],
+      "large_or_containing_owner_sponsors": [
+        "CachedPort object160 embeds changes,NumericAClock,rate,cursor/cache/meter/misses members"
+      ],
+      "other_required_context": [
+        "NumericAClock changes by-value vector parameter is distinct from CachedPort changes"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "CachedPort::frame",
+      "source": "CPP",
+      "source_lines": [
+        185,
+        201
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "qcNative",
+          "names": [
+            "t"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "Tick",
+          "names": [
+            "length",
+            "local"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "extra",
+            "relative",
+            "result"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        }
+      ],
+      "named_qualified_object_union": 64,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "k/bpm/slope/wholeFrame are embedded persistent fields, not independent locals"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "productionRows",
+      "source": "CPP",
+      "source_lines": [
+        204,
+        208
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "int",
+          "names": [
+            "map"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        },
+        {
+          "role": "lexical-object",
+          "type": "Constants5",
+          "names": [
+            "constants"
+          ],
+          "count": 1,
+          "qualified_unit_size": 40,
+          "bytes": 40
+        },
+        {
+          "role": "lexical-object",
+          "type": "bool",
+          "names": [
+            "down"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "first",
+            "last"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "ProductionRows4",
+          "names": [
+            "rows"
+          ],
+          "count": 1,
+          "qualified_unit_size": 96,
+          "bytes": 96
+        }
+      ],
+      "named_qualified_object_union": 157,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "count"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Optional named-return copy means rows plus actual caller result; two assigned TempoChange braced values are distinct full-expression temporaries"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "buildProduction",
+      "source": "CPP",
+      "source_lines": [
+        209,
+        209
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "R"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "int",
+          "names": [
+            "map"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "count"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "ProductionRows4",
+          "names": [
+            "rows"
+          ],
+          "count": 1,
+          "qualified_unit_size": 96,
+          "bytes": 96
+        },
+        {
+          "role": "lexical-object",
+          "type": "Production",
+          "names": [
+            "out"
+          ],
+          "count": 1,
+          "qualified_unit_size": 64,
+          "bytes": 64
+        }
+      ],
+      "named_qualified_object_union": 180,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Production caller result can coexist with out without NRVO; Production::build temporary reset64,TempoMapView formal layout not measured,SampleRate formal8 are separately required"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "productionFrame",
+      "source": "CPP",
+      "source_lines": [
+        210,
+        210
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "qcNative",
+          "names": [
+            "t"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "out"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "TimeLookupStatus",
+          "names": [
+            "status"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        }
+      ],
+      "named_qualified_object_union": 25,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "c"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "MusicalTime temporary directly initializes Time checked-forward by-value parameter"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "highEndpoint",
+      "source": "CPP",
+      "source_lines": [
+        211,
+        211
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "Tick",
+          "names": [
+            "tick"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "fraction"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Native braced result is directly initialized in actual caller destination"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "endpointGate",
+      "source": "CPP",
+      "source_lines": [
+        212,
+        212
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "qcNative",
+          "names": [
+            "observed",
+            "expected"
+          ],
+          "count": 2,
+          "qualified_unit_size": 16,
+          "bytes": 32
+        }
+      ],
+      "named_qualified_object_union": 32,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "admittedCut",
+      "source": "CPP",
+      "source_lines": [
+        213,
+        213
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "low",
+            "high"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "bool",
+          "names": [
+            "ok"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        }
+      ],
+      "named_qualified_object_union": 17,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Cut braced result directly initializes caller result; failure Rejection is distinct"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "cut_instantiations",
+      "source": "CPP",
+      "source_lines": [
+        214,
+        218
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "product",
+            "whole",
+            "remainder"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "DoublePair",
+          "names": [
+            "pair"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "Tick",
+          "names": [
+            "tick"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "qcNative",
+          "names": [
+            "upper"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "low",
+            "high"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 88,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "clock",
+        "cache"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Endpoint expected Native and frame input Native directly initialize their called by-value parameters; exact get/cut/prvalue return fusion still to close"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "wordGate",
+      "source": "CPP",
+      "source_lines": [
+        219,
+        219
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "Tick",
+          "names": [
+            "observed",
+            "expected"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "i",
+            "R"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "int",
+          "names": [
+            "map"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        }
+      ],
+      "named_qualified_object_union": 36,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "inverseGate",
+      "source": "CPP",
+      "source_lines": [
+        220,
+        220
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "qcNative",
+          "names": [
+            "observed"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "MusicalTime",
+          "names": [
+            "expected"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "j"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 40,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Picks::Picks",
+      "source": "CPP",
+      "source_lines": [
+        223,
+        223
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "R",
+            "N",
+            "W"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "unsigned",
+          "names": [
+            "k",
+            "a",
+            "z"
+          ],
+          "count": 3,
+          "qualified_unit_size": 4,
+          "bytes": 12
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "source"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "PicksItem",
+          "names": [
+            "x"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 60,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [
+        "Picks248 already includes items[10],values[10],next"
+      ],
+      "other_required_context": [
+        "Per-slot Item braced assignment source temporaries need source-site max, not ten retained copies"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Picks::see",
+      "source": "CPP",
+      "source_lines": [
+        224,
+        224
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "Tick",
+          "names": [
+            "q"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "field",
+      "source": "CPP",
+      "source_lines": [
+        227,
+        227
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "name"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "value"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "t"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "metadata",
+      "source": "CPP",
+      "source_lines": [
+        228,
+        237
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "inverse"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "count",
+            "i"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "ProductionRows4",
+          "names": [
+            "rows"
+          ],
+          "count": 1,
+          "qualified_unit_size": 96,
+          "bytes": 96
+        },
+        {
+          "role": "lexical-object",
+          "type": "Tick",
+          "names": [
+            "lo",
+            "hi",
+            "start"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "bool",
+          "names": [
+            "first"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "unsigned",
+          "names": [
+            "windows",
+            "k"
+          ],
+          "count": 2,
+          "qualified_unit_size": 4,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 146,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "b",
+        "picks",
+        "manifest"
+      ],
+      "large_or_containing_owner_sponsors": [
+        "Text t plus caller result counted in named Text multiplicities"
+      ],
+      "other_required_context": [
+        "productionRows named-return local/destination; scalar temporary arguments to min/max const refs"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "expect_instantiations",
+      "source": "CPP",
+      "source_lines": [
+        238,
+        238
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "id",
+            "reason"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "Witness6",
+          "names": [
+            "witness"
+          ],
+          "count": 1,
+          "qualified_unit_size": 48,
+          "bytes": 48
+        },
+        {
+          "role": "lexical-object",
+          "type": "bool",
+          "names": [
+            "caught"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "beforeCleanup"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 73,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "caught Rejection e"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "F action actual closure type/value-parameter storage unmeasured; caller prvalue fusion; nested control-rejection lifetime"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "controls",
+      "source": "CPP",
+      "source_lines": [
+        239,
+        243
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "totalWork"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "reviewed",
+            "n",
+            "d"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "DoublePair",
+          "names": [
+            "independent",
+            "original"
+          ],
+          "count": 2,
+          "qualified_unit_size": 16,
+          "bytes": 32
+        },
+        {
+          "role": "lexical-object",
+          "type": "qcNative",
+          "names": [
+            "normalized"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "Production",
+          "names": [
+            "production"
+          ],
+          "count": 1,
+          "qualified_unit_size": 64,
+          "bytes": 64
+        }
+      ],
+      "named_qualified_object_union": 144,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Three distinct action closure types; buildProduction no-NRVO context; expected throw/witness nesting"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "run",
+      "source": "CPP",
+      "source_lines": [
+        244,
+        270
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "verify"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "totalWork"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "entries",
+            "inverseRecords",
+            "R",
+            "N",
+            "encoded"
+          ],
+          "count": 5,
+          "qualified_unit_size": 8,
+          "bytes": 40
+        },
+        {
+          "role": "lexical-object",
+          "type": "int",
+          "names": [
+            "map"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        },
+        {
+          "role": "lexical-object",
+          "type": "bool",
+          "names": [
+            "wordControl",
+            "inverseControl",
+            "prefixControl",
+            "rampControl",
+            "metadataControl"
+          ],
+          "count": 5,
+          "qualified_unit_size": 1,
+          "bytes": 5
+        },
+        {
+          "role": "lexical-object",
+          "type": "Rates3",
+          "names": [
+            "range_backing"
+          ],
+          "count": 1,
+          "qualified_unit_size": 24,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "RateInitializerList",
+          "names": [
+            "range_header"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "pointer",
+          "names": [
+            "range_begin",
+            "range_end"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "CachedPort",
+          "names": [
+            "generator"
+          ],
+          "count": 1,
+          "qualified_unit_size": 160,
+          "bytes": 160
+        },
+        {
+          "role": "lexical-object",
+          "type": "Production",
+          "names": [
+            "production",
+            "prefix_mutant",
+            "ramp_mutant"
+          ],
+          "count": 3,
+          "qualified_unit_size": 64,
+          "bytes": 192
+        },
+        {
+          "role": "lexical-object",
+          "type": "qcCut",
+          "names": [
+            "a",
+            "z"
+          ],
+          "count": 2,
+          "qualified_unit_size": 32,
+          "bytes": 64
+        },
+        {
+          "role": "lexical-object",
+          "type": "Bounds",
+          "names": [
+            "b",
+            "prefix_changed"
+          ],
+          "count": 2,
+          "qualified_unit_size": 104,
+          "bytes": 208
+        },
+        {
+          "role": "lexical-object",
+          "type": "Picks",
+          "names": [
+            "picks"
+          ],
+          "count": 1,
+          "qualified_unit_size": 248,
+          "bytes": 248
+        },
+        {
+          "role": "lexical-object",
+          "type": "String",
+          "names": [
+            "stem",
+            "binary",
+            "json"
+          ],
+          "count": 3,
+          "qualified_unit_size": 32,
+          "bytes": 96
+        },
+        {
+          "role": "lexical-object",
+          "type": "Tick",
+          "names": [
+            "prior",
+            "expected",
+            "actual",
+            "ramp_changed",
+            "j"
+          ],
+          "count": 5,
+          "qualified_unit_size": 8,
+          "bytes": 40
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "Owned9",
+          "names": [
+            "owned"
+          ],
+          "count": 1,
+          "qualified_unit_size": 9,
+          "bytes": 9
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "prefix_count",
+            "ramp_count"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "ProductionRows4",
+          "names": [
+            "prefix_rows",
+            "ramp_rows"
+          ],
+          "count": 2,
+          "qualified_unit_size": 96,
+          "bytes": 192
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "prefix_changedA",
+            "prefix_changedB",
+            "frame"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "qcNative",
+          "names": [
+            "inverse_actual",
+            "corrupt"
+          ],
+          "count": 2,
+          "qualified_unit_size": 16,
+          "bytes": 32
+        },
+        {
+          "role": "lexical-object",
+          "type": "MusicalTime",
+          "names": [
+            "inverse_expected"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 1419,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "root",
+        "manifest",
+        "meter",
+        "range_reference"
+      ],
+      "large_or_containing_owner_sponsors": [
+        "fractions/q/text/read_actual/prefix_actual/descriptor/inv/returned Text temporaries have separate large component"
+      ],
+      "other_required_context": [
+        "get closure and11 expect action types; precise mutually exclusive scope max; additional class full-expression temporaries; active child helper chains"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "decimal",
+      "source": "CPP",
+      "source_lines": [
+        271,
+        271
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "p"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "value"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "unsigned",
+          "names": [
+            "n",
+            "digit"
+          ],
+          "count": 2,
+          "qualified_unit_size": 4,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 24,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "boundedArgument",
+      "source": "CPP",
+      "source_lines": [
+        272,
+        276
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "p",
+            "reason"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "size_t",
+          "names": [
+            "maximum"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "n"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 32,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "main",
+      "source": "CPP",
+      "source_lines": [
+        278,
+        289
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "int",
+          "names": [
+            "argc"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "argv"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "manifestLength"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "int",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        },
+        {
+          "role": "lexical-object",
+          "type": "bool",
+          "names": [
+            "verify"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "String",
+          "names": [
+            "root",
+            "manifest"
+          ],
+          "count": 2,
+          "qualified_unit_size": 32,
+          "bytes": 64
+        },
+        {
+          "role": "lexical-object",
+          "type": "char",
+          "names": [
+            "c"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "StringConstIterator",
+          "names": [
+            "manifest_begin",
+            "manifest_end"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "prior",
+            "runner",
+            "total",
+            "producerUpper",
+            "verifierUpper",
+            "composed"
+          ],
+          "count": 6,
+          "qualified_unit_size": 8,
+          "bytes": 48
+        },
+        {
+          "role": "lexical-object",
+          "type": "Meter",
+          "names": [
+            "meter"
+          ],
+          "count": 1,
+          "qualified_unit_size": 24,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "pointer",
+          "names": [
+            "what"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 186,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "whole",
+        "manifest_range",
+        "caught Rejection e",
+        "caught std::exception e"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "qc::require",
+      "source": "QC",
+      "source_lines": [
+        24,
+        26
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "bool",
+          "names": [
+            "value"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "pointer",
+          "names": [
+            "message"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 9,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Source-requested runtime_error object/message clone on failure"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "qc::fixtureMap",
+      "source": "QC",
+      "source_lines": [
+        27,
+        41
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "int",
+          "names": [
+            "kind"
+          ],
+          "count": 1,
+          "qualified_unit_size": 4,
+          "bytes": 4
+        },
+        {
+          "role": "lexical-object",
+          "type": "Constants5",
+          "names": [
+            "constants"
+          ],
+          "count": 1,
+          "qualified_unit_size": 40,
+          "bytes": 40
+        },
+        {
+          "role": "lexical-object",
+          "type": "bool",
+          "names": [
+            "down"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "first",
+            "last"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 61,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Initializer-list backing3/4 Changes and header; vector return prvalue directly initializes caller member; default allocator temporary and selected SDK chain"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "qc::scaled",
+      "source": "QC",
+      "source_lines": [
+        43,
+        52
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "a",
+            "b",
+            "c"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "int",
+          "names": [
+            "ap",
+            "bp",
+            "cp"
+          ],
+          "count": 3,
+          "qualified_unit_size": 4,
+          "bytes": 12
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "am",
+            "bm",
+            "cm"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        }
+      ],
+      "named_qualified_object_union": 60,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "out"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "qc::checkFrame",
+      "source": "QC",
+      "source_lines": [
+        53,
+        56
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "f"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "qc::fractionBounds",
+      "source": "QC",
+      "source_lines": [
+        59,
+        77
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "u64",
+          "names": [
+            "numerator",
+            "denominator"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "u64",
+          "names": [
+            "rem",
+            "mantissa"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "int",
+          "names": [
+            "exponent",
+            "i"
+          ],
+          "count": 2,
+          "qualified_unit_size": 4,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "low",
+            "high"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 56,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "nextBit closure unmeasured; returned Pair/zero-branch forwarding-reference scalar temporaries"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "qc::NumericAClock::append",
+      "source": "QC",
+      "source_lines": [
+        83,
+        99
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "size_t",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "Tick",
+          "names": [
+            "segment",
+            "delta"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "start",
+            "end",
+            "d",
+            "k",
+            "slope",
+            "relative"
+          ],
+          "count": 6,
+          "qualified_unit_size": 8,
+          "bytes": 48
+        }
+      ],
+      "named_qualified_object_union": 72,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "frame"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "qc::NumericAClock::segmentFor",
+      "source": "QC",
+      "source_lines": [
+        100,
+        105
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "Tick",
+          "names": [
+            "whole"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "ChangeConstIterator",
+          "names": [
+            "upper"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Comparator closure; begin/end/returned iterator materialization and actual upper_bound forwarding"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "qc::NumericAClock::NumericAClock",
+      "source": "QC",
+      "source_lines": [
+        107,
+        123
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "rate"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "ChangeVector",
+          "names": [
+            "changes"
+          ],
+          "count": 1,
+          "qualified_unit_size": 24,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "f"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "Tick",
+          "names": [
+            "len"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 56,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [
+        "NumericAClock receiver56 is embedded in CachedPort, not a new duplicate"
+      ],
+      "other_required_context": [
+        "Prefix assign0.0 const-ref temporary; actual selected copy/default/move/fill/allocator guards"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "qc::NumericAClock::frame",
+      "source": "QC",
+      "source_lines": [
+        124,
+        155
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "qcNative",
+          "names": [
+            "t"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "result",
+            "k",
+            "bpm",
+            "slope",
+            "extra",
+            "relative"
+          ],
+          "count": 6,
+          "qualified_unit_size": 8,
+          "bytes": 48
+        },
+        {
+          "role": "lexical-object",
+          "type": "Tick",
+          "names": [
+            "end",
+            "length",
+            "local"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        }
+      ],
+      "named_qualified_object_union": 96,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "qc::NumericAClock::inverse",
+      "source": "QC",
+      "source_lines": [
+        166,
+        194
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "frameIn"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "k",
+            "local",
+            "bpm",
+            "delta",
+            "slope",
+            "exponent",
+            "integral"
+          ],
+          "count": 7,
+          "qualified_unit_size": 8,
+          "bytes": 56
+        },
+        {
+          "role": "lexical-object",
+          "type": "DoubleConstIterator",
+          "names": [
+            "upper"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "Tick",
+          "names": [
+            "origin",
+            "whole"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "qcNative",
+          "names": [
+            "out"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 112,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Named Native out plus actual returned assignment-source destination without NRVO; begin/end/returned iterators and default comparator"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::detail::isFinitePositive",
+      "source": "TIME",
+      "source_lines": [
+        21,
+        24
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "value"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::MusicalTime::hasValidFraction",
+      "source": "TIME",
+      "source_lines": [
+        52,
+        55
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::TempoChange::hasValidBpm",
+      "source": "TIME",
+      "source_lines": [
+        310,
+        313
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::SampleRate::isValid",
+      "source": "TIME",
+      "source_lines": [
+        336,
+        339
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::TempoMapView::empty",
+      "source": "TIME",
+      "source_lines": [
+        355,
+        355
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::detail::appendTempoSegmentFrames",
+      "source": "TIME",
+      "source_lines": [
+        381,
+        414
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "sampleRate",
+            "startBpm",
+            "endBpm"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "Tick",
+          "names": [
+            "segmentTicks",
+            "deltaTicks"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "TempoCurve",
+          "names": [
+            "curve"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "delta",
+            "k",
+            "slope",
+            "relativeChange"
+          ],
+          "count": 4,
+          "qualified_unit_size": 8,
+          "bytes": 32
+        }
+      ],
+      "named_qualified_object_union": 73,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "frame"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::detail::scaledTimeRatio",
+      "source": "TIME",
+      "source_lines": [
+        489,
+        502
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "a",
+            "b",
+            "c"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        },
+        {
+          "role": "lexical-object",
+          "type": "int",
+          "names": [
+            "aPower",
+            "bPower",
+            "cPower"
+          ],
+          "count": 3,
+          "qualified_unit_size": 4,
+          "bytes": 12
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "aMantissa",
+            "bMantissa",
+            "cMantissa"
+          ],
+          "count": 3,
+          "qualified_unit_size": 8,
+          "bytes": 24
+        }
+      ],
+      "named_qualified_object_union": 60,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "out"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::detail::checkedNativeFrame",
+      "source": "TIME",
+      "source_lines": [
+        504,
+        512
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "frame"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 8,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "out"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::CompiledTempoMap::build",
+      "source": "TIME",
+      "source_lines": [
+        583,
+        633
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "TempoMapView_UNMEASURED",
+          "names": [
+            "tempoMap"
+          ],
+          "count": 1,
+          "qualified_unit_size": null,
+          "bytes": null
+        },
+        {
+          "role": "by-value-parameter",
+          "type": "SampleRate",
+          "names": [
+            "sampleRate"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "validation_i",
+            "prefix_i"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "frame"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "Tick",
+          "names": [
+            "segmentTicks"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 40,
+      "unqualified_named_objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "TempoMapView_UNMEASURED",
+          "names": [
+            "tempoMap"
+          ],
+          "count": 1,
+          "qualified_unit_size": null,
+          "bytes": null
+        }
+      ],
+      "reference_bindings": [
+        "out"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Explicit CompiledTempoMap{} reset temporary64; literal0.0 fill-reference temporary; selected vector assign/reset objects"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::CompiledTempoMap::frameForTick",
+      "source": "TIME",
+      "source_lines": [
+        635,
+        675
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "Tick",
+          "names": [
+            "tick"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "upper",
+            "i"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "frame",
+            "endBpm"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "bool",
+          "names": [
+            "haveNext"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "Tick",
+          "names": [
+            "nextTick"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 49,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "frameOut"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Source comparator closure and begin/end/distance result iterator lifetimes"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::CompiledTempoMap::frameForMusicalTime",
+      "source": "TIME",
+      "source_lines": [
+        728,
+        789
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "MusicalTime",
+          "names": [
+            "time"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "frame",
+            "acceptedWhole",
+            "k",
+            "bpm",
+            "slope",
+            "extra",
+            "relative"
+          ],
+          "count": 7,
+          "qualified_unit_size": 8,
+          "bytes": 56
+        },
+        {
+          "role": "lexical-object",
+          "type": "TimeLookupStatus",
+          "names": [
+            "wholeStatus"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "TempoConstIterator",
+          "names": [
+            "upper"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "Tick",
+          "names": [
+            "length",
+            "local"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 105,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "frameOut"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Source comparator closure; caller iterators and forwarding objects"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "engine::CompiledTempoMap::musicalTimeForFrame",
+      "source": "TIME",
+      "source_lines": [
+        791,
+        850
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "double",
+          "names": [
+            "frame"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "double",
+          "names": [
+            "k",
+            "local",
+            "bpm",
+            "delta",
+            "slope",
+            "exponent",
+            "integral"
+          ],
+          "count": 7,
+          "qualified_unit_size": 8,
+          "bytes": 56
+        },
+        {
+          "role": "lexical-object",
+          "type": "Tick",
+          "names": [
+            "origin",
+            "whole"
+          ],
+          "count": 2,
+          "qualified_unit_size": 8,
+          "bytes": 16
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "i"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "DoubleConstIterator",
+          "names": [
+            "upper"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "bool",
+          "names": [
+            "ramp"
+          ],
+          "count": 1,
+          "qualified_unit_size": 1,
+          "bytes": 1
+        },
+        {
+          "role": "lexical-object",
+          "type": "MusicalTime",
+          "names": [
+            "result"
+          ],
+          "count": 1,
+          "qualified_unit_size": 16,
+          "bytes": 16
+        }
+      ],
+      "named_qualified_object_union": 113,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "timeOut"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "MusicalTime{} assignment-source temporary16; default comparator/iterator/context temporaries"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Catalogue::family",
+      "source": "BOOK",
+      "source_lines": [
+        60,
+        66
+      ],
+      "objects": [
+        {
+          "role": "by-value-parameter",
+          "type": "Family",
+          "names": [
+            "id"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        },
+        {
+          "role": "lexical-object",
+          "type": "size_t",
+          "names": [
+            "index"
+          ],
+          "count": 1,
+          "qualified_unit_size": 8,
+          "bytes": 8
+        }
+      ],
+      "named_qualified_object_union": 16,
+      "unqualified_named_objects": [],
+      "reference_bindings": [
+        "bound"
+      ],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [
+        "Source-requested logic_error object/message copy on failure"
+      ],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "Catalogue::whole",
+      "source": "BOOK",
+      "source_lines": [
+        59,
+        59
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    },
+    {
+      "name": "immutableCatalogue",
+      "source": "BOOK",
+      "source_lines": [
+        68,
+        68
+      ],
+      "objects": [],
+      "named_qualified_object_union": 0,
+      "unqualified_named_objects": [],
+      "reference_bindings": [],
+      "large_or_containing_owner_sponsors": [],
+      "other_required_context": [],
+      "coverage": "NAMED_OBJECT_COMPONENT_ONLY_NOT_COMPLETE_FRAME_OR_OTHER_ENVELOPE"
+    }
+  ],
+  "frame_count": 93,
+  "large_component": {
+    "Stream": 65584,
+    "Text": 65544,
+    "FractionCache": 11784,
+    "source_counts": [
+      2,
+      4,
+      1
+    ],
+    "bytes": 405128
+  },
+  "OTHER_upper": null,
+  "full_auto_upper": null,
+  "root32MiB_fit": null,
+  "scope": "Named own CPP/qc/Time/BOOK declaration components only; SDK frames, full-expression temporaries, closures/ref representations and actual nested multiplicities still incomplete. Source spans and every declaration require fresh whole check. Per-frame union is not physical frame layout or complete coexistence proof.",
+  "source_inputs": [
+    {
+      "alias": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "alias": "QC",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "alias": "TIME",
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    {
+      "alias": "BOOK",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    }
+  ],
+  "layout_values_sha256": "03A663FFA001DEAE6C284517D71B54607081F6017C1AF40A98B30B40945E750D",
+  "no_compiler_decoder_launcher_or_target_execution": true
+}

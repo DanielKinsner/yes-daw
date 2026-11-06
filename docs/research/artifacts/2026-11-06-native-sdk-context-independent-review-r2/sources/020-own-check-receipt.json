@@ -1,0 +1,11 @@
+{
+  "raw_exit": 0,
+  "attempt": 3,
+  "check_count": 1990,
+  "wall_seconds_before_seal": 0.056606900005135685,
+  "only_own_source_data_checker": true,
+  "preserved_failures": [
+    "Own checker wrongly required excluded insert-growth L_INSERT audit type in active symbols; corrected to consult excluded map only for inactive rows. No subject finding or admission of excluded type.",
+    "Own lambda scan wrongly required parentheses; actual valid `[&]{...}` also omits parameter-list. Corrected capture-following lexical alternatives only. Exact primary/recorded lines were already identical."
+  ]
+}

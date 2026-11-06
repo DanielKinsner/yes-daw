@@ -1,0 +1,333 @@
+{
+  "schema": "RAW_SOURCE_WRAPPER_R1",
+  "verdict": "PRESERVATION_ONLY_ORIGINAL_CANDIDATE_UNACCEPTED",
+  "source_packet": "build-ci/20261106-native-own-object-independent-review-r1",
+  "source_packet_pins_sha256": "5B6ED5587CD416EBD1DDB852810C6F55E40DC7455D7F3B529EA0FE7F24CF54DD",
+  "source_packet_files": 17,
+  "associated_attempt_folder": null,
+  "textual_and_source_rows": 48,
+  "raw_preserved_rows": 2,
+  "inputs": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77"
+    },
+    {
+      "path": "CLAUDE.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77"
+    },
+    {
+      "path": "STATUS.md",
+      "bytes": 582084,
+      "sha256": "733F5E0D356ECD596212E1DA445B2D7521F832807C5B335A361ED9C87D4632DC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/owners.json",
+      "bytes": 33532,
+      "sha256": "73B9A2C4F0BACC420EA86E87F1BB7EC46098E9CB5806DD2D4B53EC97C514FDBE"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.json",
+      "bytes": 16931,
+      "sha256": "C76A0FF1289E7B9EC094A7AF77D95372BA90736028640133FE6313F40F42DF1C"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/argument.md",
+      "bytes": 10149,
+      "sha256": "D5A97BB11B4CE99B71B4F4E4ED1ADD0B7B841D94ECC67A41646F0D496717459B"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/check.py",
+      "bytes": 8705,
+      "sha256": "A9088D93BD4E616FB23D34969D783ECFD4E562A30B42CB138949D5DB716190FD"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/closure-contexts.json",
+      "bytes": 21474,
+      "sha256": "3F2637E77ADE705F1E4870C6C845F51AE5BAF6A0114FB0157107CA74509DB7AA"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/closure-ledger.py",
+      "bytes": 5224,
+      "sha256": "8CD8C4D93CC904847F11FE9EB759AB6DBFFC086AD3C2D2771C9C80EEED0B75AF"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/complete-proposal.py",
+      "bytes": 22522,
+      "sha256": "846BFF012D3D9A8DF79BB80C7065FCBBEC6FA3FC8402D6EA9709B42501BF33FA"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/envelope.json",
+      "bytes": 29437,
+      "sha256": "9315AEABE07E63F702A75A088A875D5C13FCF1F124126EC3601DAB84B822FFD8"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/first-green-freeze.json",
+      "bytes": 2515,
+      "sha256": "98C23B436B9B256DC28407A64FF10C8453C5C14D8A063F9ABE17275C8216DA06"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/own-body-ledger.py",
+      "bytes": 19712,
+      "sha256": "CD4D719AF53D930C85700520825EFB1A1FA0A2A92148DE6F1687778753181E77"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/own-checks.json",
+      "bytes": 61935,
+      "sha256": "47E0FD37A186AFA84B4B0030ED553F4B605BD040F4140CAD9D0E0117D5670CA9"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/own-named-objects.json",
+      "bytes": 108214,
+      "sha256": "7CFD16768ACCD87A8457E262F5838D6AA4C0E10A84D7F4D4ADCD44DB71875E4A"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/source-pins.json",
+      "bytes": 8326,
+      "sha256": "F252B5B6EBEAB13FDBE6AE35FB5FA177CA0F01FBEE36433ED3C10AA71A20B4A3"
+    },
+    {
+      "path": "build-ci/20261106-native-controlled-object-envelope-r1/working-notes.md",
+      "bytes": 9466,
+      "sha256": "894792786BD013DD9E8BC562B48E832BCDB29C2B42898A708B1DC039105CEA0D"
+    },
+    {
+      "path": "build-ci/20261106-native-layout-purpose-independent-review-r1/review.json",
+      "bytes": 50215,
+      "sha256": "EC89EF36D2C4085AC8EAEF5242428E2D2D6E8A20FA496EC23060961067E0D237"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/correspondence.json",
+      "bytes": 21108,
+      "sha256": "77D8CAAE4C20BF25A47D2DAC339BB33BD26B0195883B778F423F3C96C427FEC9"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/execution-r1/layout-values.json",
+      "bytes": 30879,
+      "sha256": "03A663FFA001DEAE6C284517D71B54607081F6017C1AF40A98B30B40945E750D"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/execution-r1/receipt.json",
+      "bytes": 1898,
+      "sha256": "FB87C447DCB4EBE1A25BA5F24DE611A766429915CFC1C2CE48FE3508B585E536"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/layout-types.h",
+      "bytes": 2893,
+      "sha256": "2F98A7FEA610AF2A49AEBF5156489818C7D0DEA226D0F550BE25E3C640326633"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/layout.cpp",
+      "bytes": 19827,
+      "sha256": "2ED924817964FD40F1EC48B97CBED0EEB05736149D81FFA107420436B3186911"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/profile.json",
+      "bytes": 1767,
+      "sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/schema.json",
+      "bytes": 27181,
+      "sha256": "B2B1189E8726C6C80C36177D74D46A8C7F3612C746502B8508F4FD9B65AD9F80"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/source-pins.json",
+      "bytes": 134266,
+      "sha256": "7B8EF452D04B97D38B92D1E790FA61B355660A141FA4CB1D21A1002C4B3EA165"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/complete-inputs.json",
+      "bytes": 13001,
+      "sha256": "4885A83145135E59BCF5051779A5299014CFD7DF3AAE1E2C1909E95619737ACE"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/check.py",
+      "bytes": 18531,
+      "sha256": "0D2FFE533BA1D315DE4DB23845E28B810163F327005C244DD08D6F34C7CE0CB3"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/checks.json",
+      "bytes": 275248,
+      "sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/review.json",
+      "bytes": 1060,
+      "sha256": "433C4D23BA6844E8E6FF47A829A9BFFF9338101EBA379AFB9CB1B98C12C86FEB"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/review.md",
+      "bytes": 13118,
+      "sha256": "B11998C7A2558413061D46898B604A9314D8CBB3E68F09E3FBE967B6F5F9E97B"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/source-coverage.json",
+      "bytes": 167054,
+      "sha256": "843D0AEF0608515187CCF48B768146ED911AA23633A0F9D76A8C600C7060955B"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/source-pins.json",
+      "bytes": 14089,
+      "sha256": "5B6ED5587CD416EBD1DDB852810C6F55E40DC7455D7F3B529EA0FE7F24CF54DD"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/result.json",
+      "bytes": 275248,
+      "sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/stdout.txt",
+      "bytes": 51,
+      "sha256": "D8E95DA7F80134DCA71F5B5C03FCF68F16644A382E9FFCCBE783886466B89910"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/check.py",
+      "bytes": 18531,
+      "sha256": "0D2FFE533BA1D315DE4DB23845E28B810163F327005C244DD08D6F34C7CE0CB3"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/checks.json",
+      "bytes": 275248,
+      "sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/first-green-freeze.json",
+      "bytes": 3938,
+      "sha256": "1065BD9C0F97223098153A74B11C6FF1F4EBCE07528B706E764F82F57F87A80A"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/review.json",
+      "bytes": 1060,
+      "sha256": "433C4D23BA6844E8E6FF47A829A9BFFF9338101EBA379AFB9CB1B98C12C86FEB"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/review.md",
+      "bytes": 13118,
+      "sha256": "B11998C7A2558413061D46898B604A9314D8CBB3E68F09E3FBE967B6F5F9E97B"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/source-coverage.json",
+      "bytes": 167054,
+      "sha256": "843D0AEF0608515187CCF48B768146ED911AA23633A0F9D76A8C600C7060955B"
+    },
+    {
+      "path": "build-ci/20261106-native-own-object-independent-review-r1/source-pins.json",
+      "bytes": 14089,
+      "sha256": "5B6ED5587CD416EBD1DDB852810C6F55E40DC7455D7F3B529EA0FE7F24CF54DD"
+    },
+    {
+      "path": "build-ci/20261106-native-sdk-context-ledger-r2/argument.md",
+      "bytes": 19293,
+      "sha256": "FBB7ED0CBD158E92AB427C36313E8E7F0F4C14852B7F6C9E070A72AC718F71E9"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    }
+  ],
+  "external_identity_rows_verified_not_byte_archived": [
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\algorithm",
+      "member": "0000.raw",
+      "bytes": 533492,
+      "sha256": "E4CFB31DA8EC07AF89834D829EA72B20C7E3202476AF3B0641CFE8D6EBB245D7"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\array",
+      "member": "0001.raw",
+      "bytes": 29292,
+      "sha256": "48D2C6C4926E08D0D96F41E59F69513737F76107530F68C94D5D9FE668689A15"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\bit",
+      "member": "0002.raw",
+      "bytes": 8838,
+      "sha256": "F08C873229E5C11B6E89A0D47C5CA5E2555947321AA382BF52224D041648D483"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\exception",
+      "member": "0003.raw",
+      "bytes": 13509,
+      "sha256": "F656E780C4B7DE2D580F34E2C96D9992F8F0D154D068235BA5BEE709AE0334A2"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\initializer_list",
+      "member": "0004.raw",
+      "bytes": 1888,
+      "sha256": "6FF91697D3FC1734976F2290DCA64DB6FF910A7D7ADD242029F692C745AC4558"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\limits",
+      "member": "0005.raw",
+      "bytes": 27227,
+      "sha256": "5CDA311B1B514CDEA1FDDA5C1B53865A85C9288EF50D59B7B8F09802BF9BC60B"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\stdexcept",
+      "member": "0006.raw",
+      "bytes": 5213,
+      "sha256": "E677DAF8465DD4B870F420DF9010EE3A17CD80FB6F6F5655F2AD3DC6D8009AE1"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\type_traits",
+      "member": "0007.raw",
+      "bytes": 108106,
+      "sha256": "357E102B4E6AB85A864980A01BBA28440791311DF288B8987B580E577C928D5C"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\utility",
+      "member": "0008.raw",
+      "bytes": 42347,
+      "sha256": "403BCF5919D0E0371F25A929752F0A05AAE7B0667129D65CFE3A8DFF858E97D6"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\vector",
+      "member": "0009.raw",
+      "bytes": 161282,
+      "sha256": "351604D91A2CEAC79F9BD9448C0553CCCC22711E22955B5938EAF41DE98334A6"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\xmemory",
+      "member": "0010.raw",
+      "bytes": 112178,
+      "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\xstring",
+      "member": "0011.raw",
+      "bytes": 161127,
+      "sha256": "9407C290A1D0C6BEBC42CF131BD04F09A9892F61B713EECB12827C0F6BBC3045"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\include\\xutility",
+      "member": "0012.raw",
+      "bytes": 331853,
+      "sha256": "D5959E0964EA09991888E5B45EECFD8C71C094034261489FBB450C2F2F450EF5"
+    }
+  ],
+  "target_execution": false
+}

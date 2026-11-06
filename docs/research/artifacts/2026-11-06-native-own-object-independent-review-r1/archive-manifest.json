@@ -1,0 +1,485 @@
+{
+  "schema": "PINNED_SOURCE_PACKET_LOSSLESS_DELIVERY_V1",
+  "original_pins_sha256": "7CA1B40E5FB6392083D04C7E6B7BCE19CCD213FE9ADD3BD8C2253731C67435E8",
+  "original_verdict": "PRESERVATION_ONLY_ORIGINAL_CANDIDATE_UNACCEPTED",
+  "scope": "Preservation of the named packet only. No new independent source/numeric/resource acceptance, fit, NOFIT, native binding, target execution or feature completion follows.",
+  "files": [
+    {
+      "file": "sources/001-AGENTS.md",
+      "original_path": "AGENTS.md",
+      "original_bytes": 6331,
+      "original_sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-contract.md",
+      "original_path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "original_bytes": 7998,
+      "original_sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-owners.json",
+      "original_path": "build-ci/20261106-clock-native-child-source-owners-r1/owners.json",
+      "original_bytes": 33532,
+      "original_sha256": "73B9A2C4F0BACC420EA86E87F1BB7EC46098E9CB5806DD2D4B53EC97C514FDBE",
+      "bytes": 33532,
+      "sha256": "73B9A2C4F0BACC420EA86E87F1BB7EC46098E9CB5806DD2D4B53EC97C514FDBE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-audit.json",
+      "original_path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.json",
+      "original_bytes": 16931,
+      "original_sha256": "C76A0FF1289E7B9EC094A7AF77D95372BA90736028640133FE6313F40F42DF1C",
+      "bytes": 16931,
+      "sha256": "C76A0FF1289E7B9EC094A7AF77D95372BA90736028640133FE6313F40F42DF1C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-argument.md",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/argument.md",
+      "original_bytes": 10149,
+      "original_sha256": "D5A97BB11B4CE99B71B4F4E4ED1ADD0B7B841D94ECC67A41646F0D496717459B",
+      "bytes": 10149,
+      "sha256": "D5A97BB11B4CE99B71B4F4E4ED1ADD0B7B841D94ECC67A41646F0D496717459B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-check.py",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/check.py",
+      "original_bytes": 8705,
+      "original_sha256": "A9088D93BD4E616FB23D34969D783ECFD4E562A30B42CB138949D5DB716190FD",
+      "bytes": 8705,
+      "sha256": "A9088D93BD4E616FB23D34969D783ECFD4E562A30B42CB138949D5DB716190FD",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/007-closure-contexts.json",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/closure-contexts.json",
+      "original_bytes": 21474,
+      "original_sha256": "3F2637E77ADE705F1E4870C6C845F51AE5BAF6A0114FB0157107CA74509DB7AA",
+      "bytes": 21474,
+      "sha256": "3F2637E77ADE705F1E4870C6C845F51AE5BAF6A0114FB0157107CA74509DB7AA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/008-closure-ledger.py",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/closure-ledger.py",
+      "original_bytes": 5224,
+      "original_sha256": "8CD8C4D93CC904847F11FE9EB759AB6DBFFC086AD3C2D2771C9C80EEED0B75AF",
+      "bytes": 5224,
+      "sha256": "8CD8C4D93CC904847F11FE9EB759AB6DBFFC086AD3C2D2771C9C80EEED0B75AF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/009-complete-proposal.py",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/complete-proposal.py",
+      "original_bytes": 22522,
+      "original_sha256": "846BFF012D3D9A8DF79BB80C7065FCBBEC6FA3FC8402D6EA9709B42501BF33FA",
+      "bytes": 22522,
+      "sha256": "846BFF012D3D9A8DF79BB80C7065FCBBEC6FA3FC8402D6EA9709B42501BF33FA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/010-envelope.json",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/envelope.json",
+      "original_bytes": 29437,
+      "original_sha256": "9315AEABE07E63F702A75A088A875D5C13FCF1F124126EC3601DAB84B822FFD8",
+      "bytes": 29437,
+      "sha256": "9315AEABE07E63F702A75A088A875D5C13FCF1F124126EC3601DAB84B822FFD8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/011-first-green-freeze.json",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/first-green-freeze.json",
+      "original_bytes": 2515,
+      "original_sha256": "98C23B436B9B256DC28407A64FF10C8453C5C14D8A063F9ABE17275C8216DA06",
+      "bytes": 2515,
+      "sha256": "98C23B436B9B256DC28407A64FF10C8453C5C14D8A063F9ABE17275C8216DA06",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/012-own-body-ledger.py",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/own-body-ledger.py",
+      "original_bytes": 19712,
+      "original_sha256": "CD4D719AF53D930C85700520825EFB1A1FA0A2A92148DE6F1687778753181E77",
+      "bytes": 19712,
+      "sha256": "CD4D719AF53D930C85700520825EFB1A1FA0A2A92148DE6F1687778753181E77",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/013-own-checks.json",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/own-checks.json",
+      "original_bytes": 61935,
+      "original_sha256": "47E0FD37A186AFA84B4B0030ED553F4B605BD040F4140CAD9D0E0117D5670CA9",
+      "bytes": 61935,
+      "sha256": "47E0FD37A186AFA84B4B0030ED553F4B605BD040F4140CAD9D0E0117D5670CA9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/014-own-named-objects.json",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/own-named-objects.json",
+      "original_bytes": 108214,
+      "original_sha256": "7CFD16768ACCD87A8457E262F5838D6AA4C0E10A84D7F4D4ADCD44DB71875E4A",
+      "bytes": 108214,
+      "sha256": "7CFD16768ACCD87A8457E262F5838D6AA4C0E10A84D7F4D4ADCD44DB71875E4A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/015-source-pins.json",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/source-pins.json",
+      "original_bytes": 8326,
+      "original_sha256": "F252B5B6EBEAB13FDBE6AE35FB5FA177CA0F01FBEE36433ED3C10AA71A20B4A3",
+      "bytes": 8326,
+      "sha256": "F252B5B6EBEAB13FDBE6AE35FB5FA177CA0F01FBEE36433ED3C10AA71A20B4A3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/016-working-notes.md",
+      "original_path": "build-ci/20261106-native-controlled-object-envelope-r1/working-notes.md",
+      "original_bytes": 9466,
+      "original_sha256": "894792786BD013DD9E8BC562B48E832BCDB29C2B42898A708B1DC039105CEA0D",
+      "bytes": 9466,
+      "sha256": "894792786BD013DD9E8BC562B48E832BCDB29C2B42898A708B1DC039105CEA0D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/017-review.json",
+      "original_path": "build-ci/20261106-native-layout-purpose-independent-review-r1/review.json",
+      "original_bytes": 50215,
+      "original_sha256": "EC89EF36D2C4085AC8EAEF5242428E2D2D6E8A20FA496EC23060961067E0D237",
+      "bytes": 50215,
+      "sha256": "EC89EF36D2C4085AC8EAEF5242428E2D2D6E8A20FA496EC23060961067E0D237",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/018-correspondence.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/correspondence.json",
+      "original_bytes": 21108,
+      "original_sha256": "77D8CAAE4C20BF25A47D2DAC339BB33BD26B0195883B778F423F3C96C427FEC9",
+      "bytes": 21108,
+      "sha256": "77D8CAAE4C20BF25A47D2DAC339BB33BD26B0195883B778F423F3C96C427FEC9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/019-layout-values.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/execution-r1/layout-values.json",
+      "original_bytes": 30879,
+      "original_sha256": "03A663FFA001DEAE6C284517D71B54607081F6017C1AF40A98B30B40945E750D",
+      "bytes": 30879,
+      "sha256": "03A663FFA001DEAE6C284517D71B54607081F6017C1AF40A98B30B40945E750D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/020-receipt.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/execution-r1/receipt.json",
+      "original_bytes": 1898,
+      "original_sha256": "FB87C447DCB4EBE1A25BA5F24DE611A766429915CFC1C2CE48FE3508B585E536",
+      "bytes": 1898,
+      "sha256": "FB87C447DCB4EBE1A25BA5F24DE611A766429915CFC1C2CE48FE3508B585E536",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/021-layout-types.h",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/layout-types.h",
+      "original_bytes": 2893,
+      "original_sha256": "2F98A7FEA610AF2A49AEBF5156489818C7D0DEA226D0F550BE25E3C640326633",
+      "bytes": 2893,
+      "sha256": "2F98A7FEA610AF2A49AEBF5156489818C7D0DEA226D0F550BE25E3C640326633",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/022-layout.cpp",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/layout.cpp",
+      "original_bytes": 19827,
+      "original_sha256": "2ED924817964FD40F1EC48B97CBED0EEB05736149D81FFA107420436B3186911",
+      "bytes": 19827,
+      "sha256": "2ED924817964FD40F1EC48B97CBED0EEB05736149D81FFA107420436B3186911",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/023-profile.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/profile.json",
+      "original_bytes": 1767,
+      "original_sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399",
+      "bytes": 1767,
+      "sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/024-schema.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/schema.json",
+      "original_bytes": 27181,
+      "original_sha256": "B2B1189E8726C6C80C36177D74D46A8C7F3612C746502B8508F4FD9B65AD9F80",
+      "bytes": 27181,
+      "sha256": "B2B1189E8726C6C80C36177D74D46A8C7F3612C746502B8508F4FD9B65AD9F80",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/025-source-pins.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/source-pins.json",
+      "original_bytes": 134266,
+      "original_sha256": "7B8EF452D04B97D38B92D1E790FA61B355660A141FA4CB1D21A1002C4B3EA165",
+      "bytes": 134266,
+      "sha256": "7B8EF452D04B97D38B92D1E790FA61B355660A141FA4CB1D21A1002C4B3EA165",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/026-complete-inputs.json",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/complete-inputs.json",
+      "original_bytes": 13001,
+      "original_sha256": "4885A83145135E59BCF5051779A5299014CFD7DF3AAE1E2C1909E95619737ACE",
+      "bytes": 13001,
+      "sha256": "4885A83145135E59BCF5051779A5299014CFD7DF3AAE1E2C1909E95619737ACE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/027-check.py",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/check.py",
+      "original_bytes": 18531,
+      "original_sha256": "0D2FFE533BA1D315DE4DB23845E28B810163F327005C244DD08D6F34C7CE0CB3",
+      "bytes": 18531,
+      "sha256": "0D2FFE533BA1D315DE4DB23845E28B810163F327005C244DD08D6F34C7CE0CB3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/028-checks.json",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/checks.json",
+      "original_bytes": 275248,
+      "original_sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85",
+      "bytes": 275248,
+      "sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/029-review.json",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/review.json",
+      "original_bytes": 1060,
+      "original_sha256": "433C4D23BA6844E8E6FF47A829A9BFFF9338101EBA379AFB9CB1B98C12C86FEB",
+      "bytes": 1060,
+      "sha256": "433C4D23BA6844E8E6FF47A829A9BFFF9338101EBA379AFB9CB1B98C12C86FEB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/030-review.md",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/review.md",
+      "original_bytes": 13118,
+      "original_sha256": "B11998C7A2558413061D46898B604A9314D8CBB3E68F09E3FBE967B6F5F9E97B",
+      "bytes": 13118,
+      "sha256": "B11998C7A2558413061D46898B604A9314D8CBB3E68F09E3FBE967B6F5F9E97B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/031-source-coverage.json",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/source-coverage.json",
+      "original_bytes": 167054,
+      "original_sha256": "843D0AEF0608515187CCF48B768146ED911AA23633A0F9D76A8C600C7060955B",
+      "bytes": 167054,
+      "sha256": "843D0AEF0608515187CCF48B768146ED911AA23633A0F9D76A8C600C7060955B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/032-source-pins.json",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/outputs/source-pins.json",
+      "original_bytes": 14089,
+      "original_sha256": "5B6ED5587CD416EBD1DDB852810C6F55E40DC7455D7F3B529EA0FE7F24CF54DD",
+      "bytes": 14089,
+      "sha256": "5B6ED5587CD416EBD1DDB852810C6F55E40DC7455D7F3B529EA0FE7F24CF54DD",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/033-result.json",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/result.json",
+      "original_bytes": 275248,
+      "original_sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85",
+      "bytes": 275248,
+      "sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/034-stdout.txt",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/attempts/attempt-01/stdout.txt",
+      "original_bytes": 51,
+      "original_sha256": "D8E95DA7F80134DCA71F5B5C03FCF68F16644A382E9FFCCBE783886466B89910",
+      "bytes": 51,
+      "sha256": "D8E95DA7F80134DCA71F5B5C03FCF68F16644A382E9FFCCBE783886466B89910",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/035-check.py",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/check.py",
+      "original_bytes": 18531,
+      "original_sha256": "0D2FFE533BA1D315DE4DB23845E28B810163F327005C244DD08D6F34C7CE0CB3",
+      "bytes": 18531,
+      "sha256": "0D2FFE533BA1D315DE4DB23845E28B810163F327005C244DD08D6F34C7CE0CB3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/036-checks.json",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/checks.json",
+      "original_bytes": 275248,
+      "original_sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85",
+      "bytes": 275248,
+      "sha256": "BDBBAF198F921018DC70A32BCA5169AB79A5179BA00ED445FE0C3DDA756B7B85",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/037-first-green-freeze.json",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/first-green-freeze.json",
+      "original_bytes": 3938,
+      "original_sha256": "1065BD9C0F97223098153A74B11C6FF1F4EBCE07528B706E764F82F57F87A80A",
+      "bytes": 3938,
+      "sha256": "1065BD9C0F97223098153A74B11C6FF1F4EBCE07528B706E764F82F57F87A80A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/038-review.json",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/review.json",
+      "original_bytes": 1060,
+      "original_sha256": "433C4D23BA6844E8E6FF47A829A9BFFF9338101EBA379AFB9CB1B98C12C86FEB",
+      "bytes": 1060,
+      "sha256": "433C4D23BA6844E8E6FF47A829A9BFFF9338101EBA379AFB9CB1B98C12C86FEB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/039-review.md",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/review.md",
+      "original_bytes": 13118,
+      "original_sha256": "B11998C7A2558413061D46898B604A9314D8CBB3E68F09E3FBE967B6F5F9E97B",
+      "bytes": 13118,
+      "sha256": "B11998C7A2558413061D46898B604A9314D8CBB3E68F09E3FBE967B6F5F9E97B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/040-source-coverage.json",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/source-coverage.json",
+      "original_bytes": 167054,
+      "original_sha256": "843D0AEF0608515187CCF48B768146ED911AA23633A0F9D76A8C600C7060955B",
+      "bytes": 167054,
+      "sha256": "843D0AEF0608515187CCF48B768146ED911AA23633A0F9D76A8C600C7060955B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/041-source-pins.json",
+      "original_path": "build-ci/20261106-native-own-object-independent-review-r1/source-pins.json",
+      "original_bytes": 14089,
+      "original_sha256": "5B6ED5587CD416EBD1DDB852810C6F55E40DC7455D7F3B529EA0FE7F24CF54DD",
+      "bytes": 14089,
+      "sha256": "5B6ED5587CD416EBD1DDB852810C6F55E40DC7455D7F3B529EA0FE7F24CF54DD",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/042-builder.py",
+      "original_path": "build-ci/20261106-native-own-review-delivery-r1/builder.py",
+      "original_bytes": 4858,
+      "original_sha256": "F15AFB9DBB38DA545525B9921ECECA03F42883517189B2777F520DA5391B2644",
+      "bytes": 4858,
+      "sha256": "F15AFB9DBB38DA545525B9921ECECA03F42883517189B2777F520DA5391B2644",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/043-freeze.json",
+      "original_path": "build-ci/20261106-native-own-review-delivery-r1/freeze.json",
+      "original_bytes": 697,
+      "original_sha256": "28B80FAD9E8785671B15E8973A03C5B170544532EFBBD1964161FF18549826DF",
+      "bytes": 697,
+      "sha256": "28B80FAD9E8785671B15E8973A03C5B170544532EFBBD1964161FF18549826DF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/044-raw-payloads.json",
+      "original_path": "build-ci/20261106-native-own-review-delivery-r1/raw-payloads.json",
+      "original_bytes": 1005557,
+      "original_sha256": "E54901C5BCB3D0D626787A7ACD2EF5CEEDD54614044BAA64EFF3238AAAFA36C5",
+      "bytes": 1005557,
+      "sha256": "E54901C5BCB3D0D626787A7ACD2EF5CEEDD54614044BAA64EFF3238AAAFA36C5",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/045-README.md",
+      "original_path": "build-ci/20261106-native-own-review-delivery-r1/README.md",
+      "original_bytes": 562,
+      "original_sha256": "8F339FCF369C971C0C58B4307C53ED5961C8052F0AE467EF3BD2EEE26CEDAAC7",
+      "bytes": 562,
+      "sha256": "8F339FCF369C971C0C58B4307C53ED5961C8052F0AE467EF3BD2EEE26CEDAAC7",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/046-source-pins.json",
+      "original_path": "build-ci/20261106-native-own-review-delivery-r1/source-pins.json",
+      "original_bytes": 14248,
+      "original_sha256": "7CA1B40E5FB6392083D04C7E6B7BCE19CCD213FE9ADD3BD8C2253731C67435E8",
+      "bytes": 14248,
+      "sha256": "7CA1B40E5FB6392083D04C7E6B7BCE19CCD213FE9ADD3BD8C2253731C67435E8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/047-argument.md",
+      "original_path": "build-ci/20261106-native-sdk-context-ledger-r2/argument.md",
+      "original_bytes": 19293,
+      "original_sha256": "FBB7ED0CBD158E92AB427C36313E8E7F0F4C14852B7F6C9E070A72AC718F71E9",
+      "bytes": 19293,
+      "sha256": "FBB7ED0CBD158E92AB427C36313E8E7F0F4C14852B7F6C9E070A72AC718F71E9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/048-clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/049-source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/050-independent_clock.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "original_bytes": 9187,
+      "original_sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/051-CLAUDE.md",
+      "original_path": "CLAUDE.md",
+      "original_bytes": 6331,
+      "original_sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/052-Time.h",
+      "original_path": "src/engine/Time.h",
+      "original_bytes": 49489,
+      "original_sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/053-STATUS.md",
+      "original_path": "STATUS.md",
+      "original_bytes": 582084,
+      "original_sha256": "733F5E0D356ECD596212E1DA445B2D7521F832807C5B335A361ED9C87D4632DC",
+      "bytes": 582084,
+      "sha256": "733F5E0D356ECD596212E1DA445B2D7521F832807C5B335A361ED9C87D4632DC",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

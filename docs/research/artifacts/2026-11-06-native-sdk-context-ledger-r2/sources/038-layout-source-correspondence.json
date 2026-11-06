@@ -1,0 +1,907 @@
+{
+  "schema": "R2_MINIMAL_CONDITIONAL_CLASS_LAYOUT_SOURCE_CORRESPONDENCE",
+  "facts": [
+    {
+      "id": "NUL",
+      "source": "cstddef",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cstddef",
+      "lines": [
+        27,
+        31
+      ],
+      "source_excerpt": "_STD_BEGIN\n_EXPORT_STD using _CSTD ptrdiff_t;\n_EXPORT_STD using _CSTD size_t;\n_EXPORT_STD using max_align_t = double; // most aligned type\n_EXPORT_STD using nullptr_t   = decltype(nullptr);\n",
+      "source_excerpt_sha256": "7B48415481556B423D9793DBD9AE5E4F9C1119187360AEFAFF8B7E454436377B",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cstddef",
+        "bytes": 4015,
+        "sha256": "8388948EFA6DC3B3B20866FA1C3057EA53B8DFD028F22ABE1D7DCE23EF1D9ECC"
+      },
+      "actual_type_identity": "std::nullptr_t = decltype(nullptr); keep actual type identity, no pointer-size substitution",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "LESS",
+      "source": "type_traits",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/type_traits",
+      "lines": [
+        2384,
+        2394
+      ],
+      "source_excerpt": "template <>\nstruct less<void> {\n    template <class _Ty1, class _Ty2>\n    _NODISCARD constexpr auto operator()(_Ty1&& _Left, _Ty2&& _Right) const\n        noexcept(noexcept(static_cast<_Ty1&&>(_Left) < static_cast<_Ty2&&>(_Right))) // strengthened\n        -> decltype(static_cast<_Ty1&&>(_Left) < static_cast<_Ty2&&>(_Right)) {\n        return static_cast<_Ty1&&>(_Left) < static_cast<_Ty2&&>(_Right);\n    }\n\n    using is_transparent = int;\n};\n",
+      "source_excerpt_sha256": "E7D9439A5FFB9936B9138AFFF4DA360B6A35A72B0ED8228294420DEF40C8AA12",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/type_traits",
+        "bytes": 108106,
+        "sha256": "357E102B4E6AB85A864980A01BBA28440791311DF288B8987B580E577C928D5C"
+      },
+      "actual_type_identity": "std::less<void> actual value formal; operator operands references",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "EQ",
+      "source": "xutility",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xutility",
+      "lines": [
+        693,
+        703
+      ],
+      "source_excerpt": "template <>\nstruct equal_to<void> {\n    template <class _Ty1, class _Ty2>\n    _NODISCARD constexpr auto operator()(_Ty1&& _Left, _Ty2&& _Right) const\n        noexcept(noexcept(static_cast<_Ty1&&>(_Left) == static_cast<_Ty2&&>(_Right))) // strengthened\n        -> decltype(static_cast<_Ty1&&>(_Left) == static_cast<_Ty2&&>(_Right)) {\n        return static_cast<_Ty1&&>(_Left) == static_cast<_Ty2&&>(_Right);\n    }\n\n    using is_transparent = int;\n};\n",
+      "source_excerpt_sha256": "0C925ACB2E66E16F39642D10603D0402FE189F07E94B422D46567F68BE57A1EA",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xutility",
+        "bytes": 331853,
+        "sha256": "D5959E0964EA09991888E5B45EECFD8C71C094034261489FBB450C2F2F450EF5"
+      },
+      "actual_type_identity": "std::equal_to<void> actual value formal even when memcmp bypasses operator",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "FA",
+      "source": "xmemory",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "lines": [
+        1181,
+        1181
+      ],
+      "source_excerpt": "struct _Fake_allocator {};\n",
+      "source_excerpt_sha256": "360309BDC6D5636B08D478CB73665704113B291C3DC4C68EA45A836F510BE1F0",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+        "bytes": 112178,
+        "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+      },
+      "actual_type_identity": "Standalone std::_Fake_allocator; separate from contained actual allocator",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "FP",
+      "source": "xmemory",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "lines": [
+        1446,
+        1454
+      ],
+      "source_excerpt": "struct _Fake_proxy_ptr_impl { // fake replacement for a container proxy smart pointer when no container proxy is in use\n    _Fake_proxy_ptr_impl(const _Fake_proxy_ptr_impl&)            = delete;\n    _Fake_proxy_ptr_impl& operator=(const _Fake_proxy_ptr_impl&) = delete;\n    _CONSTEXPR20 _Fake_proxy_ptr_impl(const _Fake_allocator&, _Leave_proxy_unbound) noexcept {}\n    _CONSTEXPR20 _Fake_proxy_ptr_impl(const _Fake_allocator&, const _Container_base0&) noexcept {}\n\n    _CONSTEXPR20 void _Bind(const _Fake_allocator&, _Container_base0*) noexcept {}\n    _CONSTEXPR20 void _Release() noexcept {}\n};\n",
+      "source_excerpt_sha256": "B0B88DE06EAB0F30C387EBF41821F2DA9097DA3C2E57B3100C7BE69ECDF47EF7",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+        "bytes": 112178,
+        "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+      },
+      "actual_type_identity": "Standalone std::_Fake_proxy_ptr_impl; selected ctor takes existing container reference",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "TG",
+      "source": "xmemory",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "lines": [
+        83,
+        91
+      ],
+      "source_excerpt": "template <class _Ty>\nstruct _NODISCARD _Tidy_guard { // class with destructor that calls _Tidy\n    _Ty* _Target;\n    _CONSTEXPR20 ~_Tidy_guard() {\n        if (_Target) {\n            _Target->_Tidy();\n        }\n    }\n};\n",
+      "source_excerpt_sha256": "700AE3066D754FA0706685F8E009B9B2429BAA161570DEC1E0E72968C6139F80",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+        "bytes": 112178,
+        "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+      },
+      "actual_type_identity": "Actual std::_Tidy_guard<std::vector<qc::Change>> aggregate with _Ty* _Target; aggregate field stays in whole guard",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "TAG_ZERO",
+      "source": "xmemory",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "lines": [
+        1513,
+        1515
+      ],
+      "source_excerpt": "struct _Zero_then_variadic_args_t {\n    explicit _Zero_then_variadic_args_t() = default;\n}; // tag type for value-initializing first, constructing second from remaining args\n",
+      "source_excerpt_sha256": "D251559CAE19AC6ED08FA76BB16500AFA1F346F3F820586E9684AF304987A723",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+        "bytes": 112178,
+        "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+      },
+      "actual_type_identity": "std::_Zero_then_variadic_args_t actual by-value compressed-pair parameter",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "TAG_ONE",
+      "source": "xmemory",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "lines": [
+        1517,
+        1519
+      ],
+      "source_excerpt": "struct _One_then_variadic_args_t {\n    explicit _One_then_variadic_args_t() = default;\n}; // tag type for constructing first from one arg, constructing second from remaining args\n",
+      "source_excerpt_sha256": "8C24239CC17899E7C8BCF512C72918C194205A989DD8EC0F77F336F896F92555",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+        "bytes": 112178,
+        "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+      },
+      "actual_type_identity": "std::_One_then_variadic_args_t actual by-value compressed-pair parameter",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "TAG_CONCAT",
+      "source": "xstring",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xstring",
+      "lines": [
+        525,
+        528
+      ],
+      "source_excerpt": "struct _String_constructor_concat_tag {\n    // tag to select constructors used by basic_string's concatenation operators (operator+)\n    explicit _String_constructor_concat_tag() = default;\n};\n",
+      "source_excerpt_sha256": "A25682D62F8DC0EF8B71155E8487FEE4F7D4C961CE9CFD374BF2F6B9126525CD",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xstring",
+        "bytes": 161127,
+        "sha256": "9407C290A1D0C6BEBC42CF131BD04F09A9892F61B713EECB12827C0F6BBC3045"
+      },
+      "actual_type_identity": "std::_String_constructor_concat_tag actual by-value concat parameter",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "ALLOC_CHANGE",
+      "source": "xmemory",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "lines": [
+        931,
+        1016
+      ],
+      "source_excerpt": "_EXPORT_STD template <class _Ty>\nclass allocator {\npublic:\n    static_assert(!is_const_v<_Ty>, \"The C++ Standard forbids containers of const elements \"\n                                    \"because allocator<const T> is ill-formed.\");\n    static_assert(!is_function_v<_Ty>, \"The C++ Standard forbids allocators for function elements \"\n                                       \"because of [allocator.requirements].\");\n    static_assert(!is_reference_v<_Ty>, \"The C++ Standard forbids allocators for reference elements \"\n                                        \"because of [allocator.requirements].\");\n\n    using _From_primary = allocator;\n\n    using value_type = _Ty;\n\n#if _HAS_DEPRECATED_ALLOCATOR_MEMBERS\n    using pointer _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS       = _Ty*;\n    using const_pointer _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS = const _Ty*;\n\n    using reference _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS       = _Ty&;\n    using const_reference _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS = const _Ty&;\n#endif // _HAS_DEPRECATED_ALLOCATOR_MEMBERS\n\n    using size_type       = size_t;\n    using difference_type = ptrdiff_t;\n\n    using propagate_on_container_move_assignment           = true_type;\n    using is_always_equal _CXX20_DEPRECATE_IS_ALWAYS_EQUAL = true_type;\n\n#if _HAS_DEPRECATED_ALLOCATOR_MEMBERS\n    template <class _Other>\n    struct _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS rebind {\n        using other = allocator<_Other>;\n    };\n\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS _NODISCARD _Ty* address(_Ty& _Val) const noexcept {\n        return _STD addressof(_Val);\n    }\n\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS _NODISCARD const _Ty* address(const _Ty& _Val) const noexcept {\n        return _STD addressof(_Val);\n    }\n#endif // _HAS_DEPRECATED_ALLOCATOR_MEMBERS\n\n    constexpr allocator() noexcept {}\n\n    constexpr allocator(const allocator&) noexcept = default;\n    template <class _Other>\n    constexpr allocator(const allocator<_Other>&) noexcept {}\n    _CONSTEXPR20 ~allocator()                           = default;\n    _CONSTEXPR20 allocator& operator=(const allocator&) = default;\n\n    _CONSTEXPR20 void deallocate(_Ty* const _Ptr, const size_t _Count) noexcept /* strengthened */ {\n        _STL_ASSERT(_Ptr != nullptr || _Count == 0, \"null pointer cannot point to a block of non-zero size\");\n        // no overflow check on the following multiply; we assume _Allocate did that check\n        _STD _Deallocate<_New_alignof<_Ty>>(_Ptr, sizeof(_Ty) * _Count);\n    }\n\n    _NODISCARD_RAW_PTR_ALLOC _CONSTEXPR20 __declspec(allocator) _Ty* allocate(_CRT_GUARDOVERFLOW const size_t _Count) {\n        static_assert(sizeof(value_type) > 0, \"value_type must be complete before calling allocate.\");\n        return static_cast<_Ty*>(_STD _Allocate<_New_alignof<_Ty>>(_Get_size_of_n<sizeof(_Ty)>(_Count)));\n    }\n\n#if _HAS_CXX23\n    _NODISCARD_RAW_PTR_ALLOC constexpr allocation_result<_Ty*> allocate_at_least(\n        _CRT_GUARDOVERFLOW const size_t _Count) {\n        return {allocate(_Count), _Count};\n    }\n#endif // _HAS_CXX23\n\n#if _HAS_DEPRECATED_ALLOCATOR_MEMBERS\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS _NODISCARD_RAW_PTR_ALLOC __declspec(allocator)\n    _Ty* allocate(_CRT_GUARDOVERFLOW const size_t _Count, const void*) {\n        return allocate(_Count);\n    }\n\n    template <class _Objty, class... _Types>\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS void construct(_Objty* const _Ptr, _Types&&... _Args) {\n        ::new (const_cast<void*>(static_cast<const volatile void*>(_Ptr))) _Objty(_STD forward<_Types>(_Args)...);\n    }\n\n    template <class _Uty>\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS void destroy(_Uty* const _Ptr) {\n        _Ptr->~_Uty();\n    }\n\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS _NODISCARD size_t max_size() const noexcept {\n",
+      "source_excerpt_sha256": "D96439BEBFC0F83E88F940FA8EFE38F6781D95195D3D7DB155D57A26CC00C929",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+        "bytes": 112178,
+        "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+      },
+      "actual_type_identity": "std::allocator<qc::Change> actual default/returned standalone temporary",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "ALLOC_CHAR",
+      "source": "xmemory",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "lines": [
+        931,
+        1016
+      ],
+      "source_excerpt": "_EXPORT_STD template <class _Ty>\nclass allocator {\npublic:\n    static_assert(!is_const_v<_Ty>, \"The C++ Standard forbids containers of const elements \"\n                                    \"because allocator<const T> is ill-formed.\");\n    static_assert(!is_function_v<_Ty>, \"The C++ Standard forbids allocators for function elements \"\n                                       \"because of [allocator.requirements].\");\n    static_assert(!is_reference_v<_Ty>, \"The C++ Standard forbids allocators for reference elements \"\n                                        \"because of [allocator.requirements].\");\n\n    using _From_primary = allocator;\n\n    using value_type = _Ty;\n\n#if _HAS_DEPRECATED_ALLOCATOR_MEMBERS\n    using pointer _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS       = _Ty*;\n    using const_pointer _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS = const _Ty*;\n\n    using reference _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS       = _Ty&;\n    using const_reference _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS = const _Ty&;\n#endif // _HAS_DEPRECATED_ALLOCATOR_MEMBERS\n\n    using size_type       = size_t;\n    using difference_type = ptrdiff_t;\n\n    using propagate_on_container_move_assignment           = true_type;\n    using is_always_equal _CXX20_DEPRECATE_IS_ALWAYS_EQUAL = true_type;\n\n#if _HAS_DEPRECATED_ALLOCATOR_MEMBERS\n    template <class _Other>\n    struct _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS rebind {\n        using other = allocator<_Other>;\n    };\n\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS _NODISCARD _Ty* address(_Ty& _Val) const noexcept {\n        return _STD addressof(_Val);\n    }\n\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS _NODISCARD const _Ty* address(const _Ty& _Val) const noexcept {\n        return _STD addressof(_Val);\n    }\n#endif // _HAS_DEPRECATED_ALLOCATOR_MEMBERS\n\n    constexpr allocator() noexcept {}\n\n    constexpr allocator(const allocator&) noexcept = default;\n    template <class _Other>\n    constexpr allocator(const allocator<_Other>&) noexcept {}\n    _CONSTEXPR20 ~allocator()                           = default;\n    _CONSTEXPR20 allocator& operator=(const allocator&) = default;\n\n    _CONSTEXPR20 void deallocate(_Ty* const _Ptr, const size_t _Count) noexcept /* strengthened */ {\n        _STL_ASSERT(_Ptr != nullptr || _Count == 0, \"null pointer cannot point to a block of non-zero size\");\n        // no overflow check on the following multiply; we assume _Allocate did that check\n        _STD _Deallocate<_New_alignof<_Ty>>(_Ptr, sizeof(_Ty) * _Count);\n    }\n\n    _NODISCARD_RAW_PTR_ALLOC _CONSTEXPR20 __declspec(allocator) _Ty* allocate(_CRT_GUARDOVERFLOW const size_t _Count) {\n        static_assert(sizeof(value_type) > 0, \"value_type must be complete before calling allocate.\");\n        return static_cast<_Ty*>(_STD _Allocate<_New_alignof<_Ty>>(_Get_size_of_n<sizeof(_Ty)>(_Count)));\n    }\n\n#if _HAS_CXX23\n    _NODISCARD_RAW_PTR_ALLOC constexpr allocation_result<_Ty*> allocate_at_least(\n        _CRT_GUARDOVERFLOW const size_t _Count) {\n        return {allocate(_Count), _Count};\n    }\n#endif // _HAS_CXX23\n\n#if _HAS_DEPRECATED_ALLOCATOR_MEMBERS\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS _NODISCARD_RAW_PTR_ALLOC __declspec(allocator)\n    _Ty* allocate(_CRT_GUARDOVERFLOW const size_t _Count, const void*) {\n        return allocate(_Count);\n    }\n\n    template <class _Objty, class... _Types>\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS void construct(_Objty* const _Ptr, _Types&&... _Args) {\n        ::new (const_cast<void*>(static_cast<const volatile void*>(_Ptr))) _Objty(_STD forward<_Types>(_Args)...);\n    }\n\n    template <class _Uty>\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS void destroy(_Uty* const _Ptr) {\n        _Ptr->~_Uty();\n    }\n\n    _CXX17_DEPRECATE_OLD_ALLOCATOR_MEMBERS _NODISCARD size_t max_size() const noexcept {\n",
+      "source_excerpt_sha256": "D96439BEBFC0F83E88F940FA8EFE38F6781D95195D3D7DB155D57A26CC00C929",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+        "bytes": 112178,
+        "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+      },
+      "actual_type_identity": "std::allocator<char> actual returned standalone temporary",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "L_APPEND",
+      "source": "xstring",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xstring",
+      "lines": [
+        1524,
+        1529
+      ],
+      "source_excerpt": "            [](_Elem* const _New_ptr, const _Elem* const _Old_ptr, const size_type _Old_size, const _Elem* const _Ptr,\n                const size_type _Count) _STATIC_LAMBDA {\n                _Traits::copy(_New_ptr, _Old_ptr, _Old_size);\n                _Traits::copy(_New_ptr + _Old_size, _Ptr, _Count);\n                _Traits::assign(_New_ptr[_Old_size + _Count], _Elem());\n            },\n",
+      "source_excerpt_sha256": "91EC0DDF1076DB519DD33B2B5C1462A04E4A0AD5D4C0A5C932EE1BC1304C7970",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xstring",
+        "bytes": 161127,
+        "sha256": "9407C290A1D0C6BEBC42CF131BD04F09A9892F61B713EECB12827C0F6BBC3045"
+      },
+      "actual_type_identity": "Exact closure expression inside selected basic_string<char> append specialization; Fn directly initialized",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "EXDATA",
+      "source": "vcruntime_exception.h",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_exception.h",
+      "lines": [
+        27,
+        31
+      ],
+      "source_excerpt": "struct __std_exception_data\n{\n    char const* _What;\n    bool        _DoFree;\n};\n",
+      "source_excerpt_sha256": "078C615F5839429B556E2D3A50C753F2E775A509E65922FFD298E4DE76718CA9",
+      "primary_pin": {
+        "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_exception.h",
+        "bytes": 3143,
+        "sha256": "0DD3DCC67B655FBFC96708F131C9E7F86416D2DB95FD33B1E7ACC8489F2C32D4"
+      },
+      "actual_type_identity": "Actual __std_exception_data _InitData; pointer/bool fields do not infer padding or aggregate size",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "TempoMapView",
+      "source": "TIME",
+      "path": "src/engine/Time.h",
+      "lines": [
+        350,
+        356
+      ],
+      "source_excerpt": "struct TempoMapView\n{\n    const TempoChange* changes = nullptr;\n    std::size_t        count = 0;\n\n    constexpr bool empty() const noexcept { return count == 0; }\n};\n",
+      "source_excerpt_sha256": "86C40E728340CE2FDA58B6F05D4645206FEA436CD73B8EAF1E2989E4427DDBD7",
+      "primary_pin": {
+        "path": "src/engine/Time.h",
+        "bytes": 49489,
+        "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+      },
+      "actual_type_identity": "Actual by-value TempoMapView formal; changes pointer/count fields stay inside that object",
+      "capture_source_fields": null,
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_work_action",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        240,
+        240
+      ],
+      "source_excerpt": " const auto reviewed=workLimit();reservationGate(totalWork,reviewed);expect(\"work-one-below\",[&]{reservationGate(totalWork,totalWork-1);},\"WHOLE_STAGE_WORK_RESERVATION\",{totalWork,totalWork-1,reviewed});\n",
+      "source_excerpt_sha256": "7A8B6446FC5A49C6A82BCC967B40342B9E999632B3E4851445A942B470B8D291",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'totalWork', 'exact_source_type': 'std::uint64_t', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "totalWork",
+          "exact_source_type": "std::uint64_t",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_carry_action",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        241,
+        241
+      ],
+      "source_excerpt": " const auto n=std::numeric_limits<std::uint64_t>::max()-1,d=std::numeric_limits<std::uint64_t>::max();const auto independent=independentFraction(n,d),original=qc::fractionBounds(n,d);gate(bits(independent.first)==bits(original.first)&&bits(independent.second)==bits(original.second)&&independent.second==1,\"CARRY_CONTROL_REACHED\");const auto normalized=highEndpoint(S,independent.second);endpointGate(normalized,{S+1,0});expect(\"fraction-carry\",[&]{endpointGate({S,independent.second},normalized);},\"EXACT_NORMALIZED_FRACTION_ENDPOINT\",{S,bits(independent.second),S+1,0});\n",
+      "source_excerpt_sha256": "AC1031A6E2905F8FF86C6EC89B4F065F6BA1B91304CEE95E880F57ECB180D7A2",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'independent', 'exact_source_type': 'const std::pair<double,double>', 'mode': 'reference'}, {'name': 'normalized', 'exact_source_type': 'const qc::Native', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "independent",
+          "exact_source_type": "const std::pair<double,double>",
+          "mode": "reference"
+        },
+        {
+          "name": "normalized",
+          "exact_source_type": "const qc::Native",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_invalid_native_action",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        242,
+        242
+      ],
+      "source_excerpt": " const auto production=buildProduction(48000,5);gate(bits(productionFrame(production,normalized))==bits(productionFrame(production,{S+1,0})),\"CARRY_ACTUAL_PRODUCTION_BASELINE\");expect(\"fraction-carry-native-read\",[&]{productionFrame(production,{S,independent.second});},\"ACTUAL_PRODUCTION_FORWARD\",{std::uint64_t(yesdaw::engine::TimeLookupStatus::InvalidInput),S,bits(independent.second)});\n",
+      "source_excerpt_sha256": "8F6B07927A930975567C925257BC7D6FD13D190394ED44502FE9A3FBA29FDD72",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'production', 'exact_source_type': 'const Production', 'mode': 'reference'}, {'name': 'independent', 'exact_source_type': 'const std::pair<double,double>', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "production",
+          "exact_source_type": "const Production",
+          "mode": "reference"
+        },
+        {
+          "name": "independent",
+          "exact_source_type": "const std::pair<double,double>",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_get",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        251,
+        251
+      ],
+      "source_excerpt": "   const auto get=[&](std::uint64_t i){return verify?cut(production,fractions,i):cut(generator,fractions,i);};const auto a=get(0),z=get(N);gate(z.floor>a.floor&&z.floor-a.floor<=std::int64_t(20*R),\"CLOCK_DURATION_PROFILE\");const Bounds b{R,N,std::uint64_t(int(double(float(R))*0.12)),map,a,z,z.floor-a.floor};Picks picks(R,N,b.W);const auto stem=\"r\"+number(R)+\"-map\"+number(std::uint64_t(map));Stream q(path(root,\"references/clock/\"+stem+\"-q.bin\"),!verify,8*(N+1));std::int64_t prior=-1;\n",
+      "source_excerpt_sha256": "A44A1748A96DAB6E0F88F1A8671A3194BA21C29C547BE5304C1E22B3BE4574F5",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'verify', 'exact_source_type': 'bool', 'mode': 'reference'}, {'name': 'production', 'exact_source_type': 'Production', 'mode': 'reference'}, {'name': 'fractions', 'exact_source_type': 'const FractionCache', 'mode': 'reference'}, {'name': 'generator', 'exact_source_type': 'CachedPort', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "verify",
+          "exact_source_type": "bool",
+          "mode": "reference"
+        },
+        {
+          "name": "production",
+          "exact_source_type": "Production",
+          "mode": "reference"
+        },
+        {
+          "name": "fractions",
+          "exact_source_type": "const FractionCache",
+          "mode": "reference"
+        },
+        {
+          "name": "generator",
+          "exact_source_type": "CachedPort",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_q_action",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        253,
+        253
+      ],
+      "source_excerpt": "    if(verify&&!wordControl){wordGate(actual,expected,i,R,map);expect(\"q-off-by-one\",[&]{wordGate(actual+1,expected,i,R,map);},\"EXACT_Q_WORD\",{std::uint64_t(actual+1),std::uint64_t(expected),i,R,std::uint64_t(map)});\n",
+      "source_excerpt_sha256": "B34EA565B0D1027115D2F4F48BC429312B2F3A003231010568053C443C54AF60",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'actual', 'exact_source_type': 'const std::int64_t', 'mode': 'reference'}, {'name': 'expected', 'exact_source_type': 'const std::int64_t', 'mode': 'reference'}, {'name': 'i', 'exact_source_type': 'std::uint64_t', 'mode': 'reference'}, {'name': 'R', 'exact_source_type': 'const std::uint64_t', 'mode': 'reference'}, {'name': 'map', 'exact_source_type': 'int', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "actual",
+          "exact_source_type": "const std::int64_t",
+          "mode": "reference"
+        },
+        {
+          "name": "expected",
+          "exact_source_type": "const std::int64_t",
+          "mode": "reference"
+        },
+        {
+          "name": "i",
+          "exact_source_type": "std::uint64_t",
+          "mode": "reference"
+        },
+        {
+          "name": "R",
+          "exact_source_type": "const std::uint64_t",
+          "mode": "reference"
+        },
+        {
+          "name": "map",
+          "exact_source_type": "int",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_truncated_action",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        255,
+        255
+      ],
+      "source_excerpt": "     {Stream shortFile(root+\"/../controls/short.bin\",true,7);shortFile.put(owned.data(),7);shortFile.finish(7);}expect(\"truncated-record\",[&]{Stream shortFile(root+\"/../controls/short.bin\",false,8);shortFile.word();},\"EXACT_RECORD_LENGTH_AND_EOF\",{7,1,0});\n",
+      "source_excerpt_sha256": "51E8B7C2514DF2A97CEC9C34FECA2FEC4E1C653974E60EE31BC09131798928B7",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'root', 'exact_source_type': 'const std::string&', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "root",
+          "exact_source_type": "const std::string&",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_trailing_action",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        256,
+        256
+      ],
+      "source_excerpt": "     {Stream extraFile(root+\"/../controls/trailing.bin\",true,9);extraFile.put(owned.data(),9);extraFile.finish(9);}expect(\"trailing-record\",[&]{Stream extraFile(root+\"/../controls/trailing.bin\",false,9);extraFile.word();extraFile.finish(8);},\"EXACT_RECORD_LENGTH_AND_EOF\",{8,8,9});wordControl=true;}}\n",
+      "source_excerpt_sha256": "EA996625EB2A79DADE4B8715F14BD7EF6C39D6D41D428771CEB0941EDC768025",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'root', 'exact_source_type': 'const std::string&', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "root",
+          "exact_source_type": "const std::string&",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_metadata_action",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        257,
+        257
+      ],
+      "source_excerpt": "   q.finish(8*(N+1));gate(picks.next==10,\"ALL_EDGE_BURST_POSITIONS\");const auto text=metadata(b,picks,manifest,false);if(verify){auto actual=readText(path(root,\"references/clock/\"+stem+\"-metadata.json\"),text);if(!metadataControl){gate(actual.size>1,\"METADATA_CONTROL_REACHED\");actual.data[0]='[';expect(\"metadata-corruption\",[&]{textGate(actual,text);},\"EXACT_CLOCK_METADATA\",textWitness(actual,text));metadataControl=true;}}else writeText(path(root,\"references/clock/\"+stem+\"-metadata.json\"),text);\n",
+      "source_excerpt_sha256": "2C4AA697B3805DAC97AE9EF61F33A595AECC4B86DE398EDAF0F34E1B510441AA",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'actual', 'exact_source_type': 'Text', 'mode': 'reference'}, {'name': 'text', 'exact_source_type': 'const Text', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "actual",
+          "exact_source_type": "Text",
+          "mode": "reference"
+        },
+        {
+          "name": "text",
+          "exact_source_type": "const Text",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_prefix_action",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        258,
+        258
+      ],
+      "source_excerpt": "   if(verify&&!prefixControl){std::size_t count=0;auto rows=productionRows(map,count);rows[0].bpm=120;Production mutant;gate(Production::build({rows.data(),count},{double(R)},mutant),\"PREFIX_MUTANT_BUILD\");const double changedA=productionFrame(mutant,{S,0}),changedB=productionFrame(mutant,{S+L,0});auto changed=b;changed.begin=admittedCut(changedA,changedA);changed.end=admittedCut(changedB,changedB);changed.D=changed.end.floor-changed.begin.floor;const auto actual=metadata(changed,picks,manifest,false);expect(\"full-prefix\",[&]{textGate(actual,text);},\"EXACT_CLOCK_METADATA\",textWitness(actual,text));prefixControl=true;}\n",
+      "source_excerpt_sha256": "2904A0C649F6C9E15A56C603A3B1EB19022A613177C5687714B1C5ACDF1779F1",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'actual', 'exact_source_type': 'const Text', 'mode': 'reference'}, {'name': 'text', 'exact_source_type': 'const Text', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "actual",
+          "exact_source_type": "const Text",
+          "mode": "reference"
+        },
+        {
+          "name": "text",
+          "exact_source_type": "const Text",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_ramp_action",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        259,
+        259
+      ],
+      "source_excerpt": "   if(verify&&map==5&&!rampControl){std::size_t count=0;auto rows=productionRows(map,count);rows[1].curveToNext=yesdaw::engine::TempoCurve::Jump;Production mutant;gate(Production::build({rows.data(),count},{double(R)},mutant),\"RAMP_MUTANT_BUILD\");const auto changed=std::int64_t(std::floor(productionFrame(mutant,{S+L,0})))-a.floor;expect(\"ramp-law\",[&]{wordGate(changed,b.D,N,R,map);},\"EXACT_Q_WORD\",{std::uint64_t(changed),std::uint64_t(b.D),N,R,std::uint64_t(map)});rampControl=true;}\n",
+      "source_excerpt_sha256": "1A66C38BA342C8ECBEAB8FDA94F73C4ECA4CB8F43563F4451EC641ACF981C1E1",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'changed', 'exact_source_type': 'const std::int64_t', 'mode': 'reference'}, {'name': 'b', 'exact_source_type': 'const Bounds', 'mode': 'reference'}, {'name': 'N', 'exact_source_type': 'const std::uint64_t', 'mode': 'reference'}, {'name': 'R', 'exact_source_type': 'const std::uint64_t', 'mode': 'reference'}, {'name': 'map', 'exact_source_type': 'int', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "changed",
+          "exact_source_type": "const std::int64_t",
+          "mode": "reference"
+        },
+        {
+          "name": "b",
+          "exact_source_type": "const Bounds",
+          "mode": "reference"
+        },
+        {
+          "name": "N",
+          "exact_source_type": "const std::uint64_t",
+          "mode": "reference"
+        },
+        {
+          "name": "R",
+          "exact_source_type": "const std::uint64_t",
+          "mode": "reference"
+        },
+        {
+          "name": "map",
+          "exact_source_type": "int",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_inverse_whole_action",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        264,
+        264
+      ],
+      "source_excerpt": "      if(!inverseControl){auto corrupt=actual;++corrupt.whole;expect(\"inverse-whole\",[&]{inverseGate(corrupt,expected,std::uint64_t(j));},\"EXACT_INVERSE_NATIVE_BITS\",{std::uint64_t(corrupt.whole),bits(corrupt.frac),std::uint64_t(expected.tick),bits(expected.frac),std::uint64_t(j)});corrupt=actual;corrupt.frac=std::bit_cast<double>(bits(corrupt.frac)^1);expect(\"inverse-fraction\",[&]{inverseGate(corrupt,expected,std::uint64_t(j));},\"EXACT_INVERSE_NATIVE_BITS\",{std::uint64_t(corrupt.whole),bits(corrupt.frac),std::uint64_t(expected.tick),bits(expected.frac),std::uint64_t(j)});inverseControl=true;}}\n",
+      "source_excerpt_sha256": "7755F4F7E29A39F4E4955837A204867C3010782C8947C76A03D89F0A18764526",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'corrupt', 'exact_source_type': 'qc::Native', 'mode': 'reference'}, {'name': 'expected', 'exact_source_type': 'yesdaw::engine::MusicalTime', 'mode': 'reference'}, {'name': 'j', 'exact_source_type': 'std::int64_t', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "corrupt",
+          "exact_source_type": "qc::Native",
+          "mode": "reference"
+        },
+        {
+          "name": "expected",
+          "exact_source_type": "yesdaw::engine::MusicalTime",
+          "mode": "reference"
+        },
+        {
+          "name": "j",
+          "exact_source_type": "std::int64_t",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_inverse_fraction_action",
+      "source": "CPP",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "lines": [
+        264,
+        264
+      ],
+      "source_excerpt": "      if(!inverseControl){auto corrupt=actual;++corrupt.whole;expect(\"inverse-whole\",[&]{inverseGate(corrupt,expected,std::uint64_t(j));},\"EXACT_INVERSE_NATIVE_BITS\",{std::uint64_t(corrupt.whole),bits(corrupt.frac),std::uint64_t(expected.tick),bits(expected.frac),std::uint64_t(j)});corrupt=actual;corrupt.frac=std::bit_cast<double>(bits(corrupt.frac)^1);expect(\"inverse-fraction\",[&]{inverseGate(corrupt,expected,std::uint64_t(j));},\"EXACT_INVERSE_NATIVE_BITS\",{std::uint64_t(corrupt.whole),bits(corrupt.frac),std::uint64_t(expected.tick),bits(expected.frac),std::uint64_t(j)});inverseControl=true;}}\n",
+      "source_excerpt_sha256": "7755F4F7E29A39F4E4955837A204867C3010782C8947C76A03D89F0A18764526",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+        "bytes": 34958,
+        "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 1; captures [{'name': 'corrupt', 'exact_source_type': 'qc::Native', 'mode': 'reference'}, {'name': 'expected', 'exact_source_type': 'yesdaw::engine::MusicalTime', 'mode': 'reference'}, {'name': 'j', 'exact_source_type': 'std::int64_t', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "corrupt",
+          "exact_source_type": "qc::Native",
+          "mode": "reference"
+        },
+        {
+          "name": "expected",
+          "exact_source_type": "yesdaw::engine::MusicalTime",
+          "mode": "reference"
+        },
+        {
+          "name": "j",
+          "exact_source_type": "std::int64_t",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_nextBit",
+      "source": "QC",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "lines": [
+        64,
+        64
+      ],
+      "source_excerpt": "    const auto nextBit=[&]() {\n",
+      "source_excerpt_sha256": "11504B7B5B052CA449550D4EFD8285D0E742932FC7857DCFC37689685CA6DC2D",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+        "bytes": 9187,
+        "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures [{'name': 'rem', 'exact_source_type': 'std::uint64_t', 'mode': 'reference'}, {'name': 'denominator', 'exact_source_type': 'std::uint64_t', 'mode': 'reference'}]",
+      "capture_source_fields": [
+        {
+          "name": "rem",
+          "exact_source_type": "std::uint64_t",
+          "mode": "reference"
+        },
+        {
+          "name": "denominator",
+          "exact_source_type": "std::uint64_t",
+          "mode": "reference"
+        }
+      ],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_qc_tick_comparator",
+      "source": "QC",
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "lines": [
+        103,
+        103
+      ],
+      "source_excerpt": "            [](Tick value,const Change& c){return value<c.tick;});\n",
+      "source_excerpt_sha256": "7A5ECD89A80AC869CA523B750077FAC89EBFB5E880E4E4D63CBF9B0861490139",
+      "primary_pin": {
+        "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+        "bytes": 9187,
+        "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures []",
+      "capture_source_fields": [],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_time_tick_comparator",
+      "source": "TIME",
+      "path": "src/engine/Time.h",
+      "lines": [
+        652,
+        652
+      ],
+      "source_excerpt": "                              [] (Tick value, const TempoChange& change) noexcept { return value < change.tick; })\n",
+      "source_excerpt_sha256": "7291409CBF99BB99B21878B19BC0114FD975D0FE59C46742997E9ACD041C56B0",
+      "primary_pin": {
+        "path": "src/engine/Time.h",
+        "bytes": 49489,
+        "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures []",
+      "capture_source_fields": [],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    },
+    {
+      "id": "OWN_CLOSURE_time_native_comparator",
+      "source": "TIME",
+      "path": "src/engine/Time.h",
+      "lines": [
+        755,
+        755
+      ],
+      "source_excerpt": "                [] (Tick tick, const TempoChange& change) noexcept { return tick < change.tick; });\n",
+      "source_excerpt_sha256": "99CE772CBCAE427299DFC46274FA7297837E3ACD88D974B824BC62B34443FD16",
+      "primary_pin": {
+        "path": "src/engine/Time.h",
+        "bytes": 49489,
+        "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+      },
+      "actual_type_identity": "Exact actual lambda expression occurrence 0; captures []",
+      "capture_source_fields": [],
+      "sizeof": null,
+      "alignof": null,
+      "repeated_lambda_is_same_type": false,
+      "measurement_performed": false,
+      "source_layout_association": "CONDITIONAL_MISSING_FACT_NOT_A_LAYOUT_PROBE_OR_CLASS_SIZE_PROOF",
+      "rule": "Actual containing layout owns its members once. Standalone objects remain nonzero/unqualified, not empty-base zero. Reference capture representation/padding/ABI is not inferred from capture count."
+    }
+  ],
+  "selected_required_count": 30,
+  "excluded_insert_growth": "L_INSERT never constructed by fixed admitted ingress; no necessary measurement request",
+  "new_purpose_or_execution_authorized": false,
+  "whole_upper": null
+}

@@ -1,0 +1,324 @@
+{
+  "facts": [
+    {
+      "id": "P",
+      "sizeof": 8,
+      "reason": "194-cell pointer.sizeof; ordinary selected raw pointer parameters",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "Z",
+      "sizeof": 8,
+      "reason": "size_t.sizeof",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "DIFF",
+      "sizeof": 8,
+      "reason": "selected x64 ptrdiff_t is signed64; pointer-difference type source+SDK profile, numeric ABI association remains independent",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "D",
+      "sizeof": 8,
+      "reason": "double.sizeof",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "B",
+      "sizeof": 1,
+      "reason": "bool.sizeof",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "CH",
+      "sizeof": 1,
+      "reason": "char.sizeof",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "IL",
+      "sizeof": 16,
+      "reason": "ChangeInitializerList.sizeof",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "ITER",
+      "sizeof": 8,
+      "reason": "actual selected const iterator sizeof cells",
+      "needed_new_fact": false,
+      "type_alias_only": false
+    },
+    {
+      "id": "NUL",
+      "sizeof": null,
+      "reason": "actual nullptr_t reference-bound materialization; no pointer-width guess",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "PRED",
+      "sizeof": null,
+      "reason": "instantiate actual qc/time stateless predicate closure, one at a time",
+      "needed_new_fact": false,
+      "type_alias_only": true
+    },
+    {
+      "id": "LESS",
+      "sizeof": null,
+      "reason": "std::less<void> by-value predicate at upper_bound4",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "EQ",
+      "sizeof": null,
+      "reason": "std::equal_to<void> by-value predicate at equal4",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "FA",
+      "sizeof": null,
+      "reason": "std::_Fake_allocator standalone actual objects",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "FP",
+      "sizeof": null,
+      "reason": "std::_Fake_proxy_ptr_impl standalone proxy",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "TG",
+      "sizeof": null,
+      "reason": "std::_Tidy_guard<std::vector<qc::Change>> actual guard",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "TAG_ZERO",
+      "sizeof": null,
+      "reason": "std::_Zero_then_variadic_args_t by-value compressed-pair formal",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "TAG_ONE",
+      "sizeof": null,
+      "reason": "std::_One_then_variadic_args_t by-value compressed-pair formal",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "TAG_CONCAT",
+      "sizeof": null,
+      "reason": "std::_String_constructor_concat_tag by-value concat formal",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "ALLOC_CHANGE",
+      "sizeof": null,
+      "reason": "std::allocator<qc::Change> default/copy-return temporary",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "ALLOC_CHAR",
+      "sizeof": null,
+      "reason": "std::allocator<char> copy-return temporary",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "L_APPEND",
+      "sizeof": null,
+      "reason": "exact SDK_append_grow closure",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "EXDATA",
+      "sizeof": null,
+      "reason": "::__std_exception_data automatic _InitData at exception message constructor",
+      "needed_new_fact": true,
+      "type_alias_only": false,
+      "alignof": null,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "TempoMapView",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Actual by-value Time::build formal; type missing from194 cells",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_work_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_carry_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_invalid_native_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_get",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_q_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_truncated_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_trailing_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_metadata_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_prefix_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_ramp_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_inverse_whole_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_inverse_fraction_action",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_nextBit",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_qc_tick_comparator",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_time_tick_comparator",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    },
+    {
+      "id": "OWN_CLOSURE_time_native_comparator",
+      "sizeof": null,
+      "alignof": null,
+      "reason": "Exact source expression/capture/body correspondence in closure-incidence.json",
+      "needed_new_fact": true,
+      "necessity_status": "CONDITIONAL_SOURCE_MINIMALITY_PROPOSAL_REQUIRES_FRESH_WHOLE_REVIEW"
+    }
+  ],
+  "existing_layout_cells_used": 194,
+  "new_measurements_performed": false,
+  "minimality": "30 candidate necessary null facts:16 own closures,1 append closure,TempoMapView,nullptr_t,LESS,EQ,2allocator specializations,2fake types,actual vector tidy guard,3tags,EXDATA. L_INSERT excluded. PRED only selects an actual closure/LESS, never another type.",
+  "minimal_required_null_count": 30
+}
