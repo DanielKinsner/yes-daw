@@ -1,0 +1,75 @@
+{
+  "schema": "ROOT_PROTOCOL_R2_REVIEW_INPUT_PINS",
+  "inputs": [
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/0090-clock-research-owned-process-supervisor.md",
+      "bytes": 10546,
+      "sha256": "E41566667441AE6A5B7FEB7A06260B929E4FCE8852FFA66072E4EDCDBF1F3827"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/2026-11-06-clock-supervisor-source-plan.md",
+      "bytes": 8537,
+      "sha256": "80C4350199709565505B6E2E5C3D1B99C91E13F28B0DD32523193C75D617095C"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/protocol-v1.md",
+      "bytes": 43972,
+      "sha256": "BDBAF18070D56605F6B427E063591880FE161720F31D9648E2B2230D6475DDEE"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/protocol-schema.json",
+      "bytes": 17511,
+      "sha256": "2744063FCFCA830B2B1561EFF02D724B003F04EC2D23907E1D872E23C1540638"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/correspondence.json",
+      "bytes": 4526,
+      "sha256": "7EE88C592E2F8571AE564658BD51DBABFCC803F150DCD4551469C2E4245BEDC2"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/source-pins.json",
+      "bytes": 4660,
+      "sha256": "6672E5FC4CBE0FF785E87BE0471F4BF0CD2BC9D461E58F1DD38A9478125B5A2C"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/author-lineage.json",
+      "bytes": 2176,
+      "sha256": "2E5D76123271EDAC48ACCD6C761E7E0721E00DDD1DF68370C135E1A9B06DC5F3"
+    },
+    {
+      "path": "docs/adr/0090-clock-research-owned-process-supervisor.md",
+      "bytes": 9593,
+      "sha256": "697F696166AF1BB47C3CFC4844EF213A8B56D24A4B8371C2497D23C8A0B252EB"
+    },
+    {
+      "path": "docs/plans/2026-11-06-clock-supervisor-source-plan.md",
+      "bytes": 7923,
+      "sha256": "050294B6C025D2131BF222234BEC811FB59666BC3CFE414E286FE5E7B1DC6709"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-architecture-independent-review-r1/review.json",
+      "bytes": 22507,
+      "sha256": "319512FD08A16D03848771AF5750F7C9571A2EEE082B3EE3E9EF7F3F30A883DE"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/hypothesis.json",
+      "bytes": 17979,
+      "sha256": "79F75D9781519941917CA43897512121649E3776406D724971033E6ACB578AF9"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json",
+      "bytes": 30471,
+      "sha256": "01B4289C2F8E521093987C259D15C5DD4BBF2388EFD9E594A90319C9B0BB5EE6"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "bytes": 108428,
+      "sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-independent-review-r2/check-review.py",
+      "bytes": 7886,
+      "sha256": "19F7BC5EAD466DACB44978C9C3772ABF6E5B2AB92FECE582586FA303D76225A0"
+    }
+  ]
+}

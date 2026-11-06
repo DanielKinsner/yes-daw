@@ -1,0 +1,54 @@
+[
+  {
+    "id": "PRESERVED_INPUT_docs/adr/0090-clock-research-owned-process-supervisor.md",
+    "pass": true
+  },
+  {
+    "id": "PRESERVED_INPUT_docs/plans/2026-11-06-clock-supervisor-source-plan.md",
+    "pass": true
+  },
+  {
+    "id": "PRESERVED_INPUT_build-ci/20261106-clock-supervisor-architecture-independent-review-r1/review.json",
+    "pass": true
+  },
+  {
+    "id": "PRESERVED_INPUT_build-ci/20261106-controller-owned-process-hypothesis-r1/hypothesis.json",
+    "pass": true
+  },
+  {
+    "id": "PRESERVED_INPUT_build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json",
+    "pass": true
+  },
+  {
+    "id": "PRESERVED_INPUT_build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+    "pass": true
+  },
+  {
+    "id": "FIVE_FROZEN_FINDINGS",
+    "pass": true
+  },
+  {
+    "id": "UTF8_LF_ADR",
+    "pass": true
+  },
+  {
+    "id": "PRIVATE_PROPOSED_ADR",
+    "pass": true
+  },
+  {
+    "id": "NO_EXECUTION_AUTHORITY_ADR",
+    "pass": true
+  },
+  {
+    "id": "UTF8_LF_PLAN",
+    "pass": true
+  },
+  {
+    "id": "PRIVATE_PROPOSED_PLAN",
+    "pass": true
+  },
+  {
+    "id": "NO_EXECUTION_AUTHORITY_PLAN",
+    "pass": false
+  }
+]

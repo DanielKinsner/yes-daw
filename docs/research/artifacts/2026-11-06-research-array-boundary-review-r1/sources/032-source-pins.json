@@ -1,0 +1,174 @@
+{
+  "purpose": "independent application review of existing research array/cmdlet boundary only",
+  "files": [
+    {
+      "path": "build-ci/20261106-research-array-boundary-independent-review-r1/review.md",
+      "bytes": 10268,
+      "sha256": "585F6BA1C7FC661429C7A2DD9CBB61DF385665510F08E3398492EFF1742E4691"
+    },
+    {
+      "path": "build-ci/20261106-research-array-boundary-independent-review-r1/review.json",
+      "bytes": 46411,
+      "sha256": "B34580517BAFAA2DD5DAE4ED03A28C725D093A1CC9ADB9A8C3A47DFBFE12A550"
+    },
+    {
+      "path": "build-ci/20261106-research-array-boundary-independent-review-r1/check.py",
+      "bytes": 8183,
+      "sha256": "4B4CFEC008A5A0A9BD58DDCA3457037879885FDE9DF0DE12304B203C02FE0C49"
+    },
+    {
+      "path": "build-ci/20261106-research-array-boundary-independent-review-r1/own-check-receipt.json",
+      "bytes": 509,
+      "sha256": "C9A71111CFF6EB451EAD2AD13FCBF1A241935F273B21C4847685D85E9A99AA91"
+    },
+    {
+      "path": "build-ci/20261106-research-array-boundary-independent-review-r1/first-green-freeze.json",
+      "bytes": 999,
+      "sha256": "6FF1575B211AACFF0744E3A15F8842E6B1C40A8AD83487C6E846451BF7EED2CE"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "build-ci/20261106-research-array-cmdlet-boundary-clarifier-r1.md",
+      "bytes": 2757,
+      "sha256": "0A98D4889BE641CD427AA10DFFA648F0806DAAE7302083FBFA8347454E09E661"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-leaf-census-conventions.md",
+      "bytes": 1746,
+      "sha256": "DE33D91712372C2FE887A02FB137AA9A96C8C3BB93CB0D88BF57AA32DBEAE564"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-bulk-leaf-clarification.md",
+      "bytes": 2153,
+      "sha256": "268597D1F066779CE76DACFDBBC384FC452DC6B9AD319419F52DE597242BB3E8"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/source-origins.json",
+      "bytes": 276057,
+      "sha256": "5314810ED0AF072A0103248367FAF8A42E51D3C1835242D2D40309771D06DA68"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/parser/Compiler.cs",
+      "bytes": 341878,
+      "sha256": "C5DED9509B65F2CD81B1D5B11F8915A220B32BE038599FC7008BA235563B95DC"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/runtime/Binding/Binders.cs",
+      "bytes": 389899,
+      "sha256": "CCA6BC97C2CDC16FDC1EB612FABCCCEA919629BC4C04F952C00A458FF7C9F6AC"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/LanguagePrimitives.cs",
+      "bytes": 291050,
+      "sha256": "284B0FAD37EF182C51566E8135B20E4C27464B1EE9352A1786E7DC76C3089711"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/ParameterBinderBase.cs",
+      "bytes": 94857,
+      "sha256": "D44A8B39133E8B3C38835DAD7B22861F5B56A2F01F4FA853278E9FFC1E5BBE70"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/ConvertToJsonCommand.cs",
+      "bytes": 5210,
+      "sha256": "110FB32101AA117D90F9DCF95037B5B6C16E4F7C55A593FA066034D77F964723"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/ConvertFromJsonCommand.cs",
+      "bytes": 5180,
+      "sha256": "A96F19EE7FEB6CB45CF1ED547A036B909EBD0362B57EB556D4982FE9E142B37A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/Compiler.cs",
+      "bytes": 341878,
+      "sha256": "C5DED9509B65F2CD81B1D5B11F8915A220B32BE038599FC7008BA235563B95DC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/primary-sources/Binders.cs",
+      "bytes": 389899,
+      "sha256": "CCA6BC97C2CDC16FDC1EB612FABCCCEA919629BC4C04F952C00A458FF7C9F6AC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/primary-sources/LanguagePrimitives.cs",
+      "bytes": 291050,
+      "sha256": "284B0FAD37EF182C51566E8135B20E4C27464B1EE9352A1786E7DC76C3089711"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "bytes": 143375,
+      "sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7"
+    },
+    {
+      "path": "build-ci/20261106-research-array-boundary-independent-review-r1/review.md",
+      "bytes": 10268,
+      "sha256": "585F6BA1C7FC661429C7A2DD9CBB61DF385665510F08E3398492EFF1742E4691"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/source-pins.json",
+      "bytes": 4342,
+      "sha256": "D665AF77E103BDFE8F2D12D81D04F9E90C3C95A430343E673AC0D8F3597C8E4A"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/derive.py",
+      "bytes": 17132,
+      "sha256": "972FED59EC971485B2E3FABE100485B7C703E1995089B903E21B2F56DA1698EA"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/argument.md",
+      "bytes": 12341,
+      "sha256": "800AD9E0F558A7B8B27D0235533642F0925BA60F207A39E1FC586C871C5532D1"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/owners.json",
+      "bytes": 33532,
+      "sha256": "73B9A2C4F0BACC420EA86E87F1BB7EC46098E9CB5806DD2D4B53EC97C514FDBE"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/own-check-receipt.json",
+      "bytes": 492,
+      "sha256": "4F71D625D2F44D6DCFD95D86D336DA562FB29AF64F7C9E7FCE59E0076E4D6FDE"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/first-green-freeze.json",
+      "bytes": 1029,
+      "sha256": "AF60891D04E89790C8E3178482738518C5C174F5F886CC30D798C933B4945ECC"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/source-pins.json",
+      "bytes": 6550,
+      "sha256": "5F274105BB68DB2F0FFDCE4E7C13D5CA190C60032795C5ABBD750A971CAAE182"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.md",
+      "bytes": 13383,
+      "sha256": "D5E405FCFC94E2E1B9C6936532362592B6F91ADAD2A9DB7DD065F38416D3B44B"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.json",
+      "bytes": 16931,
+      "sha256": "C76A0FF1289E7B9EC094A7AF77D95372BA90736028640133FE6313F40F42DF1C"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/check.py",
+      "bytes": 6746,
+      "sha256": "D2D6FC0615968C6187164A16CBCA38143B26A37BCD36C2F963A5582C8EDCAFA3"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/own-check-receipt.json",
+      "bytes": 486,
+      "sha256": "877858AC4FBA76E49D6E0C78D08DA8B4D283E86FCD94B3AC1622D5ADFFB39CC7"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/first-green-freeze.json",
+      "bytes": 958,
+      "sha256": "003CA6EC592361FAEDDBC619FA3A95929CA7CD7B4B9CCB6B67CEB69CF54D06A2"
+    }
+  ],
+  "prior_frozen_packets_unchanged": true,
+  "no_new_contract_model_prices_or_authority": true
+}

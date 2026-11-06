@@ -1,0 +1,10 @@
+{
+  "purpose": "OWN_SOURCE_BOUNDARY_TEXT_HASH_JSON_CHECK_ONLY",
+  "command": "python build-ci/20261106-clock-native-resource-boundary-audit-r1/check.py",
+  "actual_exit_code": 0,
+  "tool_wall_time_seconds": 0.126834,
+  "checks": 47,
+  "no_target_compiler_native_or_previous_checker_execution": true,
+  "verdict": "APPLY_EXISTING_CONTROLLED_SOURCE_BOUNDARY_WITH_NARROW_UNCERTAIN_SUBCASES_HOLD",
+  "audit_json_sha256": "C76A0FF1289E7B9EC094A7AF77D95372BA90736028640133FE6313F40F42DF1C"
+}

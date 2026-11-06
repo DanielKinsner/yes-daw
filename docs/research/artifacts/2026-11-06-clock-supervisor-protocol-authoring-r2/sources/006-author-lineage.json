@@ -1,0 +1,42 @@
+{
+  "schema": "PRIVATE_R2_AUTHORING_CHECK_LINEAGE",
+  "checker_invocations": 2,
+  "first_complete_passing_invocation": 2,
+  "checks_passed": 140,
+  "initial_failure": "Case-sensitive own no-authority phrase matcher stopped before any generated report/schema/pins; all three document snapshots and failed helper/checks preserved",
+  "own_checker_correction": "Case-insensitive no-authority phrase matching, explicit cleanupMask offset phrase and flags-section-only table selection; no protocol document changed between these checker attempts",
+  "documents_byte_identical_to_initial_snapshot": {
+    "0090-clock-research-owned-process-supervisor.md": true,
+    "2026-11-06-clock-supervisor-source-plan.md": true,
+    "protocol-v1.md": true
+  },
+  "frozen_source_pins_sha256": "6672E5FC4CBE0FF785E87BE0471F4BF0CD2BC9D461E58F1DD38A9478125B5A2C",
+  "preserved_failure_files": [
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/evidence/own-check-attempt-r1/author-check.py",
+      "bytes": 20252,
+      "sha256": "9F20CEFD4F41184CC8C1EA322C15998ED1AF381B13F6B2B894C633E0BC6E65F6"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/evidence/own-check-attempt-r1/failed-author-checks.json",
+      "bytes": 1221,
+      "sha256": "4DEBB098BAF38469F6A8DCC91482FE515E95CBF2427877D176C8AFD8DDE84611"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/evidence/own-check-attempt-r1/0090-clock-research-owned-process-supervisor.md",
+      "bytes": 10546,
+      "sha256": "E41566667441AE6A5B7FEB7A06260B929E4FCE8852FFA66072E4EDCDBF1F3827"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/evidence/own-check-attempt-r1/2026-11-06-clock-supervisor-source-plan.md",
+      "bytes": 8537,
+      "sha256": "80C4350199709565505B6E2E5C3D1B99C91E13F28B0DD32523193C75D617095C"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/evidence/own-check-attempt-r1/protocol-v1.md",
+      "bytes": 43972,
+      "sha256": "BDBAF18070D56605F6B427E063591880FE161720F31D9648E2B2230D6475DDEE"
+    }
+  ],
+  "no_target_source_or_execution": true
+}

@@ -1,0 +1,26 @@
+{
+  "boundary": "FIRST_COMPLETE_OWN_CHECK_EXIT0_WHOLE_REVIEW_CHECKER_OUTPUT_FROZEN",
+  "files": [
+    {
+      "path": "build-ci/20261106-research-array-boundary-independent-review-r1/review.md",
+      "bytes": 10268,
+      "sha256": "585F6BA1C7FC661429C7A2DD9CBB61DF385665510F08E3398492EFF1742E4691"
+    },
+    {
+      "path": "build-ci/20261106-research-array-boundary-independent-review-r1/review.json",
+      "bytes": 46411,
+      "sha256": "B34580517BAFAA2DD5DAE4ED03A28C725D093A1CC9ADB9A8C3A47DFBFE12A550"
+    },
+    {
+      "path": "build-ci/20261106-research-array-boundary-independent-review-r1/check.py",
+      "bytes": 8183,
+      "sha256": "4B4CFEC008A5A0A9BD58DDCA3457037879885FDE9DF0DE12304B203C02FE0C49"
+    },
+    {
+      "path": "build-ci/20261106-research-array-boundary-independent-review-r1/own-check-receipt.json",
+      "bytes": 509,
+      "sha256": "C9A71111CFF6EB451EAD2AD13FCBF1A241935F273B21C4847685D85E9A99AA91"
+    }
+  ],
+  "no_row_whole_price_resource_fit_or_GO": true
+}

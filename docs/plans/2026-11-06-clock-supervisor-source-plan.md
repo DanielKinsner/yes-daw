@@ -1,128 +1,43 @@
-# Clock-research supervisor: proposed source delivery
+# Clock supervisor source delivery — accepted architecture R2
 
-Proposed under ADR-0090. The existing R12/R13 source, catalogues, gates and
-evidence remain frozen. Root controls tracked edits, one heavy lane and all
-execution authority. Nothing below is implemented, compiled or run.
+This implements the accepted architecture in [ADR-0090](../adr/0090-clock-research-owned-process-supervisor.md) and [the normative protocol](../research/clock-supervisor-protocol-v1.md). Root independent whole review passed115 checks. Only unrun source authoring is authorized; no source price, fit, compiler, helper, fixture or Clock execution gate is accepted. Proposed R1/R2 subjects and their reviews, R12/R13, catalogues and prior evidence remain frozen. Root owns commits, one heavy lane and every later execution decision.
 
-## 1. Accept the decision and exact protocol
+## 1. Architecture accepted; only source authoring authorized
 
-Fresh critic reviews the complete ADR, this plan and the source-options packet
-at `build-ci/20261106-controller-owned-process-hypothesis-r1`. Resolve every
-architecture/format ambiguity before accepting ADR-0090 or dependent code.
+Fresh independent root review accepted the whole ADR, protocol and this plan, including every F1–F5 correction. The exact reviewed inputs,115 checks and substantive whole review are archived in `docs/research/artifacts/2026-11-06-clock-supervisor-protocol-review-r2/`. The protocol is complete here:140/41,260/18,644 request extents;308-byte terminal;28 flags; five helper exits; exact status/site/reason/counter/cleanup/parent matrices; raw command line and identity bytes; both environments and NUL stdin; prefix-cut/tail accounting. No grammar, unavailable value or post-snapshot success rule is left for an implementer to invent.
 
-Request magic/version/header/string sequence and the derived41,252-byte bound
-are defined in the ADR. Inputs retain exactly28/6 arguments, eight named
-environment values and existing string guards; no arbitrary extension fields.
-The source-work reservation is a reviewed same-origin runner slice, not a new
-allowance, reset or substitute for the independent whole census. Failure before
-source-counter observation retains that reservation and reports unknown usage.
+Architecture acceptance establishes the design/funding strategy and records remaining native premises. It does not pretend the final source census, ABI or runtime proof exists. Root explicitly authorizes a new complete unrun helper/runner/manifest candidate, source-only checks and proposals under sections2–3. Target parser/AST/import, compilation and helper/fixture/Clock execution remain unauthorized pending their separate gates.
 
-Terminal is exactly224 bytes, with the ADR's explicit little-endian field order.
-Bits0..9 mean, respectively: child created; raw exit observed; stdout worker
-settled; stderr worker settled; stdout EOF; stderr EOF; current job-empty
-observed; stdout final-position observation; stderr final-position observation;
-source-counter observation. Bits10/11 mean primary native error observed and
-first secondary native error observed. All other bits are invalid. A numeric zero with its
-observation bit clear is unavailable, not a successful observation.
+## 2. Prepare a new complete source-only successor
 
-Status codes:0 settled target success;1 settled target nonzero;2 pre-execution
-refusal;3 body failure;4 cleanup unknown/quarantine. Primary-site codes are0 none,
-1 request,2 containment,3 spawn,4 read,5 stage admission,6 write,7 deadline,
-8 target exit,9 worker settlement,10 job settlement and11 terminal publication.
-A semantic refusal uses its site and leaves the native-error observation bit
-clear; never read stale GetLastError or invent an API error. Native errors are
-captured immediately at the documented failing API.
-Secondary count saturates; retain first secondary Win32 error separately from
-the first primary. Preserve existing controller primary/secondary semantics.
+After that authorization, create a new private helper and runner revision with source/manifest/protocol correspondence; never patch R13 or define its Data. Preserve the target C++/header/control IDs/arguments/environment values and original target PE/binary/input fences unless separately reviewed. Add actual helper source/binary and six transport paths/one directory to the newly recomputed union/namespace/retained profile; no old canonical-union geometry, source prices or fit transfers.
 
-Per-pipe observed counts bytes delivered by settled reads, once. Written counts
-confirmed successful write progress. Omitted counts the observed subset refused
-before writing by a cap/guard. Unretained counts observed bytes without confirmed
-successful writes, including omitted bytes. Thus written+unretained=observed
-when those observations are exact, and omitted<=unretained. A failed write makes
-position/physical progress unknown unless the final owned-handle position query
-establishes it; do not manufacture a partial-write value. Preserve that distinction
-in the parent diagnostic projection and raw retained files.
+Implement protocol fields with explicit LE accesses and checked subtraction-first bounds, never packed C++ structure I/O. Implement the2,576-cell raw command-line parser,140-byte header and bounded capture/UTF16/EOF validation, exact current run SHA recipe and field-specific predecessor guards. Parent helper environment is explicitly the same eight expanded values, without inheritance; helper never reads ambient stdin/environment or writes stdout/stderr. Target gets the new counted NUL read handle and the explicit sorted UTF16 environment block. Freeze exact native target ArgumentList-equivalent quoting source and entry/CRT/import strategy for critic review.
 
-Request-path transport uses one source-bounded argument containing hex-encoded
-UTF16 request-path cells, at most512 units. Specify/review exact executable
-quoting, argument prefix, hex/NUL/EOF rules and the bounded direct command-line
-parser before code; do not use arbitrary native argv or environment discovery.
-All request/terminal files use fixed per-child names in the new owned transport
-directory, exact EOF, current three identities and no-overwrite creation. Their
-bytes and first-failure tails enter the existing namespace/retained/scratch sums.
+Before target execution, establish all current input/helper/target identities/fences, request binding and storage/source reservations; configure the private nonbreakaway job and exact inherited stdio list. Creation-time membership/creator-death and nested-profile semantics need supported evidence. Missing proof remains HOLD. A manual assignment window is not silently substituted, and a failed API cannot erase partially returned owners. Target starts suspended, workers become ready, then the protocol marks possible execution before resume. No shell, GUI/input/audio/MIDI startup or error-dialog premise is invented.
 
-## 2. Prepare a complete source-only successor
+Use two source-owned fixed buffers and the exact reading/ready/acknowledgement/Stop state machine. Full, EOF-short, logical zero EOF, errored partial and unconsumed cleanup results follow protocol section7; every logical result is accounted once. The coordinator alone performs complete current stage scan/check/write, including each short-write continuation, and captures separate confirmed increments versus actual position observations. It never infers progress from an undefined failed-API output.
 
-Write a new private supervisor and new runner revision; never patch R13 or define
-its Data. All proposed helper and target execution guards start false. C++/Win32
-code, entry/CRT strategy, imports, stacks, buffers, handles and every I/O and
-failure owner require source correspondence. Do not suppress warnings, change
-real-time annotations or credit guessed native allocation/free behavior.
+Preserve target1800s elapsed and7200-poll admission with250ms rate-bound iterations and explicit timeout-versus-poll ordering. Keep parent helper polling/watchdog work separately funded; host-budget abort is unknown/quarantine, not a target deadline flag or input-domain reduction. All source loop/call progress, refusal and native-time premises must be recorded before execution.
 
-Before target creation: same input/binary/fence checks, bounded request decode,
-all owned storage/reservations, configured private job and exact handle-list
-admission. Creation-time job membership/profile must have a supported proof;
-unproved creator-death/native semantics remain HOLD, never an atomicity claim.
-No inherited job handle or breakaway. If unsupported, never resume an uncontained
-target. Preserve every returned failure and reached ownership state.
+The static mandatory tail includes both bounded2000ms cleanup groups, synchronization/cancellation/target/job/worker settlement, read accounting, flush/positions, safe releases, terminal construction/checks/short writes/publication/close/exit and late failures. BeginTail atomically closes/fixes prefix admission under the one counted meter state; all later work is tail, not falsely observed prefix usage. Copy actual raw target exit before releasing its required references. Preserve pending buffers through any unobserved settlement and the reviewed nonreturning quarantine boundary. Publication once and observed helper exit are separate; no self-certifying terminal status.
 
-Use two private synchronous read workers, each with one4096-byte buffer and an
-owned ready/acknowledgement protocol. The coordinator alone scans the complete
-stage, checks names/reparse/first-refusal/aggregate and appends, matching the
-existing shared1MiB and64MiB caps before each write. It acknowledges only after
-all uses of the buffer end. Neither a short read nor process exit alone is EOF.
-Derive full/short/zero/error progress counts; do not assume quiet child output.
+The parent implements the full fixed-length/EOF/current-identity/flag/status/reason/counter admission and child-row projection. It bit-reinterprets signed32 exit values, retains independently valid facts on late failure, applies the bounded cleanup-mask mapping and preserves first controller primary/secondary slots and after-fence ordering. Unknown values are explicit nulls, raw terminal bytes never enter JSON, and child-result parsing runs only after committed status0. All new codec/container/carrier/cleanup-mask owner extents receive preflight and fresh pricing.
 
-Preserve1800s body/poll admission and bounded cleanup semantics, accounting
-supervisor and parent loops separately. Cancellation never frees pending I/O.
-Observe/copy target raw exit before releasing target handles. Job accounting
-requires a documented current proof; account for references retained by process
-and thread handles, and do not wait on a job as a generic all-exit event.
+Implement the narrow bootstrap ProcessPath/prefix/null/exact-host successor only under its stated profile, with whole correspondence and fresh path/resource counts. The baseline MainModule term is not retroactively removed.
 
-Publish terminal only after the relevant outcomes are observed and its exact
-fields/flags/counter invariants hold. Parent admission requires exact identity,
-length/version/EOF/status and cross-field checks; status0 additionally requires
-every success observation. Missing/partial terminal or abnormal helper exit
-retains unknown/quarantine and forbids another child. Last-job-handle close is
-not a settlement certificate or resource refund.
+## 3. Freeze and obtain whole source/census/resource review
 
-Replace bootstrap MainModule only with a reviewed ProcessPath/prefix/null/host
-correspondence under the exact fresh-launch path profile. Keep that narrow source
-change explicit in whole functional and resource reviews.
+Preserve failed author/check attempts and freeze all complete helper/runner/oracle sources at first passing own checks. One independent functional review covers the WHOLE runner/helper/protocol/manifest/fences/namespace/control/output/error/partial/cleanup/unknown/bootstrap correspondence. One independent all-language census covers every body/caller/parameter/constructor/getter/cast/loop/meter/branch/phase and the prepaid tail; matching internal arithmetic or old R13 rows is not acceptance.
 
-## 3. Freeze source and obtain fresh whole reviews
+Derive actual joined controller+helper+target scratch under32MiB, and complete retained/namespace/time/source reservation terms. Count all stacks, buffers, mutex/SRW/attributes/jobs/handles/NUL/pipes/logs/transport, CRT/TLS/cold/native/parent polling and failed/quarantined prefixes. Source primitive CPU opacity erases no explicit owner. No extra per-process allowance, guessed ABI, reclaimed close/GC credit or multiplier closes a term. Record every unresolved source/binary/native/ABI/profile/cancellation/creation-time/time premise explicitly.
 
-One complete independent functional correspondence covers the whole runner,
-helper, binary protocol, source/fence/file recipes, output/counter projections,
-all failure/cancel/partial-write/cleanup paths and successor bootstrap. One fresh
-whole census covers all languages, callers, argument coercions, getters,
-constructors, runtime counters and all phase/failure schedules. No price carries
-from R13 by naming or internal arithmetic agreement.
+The request's total/tail reservations remain UNBOUND until fresh accepted prices sponsor the complete schedule. PrefixKnown proves an observed debit prefix only. No fake complete helper usage, reset, refund or stub Data is used to make source runnable. No helper/fixture/Clock execution is permitted by a source proposal.
 
-Join controller+supervisor+actual target ownership under32MiB, counting every
-explicit stack/buffer/static/native/CRT/transport/cold/failed-prefix term without
-per-process exemptions. Source primitive CPU opacity does not erase explicit
-owners. Record exact unresolved platform/ABI/source/binary/native premises.
-Freeze all helpers/oracles/source at first passing own checks; preserve failures.
+## 4. Qualify only the separately approved purpose scope
 
-## 4. Qualify mechanically without desktop interaction
+After source/critic acceptance, root may author a separate bounded compile-only purpose lane and obtain independent source review before compilation. Its object/binary/console/import/layout observations can discharge named source/ABI premises; they do not certify behavior, complete scratch, native association or Clock execution. Freeze genuine first-pass source/results and preserve all failures.
 
-After fresh source/critic acceptance, root may prepare a separate reviewed
-compile-only purpose lane for objects/binary/ABI/console/import association.
-No source acceptance implies compiler or executable authority. No fake Data or
-price stub is used to manufacture a runnable binary.
+Before any later helper/fixture/Clock attempt, require complete actual source/native/resource/binding acceptance and root's exact one-attempt authority. Mechanical fixed-console fixtures then cover raw argv empty/spaces/backslash/quotes, non-ASCII valid paths, wrong prefix/hex/extra arg/EOF, exact request identity/count/reservation, both-pipe one-byte fragmentation, EOF-short plus zero, error-partial and cleanup-unconsumed results, cap races, non-cap stage guards, short/failed/zero writes with independent positions, signed0x80000000 and observed259 exits, missing/partial/wrong terminal, blocked pipe after target exit, creation failure/owner returns, meter/tail error and ordinary controlled helper exits10/11/12/13. No deliberate crash/WER, GUI/desktop input or audio/MIDI fixture is authorized.
 
-Before later fixture/helper/Clock execution, complete the actual source/native/
-resource/binding proof and a separate root one-attempt gate. Audited console
-fixtures mechanically cover fragmented dual output, shared-cap races, blocked
-stderr after target exit, partial writes, wrong/truncated terminal, clean nonzero
-supervisor exit and source-injected API failures. No deliberate crash/WER,
-windows, desktop input or audio/MIDI startup. Missing native proof remains pending.
-
-## 5. Return to editing delivery
-
-Commit logical reviewed chunks to main with STATUS and exact CI. Separate
-docs-only CI, compile-only results and executable outcomes. This tooling slice
-does not enable Musical audio. Continue public recipe, DSP/resources, renderer,
-jobs/model/export/load/controls, then linked editing/folders and piano views.
+A passed fixture or compile result credits only its actual scope. Whole uncertain profile/native/time/resource facts remain HOLD. Root records exact STATUS and CI with logical commits on main and continues editing delivery after this bounded tooling slice, without claiming Musical/public recipe/DSP/model/control work finished.

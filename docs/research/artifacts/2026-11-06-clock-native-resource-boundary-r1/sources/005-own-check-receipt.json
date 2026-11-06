@@ -1,0 +1,10 @@
+{
+  "purpose": "OWN_FILE_TEXT_HASH_INTEGER_CHECK_ONLY",
+  "command": "python build-ci/20261106-clock-native-child-source-owners-r1/derive.py",
+  "actual_exit_code": 0,
+  "tool_wall_time_seconds": 0.1986629,
+  "checks": 67,
+  "result_sha256": "73B9A2C4F0BACC420EA86E87F1BB7EC46098E9CB5806DD2D4B53EC97C514FDBE",
+  "not_target_program_compiler_or_native_probe": true,
+  "scope": "67 self-asserting own source/arithmetic checks; HOLD leaves remain. Not target execution or whole memory proof."
+}

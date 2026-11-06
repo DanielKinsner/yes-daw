@@ -1,0 +1,567 @@
+{
+  "schema": "OWN_DOCUMENT_DATA_INTEGER_CHECKS_R2",
+  "status": "PASS_PRIVATE_AUTHOR_CHECKS_NOT_INDEPENDENT_REVIEW",
+  "count": 140,
+  "checks": [
+    {
+      "id": "PRESERVED_INPUT_docs/adr/0090-clock-research-owned-process-supervisor.md",
+      "pass": true
+    },
+    {
+      "id": "PRESERVED_INPUT_docs/plans/2026-11-06-clock-supervisor-source-plan.md",
+      "pass": true
+    },
+    {
+      "id": "PRESERVED_INPUT_build-ci/20261106-clock-supervisor-architecture-independent-review-r1/review.json",
+      "pass": true
+    },
+    {
+      "id": "PRESERVED_INPUT_build-ci/20261106-controller-owned-process-hypothesis-r1/hypothesis.json",
+      "pass": true
+    },
+    {
+      "id": "PRESERVED_INPUT_build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json",
+      "pass": true
+    },
+    {
+      "id": "PRESERVED_INPUT_build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "pass": true
+    },
+    {
+      "id": "FIVE_FROZEN_FINDINGS",
+      "pass": true
+    },
+    {
+      "id": "UTF8_LF_ADR",
+      "pass": true
+    },
+    {
+      "id": "PRIVATE_PROPOSED_ADR",
+      "pass": true
+    },
+    {
+      "id": "NO_EXECUTION_AUTHORITY_ADR",
+      "pass": true
+    },
+    {
+      "id": "UTF8_LF_PLAN",
+      "pass": true
+    },
+    {
+      "id": "PRIVATE_PROPOSED_PLAN",
+      "pass": true
+    },
+    {
+      "id": "NO_EXECUTION_AUTHORITY_PLAN",
+      "pass": true
+    },
+    {
+      "id": "UTF8_LF_PROTOCOL",
+      "pass": true
+    },
+    {
+      "id": "PRIVATE_PROPOSED_PROTOCOL",
+      "pass": true
+    },
+    {
+      "id": "NO_EXECUTION_AUTHORITY_PROTOCOL",
+      "pass": true
+    },
+    {
+      "id": "NORMATIVE_COMPANION_LINK_ADR",
+      "pass": true
+    },
+    {
+      "id": "NORMATIVE_COMPANION_LINK_PLAN",
+      "pass": true
+    },
+    {
+      "id": "NO_ACTUAL_SUPERVISOR_SOURCE",
+      "pass": true
+    },
+    {
+      "id": "REQUEST_HEADER140",
+      "pass": true
+    },
+    {
+      "id": "TERMINAL308",
+      "pass": true
+    },
+    {
+      "id": "REQUEST_COMPILER41260",
+      "pass": true
+    },
+    {
+      "id": "REQUEST_NATIVE18644",
+      "pass": true
+    },
+    {
+      "id": "FULL_TRANSPORT79472",
+      "pass": true
+    },
+    {
+      "id": "EXPLICIT_NO_STRUCT_PADDING",
+      "pass": true
+    },
+    {
+      "id": "ALL_REQUEST_OFFSETS_MATCH_TABLE",
+      "pass": true
+    },
+    {
+      "id": "TERMINAL_NORMATIVE_OFFSET_secondaryFailureCount",
+      "pass": true
+    },
+    {
+      "id": "TERMINAL_NORMATIVE_OFFSET_sourcePrefixUsed",
+      "pass": true
+    },
+    {
+      "id": "TERMINAL_NORMATIVE_OFFSET_bodyPolls",
+      "pass": true
+    },
+    {
+      "id": "TERMINAL_NORMATIVE_OFFSET_cleanupMask",
+      "pass": true
+    },
+    {
+      "id": "TERMINAL_PIPE_OFFSETS",
+      "pass": true
+    },
+    {
+      "id": "TERMINAL_FOUR_POSITION_FIELDS",
+      "pass": true
+    },
+    {
+      "id": "TERMINAL_TWO_ERROR_PARTIAL_FIELDS",
+      "pass": true
+    },
+    {
+      "id": "THREE_IMMUTABLE_FAILURE_RECORDS",
+      "pass": true
+    },
+    {
+      "id": "FLAGS_EXACT0_TO27",
+      "pass": true
+    },
+    {
+      "id": "FLAG_NAMES_UNIQUE",
+      "pass": true
+    },
+    {
+      "id": "FLAGMASK0FFFFFFF",
+      "pass": true
+    },
+    {
+      "id": "INDEPENDENT_POSITION_FLAGS",
+      "pass": true
+    },
+    {
+      "id": "COORDINATOR_COUNTER_VALIDITY_FLAG",
+      "pass": true
+    },
+    {
+      "id": "WORKER_EOF_SETTLEMENT_INDEPENDENT",
+      "pass": true
+    },
+    {
+      "id": "NO_NONINTERACTIVE_STDIN_REDIRECTION",
+      "pass": true
+    },
+    {
+      "id": "EXPLICIT_TARGET_NUL_CREATE",
+      "pass": true
+    },
+    {
+      "id": "EXACT_THREE_INHERITED_HANDLES",
+      "pass": true
+    },
+    {
+      "id": "NO_AMBIENT_ENV_OR_STDIN_READ",
+      "pass": true
+    },
+    {
+      "id": "REASONS_EXACT0_TO47",
+      "pass": true
+    },
+    {
+      "id": "REASON_NAMES_UNIQUE",
+      "pass": true
+    },
+    {
+      "id": "SITE_RANGE0_TO13",
+      "pass": true
+    },
+    {
+      "id": "SITE0_REASON0_ONLY",
+      "pass": true
+    },
+    {
+      "id": "DISTINCT_TIMEOUT_POLL_REASON",
+      "pass": true
+    },
+    {
+      "id": "DISTINCT_RAW_STAGE_GUARD_REASON",
+      "pass": true
+    },
+    {
+      "id": "EXPLICIT_ENV8_KEYS",
+      "pass": true
+    },
+    {
+      "id": "EXPLICIT_SORTED_ENV_ORDER",
+      "pass": true
+    },
+    {
+      "id": "ENV_KEY_CELLS43",
+      "pass": true
+    },
+    {
+      "id": "ENV4156CELLS8312BYTES",
+      "pass": true
+    },
+    {
+      "id": "NO_BLANKET_ASCII_PATH_NARROWING",
+      "pass": true
+    },
+    {
+      "id": "PRESERVE_EMPTY_ARGUMENTS",
+      "pass": true
+    },
+    {
+      "id": "PRESERVE_EMPTY_ENV_VALUES",
+      "pass": true
+    },
+    {
+      "id": "REQUEST_ARG_PREFIX12",
+      "pass": true
+    },
+    {
+      "id": "REQUEST_ENCODED_ARG2060",
+      "pass": true
+    },
+    {
+      "id": "RAW_COMMANDLINE2576",
+      "pass": true
+    },
+    {
+      "id": "TARGET_COMMANDLINE29271",
+      "pass": true
+    },
+    {
+      "id": "TARGET_NATIVE_COMMANDLINE6677",
+      "pass": true
+    },
+    {
+      "id": "DECODED_PATH_NOT_ENCODED512",
+      "pass": true
+    },
+    {
+      "id": "RUN_ID_DOMAIN_EXPLICIT",
+      "pass": true
+    },
+    {
+      "id": "RUN_ID_NOT_COPY_ONLY",
+      "pass": true
+    },
+    {
+      "id": "CLEANUP_PREFIX_MAX14",
+      "pass": true
+    },
+    {
+      "id": "CLEANUP_PARENT_LATE_MAX15",
+      "pass": true
+    },
+    {
+      "id": "CLEANUP_MASK_SOURCE_EXTENT_EXPLICIT",
+      "pass": true
+    },
+    {
+      "id": "REAP_MASK_MUTUAL_EXCLUSION",
+      "pass": true
+    },
+    {
+      "id": "NO_OLD13_PRICE_TRANSFER",
+      "pass": true
+    },
+    {
+      "id": "ALL24_R13_CHILD_ROW_KEYS",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_name",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_started",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_raw_exit_observed",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_raw_exit",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_timed_out",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_poll_limited",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_polls",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_poll_limit",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_log_cap",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_stdout_start",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_stderr_start",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_raw_stdout_bytes",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_raw_stderr_bytes",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_position_record_complete",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_raw_bytes_retained",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_raw_bytes_observed",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_observed_not_confirmed_retained",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_omitted_at_cap",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_unknown_undrained",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_both_eof",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_reads_settled",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_owned_storage_quarantined",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_cleanup",
+      "pass": true
+    },
+    {
+      "id": "PARENT_PROJECTION_KEY_failure",
+      "pass": true
+    },
+    {
+      "id": "UNKNOWN_STRENGTHENING_EXPLICIT",
+      "pass": true
+    },
+    {
+      "id": "NO_RAW_TERMINAL_IN_JSON",
+      "pass": true
+    },
+    {
+      "id": "PARTIAL_ERROR_NOT_OBSERVED_CHUNK",
+      "pass": true
+    },
+    {
+      "id": "CLEANUP_COMPLETED_DATA_ONCE",
+      "pass": true
+    },
+    {
+      "id": "NO_GUARD_CAP_OMISSION_CONFLATION",
+      "pass": true
+    },
+    {
+      "id": "PER_SHORT_WRITE_FRESH_SCAN",
+      "pass": true
+    },
+    {
+      "id": "PHYSICAL_NOT_CONFIRMED_COUNTER",
+      "pass": true
+    },
+    {
+      "id": "FAILED_WRITE_UNDEFINED_COUNT_NOT_USED",
+      "pass": true
+    },
+    {
+      "id": "STABLE_BYTECOUNTERS_NOT_UNKNOWN_ZERO",
+      "pass": true
+    },
+    {
+      "id": "SIGNED_RAW_BITS_0",
+      "pass": true
+    },
+    {
+      "id": "SIGNED_RAW_BITS_259",
+      "pass": true
+    },
+    {
+      "id": "SIGNED_RAW_BITS_2147483647",
+      "pass": true
+    },
+    {
+      "id": "SIGNED_RAW_BITS_2147483648",
+      "pass": true
+    },
+    {
+      "id": "SIGNED_RAW_BITS_4294967295",
+      "pass": true
+    },
+    {
+      "id": "RAW259_ACTUAL_OBSERVATION_REQUIRED",
+      "pass": true
+    },
+    {
+      "id": "PREFIX_CUT",
+      "pass": true
+    },
+    {
+      "id": "TAIL_NO_FAKE_ACTUAL",
+      "pass": true
+    },
+    {
+      "id": "ENTIRE_RESERVATION_RETAINED",
+      "pass": true
+    },
+    {
+      "id": "TAIL_FIXED_CLEANUP",
+      "pass": true
+    },
+    {
+      "id": "NO_POST_CUT_DEBIT",
+      "pass": true
+    },
+    {
+      "id": "DISTINCT_EXIT_COMMIT",
+      "pass": true
+    },
+    {
+      "id": "LATE_FAILURE_NONCOMMIT",
+      "pass": true
+    },
+    {
+      "id": "PRESERVE_INDIVIDUAL_VALID_FACTS",
+      "pass": true
+    },
+    {
+      "id": "NO_NOEXEC_STUB",
+      "pass": true
+    },
+    {
+      "id": "NO_COUNTER_RESET",
+      "pass": true
+    },
+    {
+      "id": "NO_CLEANUP_FREE",
+      "pass": true
+    },
+    {
+      "id": "NO_NEW_TARGET_TIMEOUT_FROM_PARENT",
+      "pass": true
+    },
+    {
+      "id": "NO_CREATED_SUSPENDED_ATOMICITY",
+      "pass": true
+    },
+    {
+      "id": "NONRETURN_PENDING_QUARANTINE",
+      "pass": true
+    },
+    {
+      "id": "EXPLICIT_UNQUALIFIED_NATIVE_TIME",
+      "pass": true
+    },
+    {
+      "id": "NO_CURRENT_ACCEPTANCE",
+      "pass": true
+    },
+    {
+      "id": "ALL_FIVE_HELPER_EXITS",
+      "pass": true
+    },
+    {
+      "id": "PRECEDENCE_EXPLICIT",
+      "pass": true
+    },
+    {
+      "id": "NO_GATE_CIRCULARITY",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ONLY_AFTER_ROOT_AUTH",
+      "pass": true
+    },
+    {
+      "id": "FULL_EXECUTION_SEPARATE",
+      "pass": true
+    },
+    {
+      "id": "COUNTERPART_PROTO_LENGTHS_ALL_DOCS",
+      "pass": true
+    },
+    {
+      "id": "UNRAISED_GLOBAL_SCRATCH",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_PROOF_NO_TARGET_EXECUTION",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PRESERVED_AFTER_CHECK_docs/adr/0090-clock-research-owned-process-supervisor.md",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PRESERVED_AFTER_CHECK_docs/plans/2026-11-06-clock-supervisor-source-plan.md",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PRESERVED_AFTER_CHECK_build-ci/20261106-clock-supervisor-architecture-independent-review-r1/review.json",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PRESERVED_AFTER_CHECK_build-ci/20261106-controller-owned-process-hypothesis-r1/hypothesis.json",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PRESERVED_AFTER_CHECK_build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PRESERVED_AFTER_CHECK_build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "pass": true
+    }
+  ]
+}

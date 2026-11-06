@@ -1,0 +1,229 @@
+{
+  "schema": "CONTROLLER_OWNED_PROCESS_SOURCE_HYPOTHESIS_R1",
+  "verdict": "RECOMMEND_S1_NATIVE_SUPERVISOR_AS_CONDITIONAL_NEXT_SOURCE_DESIGN_NOT_IMPLEMENTATION_ACCEPTANCE",
+  "supersedes_recommendation_only": "The concrete root native-supervisor/spool candidate is now judged preferable to the frozen V baseline generic in-process A. V facts/equations/HOLD and all source bytes remain unchanged.",
+  "source_execution": false,
+  "options": [
+    {
+      "id": "S1",
+      "label": "Pinned native supervisor plus bounded spool transport",
+      "recommendation": "RECOMMENDED_CONDITIONAL_SOURCE_HYPOTHESIS",
+      "structure": "One fixed native console supervisor per reached child, owning one unnamed Job Object and two private synchronous pipe workers with preallocated4096-byte read arrays. No managed per-inner async task/pool/registration graph. Parent has no redirected supervisor stdout/stderr and reads only admitted bounded spool/terminal files after the supervisor reports terminal state or exits.",
+      "containment": "Prefer creation-time PROC_THREAD_ATTRIBUTE_JOB_LIST with the job already configured KILL_ON_JOB_CLOSE and no breakaway flags, combined with an exact handle inheritance list. The selected platform must qualify Windows10+/supported attribute. CREATE_SUSPENDED may still be used for setup ordering, but CreateSuspended->Assign alone is not atomic containment against supervisor death.",
+      "benefit": "Eliminates both parent fragmented async-wrapper creation and host-wide KillTree enumeration by source. Process/cancellation/file/error state is a finite purpose-owned graph whose explicit native/CRT/stack costs can be counted.",
+      "new_obligations": "New binary/input/source/ABI/native association, fixed request/result protocol and spool artifacts, whole source-operation funding and complete32MiB joined accounting. Supervisor cost is not exempt because it is another process. No size/fit/GO result is supplied here."
+    },
+    {
+      "id": "S2",
+      "label": "Controller-owned in-process job and two dedicated synchronous workers",
+      "recommendation": "SUPPORTED_ALTERNATIVE_LARGER_MANAGED_FAILURE_JOIN",
+      "structure": "A small pinned controller component owns the same creation-time job containment and two dedicated synchronous read workers/preallocated read buffers, with explicit cancellation and bounded joins, preserving rooted quarantine in the controller.",
+      "benefit": "Avoids a new supervisor/spool protocol and keeps actual target raw-exit observation in the controller.",
+      "tradeoff": "Managed thread/worker/exception/native-stack joins remain in the same controller. An unsettled synchronous I/O worker must retain its buffer/component and can outlive the child; cancellation is not guaranteed. It also needs whole resource/source/ABI funding and cannot claim physical-free credit."
+    },
+    {
+      "id": "S3",
+      "label": "Owned job and fixed native overlapped named-pipe state",
+      "recommendation": "SUPPORTED_ALTERNATIVE_MORE_COMPLEX_FIRST_IMPLEMENTATION",
+      "structure": "The same native supervisor or in-process component uses genuinely overlapped named pipes with one preallocated OVERLAPPED/event/read buffer per pipe and a source-owned finite state machine.",
+      "benefit": "Can avoid two dedicated read-worker stacks and per-inner tasks.",
+      "tradeoff": "Anonymous CreatePipe pipes do not support overlapped operations; a named-pipe design requires its own bounded unique-name/security/connection protocol and cancellation-completion/lifetime proof. Cancellation return is not completion. This is a larger first critic obligation than S1."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "C1",
+      "topic": "Creation and ownership atomicity",
+      "required": "Configure the unnamed private job before CreateProcess; specify job membership during process creation with the admitted attribute, or supply another reviewed creator-death-safe containment proof. Do not claim a suspended but unassigned process is contained. Every create/attribute/assign/resume failure must preserve explicit observed/unknown cleanup state and refuse certification."
+    },
+    {
+      "id": "C2",
+      "topic": "Last-handle proof",
+      "required": "The supervisor is the sole intended job-handle owner. The job handle is noninheritable and absent from the child handle list; it is not copied to the parent, target, descendants or a named reopenable channel. Pass only exact owned stdin/null and stdout/stderr child pipe handles. No breakaway flags or silent fallback. Last-handle closure initiates termination; it is not an observed-settlement receipt."
+    },
+    {
+      "id": "C3",
+      "topic": "Concurrent raw output",
+      "required": "Drain both pipes concurrently; neither worker may wait for child exit before reading. Reuse fixed buffers regardless of one-byte fragmentation, arbitrary output timing or cap overflow. Preserve per-pipe raw prefixes, shared per-child1MiB retained-log cap, observed/retained/omitted/unknown accounting, current before-write complete-stage-pool admission and raw-output failure handling. No quiet-output premise, cap increase or new legitimate-input refusal is allowed."
+    },
+    {
+      "id": "C4",
+      "topic": "Native settlement",
+      "required": "Observe actual target process exit/bit-exact32-bit exit code separately from supervisor exit. Normal completion requires both read workers/requests settled, spool writes flushed/admitted and the owned job population settled under a valid current accounting query/other reviewed proof. Do not treat a generic job wait or a missing completion-port notification as all processes exited; both APIs have narrower documented semantics."
+    },
+    {
+      "id": "C5",
+      "topic": "Abnormal supervisor exit",
+      "required": "Parent may kill only the known supervisor process handle. Job close is a cleanup action, not proof of descendants reaped, buffers freed, raw output complete or target exit observed. Missing/malformed/partial terminal data, supervisor crash, timeout, unresolved native I/O or absent settlement proof sets unknown/quarantine and prevents another child; preserve all spool files and diagnostic owners. No next stage or success is synthesized from supervisor exit0 alone."
+    },
+    {
+      "id": "C6",
+      "topic": "Lifetime and cancellation",
+      "required": "Cancellation and job termination may fail to settle I/O before the bounded wait. Never recycle or free a buffer/OVERLAPPED/worker state while native I/O can still reference it. Retain rooted owners or conservatively quarantine the abnormal supervisor branch. A source shutdown path may not use unbounded retries while claiming the original1800s body plus bounded cleanup schedule."
+    },
+    {
+      "id": "C7",
+      "topic": "Protocol and immutable identity",
+      "required": "Define one small versioned exact request and terminal record with bounded path/argv/file extents, child name/index, manifest/run identity, target binary identity, explicit observed flags and numeric raw codes. Avoid arbitrary native error text/JSON growth. Verify exact length/schema/kind/EOF/current identity. Add every new input and spool/temporary artifact to a new source manifest and complete filesystem/fence/reparse/hash/primary-secondary ownership correspondence. Preserve the original target PE checks and binary before/after fences; checking only the supervisor is insufficient."
+    },
+    {
+      "id": "C8",
+      "topic": "Complete accounting",
+      "required": "Count supervisor source work, all native/static/heap buffers, two worker stacks and handles, job/attribute/kernel/CRT/TLS/cold owners under the adopted whole accounting convention, parent polling/wrappers, file transport reads/writes and all retained failed-attempt branches. Derive a joined phase lifetime upper; no per-process exemption, compiler-opacity extension, GC/Dispose/close free credit or fit claim from cumulative slack."
+    },
+    {
+      "id": "C9",
+      "topic": "No desktop interruption",
+      "required": "Fixed console supervisor and already gated console target use CREATE_NO_WINDOW, no shell, no interactive stdin and no GUI/input/foreground/device APIs, with reviewed inherited OS error-dialog policy. Do not claim these flags contain arbitrary GUI programs; only the admitted fixed source/binary profile is in scope. Any future app drive still needs the repository separate-session policy."
+    },
+    {
+      "id": "C10",
+      "topic": "Qualification order",
+      "required": "Write the in-scope architecture/protocol/resource proposal and obtain independent critic review first. A separately reviewed compile-only purpose lane may qualify the supervisor source/object/binary and ABI. Only a fresh complete source/native/resource/binding review plus root gate can authorize any later program/Clock attempt; no implementation or execution is authorized by this options packet."
+    }
+  ],
+  "failure_cases": [
+    {
+      "case": "supervisor dies after suspended Create before manual Assign",
+      "manual_sequence": "Unassigned suspended child can survive; unsupported atomic-containment claim.",
+      "S1_requirement": "Creation-time job assignment or a separately proved creator-death-safe protocol."
+    },
+    {
+      "case": "job handle inherited by target",
+      "manual_sequence": "Supervisor death does not close the last handle; KILL_ON_JOB_CLOSE inference fails.",
+      "S1_requirement": "Noninheritable private handle plus exact inherited stdio list."
+    },
+    {
+      "case": "supervisor killed or terminal record partly written",
+      "manual_sequence": "Target raw exit/descendant settlement is not inferred.",
+      "S1_requirement": "Quarantine/unknown; preserve files; forbid next child."
+    },
+    {
+      "case": "target or descendant keeps stderr write handle open after target exit",
+      "manual_sequence": "Pipe read may remain pending despite target exit.",
+      "S1_requirement": "Concurrent drain, bounded cancellation/settlement and retained/quarantined owners."
+    },
+    {
+      "case": "one-byte output fragments until cap",
+      "manual_sequence": "Same two fixed native read arrays are reused; iteration count still requires source work sponsorship.",
+      "S1_requirement": "No per-byte task/node allocation and no output-silence assumption."
+    },
+    {
+      "case": "job assignment feature unavailable or incompatible nesting",
+      "manual_sequence": "No silent breakaway or resume-before-containment fallback.",
+      "S1_requirement": "Fail before running the target and preserve raw refusal; platform feature remains an explicit qualification."
+    },
+    {
+      "case": "both pipes race the shared cap or a spool write fails",
+      "manual_sequence": "A successful reservation does not prove bytes were written; a failure must not disappear.",
+      "S1_requirement": "Single source-owned cap/accounting protocol distinguishes observed, reserved, written, omitted and unknown bytes; identical per-pipe prefix semantics."
+    }
+  ],
+  "bootstrap_fix": {
+    "verdict": "LITERAL_REPLACEMENT_REQUIRES_PREFIX_CORRESPONDENCE_AND_PROFILE_SCOPE",
+    "old_source": "Process.GetCurrentProcess().MainModule reaches module enumeration, native module metadata and growing pointer arrays. Its selected implementation removes a leading extended-length prefix before exposing FileName.",
+    "new_source": "Environment.ProcessPath caches a Windows GetModuleFileNameW(NULL) result from a260-character initial stack buffer, growing a ValueStringBuilder only if truncated. The Windows API identifies the executable of the current process directly; no process/module census is involved.",
+    "supported_narrow_hypothesis": "Under the same exact trusted fresh-launcher/immutable runtime path profile, reject null/query failure, preserve the old leading extended-prefix treatment and the same OrdinalIgnoreCase expected executable comparison. The admitted fixed executable path is 101 UTF16 units, so that selected successful direct query fits its initial260-character buffer. This is a source-profile implication, not a live ProcessPath observation or a global resource bound for arbitrary executable paths.",
+    "not_claimed": "The property source has no hard growth cap, can be initialized concurrently and is cached; renamed/deleted-executable behavior is expressly undefined by its own remarks. It does not provide operationally identical API failure behavior or unconditional equivalence for arbitrary path aliases/prefixes/mutations. No silent path canonicalization, relaxed identity or host/runtime version inference is authorized.",
+    "strict_bounded_alternative": "If the profile is insufficient for the chosen whole proof, a separately reviewed tiny direct GetModuleFileNameW(NULL) binding with a fixed expected-length-plus-prefix/NUL buffer may reject truncation before any growth; its new binding/storage/error source must be counted. That is a further source hypothesis, not authored here.",
+    "baseline_unchanged": "R_controller_module_census remains HOLD in the frozen V baseline until a concrete successor source and whole functional/resource review accept its actual replacement."
+  },
+  "bounded_next_step": "Root chooses the source design, then author a concrete ADR/protocol/state/owner/cost proposal for independent critic review; no target/helper source or compile/run is authorized by this packet.",
+  "whole32MiB_scope_unchanged": true,
+  "cap_raise": false,
+  "quiet_output_law": false,
+  "domain_narrowing_or_hidden_false_guards": false,
+  "Data_prices_native_binding_GO": false,
+  "check_count": 53,
+  "verified_inputs": [
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json",
+      "bytes": 30471,
+      "sha256": "01B4289C2F8E521093987C259D15C5DD4BBF2388EFD9E594A90319C9B0BB5EE6"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/source-pins.json",
+      "bytes": 16001,
+      "sha256": "7A9C4E971FE3340ED28342CE60836DBC46A3B8FE0AE9E9E1388B011113F11C45"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary/Environment.cs",
+      "bytes": 11109,
+      "sha256": "7775CCCE66F1199DC6666BF36252D82FEBFE102D49C0DA5AC7F8DA13ABA8150F"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary/Environment.Windows.cs",
+      "bytes": 14177,
+      "sha256": "23B411301AF821AB96D762F09DDA504F77A9204F1BA9283D82A405F777F87D85"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary/Interop.GetModuleFileName.cs",
+      "bytes": 580,
+      "sha256": "339C92575CBAAFBBABD53EAD33BF362402330454203166AD00BF0D947629308C"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/ProcessManager.Win32.cs",
+      "bytes": 19296,
+      "sha256": "7DE5864A6A39EA84DDC268D9BB61472E8A9C27CD5ECF1A3A1389E418BC8AE942"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/origins.json",
+      "bytes": 1351,
+      "sha256": "DB01E0140B0D8150B04DA04B90103DBC07F4E929671047E29B4FC354A55C18D1"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary/Interop.GetModuleFileNameEx.cs",
+      "bytes": 617,
+      "sha256": "A727B74D3951122B5DC654975FB429E7DD20533CDB0284DE2DA7A2821193C6C2"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/document-origins.json",
+      "bytes": 2136,
+      "sha256": "B95A0CBAC814CCC3B1723B607B6B05BD3E82CE9E454FA83149A966525375844C"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/GetModuleFileNameW.html",
+      "bytes": 55811,
+      "sha256": "582E52B1260E24BDF39099B4E16BCF3D2C5643417B4F0ECD303BCF1FF32B4E77"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/GetModuleFileNameExW.html",
+      "bytes": 57331,
+      "sha256": "917FFA431D919C4F8700A0B595701663EA6037798AEB5418679DAB7322D6BC6A"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/JobObjects.html",
+      "bytes": 61310,
+      "sha256": "5FF20D6006F8C1D5220BE714DD5A178B3C763821A0A3E310622BE01593537365"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/UpdateProcThreadAttribute.html",
+      "bytes": 85404,
+      "sha256": "5C5EDAC3051614C7D5A86EE0FBE2757922C96EC12BB9361988B073F4968747DC"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/JobBasicAccounting.html",
+      "bytes": 52750,
+      "sha256": "C4D7350D9436073509FE73D145D43DA7F3E67AAC5C0E1F3BB180EF98A33C0117"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/CancelPendingIO.html",
+      "bytes": 62002,
+      "sha256": "F216F0B069E7A560E12A53F7F3788590F345432CCC82CD230A168A9ABD0A436F"
+    },
+    {
+      "path": "build-ci/20261106-controller-owned-process-hypothesis-r1/primary-documents/AnonymousPipes.html",
+      "bytes": 50322,
+      "sha256": "451BD28B2C84755EB5CD117930BFE272E57E704746411179E687C10CFE261D5E"
+    }
+  ],
+  "primary_document_urls": [
+    "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulefilenamew",
+    "https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-getmodulefilenameexw",
+    "https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects",
+    "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute",
+    "https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_accounting_information",
+    "https://learn.microsoft.com/en-us/windows/win32/fileio/canceling-pending-i-o-operations",
+    "https://learn.microsoft.com/en-us/windows/win32/ipc/anonymous-pipe-operations"
+  ]
+}

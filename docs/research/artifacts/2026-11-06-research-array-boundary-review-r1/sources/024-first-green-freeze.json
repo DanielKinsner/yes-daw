@@ -1,0 +1,26 @@
+{
+  "boundary": "FIRST_COMPLETE_OWN_CHECK_EXIT0_WHOLE_AUDIT_SOURCE_CHECKER_AND_OUTPUT_FROZEN",
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.md",
+      "bytes": 13383,
+      "sha256": "D5E405FCFC94E2E1B9C6936532362592B6F91ADAD2A9DB7DD065F38416D3B44B"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.json",
+      "bytes": 16931,
+      "sha256": "C76A0FF1289E7B9EC094A7AF77D95372BA90736028640133FE6313F40F42DF1C"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/check.py",
+      "bytes": 6746,
+      "sha256": "D2D6FC0615968C6187164A16CBCA38143B26A37BCD36C2F963A5582C8EDCAFA3"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-resource-boundary-audit-r1/own-check-receipt.json",
+      "bytes": 486,
+      "sha256": "877858AC4FBA76E49D6E0C78D08DA8B4D283E86FCD94B3AC1622D5ADFFB39CC7"
+    }
+  ],
+  "no_fit_or_GO": true
+}

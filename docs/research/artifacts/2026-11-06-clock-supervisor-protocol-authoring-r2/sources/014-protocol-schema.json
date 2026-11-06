@@ -1,0 +1,854 @@
+{
+  "schema": "PROPOSED_CLOCK_SUPERVISOR_PROTOCOL_V1_R2_DOCUMENT_SCHEMA_NOT_IMPLEMENTATION",
+  "status": "PRIVATE_PROPOSED_UNIMPLEMENTED_UNRUN_REQUIRES_INDEPENDENT_REVIEW",
+  "request": {
+    "magic": "YCSREQ01",
+    "version": 1,
+    "header_bytes": 140,
+    "fields": [
+      {
+        "field": "magic",
+        "offset": 0,
+        "bytes": 8
+      },
+      {
+        "field": "version",
+        "offset": 8,
+        "bytes": 4
+      },
+      {
+        "field": "totalBytes",
+        "offset": 12,
+        "bytes": 4
+      },
+      {
+        "field": "childIndex",
+        "offset": 16,
+        "bytes": 4
+      },
+      {
+        "field": "argumentCount",
+        "offset": 20,
+        "bytes": 4
+      },
+      {
+        "field": "environmentCount",
+        "offset": 24,
+        "bytes": 4
+      },
+      {
+        "field": "helperReservation",
+        "offset": 28,
+        "bytes": 8
+      },
+      {
+        "field": "mandatoryTailReservation",
+        "offset": 36,
+        "bytes": 8
+      },
+      {
+        "field": "manifestSHA",
+        "offset": 44,
+        "bytes": 32
+      },
+      {
+        "field": "runSHA",
+        "offset": 76,
+        "bytes": 32
+      },
+      {
+        "field": "targetSHA",
+        "offset": 108,
+        "bytes": 32
+      }
+    ],
+    "max_string_units": 512,
+    "environment_count": 8,
+    "argument_counts": [
+      28,
+      6,
+      6
+    ],
+    "max_bytes_by_child": [
+      41260,
+      18644,
+      18644
+    ]
+  },
+  "terminal": {
+    "magic": "YCSRES01",
+    "version": 1,
+    "bytes": 308,
+    "fields": [
+      {
+        "field": "magic",
+        "offset": 0,
+        "bytes": 8
+      },
+      {
+        "field": "version",
+        "offset": 8,
+        "bytes": 4
+      },
+      {
+        "field": "totalBytes",
+        "offset": 12,
+        "bytes": 4
+      },
+      {
+        "field": "childIndex",
+        "offset": 16,
+        "bytes": 4
+      },
+      {
+        "field": "flags",
+        "offset": 20,
+        "bytes": 4
+      },
+      {
+        "field": "targetPid",
+        "offset": 24,
+        "bytes": 4
+      },
+      {
+        "field": "targetRawExit",
+        "offset": 28,
+        "bytes": 4
+      },
+      {
+        "field": "status",
+        "offset": 32,
+        "bytes": 4
+      },
+      {
+        "field": "primarySite",
+        "offset": 36,
+        "bytes": 4
+      },
+      {
+        "field": "primaryReason",
+        "offset": 40,
+        "bytes": 4
+      },
+      {
+        "field": "primaryNativeError",
+        "offset": 44,
+        "bytes": 4
+      },
+      {
+        "field": "firstSecondarySite",
+        "offset": 48,
+        "bytes": 4
+      },
+      {
+        "field": "firstSecondaryReason",
+        "offset": 52,
+        "bytes": 4
+      },
+      {
+        "field": "firstSecondaryOwnNativeError",
+        "offset": 56,
+        "bytes": 4
+      },
+      {
+        "field": "firstNativeSecondarySite",
+        "offset": 60,
+        "bytes": 4
+      },
+      {
+        "field": "firstNativeSecondaryReason",
+        "offset": 64,
+        "bytes": 4
+      },
+      {
+        "field": "firstNativeSecondaryError",
+        "offset": 68,
+        "bytes": 4
+      },
+      {
+        "field": "secondaryFailureCount",
+        "offset": 72,
+        "bytes": 8
+      },
+      {
+        "field": "sourcePrefixUsed",
+        "offset": 80,
+        "bytes": 8
+      },
+      {
+        "field": "bodyPolls",
+        "offset": 88,
+        "bytes": 8
+      },
+      {
+        "field": "manifestSHA",
+        "offset": 96,
+        "bytes": 32
+      },
+      {
+        "field": "runSHA",
+        "offset": 128,
+        "bytes": 32
+      },
+      {
+        "field": "targetSHA",
+        "offset": 160,
+        "bytes": 32
+      },
+      {
+        "field": "stdoutObserved",
+        "offset": 192,
+        "bytes": 8
+      },
+      {
+        "field": "stdoutWritten",
+        "offset": 200,
+        "bytes": 8
+      },
+      {
+        "field": "stdoutOmitted",
+        "offset": 208,
+        "bytes": 8
+      },
+      {
+        "field": "stdoutUnretained",
+        "offset": 216,
+        "bytes": 8
+      },
+      {
+        "field": "stdoutStartPosition",
+        "offset": 224,
+        "bytes": 8
+      },
+      {
+        "field": "stdoutEndPosition",
+        "offset": 232,
+        "bytes": 8
+      },
+      {
+        "field": "stdoutErrorPartial",
+        "offset": 240,
+        "bytes": 8
+      },
+      {
+        "field": "stderrObserved",
+        "offset": 248,
+        "bytes": 8
+      },
+      {
+        "field": "stderrWritten",
+        "offset": 256,
+        "bytes": 8
+      },
+      {
+        "field": "stderrOmitted",
+        "offset": 264,
+        "bytes": 8
+      },
+      {
+        "field": "stderrUnretained",
+        "offset": 272,
+        "bytes": 8
+      },
+      {
+        "field": "stderrStartPosition",
+        "offset": 280,
+        "bytes": 8
+      },
+      {
+        "field": "stderrEndPosition",
+        "offset": 288,
+        "bytes": 8
+      },
+      {
+        "field": "stderrErrorPartial",
+        "offset": 296,
+        "bytes": 8
+      },
+      {
+        "field": "cleanupMask",
+        "offset": 304,
+        "bytes": 4
+      }
+    ],
+    "flags": [
+      {
+        "bit": 0,
+        "name": "ChildCreated",
+        "meaning": "A valid returned target process identity/owner was observed, including a suspended target."
+      },
+      {
+        "bit": 1,
+        "name": "TargetExitKnown",
+        "meaning": "Target process was actually signaled and its32-bit exit value was observed."
+      },
+      {
+        "bit": 2,
+        "name": "StdoutSettled",
+        "meaning": "Its worker exit was observed, or it was conclusively never started."
+      },
+      {
+        "bit": 3,
+        "name": "StderrSettled",
+        "meaning": "Same for stderr."
+      },
+      {
+        "bit": 4,
+        "name": "StdoutEof",
+        "meaning": "Its zero-EOF logical result was consumed."
+      },
+      {
+        "bit": 5,
+        "name": "StderrEof",
+        "meaning": "Same for stderr."
+      },
+      {
+        "bit": 6,
+        "name": "JobEmptyProved",
+        "meaning": "A valid current empty-job proof was obtained, or no job/target ever existed by the reached owner state."
+      },
+      {
+        "bit": 7,
+        "name": "StdoutStartKnown",
+        "meaning": "startPosition is an observed owned-handle position."
+      },
+      {
+        "bit": 8,
+        "name": "StdoutEndKnown",
+        "meaning": "endPosition is an observed final owned-handle position."
+      },
+      {
+        "bit": 9,
+        "name": "StderrStartKnown",
+        "meaning": "Same start observation for stderr."
+      },
+      {
+        "bit": 10,
+        "name": "StderrEndKnown",
+        "meaning": "Same end observation for stderr."
+      },
+      {
+        "bit": 11,
+        "name": "PrefixKnown",
+        "meaning": "sourcePrefixUsed is the valid frozen prefix-meter observation at section10's cut."
+      },
+      {
+        "bit": 12,
+        "name": "PrimaryNativeKnown",
+        "meaning": "primaryNativeError was captured at its documented failing API."
+      },
+      {
+        "bit": 13,
+        "name": "HasSecondary",
+        "meaning": "At least one secondary failure/diagnostic was recorded."
+      },
+      {
+        "bit": 14,
+        "name": "FirstSecondaryOwnNativeKnown",
+        "meaning": "The first secondary itself has the native code in firstSecondaryOwnNativeError."
+      },
+      {
+        "bit": 15,
+        "name": "FirstNativeSecondaryKnown",
+        "meaning": "The first native secondary has the dedicated site/reason/error triple."
+      },
+      {
+        "bit": 16,
+        "name": "StdoutErrorPartialKnown",
+        "meaning": "Its final errorPartial count is frozen and known."
+      },
+      {
+        "bit": 17,
+        "name": "StderrErrorPartialKnown",
+        "meaning": "Same for stderr."
+      },
+      {
+        "bit": 18,
+        "name": "BodyTimedOut",
+        "meaning": "The elapsed target-body deadline was the refusing branch."
+      },
+      {
+        "bit": 19,
+        "name": "BodyPollLimited",
+        "meaning": "The target-body poll-admission limit was the refusing branch."
+      },
+      {
+        "bit": 20,
+        "name": "RawLogCap",
+        "meaning": "The shared1MiB raw-log cap refused a logical chunk."
+      },
+      {
+        "bit": 21,
+        "name": "StagePoolCap",
+        "meaning": "The complete64MiB stage pool refused a logical chunk."
+      },
+      {
+        "bit": 22,
+        "name": "StageGuardRejected",
+        "meaning": "A non-cap current stage name/reparse/depth/extent/I/O guard refused."
+      },
+      {
+        "bit": 23,
+        "name": "SecondaryCountSaturated",
+        "meaning": "Another secondary occurred after UINT64_MAX was reached; count is then a lower bound."
+      },
+      {
+        "bit": 24,
+        "name": "StdoutFlushed",
+        "meaning": "Its prefix flush completed successfully."
+      },
+      {
+        "bit": 25,
+        "name": "StderrFlushed",
+        "meaning": "Same for stderr."
+      },
+      {
+        "bit": 26,
+        "name": "TargetMayHaveRun",
+        "meaning": "ResumeThread was attempted; set before that call, not inferred from PID alone."
+      },
+      {
+        "bit": 27,
+        "name": "CoordinatorCountersKnown",
+        "meaning": "All eight observed/written/omitted/unretained fields and bodyPolls are a frozen, valid coordinator prefix."
+      }
+    ],
+    "allowed_flag_mask": "0x0FFFFFFF",
+    "status_codes": {
+      "0": "settled_target_success",
+      "1": "settled_target_nonzero",
+      "2": "pre_execution_refusal",
+      "3": "recorded_failure_with_settled_owners",
+      "4": "unresolved_quarantine"
+    },
+    "reasons": [
+      {
+        "value": 0,
+        "name": "None",
+        "allowed_sites": [
+          0
+        ]
+      },
+      {
+        "value": 1,
+        "name": "RequestMagic",
+        "allowed_sites": [
+          1
+        ]
+      },
+      {
+        "value": 2,
+        "name": "RequestVersion",
+        "allowed_sites": [
+          1
+        ]
+      },
+      {
+        "value": 3,
+        "name": "RequestLengthOrEof",
+        "allowed_sites": [
+          1
+        ]
+      },
+      {
+        "value": 4,
+        "name": "RequestCountBinding",
+        "allowed_sites": [
+          1
+        ]
+      },
+      {
+        "value": 5,
+        "name": "StringGuard",
+        "allowed_sites": [
+          1
+        ]
+      },
+      {
+        "value": 6,
+        "name": "PathGrammar",
+        "allowed_sites": [
+          1
+        ]
+      },
+      {
+        "value": 7,
+        "name": "RunIdentity",
+        "allowed_sites": [
+          1
+        ]
+      },
+      {
+        "value": 8,
+        "name": "CurrentIdentity",
+        "allowed_sites": [
+          1
+        ]
+      },
+      {
+        "value": 9,
+        "name": "ReservationBinding",
+        "allowed_sites": [
+          1
+        ]
+      },
+      {
+        "value": 10,
+        "name": "RequestIo",
+        "allowed_sites": [
+          1
+        ]
+      },
+      {
+        "value": 11,
+        "name": "UnsupportedJobProfile",
+        "allowed_sites": [
+          2
+        ]
+      },
+      {
+        "value": 12,
+        "name": "JobSetup",
+        "allowed_sites": [
+          2
+        ]
+      },
+      {
+        "value": 13,
+        "name": "CreateProcessFailure",
+        "allowed_sites": [
+          3
+        ]
+      },
+      {
+        "value": 14,
+        "name": "ResumeFailure",
+        "allowed_sites": [
+          3
+        ]
+      },
+      {
+        "value": 15,
+        "name": "ReadFailure",
+        "allowed_sites": [
+          4
+        ]
+      },
+      {
+        "value": 16,
+        "name": "RawLogCap",
+        "allowed_sites": [
+          5
+        ]
+      },
+      {
+        "value": 17,
+        "name": "StagePoolCap",
+        "allowed_sites": [
+          5
+        ]
+      },
+      {
+        "value": 18,
+        "name": "StageUnknownName",
+        "allowed_sites": [
+          5
+        ]
+      },
+      {
+        "value": 19,
+        "name": "StageReparse",
+        "allowed_sites": [
+          5
+        ]
+      },
+      {
+        "value": 20,
+        "name": "StageDepth",
+        "allowed_sites": [
+          5
+        ]
+      },
+      {
+        "value": 21,
+        "name": "StageExtent",
+        "allowed_sites": [
+          5
+        ]
+      },
+      {
+        "value": 22,
+        "name": "StageIo",
+        "allowed_sites": [
+          5
+        ]
+      },
+      {
+        "value": 23,
+        "name": "WriteFailure",
+        "allowed_sites": [
+          6
+        ]
+      },
+      {
+        "value": 24,
+        "name": "ZeroWriteProgress",
+        "allowed_sites": [
+          6
+        ]
+      },
+      {
+        "value": 25,
+        "name": "BodyTimeout",
+        "allowed_sites": [
+          7
+        ]
+      },
+      {
+        "value": 26,
+        "name": "PollLimit",
+        "allowed_sites": [
+          7
+        ]
+      },
+      {
+        "value": 27,
+        "name": "TargetExitUnobserved",
+        "allowed_sites": [
+          8
+        ]
+      },
+      {
+        "value": 28,
+        "name": "TargetExitQueryFailure",
+        "allowed_sites": [
+          8
+        ]
+      },
+      {
+        "value": 29,
+        "name": "WorkerJoinUnobserved",
+        "allowed_sites": [
+          9
+        ]
+      },
+      {
+        "value": 30,
+        "name": "WorkerJoinFailure",
+        "allowed_sites": [
+          9
+        ]
+      },
+      {
+        "value": 31,
+        "name": "JobNotEmpty",
+        "allowed_sites": [
+          10
+        ]
+      },
+      {
+        "value": 32,
+        "name": "JobQueryFailure",
+        "allowed_sites": [
+          10
+        ]
+      },
+      {
+        "value": 33,
+        "name": "FlushFailure",
+        "allowed_sites": [
+          6
+        ]
+      },
+      {
+        "value": 34,
+        "name": "PositionFailure",
+        "allowed_sites": [
+          6
+        ]
+      },
+      {
+        "value": 35,
+        "name": "CloseFailure",
+        "allowed_sites": [
+          13
+        ]
+      },
+      {
+        "value": 36,
+        "name": "PublicationFailure",
+        "allowed_sites": [
+          11
+        ]
+      },
+      {
+        "value": 37,
+        "name": "SourcePrefixLimit",
+        "allowed_sites": [
+          12
+        ]
+      },
+      {
+        "value": 38,
+        "name": "MeterOverflow",
+        "allowed_sites": [
+          12
+        ]
+      },
+      {
+        "value": 39,
+        "name": "CounterOverflow",
+        "allowed_sites": [
+          4,
+          6
+        ]
+      },
+      {
+        "value": 40,
+        "name": "CancelledReadDiagnostic",
+        "allowed_sites": [
+          4
+        ]
+      },
+      {
+        "value": 41,
+        "name": "SourceInvariant",
+        "allowed_sites": [
+          4
+        ]
+      },
+      {
+        "value": 42,
+        "name": "ThreadSetupFailure",
+        "allowed_sites": [
+          3
+        ]
+      },
+      {
+        "value": 43,
+        "name": "StdinNulSetupFailure",
+        "allowed_sites": [
+          2
+        ]
+      },
+      {
+        "value": 44,
+        "name": "NativeOwnerAllocationFailure",
+        "allowed_sites": [
+          2
+        ]
+      },
+      {
+        "value": 45,
+        "name": "OwnedPathFailure",
+        "allowed_sites": [
+          1,
+          5
+        ]
+      },
+      {
+        "value": 46,
+        "name": "HandleInvariant",
+        "allowed_sites": [
+          2
+        ]
+      },
+      {
+        "value": 47,
+        "name": "LateTailSourceInvariant",
+        "allowed_sites": [
+          12
+        ]
+      }
+    ],
+    "cleanup_mask_bits": 15,
+    "cleanup_reap_mutually_exclusive_bits": [
+      1,
+      2
+    ],
+    "max_prefix_cleanup_rows": 14,
+    "max_parent_late_cleanup_rows": 15
+  },
+  "helper_exits": {
+    "0": "complete_publication_and_post_record_actions",
+    "10": "current_terminal_unavailable",
+    "11": "late_publication_or_post_record_failure",
+    "12": "quarantine_record_published",
+    "13": "invalid_prefix_meter_record_published"
+  },
+  "transport": {
+    "requests": 3,
+    "terminals": 3,
+    "files": 6,
+    "directory_entries": 1,
+    "full_max_bytes": 79472
+  },
+  "commandline": {
+    "request_prefix": "--request16=",
+    "decoded_request_path_max_units": 512,
+    "encoded_argument_max_units": 2060,
+    "raw_commandline_max_including_NUL": 2576,
+    "target_max_including_NUL": [
+      29271,
+      6677,
+      6677
+    ]
+  },
+  "environment": {
+    "request_order": [
+      "SystemRoot",
+      "windir",
+      "PATH",
+      "INCLUDE",
+      "LIB",
+      "TEMP",
+      "TMP",
+      "VSLANG"
+    ],
+    "native_block_order": [
+      "INCLUDE",
+      "LIB",
+      "PATH",
+      "SystemRoot",
+      "TEMP",
+      "TMP",
+      "VSLANG",
+      "windir"
+    ],
+    "fixed_key_units": 43,
+    "native_block_max_units": 4156,
+    "native_block_max_bytes": 8312
+  },
+  "parent_row_keys": [
+    "name",
+    "started",
+    "raw_exit_observed",
+    "raw_exit",
+    "timed_out",
+    "poll_limited",
+    "polls",
+    "poll_limit",
+    "log_cap",
+    "stdout_start",
+    "stderr_start",
+    "raw_stdout_bytes",
+    "raw_stderr_bytes",
+    "position_record_complete",
+    "raw_bytes_retained",
+    "raw_bytes_observed",
+    "observed_not_confirmed_retained",
+    "omitted_at_cap",
+    "unknown_undrained",
+    "both_eof",
+    "reads_settled",
+    "owned_storage_quarantined",
+    "cleanup",
+    "failure"
+  ],
+  "cleanup_mask_arithmetic": {
+    "valid_masks_checked": 24576,
+    "max_prefix": 14,
+    "max_parent_late": 15
+  },
+  "future_execution_gates_all_false": true
+}

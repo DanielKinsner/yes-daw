@@ -1,0 +1,10 @@
+{
+  "purpose": "OWN_INDEPENDENT_FILE_TEXT_HASH_JSON_BOUNDARY_CHECK_ONLY",
+  "command": "python build-ci/20261106-research-array-boundary-independent-review-r1/check.py",
+  "actual_exit_code": 0,
+  "tool_wall_time_seconds": 0.1496215,
+  "checks": 74,
+  "no_target_parser_compiler_helper_native_metadata_or_old_checker_execution": true,
+  "verdict": "ACCEPT_EXISTING_BOUNDARY_APPLICATION_SELECTED_BUILTIN_PATHS_ONLY",
+  "review_json_sha256": "B34580517BAFAA2DD5DAE4ED03A28C725D093A1CC9ADB9A8C3A47DFBFE12A550"
+}

@@ -1,158 +1,64 @@
 # 0090. Own clock-research child processes and bounded capture
 
-- **Status:** Proposed
+- **Status:** Accepted — R2 architecture/protocol; independent whole review passed115 checks. Implementation, fit and execution remain gated.
 - **Date:** 2026-11-06
 - **Deciders:** Root and independent source/resource critic within authorized Option A delivery.
-- **Related:** ADR-0049, ADR-0078; the Musical prepared-lane plan; frozen R12 resource and V HOLD baselines.
+- **Related:** ADR-0049, ADR-0078; Musical prepared-lane plan; frozen R12/R13, resource and V HOLD baselines.
+- **Normative companion:** [Clock supervisor protocol v1](../research/clock-supervisor-protocol-v1.md). This complete companion is normative. No companion rule is deferred to implementation.
 
-## Problem
+## Problem and scope
 
-The clock-research controller has two source-derived resource gaps. Fragmented
-pipe reads can create per-inner managed async owners despite only two pending
-outer reads. Process.Kill(true) enumerates host processes and descendants;
-bootstrap MainModule can enumerate loaded modules. Its existing child, log and
-poll limits bound neither population. The frozen source/evidence stays intact.
+Fragmented pipe reads can create per-inner managed async owners despite two pending outer reads. Process.Kill(true) performs host-wide process/descendant enumeration, and bootstrap MainModule can enumerate modules. Existing child/log/poll caps bound neither population. All predecessors remain frozen.
 
-This decision concerns research tooling needed for mechanical editing checks.
-It changes no Project storage, rendering policy, numerical tolerance, production
-budget, Accepted ADR, golden or real-time annotation.
+This concerns research tooling for mechanical editing checks. It changes no Project storage, DSP/render policy, numerical tolerance, Accepted ADR, golden or RT annotation. No price, Data, native binding, resource fit or execution authority follows from this proposal.
 
-## Options
+## Options and decision
 
-1. **S1, recommended: native console supervisor and bounded files.** One small
-   pinned helper owns each target's private job, two synchronous pipe workers,
-   fixed buffers and capture coordinator. The controller reads bounded terminal
-   data without redirected supervisor pipes. This replaces both structural
-   gaps, but adds a binary, protocol, native lifetime and funding proof.
-2. **S2: managed component with two dedicated synchronous workers.** Avoids a
-   separate supervisor protocol but retains managed thread/exception/stack and
-   unsettled-worker ownership in the controller.
-3. **S3: fixed overlapped named-pipe state.** Avoids blocking workers but adds
-   event/OVERLAPPED/cancellation ordering. Anonymous pipes cannot supply that
-   overlapped implementation.
+1. **S1, recommended:** a pinned native console supervisor, private job and two fixed synchronous read workers, with bounded request/terminal files. This removes parent per-inner async owners and host KillTree enumeration, and adds explicitly counted native/protocol/funding obligations.
+2. **S2:** an in-process managed component with two dedicated synchronous workers. It avoids a supervisor protocol but keeps managed failure/thread/stack lifetime joins in the controller.
+3. **S3:** fixed overlapped named pipes. It can avoid read-worker stacks but adds event/OVERLAPPED/name/security/cancellation proofs; anonymous CreatePipe pipes are not an overlapped substitute.
 
-## Proposed decision
+Adopt S1. Root authorizes only a new unrun source candidate under the [source plan](../plans/2026-11-06-clock-supervisor-source-plan.md). This is not compiler, helper/fixture or Clock execution authority. The complete independent R2 review and unchanged Proposed subjects are preserved in `docs/research/artifacts/2026-11-06-clock-supervisor-protocol-review-r2/` and `2026-11-06-clock-supervisor-protocol-authoring-r2/`.
 
-Use S1, subject to fresh independent acceptance of this decision and its
-concrete source plan. Source authoring, compile-only purpose qualification and
-later target execution are separate gates. This ADR grants none of them yet.
+## Containment and headless ownership
 
-### Containment and handles
+Configure an unnamed noninheritable KILL_ON_JOB_CLOSE job without breakaway. Use STARTUPINFOEX creation-time PROC_THREAD_ATTRIBUTE_JOB_LIST under a separately qualified Windows10+ profile and the exact three-handle target inheritance list. Do not invent transactional/creator-death guarantees beyond the qualified interface; create-suspended followed by manual assignment is not an unconditional substitute. Preserve original target identity/PE/before-after fences as well as helper identity.
 
-Create an unnamed noninheritable job with KILL_ON_JOB_CLOSE and no breakaway.
-Use creation-time PROC_THREAD_ATTRIBUTE_JOB_LIST under an explicitly qualified
-Windows10+ profile, with STARTUPINFOEX and an exact inherited stdio handle list
-that excludes the private job handle. Qualify the documented creation and
-failure semantics; do not invent transactional or creator-death guarantees the
-selected interface has not established. Suspended creation followed by manual
-assignment is not an unconditional substitute.
+Supervisor stdout/stderr are not redirected. The supervisor never reads ambient stdin or discovers an environment. Its fresh launcher must separately qualify null/noninteractive stdin and the inherited OS error-dialog profile. Target stdin is its own explicitly opened inheritable Win32 NUL read handle, preserving the selected predecessor char-device semantics; it is not an EOF pipe. Only that handle and two target pipe writers are inherited. Job, parent pipe readers, log/request/terminal, synchronization and thread handles are excluded. Every NUL/pipe/handle/error/close owner is counted.
 
-Do not use a host process census, PID-list-sized allocation or Kill(true).
-Admission failure occurs before the target executes. Preserve the original
-target binary gates and before/after fences in addition to helper identity.
-Existing nested-job incompatibility becomes an honest unsupported profile,
-without a breakaway fallback or an invented successful target result.
+Use fixed console executables, CREATE_NO_WINDOW, no shell and no GUI/foreground/input/audio/MIDI calls or deliberate crash/WER fixtures. This is an admitted fixed profile, not containment of arbitrary GUI executables. Native cancellation/close and job last-handle termination are actions, not observed settlement or a refund. Unsupported nesting/creation semantics remain an honest HOLD/refusal; no breakaway fallback is permitted.
 
-### Capture and complete-stage admission
+## Capture and exact protocol
 
-Exactly two private workers each accumulate at most4096 bytes in one fixed
-buffer, stopping at full chunk, EOF or error. A coordinator alone appends to
-stdout.log/stderr.log, accounts the shared1MiB per-child cap and acknowledges
-buffer reuse. Workers may receive arbitrary one-byte fragments. Source-price
-all progress and refusal work; fixed buffers do not make loops free.
+Two private workers each own one4096-byte buffer. They publish immutable generation/ready data and wait for coordinator acknowledgement. Only the coordinator appends and updates aggregate counters. It processes stdout then stderr, preserves the shared1MiB per-child log cap, performs the complete current64MiB stage scan/name/reparse/depth/extent/aggregate check before every actual write and acknowledges only after every buffer use ends. Short native writes receive a fresh check before continuation. Arbitrary fragmentation, EOF-short, error-partial, cleanup-unconsumed and failed-write progress are defined in the companion. No quiet-output premise or one-time/bulk reservation replaces current stage admission.
 
-Retain the complete64MiB stage-pool check before every actual write, including
-allowed names, reparse/depth/extent checks and first-refusal ownership. Replacing
-it with a one-time free-space snapshot or reserving1MiB that a quiet child need
-not use would need a separate equivalence proof and is not selected here.
-Serialize stage scan/check/write across both streams. A short or failed write
-must preserve its actual known/unknown progress and primary/secondary failure.
+Request v1 is explicit LE:140-byte header, exact four path/eight environment/28-or6 argument strings, maximum41,260 compiler or18,644 native bytes. Header includes total and mandatory-tail reservations and three32-byte identities. The exact bounded raw command line is quoted helper path plus one uppercase hex-UTF16 request-path argument; decoded path<=512 cells and raw command line<=2,576 cells including NUL. The companion fixes the grammar, guard order, identity byte recipe, both process environments, target quoting domain, exact names and no-overwrite/EOF behavior.
 
-The helper has no redirected supervisor stdout/stderr. Its own console binary
-and the already gated target use no shell, interactive stdin, desktop input,
-GUI/device calls or error dialogs under the admitted launch profile. These are
-not containment guarantees for arbitrary GUI executables.
+Terminal v1 is exactly308 bytes, from8+16*4+3*8+3*32+2*7*8+4. It has explicit status/site/reason/native-error observations, primary/first-secondary/first-native-secondary records, source-prefix observation, body polls, three identities, separate confirmed-write and four physical positions, read-error partials and a bounded cleanup mask. No C++ padding is serialized. All flags, unavailable values, cross-field rules, signed32 exit reinterpretation (including a genuinely observed259), deadline/cap distinctions and existing child-row projections are normative in the companion. Missing values become explicit nulls in the successor row rather than false zero success. Successful row types and child names/counts remain unchanged; the stronger failure unknowns and new finite cleanup extent are openly reviewed research-wire changes.
 
-### Private request and terminal format
+Transport is the new owned root/transport directory outside stage, with three fixed request/terminal pairs, no progress files or retries. Full maximum transport bytes are79,472. All files, partial tails, namespace entries and buffers count under the unchanged whole scratch/retained policy; they are not opaque compiler output. Raw logs retain their existing stage paths.
 
-These are per-attempt research files, never Project files. Store them in a new
-explicitly owned transport directory outside stage, with every file/byte counted
-in the existing retained/namespace/scratch model. Do not classify them as opaque
-compiler output. Add their exact paths/caps to the new manifest and fences.
+## Failure, prefix accounting and completion
 
-Request version1 uses little-endian unsigned integers, magic `YCSREQ01`,
-u32 version/totalBytes/childIndex/argumentCount/environmentCount, one u64
-supervisor source-work reservation, followed by
-three32-byte identities: manifest SHA, canonical run-identity SHA and expected
-target SHA. Then come four length-prefixed UTF16 strings in order: target,
-working directory, stage root, transport root; eight environment values in the
-existing SystemRoot/windir/PATH/INCLUDE/LIB/TEMP/TMP/VSLANG order; then the exact
-28 compiler or6 native-target arguments. Each string is u32 code-unit length
-followed by that many u16 cells, at most512 units with the original string
-guards. Header132 +40*(4+2*512) gives a derived maximum41,252 bytes. No padding,
-trailing data, arbitrary error text, environment inheritance or extra argument
-is admitted. Command-line transport of the request path must itself have a
-fully specified bounded parser and exact quoting/profile correspondence.
+Actual target raw exit is independent of helper exit. Normal completion requires both logical EOFs and worker settlement, current job-empty proof, admitted/flushed writes, known positions, exact counters/identities and the complete success matrix. Generic job waits, close, termination request and absent notifications cannot establish it. Preserve each independently valid observation when a different owner or late publication action fails. Global quarantine/no next child is mandatory for unavailable/malformed terminal, nonzero/unobserved helper exit or unresolved ownership.
 
-Terminal version1 uses magic `YCSRES01`; ten u32 values in this order:
-version, totalBytes, childIndex, flags, targetPid, targetRawExit, status,
-primarySite, primaryError, firstSecondaryError; u64 secondaryFailureCount and
-supervisorSourceUsed;
-the same three32-byte identities; then four u64 counters per pipe, stdout first:
-observed, written, omitted, unretained. Exact length is224 bytes. Encode fields
-explicitly; never serialize C++ struct padding. Flags independently record child
-creation, target-exit observation, each worker's settlement/EOF, current job-empty
-observation, each written-position observation, source-counter observation and
-whether each stored native error was actually observed. Unknown is represented by its
-flag, never certified by a numeric zero. The expected target digest is an identity
-label, not a claim that passing it proves the loaded image.
+The helper reservation is a fresh reviewed same-origin slice of the runner bank. It contains a separately priced mandatory cleanup/publication tail. A serialized prefix meter closes admission and freezes its observation at BeginTail; all subsequent cleanup, worker return/settlement, formatting/publication/close/exit work is covered by the prepaid tail. The terminal reports observed PREFIX usage only, never complete actual helper usage. Unknown usage retains the whole slice; no automatic refund, reset, fake trace or new allowance is introduced.
 
-The source plan must define all flag bits/status/site codes, counter meanings,
-overflow rules, request-path encoding and the parent projection to existing
-diagnostics before dependent code. Exact length, magic/version/kind/EOF/current
-identities and all cross-field invariants must pass before terminal admission.
+After terminal-record freeze, helper exit0 is the separate publication/mandatory-tail commit. Controlled exits10/11/12/13 cover unavailable record, late tail failure, quarantine and invalid meter. A prewritten status0 cannot certify a failed tail. The parent preserves valid prefix facts but quarantines all noncommitted outcomes. General CLR/exception/ErrorRecord, native/cold/time and source/ABI association terms remain explicit obligations, not zero.
 
-### Settlement and failure
+Count controller+helper+actual target together under unchanged32MiB controlled scratch, existing retained cap and original log/stage/target-body policies. Include main/worker stacks, all source/native/static/heap/CRT/TLS/attribute/job/NUL/pipe/synchronization/transport/poll/failure owners. No helper exemption, opacity extension, global cap raise, close/Dispose/GC/free credit or arbitrary multiplier is introduced.
 
-Observe the target's raw32-bit exit separately from supervisor exit. Normal
-completion requires settled readers, completed/admitted writes, actual target
-exit and a valid current empty-job proof. Job close, a generic job wait, a
-termination request or an absent completion-port notification is insufficient.
+The narrow bootstrap successor may use Environment.ProcessPath only with the original prefix/null/exact-host treatment under the immutable fresh-launch path profile. It removes the census only after concrete whole functional/resource review; no global growth bound or universal API equivalence is claimed.
 
-Cancellation attempts and deadlines do not establish I/O completion. Retain
-buffers, requests and workers until their completion is observed. Do not free
-or recycle pending I/O storage. Missing/partial/wrong terminal data, abnormal
-supervisor exit or unresolved cleanup becomes unknown/quarantine, preserves the
-files/diagnostics/remaining owner terms and forbids another child. Killing only
-the known supervisor is a cleanup action, not proof of target settlement.
+## Ordered review and delivery gates
 
-### Whole accounting and bootstrap
+1. Fresh independent acceptance of the exact architecture/protocol/owner/funding strategy, then root's explicit authorization to author an unrun candidate.
+2. New source-only helper/runner/manifest proposal; no R13 edits, Data, stub prices or executable authority.
+3. Freeze the whole candidate at first complete passing own checks. Fresh whole functional correspondence, all-language census and resource proposals record every remaining native/ABI/profile/binding premise.
+4. Where needed, a separately reviewed bounded compile-only purpose lane may qualify object/binary/ABI/import facts. It certifies neither runtime behavior nor Clock fit.
+5. Only after complete actual source/native/resource/binding acceptance may root authorize one separately gated helper/fixture/Clock attempt. Mechanical console fixtures use source-injected failures and ordinary nonzero exits, never deliberate crashes/WER/desktop input.
 
-Count the controller, helper and actual target together under the unchanged
-32MiB controlled scratch policy. Include native/static/heap buffers, worker and
-main stacks, handles, attributes, CRT/TLS/cold/native terms, file transport,
-parent polling and failed-attempt ownership. No per-process exemption, opacity
-extension, cap raise, quiet-output premise, GC/Dispose/close reclamation credit
-or arbitrary safety multiplier is introduced. Source/resource/profile unknowns
-keep the whole gate closed.
-
-A successor may replace the bootstrap census with Environment.ProcessPath only
-after preserving null/query refusal, original extended-prefix treatment and
-the exact host comparison under the trusted immutable fresh-launch profile.
-No global growth bound or universal API equivalence follows from the fixed path.
-
-## Review and delivery
-
-Fresh source/resource critic review must accept the exact protocol, owner state
-machine, failure projections, complete source-work sponsorship and native/profile
-premises before implementation. A separately reviewed compile-only purpose lane
-may then qualify the helper binary/ABI without running it. Actual helper/fixture
-or Clock execution needs its own complete source/resource/binding acceptance and
-root one-attempt gate. Use source/injected errors and ordinary nonzero console
-fixtures for abnormal paths; no deliberate crash/WER or desktop drive.
-
-Musical public recipe, DSP, resources, jobs/model/export/load/controls and later
-linked/folder/piano work remain unfinished. This decision cannot certify them.
+Thus final source/native facts are not circular prerequisites to producing an unrun source candidate, while missing proof never becomes execution permission. Musical recipe/DSP/resources/render/jobs/model/export/load/controls and later editing work remain unfinished.
 
 ## Primary references
 

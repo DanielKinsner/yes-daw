@@ -57,8 +57,10 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    returned REVISE; no new scalar price is accepted. All target execution guards remain false.
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
    reader actually passed88 types/391 declared fields; this supplies no live object-size or whole-fit result.
-   Next: finish the whole numeric critique and review the concrete owned-process supervisor proposal,
-   then complete resource/native/binding proof before any Clock attempt. Detailed evidence and earlier
+   ADR-0090's complete supervisor protocol passed115 independent checks; only a new unrun source candidate
+   is authorized. R13's complete scalar successor is being rebuilt for a different fresh critic.
+   Next: finish that whole numeric review and the supervisor implementation/resource/native/binding proof
+   before any Clock attempt. Detailed evidence and earlier
    source revisions remain in the dated entries below; Dan is not a tester or approval gate.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
@@ -80,6 +82,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Accept the complete supervisor design and authorize source only
+
+- Independent whole R2 review passed115 checks and accepted ADR-0090, its exact308-byte terminal/140-byte request protocol and ordered source plan. All five R1 findings are resolved; exact Proposed subjects/reviews and failed author checks are archived before application.
+- Only a new unrun helper/runner/manifest candidate and source checks are authorized. No target parser/import, compiler, helper/fixture/Clock run, accepted price, native association or whole resource fit follows. Explicit storage and same-origin prepaid cleanup remain required.
+- Archived the47-check native ownership-boundary audit and74-check array/cmdlet-boundary review: generic runtime CPU/bookkeeping is unqualified, while explicit actions, buffers, copies and stack requests remain counted. R13 censusR2 continues; b0bcad4 passed docs-only CI42213305861.
 
 ## 2026-11-06 - Preserve bounded native-child source owners
 

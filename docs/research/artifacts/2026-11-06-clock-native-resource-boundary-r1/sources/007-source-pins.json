@@ -1,0 +1,98 @@
+{
+  "purpose": "native-child bounded source owner model only",
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/derive.py",
+      "bytes": 17132,
+      "sha256": "972FED59EC971485B2E3FABE100485B7C703E1995089B903E21B2F56DA1698EA"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/argument.md",
+      "bytes": 12341,
+      "sha256": "800AD9E0F558A7B8B27D0235533642F0925BA60F207A39E1FC586C871C5532D1"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/owners.json",
+      "bytes": 33532,
+      "sha256": "73B9A2C4F0BACC420EA86E87F1BB7EC46098E9CB5806DD2D4B53EC97C514FDBE"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/own-check-receipt.json",
+      "bytes": 492,
+      "sha256": "4F71D625D2F44D6DCFD95D86D336DA562FB29AF64F7C9E7FCE59E0076E4D6FDE"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/first-green-freeze.json",
+      "bytes": 1029,
+      "sha256": "AF60891D04E89790C8E3178482738518C5C174F5F886CC30D798C933B4945ECC"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+      "bytes": 503610,
+      "sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vector",
+      "bytes": 161282,
+      "sha256": "351604D91A2CEAC79F9BD9448C0553CCCC22711E22955B5938EAF41DE98334A6"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xstring",
+      "bytes": 161127,
+      "sha256": "9407C290A1D0C6BEBC42CF131BD04F09A9892F61B713EECB12827C0F6BBC3045"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "bytes": 112178,
+      "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/utility",
+      "bytes": 42347,
+      "sha256": "403BCF5919D0E0371F25A929752F0A05AAE7B0667129D65CFE3A8DFF858E97D6"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_exception.h",
+      "bytes": 3143,
+      "sha256": "0DD3DCC67B655FBFC96708F131C9E7F86416D2DB95FD33B1E7ACC8489F2C32D4"
+    }
+  ],
+  "target_source_cap_Data_and_guards_unchanged": true
+}

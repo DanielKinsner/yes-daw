@@ -1,0 +1,65 @@
+{
+  "schema": "PROPOSED_SUPERVISOR_R2_AUTHORING_CORRESPONDENCE",
+  "status": "AUTHOR_PROPOSAL_NOT_INDEPENDENT_ACCEPTANCE",
+  "first_complete_own_check_count": 140,
+  "findings_addressed": [
+    {
+      "id": "F1",
+      "concrete_change": "Four separately flagged u64 start/end positions; confirmed writes retained separately;308-byte real-field layout; combined parent completeness mapping."
+    },
+    {
+      "id": "F2",
+      "concrete_change": "28 flags including aggregate-counter validity and possible execution;48 reasons/site pairs; exact statuses, source-code259/signed projection, EOF-short/error-partial/cleanup accounting, first primary/secondary/native records, bounded cleanup mask and all24 parent keys."
+    },
+    {
+      "id": "F3",
+      "concrete_change": "Exact2576-cell raw command grammar, uppercase hex path rules, root-SHA byte recipe, explicit helper/target8-value environments and4156-cell block, nativeNUL stdin and exact target quote algorithm/argument domain."
+    },
+    {
+      "id": "F4",
+      "concrete_change": "Request140 adds mandatory-tail reservation; linearizable BeginTail prefix cut; unobserved prepaid cleanup/publication tail; all helper reservation retained; five helper exits with late-failure noncommit."
+    },
+    {
+      "id": "F5",
+      "concrete_change": "Architecture acceptance/root source-only authorization, frozen candidate whole reviews, separate compile-only purpose qualification and full actual execution proof/gate are ordered without circular prerequisite."
+    }
+  ],
+  "root_steering_applied": "A: trusted-launcher null-stdin premise, no supervisor redirects/ambient stdin reads; explicit inheritable target NUL with exact target handle list. No EOF-pipe/implicit ACP StreamWriter path selected.",
+  "semantic_changes_openly_declared": [
+    "308-byte terminal and140-byte request are unimplemented ProposedR2 wire choices, not compatibility claims with an executedR1.",
+    "Unavailable failure row values become null, instead of old zero sentinels; no new serialized child-row keys.",
+    "Confirmed native short-write increments can preserve finer known progress than old opaque FileStream.Write failures.",
+    "Cleanup list is a normative bounded mask projection with fresh maximum15, not transferred old13 price or a raised global policy cap."
+  ],
+  "remaining_external_proofs": [
+    "Actual creation-time/nesting/creator-death/reference/job-accounting/cancellation/native-time semantics.",
+    "Complete source/function/ABI/import/CRT/TLS/stack/handle/pipe/crypto/path/environment and cold owners under whole32MiB and retained/profile limits.",
+    "Real same-origin helper prefix/tail/caller/source work prices and complete phase schedules; no numeric values accepted here.",
+    "Actual source/binary/native/binding and separate helper/fixture/Clock execution authority."
+  ],
+  "tracked_subjects_preserved": {
+    "docs/adr/0090-clock-research-owned-process-supervisor.md": "697F696166AF1BB47C3CFC4844EF213A8B56D24A4B8371C2497D23C8A0B252EB",
+    "docs/plans/2026-11-06-clock-supervisor-source-plan.md": "050294B6C025D2131BF222234BEC811FB59666BC3CFE414E286FE5E7B1DC6709",
+    "build-ci/20261106-clock-supervisor-architecture-independent-review-r1/review.json": "319512FD08A16D03848771AF5750F7C9571A2EEE082B3EE3E9EF7F3F30A883DE",
+    "build-ci/20261106-controller-owned-process-hypothesis-r1/hypothesis.json": "79F75D9781519941917CA43897512121649E3776406D724971033E6ACB578AF9",
+    "build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json": "01B4289C2F8E521093987C259D15C5DD4BBF2388EFD9E594A90319C9B0BB5EE6",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788"
+  },
+  "proposed_documents": [
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/0090-clock-research-owned-process-supervisor.md",
+      "bytes": 10546,
+      "sha256": "E41566667441AE6A5B7FEB7A06260B929E4FCE8852FFA66072E4EDCDBF1F3827"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/2026-11-06-clock-supervisor-source-plan.md",
+      "bytes": 8537,
+      "sha256": "80C4350199709565505B6E2E5C3D1B99C91E13F28B0DD32523193C75D617095C"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/protocol-v1.md",
+      "bytes": 43972,
+      "sha256": "BDBAF18070D56605F6B427E063591880FE161720F31D9648E2B2230D6475DDEE"
+    }
+  ]
+}

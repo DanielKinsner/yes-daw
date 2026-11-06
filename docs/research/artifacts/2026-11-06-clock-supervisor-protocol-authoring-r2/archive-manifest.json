@@ -1,0 +1,197 @@
+{
+  "schema": "PINNED_SOURCE_PACKET_LOSSLESS_DELIVERY_V1",
+  "original_pins_sha256": "6672E5FC4CBE0FF785E87BE0471F4BF0CD2BC9D461E58F1DD38A9478125B5A2C",
+  "original_verdict": "PRIVATE_PROPOSED_FROZEN_FIRST_COMPLETE_OWN_PASS_REQUIRES_FRESH_INDEPENDENT_REVIEW",
+  "scope": "Preservation of the named packet only. No new independent source/numeric/resource acceptance, fit, NOFIT, native binding, target execution or feature completion follows.",
+  "files": [
+    {
+      "file": "sources/001-review.json",
+      "original_path": "build-ci/20261106-clock-supervisor-architecture-independent-review-r1/review.json",
+      "original_bytes": 22507,
+      "original_sha256": "319512FD08A16D03848771AF5750F7C9571A2EEE082B3EE3E9EF7F3F30A883DE",
+      "bytes": 22507,
+      "sha256": "319512FD08A16D03848771AF5750F7C9571A2EEE082B3EE3E9EF7F3F30A883DE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-0090-clock-research-owned-process-supervisor.md",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/0090-clock-research-owned-process-supervisor.md",
+      "original_bytes": 10546,
+      "original_sha256": "E41566667441AE6A5B7FEB7A06260B929E4FCE8852FFA66072E4EDCDBF1F3827",
+      "bytes": 10546,
+      "sha256": "E41566667441AE6A5B7FEB7A06260B929E4FCE8852FFA66072E4EDCDBF1F3827",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-2026-11-06-clock-supervisor-source-plan.md",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/2026-11-06-clock-supervisor-source-plan.md",
+      "original_bytes": 8537,
+      "original_sha256": "80C4350199709565505B6E2E5C3D1B99C91E13F28B0DD32523193C75D617095C",
+      "bytes": 8537,
+      "sha256": "80C4350199709565505B6E2E5C3D1B99C91E13F28B0DD32523193C75D617095C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-author-check.py",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/author-check.py",
+      "original_bytes": 20429,
+      "original_sha256": "D7360FE8F0DD0CB1DAF5251E31DDDBF5989380F6E432AB9E556C78C8D0AC2987",
+      "bytes": 20429,
+      "sha256": "D7360FE8F0DD0CB1DAF5251E31DDDBF5989380F6E432AB9E556C78C8D0AC2987",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-author-checks.json",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/author-checks.json",
+      "original_bytes": 11480,
+      "original_sha256": "180C643484CF7A793D9710D4FC4BC2A1C53C0DAF9CACFEB570B759F7AE11540A",
+      "bytes": 11480,
+      "sha256": "180C643484CF7A793D9710D4FC4BC2A1C53C0DAF9CACFEB570B759F7AE11540A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-author-lineage.json",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/author-lineage.json",
+      "original_bytes": 2176,
+      "original_sha256": "2E5D76123271EDAC48ACCD6C761E7E0721E00DDD1DF68370C135E1A9B06DC5F3",
+      "bytes": 2176,
+      "sha256": "2E5D76123271EDAC48ACCD6C761E7E0721E00DDD1DF68370C135E1A9B06DC5F3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/007-correspondence.json",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/correspondence.json",
+      "original_bytes": 4526,
+      "original_sha256": "7EE88C592E2F8571AE564658BD51DBABFCC803F150DCD4551469C2E4245BEDC2",
+      "bytes": 4526,
+      "sha256": "7EE88C592E2F8571AE564658BD51DBABFCC803F150DCD4551469C2E4245BEDC2",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/008-0090-clock-research-owned-process-supervisor.md",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/evidence/own-check-attempt-r1/0090-clock-research-owned-process-supervisor.md",
+      "original_bytes": 10546,
+      "original_sha256": "E41566667441AE6A5B7FEB7A06260B929E4FCE8852FFA66072E4EDCDBF1F3827",
+      "bytes": 10546,
+      "sha256": "E41566667441AE6A5B7FEB7A06260B929E4FCE8852FFA66072E4EDCDBF1F3827",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/009-2026-11-06-clock-supervisor-source-plan.md",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/evidence/own-check-attempt-r1/2026-11-06-clock-supervisor-source-plan.md",
+      "original_bytes": 8537,
+      "original_sha256": "80C4350199709565505B6E2E5C3D1B99C91E13F28B0DD32523193C75D617095C",
+      "bytes": 8537,
+      "sha256": "80C4350199709565505B6E2E5C3D1B99C91E13F28B0DD32523193C75D617095C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/010-author-check.py",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/evidence/own-check-attempt-r1/author-check.py",
+      "original_bytes": 20252,
+      "original_sha256": "9F20CEFD4F41184CC8C1EA322C15998ED1AF381B13F6B2B894C633E0BC6E65F6",
+      "bytes": 20252,
+      "sha256": "9F20CEFD4F41184CC8C1EA322C15998ED1AF381B13F6B2B894C633E0BC6E65F6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/011-failed-author-checks.json",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/evidence/own-check-attempt-r1/failed-author-checks.json",
+      "original_bytes": 1221,
+      "original_sha256": "4DEBB098BAF38469F6A8DCC91482FE515E95CBF2427877D176C8AFD8DDE84611",
+      "bytes": 1221,
+      "sha256": "4DEBB098BAF38469F6A8DCC91482FE515E95CBF2427877D176C8AFD8DDE84611",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/012-protocol-v1.md",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/evidence/own-check-attempt-r1/protocol-v1.md",
+      "original_bytes": 43972,
+      "original_sha256": "BDBAF18070D56605F6B427E063591880FE161720F31D9648E2B2230D6475DDEE",
+      "bytes": 43972,
+      "sha256": "BDBAF18070D56605F6B427E063591880FE161720F31D9648E2B2230D6475DDEE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/013-failed-author-checks.json",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/failed-author-checks.json",
+      "original_bytes": 1221,
+      "original_sha256": "4DEBB098BAF38469F6A8DCC91482FE515E95CBF2427877D176C8AFD8DDE84611",
+      "bytes": 1221,
+      "sha256": "4DEBB098BAF38469F6A8DCC91482FE515E95CBF2427877D176C8AFD8DDE84611",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/014-protocol-schema.json",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/protocol-schema.json",
+      "original_bytes": 17511,
+      "original_sha256": "2744063FCFCA830B2B1561EFF02D724B003F04EC2D23907E1D872E23C1540638",
+      "bytes": 17511,
+      "sha256": "2744063FCFCA830B2B1561EFF02D724B003F04EC2D23907E1D872E23C1540638",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/015-protocol-v1.md",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/protocol-v1.md",
+      "original_bytes": 43972,
+      "original_sha256": "BDBAF18070D56605F6B427E063591880FE161720F31D9648E2B2230D6475DDEE",
+      "bytes": 43972,
+      "sha256": "BDBAF18070D56605F6B427E063591880FE161720F31D9648E2B2230D6475DDEE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/016-source-pins.json",
+      "original_path": "build-ci/20261106-clock-supervisor-protocol-authoring-r2/source-pins.json",
+      "original_bytes": 4660,
+      "original_sha256": "6672E5FC4CBE0FF785E87BE0471F4BF0CD2BC9D461E58F1DD38A9478125B5A2C",
+      "bytes": 4660,
+      "sha256": "6672E5FC4CBE0FF785E87BE0471F4BF0CD2BC9D461E58F1DD38A9478125B5A2C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/017-hypothesis.json",
+      "original_path": "build-ci/20261106-controller-owned-process-hypothesis-r1/hypothesis.json",
+      "original_bytes": 17979,
+      "original_sha256": "79F75D9781519941917CA43897512121649E3776406D724971033E6ACB578AF9",
+      "bytes": 17979,
+      "sha256": "79F75D9781519941917CA43897512121649E3776406D724971033E6ACB578AF9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/018-closure.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json",
+      "original_bytes": 30471,
+      "original_sha256": "01B4289C2F8E521093987C259D15C5DD4BBF2388EFD9E594A90319C9B0BB5EE6",
+      "bytes": 30471,
+      "sha256": "01B4289C2F8E521093987C259D15C5DD4BBF2388EFD9E594A90319C9B0BB5EE6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/019-run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "original_bytes": 108428,
+      "original_sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788",
+      "bytes": 108428,
+      "sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/020-0090-clock-research-owned-process-supervisor.md",
+      "original_path": "docs/adr/0090-clock-research-owned-process-supervisor.md",
+      "original_bytes": 9593,
+      "original_sha256": "697F696166AF1BB47C3CFC4844EF213A8B56D24A4B8371C2497D23C8A0B252EB",
+      "bytes": 9593,
+      "sha256": "697F696166AF1BB47C3CFC4844EF213A8B56D24A4B8371C2497D23C8A0B252EB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/021-2026-11-06-clock-supervisor-source-plan.md",
+      "original_path": "docs/plans/2026-11-06-clock-supervisor-source-plan.md",
+      "original_bytes": 7923,
+      "original_sha256": "050294B6C025D2131BF222234BEC811FB59666BC3CFE414E286FE5E7B1DC6709",
+      "bytes": 7923,
+      "sha256": "050294B6C025D2131BF222234BEC811FB59666BC3CFE414E286FE5E7B1DC6709",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

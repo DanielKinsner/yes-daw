@@ -1,0 +1,835 @@
+{
+  "schema": "CLOCK_NATIVE_CHILD_COMPLETE_SOURCE_OWNER_MODEL_R1",
+  "verdict": "SCOPED_HOLD_NUMERIC_SOURCE_COMPONENTS_NOT_WHOLE_CHILD_PROOF",
+  "exact_CPP_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+  "exact_source_costs_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+  "selected_compiler": {
+    "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+    "sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+    "arguments": [
+      "/nologo",
+      "/std:c++20",
+      "/EHsc",
+      "/W4",
+      "/WX",
+      "/MD",
+      "/permissive-",
+      "/fp:strict",
+      "/O2",
+      "/D_ITERATOR_DEBUG_LEVEL=0",
+      "/I<REPO>/src",
+      "<BASE>/clock_stage.cpp",
+      "/Fe:<BUILD>/clock_stage.exe",
+      "/Fo:<BUILD>/clock_stage.obj",
+      "/sourceDependencies",
+      "<BUILD>/source-dependencies.json",
+      "/link",
+      "/SUBSYSTEM:CONSOLE",
+      "/INCREMENTAL:NO",
+      "/MANIFEST:EMBED",
+      "/NODEFAULTLIB",
+      "/DEFAULTLIB:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/lib/x64/msvcrt.lib",
+      "/DEFAULTLIB:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/lib/x64/msvcprt.lib",
+      "/DEFAULTLIB:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/lib/x64/vcruntime.lib",
+      "/DEFAULTLIB:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/lib/x64/oldnames.lib",
+      "/DEFAULTLIB:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/lib/x64/legacy_stdio_definitions.lib",
+      "/DEFAULTLIB:C:/Program Files (x86)/Windows Kits/10/Lib/10.0.26100.0/ucrt/x64/ucrt.lib",
+      "/DEFAULTLIB:C:/Program Files (x86)/Windows Kits/10/Lib/10.0.26100.0/um/x64/kernel32.lib"
+    ],
+    "one_invocation": true,
+    "final_artifacts_admitted_after_checks_only": true,
+    "sourceDependencies_is_additional_artifact_not_tool_inventory": true,
+    "opaque_internal_temporary_peak_disk": true
+  },
+  "selected_ABI_conditions": [
+    "Windows AMD64 pointer/size_t8,uint64/double8,ordinary default packing/alignment",
+    "MSVC14.44 selected headers,std:c++20,ITERATOR_DEBUG_LEVEL0,default std::allocator,char string",
+    "future actual object/compiler/library/source association and constant Catalogue definition remain unqualified"
+  ],
+  "unit_models": {
+    "Text_source_assert_upper": 65552,
+    "Stream_source_assert_upper": 65664,
+    "FractionCache_pair16_x735_plus_three_U64": 11784,
+    "Catalogue_76rows": 1248,
+    "CleanupCloseState": 24,
+    "Pair128": 16,
+    "Native_and_MusicalTime": 16,
+    "Cut": 32,
+    "Picks_Item": 16,
+    "Picks": 248,
+    "Bounds": 104,
+    "Meter": 24,
+    "std_vector_D0_header": 24,
+    "std_string_char_D0_header": 32,
+    "NumericAClock": 56,
+    "Production": 64,
+    "CachedPort": 160,
+    "Rejection_own_fields_and_exception_base": 80,
+    "source_witness_array6": 48,
+    "production_rows_array4_assert_upper": 128,
+    "fixture_initializer_list_array4_upper": 128,
+    "Text_u_digits": 20,
+    "Text_quoted_char_pair": 2,
+    "Stream_fallback_word_array": 8,
+    "verifier_owned_short_trailing_array": 9,
+    "source_lambda_max5references": 40
+  },
+  "mode_schedules": {
+    "produce": {
+      "fixtures": 27,
+      "FractionCache_constructions": 3,
+      "FractionCache_rows_capacity_each": 735,
+      "FractionCache_rows_populated_total": 785,
+      "CachedPort_constructions": 27,
+      "production_normal_builds": 27,
+      "production_controls_builds": 1,
+      "production_mutant_builds": 0,
+      "vector_allocation_requests_upper": 137,
+      "vector_ever_requested_payload": 9864,
+      "vector_logical_live_backing_upper": 456,
+      "Stream_constructions": 56,
+      "Text_number_calls": 54,
+      "Text_metadata_calls": 28,
+      "Text_readText_calls": 0,
+      "Text_source_owner_occasions_no_NRVO": 110,
+      "productionRows_calls": 56,
+      "productionRows_array4_owner_occasions_no_NRVO": 112,
+      "string_path_calls": 56,
+      "string_relative_concat_expressions": 54,
+      "source_control_path_concats": 0,
+      "source_string_alloc_request_upper": 224,
+      "string_ever_requested_payload_upper": 78888,
+      "own_expected_Rejection_throws": 3,
+      "unexpected_terminal_throw_extra_upper": 1,
+      "logical_fixed_core_upper": 405320,
+      "prospective_catalogue_payload": 1248,
+      "owned_static_hash_arrays": 130,
+      "owned_static_cleanup": 24,
+      "named_core_plus_static_plus_ever_container_payload": 495474
+    },
+    "verify": {
+      "fixtures": 27,
+      "FractionCache_constructions": 3,
+      "FractionCache_rows_capacity_each": 735,
+      "FractionCache_rows_populated_total": 785,
+      "CachedPort_constructions": 27,
+      "production_normal_builds": 27,
+      "production_controls_builds": 1,
+      "production_mutant_builds": 2,
+      "vector_allocation_requests_upper": 141,
+      "vector_ever_requested_payload": 10104,
+      "vector_logical_live_backing_upper": 456,
+      "Stream_constructions": 60,
+      "Text_number_calls": 54,
+      "Text_metadata_calls": 29,
+      "Text_readText_calls": 28,
+      "Text_source_owner_occasions_no_NRVO": 168,
+      "productionRows_calls": 59,
+      "productionRows_array4_owner_occasions_no_NRVO": 118,
+      "string_path_calls": 56,
+      "string_relative_concat_expressions": 54,
+      "source_control_path_concats": 4,
+      "source_string_alloc_request_upper": 228,
+      "string_ever_requested_payload_upper": 81064,
+      "own_expected_Rejection_throws": 11,
+      "unexpected_terminal_throw_extra_upper": 1,
+      "logical_fixed_core_upper": 405320,
+      "prospective_catalogue_payload": 1248,
+      "owned_static_hash_arrays": 130,
+      "owned_static_cleanup": 24,
+      "named_core_plus_static_plus_ever_container_payload": 497890
+    }
+  },
+  "source_sites": [
+    {
+      "kind": "Text",
+      "line": 109,
+      "matched": [
+        "struct Text"
+      ],
+      "source": "struct Text {"
+    },
+    {
+      "kind": "Text",
+      "line": 117,
+      "matched": [
+        "std::string number("
+      ],
+      "source": "std::string number(std::uint64_t x){Text t;t.u(x);return {t.data.data(),t.size};}"
+    },
+    {
+      "kind": "Text",
+      "line": 146,
+      "matched": [
+        "Text readText("
+      ],
+      "source": "Text readText(const std::string& p,const Text& expected){Text t;Stream f(p,false,65536);t.size=expected.size;f.exact(reinterpret_cast<unsigned char*>(t.data.data()),t.size);f.finish(t.size);textGate(t,expected);return t;}"
+    },
+    {
+      "kind": "Text",
+      "line": 228,
+      "matched": [
+        "Text metadata("
+      ],
+      "source": "Text metadata(const Bounds& b,const Picks& picks,const std::string& manifest,bool inverse){"
+    },
+    {
+      "kind": "Text",
+      "line": 257,
+      "matched": [
+        "const auto text=metadata",
+        "auto actual=readText"
+      ],
+      "source": "   q.finish(8*(N+1));gate(picks.next==10,\"ALL_EDGE_BURST_POSITIONS\");const auto text=metadata(b,picks,manifest,false);if(verify){auto actual=readText(path(root,\"references/clock/\"+stem+\"-metadata.json\"),text);if(!metadataControl){gate(actual.size>1,\"METADATA_CONTROL_REACHED\");actual.data[0]='[';expect(\"metadata-corruption\",[&]{textGate(actual,text);},\"EXACT_CLOCK_METADATA\",textWitness(actual,text));metadataControl=true;}}else writeText(path(root,\"references/clock/\"+stem+\"-metadata.json\"),text);"
+    },
+    {
+      "kind": "Text",
+      "line": 258,
+      "matched": [
+        "const auto actual=metadata"
+      ],
+      "source": "   if(verify&&!prefixControl){std::size_t count=0;auto rows=productionRows(map,count);rows[0].bpm=120;Production mutant;gate(Production::build({rows.data(),count},{double(R)},mutant),\"PREFIX_MUTANT_BUILD\");const double changedA=productionFrame(mutant,{S,0}),changedB=productionFrame(mutant,{S+L,0});auto changed=b;changed.begin=admittedCut(changedA,changedA);changed.end=admittedCut(changedB,changedB);changed.D=changed.end.floor-changed.begin.floor;const auto actual=metadata(changed,picks,manifest,false);expect(\"full-prefix\",[&]{textGate(actual,text);},\"EXACT_CLOCK_METADATA\",textWitness(actual,text));prefixControl=true;}"
+    },
+    {
+      "kind": "Text",
+      "line": 260,
+      "matched": [
+        "const auto descriptor=metadata",
+        "if(verify)readText"
+      ],
+      "source": "   if(R==48000&&map==5){const auto descriptor=metadata(b,picks,manifest,true);const std::string binary=\"references/native-inverse/r48000-map5.bin\",json=\"references/native-inverse/r48000-map5.json\";if(verify)readText(path(root,json),descriptor);else writeText(path(root,json),descriptor);Stream inv(path(root,binary),!verify,16*std::uint64_t(b.D));"
+    },
+    {
+      "kind": "Stream",
+      "line": 119,
+      "matched": [
+        "struct Stream"
+      ],
+      "source": "struct Stream {"
+    },
+    {
+      "kind": "Stream",
+      "line": 143,
+      "matched": [
+        "void writeText("
+      ],
+      "source": "void writeText(const std::string& p,const Text& t){Stream f(p,true,65536);f.put(reinterpret_cast<const unsigned char*>(t.data.data()),t.size);f.finish(t.size);}"
+    },
+    {
+      "kind": "Stream",
+      "line": 146,
+      "matched": [
+        "Text readText("
+      ],
+      "source": "Text readText(const std::string& p,const Text& expected){Text t;Stream f(p,false,65536);t.size=expected.size;f.exact(reinterpret_cast<unsigned char*>(t.data.data()),t.size);f.finish(t.size);textGate(t,expected);return t;}"
+    },
+    {
+      "kind": "Stream",
+      "line": 251,
+      "matched": [
+        "Stream q("
+      ],
+      "source": "   const auto get=[&](std::uint64_t i){return verify?cut(production,fractions,i):cut(generator,fractions,i);};const auto a=get(0),z=get(N);gate(z.floor>a.floor&&z.floor-a.floor<=std::int64_t(20*R),\"CLOCK_DURATION_PROFILE\");const Bounds b{R,N,std::uint64_t(int(double(float(R))*0.12)),map,a,z,z.floor-a.floor};Picks picks(R,N,b.W);const auto stem=\"r\"+number(R)+\"-map\"+number(std::uint64_t(map));Stream q(path(root,\"references/clock/\"+stem+\"-q.bin\"),!verify,8*(N+1));std::int64_t prior=-1;"
+    },
+    {
+      "kind": "Stream",
+      "line": 255,
+      "matched": [
+        "Stream shortFile"
+      ],
+      "source": "     {Stream shortFile(root+\"/../controls/short.bin\",true,7);shortFile.put(owned.data(),7);shortFile.finish(7);}expect(\"truncated-record\",[&]{Stream shortFile(root+\"/../controls/short.bin\",false,8);shortFile.word();},\"EXACT_RECORD_LENGTH_AND_EOF\",{7,1,0});"
+    },
+    {
+      "kind": "Stream",
+      "line": 256,
+      "matched": [
+        "Stream extraFile"
+      ],
+      "source": "     {Stream extraFile(root+\"/../controls/trailing.bin\",true,9);extraFile.put(owned.data(),9);extraFile.finish(9);}expect(\"trailing-record\",[&]{Stream extraFile(root+\"/../controls/trailing.bin\",false,9);extraFile.word();extraFile.finish(8);},\"EXACT_RECORD_LENGTH_AND_EOF\",{8,8,9});wordControl=true;}}"
+    },
+    {
+      "kind": "Stream",
+      "line": 260,
+      "matched": [
+        "Stream inv("
+      ],
+      "source": "   if(R==48000&&map==5){const auto descriptor=metadata(b,picks,manifest,true);const std::string binary=\"references/native-inverse/r48000-map5.bin\",json=\"references/native-inverse/r48000-map5.json\";if(verify)readText(path(root,json),descriptor);else writeText(path(root,json),descriptor);Stream inv(path(root,binary),!verify,16*std::uint64_t(b.D));"
+    },
+    {
+      "kind": "Clock_vectors",
+      "line": 178,
+      "matched": [
+        "struct CachedPort"
+      ],
+      "source": "struct CachedPort {"
+    },
+    {
+      "kind": "Clock_vectors",
+      "line": 209,
+      "matched": [
+        "Production buildProduction"
+      ],
+      "source": "Production buildProduction(std::uint64_t R,int map){std::size_t count=0;const auto rows=productionRows(map,count);Production out;gate(Production::build({rows.data(),count},{double(R)},out),\"ACTUAL_PRODUCTION_CLOCK_BUILD\");return out;}"
+    },
+    {
+      "kind": "Clock_vectors",
+      "line": 242,
+      "matched": [
+        "auto production=buildProduction",
+        "const auto production=buildProduction"
+      ],
+      "source": " const auto production=buildProduction(48000,5);gate(bits(productionFrame(production,normalized))==bits(productionFrame(production,{S+1,0})),\"CARRY_ACTUAL_PRODUCTION_BASELINE\");expect(\"fraction-carry-native-read\",[&]{productionFrame(production,{S,independent.second});},\"ACTUAL_PRODUCTION_FORWARD\",{std::uint64_t(yesdaw::engine::TimeLookupStatus::InvalidInput),S,bits(independent.second)});"
+    },
+    {
+      "kind": "Clock_vectors",
+      "line": 247,
+      "matched": [
+        "CachedPort generator",
+        "auto production=buildProduction"
+      ],
+      "source": "  for(int map=0;map<9;++map){CachedPort generator(double(R),map,meter);auto production=buildProduction(R,map);"
+    },
+    {
+      "kind": "Clock_vectors",
+      "line": 258,
+      "matched": [
+        "Production mutant"
+      ],
+      "source": "   if(verify&&!prefixControl){std::size_t count=0;auto rows=productionRows(map,count);rows[0].bpm=120;Production mutant;gate(Production::build({rows.data(),count},{double(R)},mutant),\"PREFIX_MUTANT_BUILD\");const double changedA=productionFrame(mutant,{S,0}),changedB=productionFrame(mutant,{S+L,0});auto changed=b;changed.begin=admittedCut(changedA,changedA);changed.end=admittedCut(changedB,changedB);changed.D=changed.end.floor-changed.begin.floor;const auto actual=metadata(changed,picks,manifest,false);expect(\"full-prefix\",[&]{textGate(actual,text);},\"EXACT_CLOCK_METADATA\",textWitness(actual,text));prefixControl=true;}"
+    },
+    {
+      "kind": "Clock_vectors",
+      "line": 259,
+      "matched": [
+        "Production mutant"
+      ],
+      "source": "   if(verify&&map==5&&!rampControl){std::size_t count=0;auto rows=productionRows(map,count);rows[1].curveToNext=yesdaw::engine::TempoCurve::Jump;Production mutant;gate(Production::build({rows.data(),count},{double(R)},mutant),\"RAMP_MUTANT_BUILD\");const auto changed=std::int64_t(std::floor(productionFrame(mutant,{S+L,0})))-a.floor;expect(\"ramp-law\",[&]{wordGate(changed,b.D,N,R,map);},\"EXACT_Q_WORD\",{std::uint64_t(changed),std::uint64_t(b.D),N,R,std::uint64_t(map)});rampControl=true;}"
+    },
+    {
+      "kind": "Fixed",
+      "line": 33,
+      "matched": [
+        "struct Rejection"
+      ],
+      "source": "struct Rejection:std::exception {"
+    },
+    {
+      "kind": "Fixed",
+      "line": 39,
+      "matched": [
+        "CleanupCloseState cleanupClose"
+      ],
+      "source": "CleanupCloseState cleanupClose;"
+    },
+    {
+      "kind": "Fixed",
+      "line": 104,
+      "matched": [
+        "struct Meter"
+      ],
+      "source": "struct Meter {"
+    },
+    {
+      "kind": "Fixed",
+      "line": 165,
+      "matched": [
+        "struct FractionCache"
+      ],
+      "source": "struct FractionCache {"
+    },
+    {
+      "kind": "Fixed",
+      "line": 221,
+      "matched": [
+        "struct Picks"
+      ],
+      "source": "struct Picks {"
+    },
+    {
+      "kind": "Fixed",
+      "line": 226,
+      "matched": [
+        "struct Bounds"
+      ],
+      "source": "struct Bounds{std::uint64_t R,N,W;int map;qc::Cut begin,end;std::int64_t D;};"
+    },
+    {
+      "kind": "Fixed",
+      "line": 246,
+      "matched": [
+        "const FractionCache fractions"
+      ],
+      "source": " for(const std::uint64_t R:{44100ull,48000ull,96000ull}){const std::uint64_t N=10*R;const FractionCache fractions(N,verify);"
+    },
+    {
+      "kind": "Fixed",
+      "line": 254,
+      "matched": [
+        "owned{}"
+      ],
+      "source": "     std::array<unsigned char,9> owned{};const auto encoded=std::bit_cast<std::uint64_t>(actual);std::memcpy(owned.data(),&encoded,8);owned[8]=0xa5;"
+    },
+    {
+      "kind": "Strings",
+      "line": 117,
+      "matched": [
+        "std::string number("
+      ],
+      "source": "std::string number(std::uint64_t x){Text t;t.u(x);return {t.data.data(),t.size};}"
+    },
+    {
+      "kind": "Strings",
+      "line": 118,
+      "matched": [
+        "std::string path("
+      ],
+      "source": "std::string path(const std::string& root,const std::string& relative){gate(root.size()<=512&&relative.size()<=128,\"PATH_PROFILE\");return root+\"/\"+relative;}"
+    },
+    {
+      "kind": "Strings",
+      "line": 251,
+      "matched": [
+        "const auto stem="
+      ],
+      "source": "   const auto get=[&](std::uint64_t i){return verify?cut(production,fractions,i):cut(generator,fractions,i);};const auto a=get(0),z=get(N);gate(z.floor>a.floor&&z.floor-a.floor<=std::int64_t(20*R),\"CLOCK_DURATION_PROFILE\");const Bounds b{R,N,std::uint64_t(int(double(float(R))*0.12)),map,a,z,z.floor-a.floor};Picks picks(R,N,b.W);const auto stem=\"r\"+number(R)+\"-map\"+number(std::uint64_t(map));Stream q(path(root,\"references/clock/\"+stem+\"-q.bin\"),!verify,8*(N+1));std::int64_t prior=-1;"
+    },
+    {
+      "kind": "Strings",
+      "line": 255,
+      "matched": [
+        "root+\"/../controls/"
+      ],
+      "source": "     {Stream shortFile(root+\"/../controls/short.bin\",true,7);shortFile.put(owned.data(),7);shortFile.finish(7);}expect(\"truncated-record\",[&]{Stream shortFile(root+\"/../controls/short.bin\",false,8);shortFile.word();},\"EXACT_RECORD_LENGTH_AND_EOF\",{7,1,0});"
+    },
+    {
+      "kind": "Strings",
+      "line": 256,
+      "matched": [
+        "root+\"/../controls/"
+      ],
+      "source": "     {Stream extraFile(root+\"/../controls/trailing.bin\",true,9);extraFile.put(owned.data(),9);extraFile.finish(9);}expect(\"trailing-record\",[&]{Stream extraFile(root+\"/../controls/trailing.bin\",false,9);extraFile.word();extraFile.finish(8);},\"EXACT_RECORD_LENGTH_AND_EOF\",{8,8,9});wordControl=true;}}"
+    },
+    {
+      "kind": "Strings",
+      "line": 260,
+      "matched": [
+        "const std::string binary="
+      ],
+      "source": "   if(R==48000&&map==5){const auto descriptor=metadata(b,picks,manifest,true);const std::string binary=\"references/native-inverse/r48000-map5.bin\",json=\"references/native-inverse/r48000-map5.json\";if(verify)readText(path(root,json),descriptor);else writeText(path(root,json),descriptor);Stream inv(path(root,binary),!verify,16*std::uint64_t(b.D));"
+    },
+    {
+      "kind": "Strings",
+      "line": 283,
+      "matched": [
+        "const std::string root="
+      ],
+      "source": " gate(std::fegetround()==FE_TONEAREST&&(_mm_getcsr()&~0x3fu)==0x1f80u,\"UnsupportedArithmetic\");const bool verify=std::strcmp(argv[1],\"verify\")==0;gate(verify||std::strcmp(argv[1],\"produce\")==0,\"EXACT_MODE\");gate(verify?verifyAccepted:produceAccepted,\"SOURCE_HOLD_MODE_NOT_ACCEPTED\");const std::string root=argv[2],manifest=argv[3];for(char c:manifest)gate((c>='0'&&c<='9')||(c>='A'&&c<='F'),\"MANIFEST_HEX\");"
+    }
+  ],
+  "input_extent": {
+    "argv1_to6_narrow_characters_including_NUL": 649,
+    "argv0_to6_narrow_characters_upper": 1162,
+    "argv_pointer_table8x8": 64,
+    "child_environment_keys": [
+      "SystemRoot",
+      "windir",
+      "PATH",
+      "INCLUDE",
+      "LIB",
+      "TEMP",
+      "TMP",
+      "VSLANG"
+    ],
+    "environment_key_units": 43,
+    "supplied_environment_block_UTF16_units_upper": 4252,
+    "supplied_environment_block_bytes_upper": 8504,
+    "environment_value_source_bound": "Manifest values admitted512; TEMP/TMP can become root512+/opaque-temp12. Use524 upper rather than assume replacement never grows. Exact selected root tightens it; no host environment read.",
+    "scope": "Input text extent only, not CRT startup argv/env/TLS allocations"
+  },
+  "static_assert": {
+    "source_expression": "8*(sizeof(Stream)+sizeof(Text))+sizeof(FractionCache)+32768<=2097152",
+    "conditional_numeric_expression": 1094280,
+    "whole_owner_proof": false,
+    "reason": "It constrains named type sizes, not counts/frames/capacities/CRT/native owners.32768 has no independent whole-call-chain resource proof."
+  },
+  "live_vs_ever": {
+    "automatic": "Text/Stream counts are source owner constructions and logical overlap, not cumulative heap allocation or observed stack frame size.",
+    "buffers": "All successful/failed container request slots remain in ever-requested payload; no destructor/delete/realloc/allocator-reuse credit is used in this column.",
+    "process": "Only actual observed child exit releases that process address space. No exit is observed here; unsettled/quarantined ownership remains charged."
+  },
+  "remaining": [
+    {
+      "id": "ABI_FRAME",
+      "required": "Actual selected std::pair/vector/string/unit layout association; complete own/helper/selected-STL stack frames including no-NRVO return slots, spills,alignment,shadow space,exception unwind and possible inlining/nonreuse. Source logical2Streams/4Texts is not a physical frame certificate.",
+      "next": "Read the selected object/assembly frame listing when that exact source compilation is authorized; no target run required. Do not sponsor it with unexplained32768."
+    },
+    {
+      "id": "CRT_FILE_NATIVE",
+      "required": "At most2 app Stream FILE/fd owners or in-progress open failures plus3 CRT standard streams; _IONBF does not prove no FILE state,conversion/path/native handle or formatting buffer. Include failed _fdopen/setvbuf/fclose and root string normalization/conversion owners.",
+      "next": "Pin selected import/module/source association for _sopen_s/_fsopen/_fdopen/setvbuf/stdio; classify controlled buffers under the existing boundary, not an indefinite vendor trace."
+    },
+    {
+      "id": "CRT_STARTUP_TLS",
+      "required": "Pre-main narrow/wide argv and environment copies/tables,CRT startup,errno/fenv/libm locale/TLS/lazy initialization and active worker/runtime owners. Source supplies finite input extents but does not determine their allocation multiplicities.",
+      "next": "Use exact admitted child command/environment and already selected runtime module/source associations; no host environment/process enumeration or synthetic probe credit."
+    },
+    {
+      "id": "EH_ALLOCATOR",
+      "required": "Rejection unit80 excludes EH runtime header/TLS/exception storage and copied std::runtime_error/logic_error messages. Keep source-sized char/vector allocation requests separate from allocator rounding/retention and generic CRT heap/RSS, which remain explicitly unqualified by contract47-50.",
+      "next": "Close the required selected allocation/exception resource profile without deliberate OOM/trap execution; no assumption that delete/close returned memory to OS."
+    },
+    {
+      "id": "DATA_AND_PROFILE",
+      "required": "The prospective Catalogue1248 has no value definition. Final literal constinit binding/source/inputs/libs/ABI and actual mode admission remain HOLD; no prices or caller pass boolean created."
+    },
+    {
+      "id": "JOINT_CONTROLLER",
+      "required": "Join one active producer/verifier child with its simultaneous controller phase/quarantine under whole32MiB. No per-process split,unobserved exit reset,compiler exception extension or R13/R12 transfer.",
+      "next": "Recompose with exact controller and this qualified native model after the remaining leaves close; an upper miss is not a simultaneous lower/NOFIT."
+    }
+  ],
+  "contract_boundary": "Existing contract344408DA lines47-50 leaves OS/CRT/libm primitive CPU/general heap/allocator overhead/RSS unqualified, while controlled payloads remain included. This report creates no new process/library exemption.",
+  "no_source_cap_profile_or_Data_change": true,
+  "no_target_execution": true,
+  "no_fit_NOFIT_or_GO": true,
+  "checks": {
+    "count": 67,
+    "rows": [
+      {
+        "name": "exact whole C++",
+        "passed": true
+      },
+      {
+        "name": "R12 CPP exact",
+        "passed": true
+      },
+      {
+        "name": "header R12 exact",
+        "passed": true
+      },
+      {
+        "name": "selected Time identity",
+        "passed": true
+      },
+      {
+        "name": "selected independent identity",
+        "passed": true
+      },
+      {
+        "name": "required selected compilation",
+        "passed": true
+      },
+      {
+        "name": "all source guards false",
+        "passed": true
+      },
+      {
+        "name": "no numeric definition",
+        "passed": true
+      },
+      {
+        "name": "Count sentinel",
+        "passed": true
+      },
+      {
+        "name": "76 families",
+        "passed": true
+      },
+      {
+        "name": "one prospective Catalogue payload",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:std::array<char,65536> data{};std::size_t size=0;",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:std::array<unsigned char,65536> buffer{};",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:std::array<std::pair<double,double>,735> rows{};",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:sizeof(Text)<=65552&&sizeof(Stream)<=65664",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:8*(sizeof(Stream)+sizeof(Text))+sizeof(FractionCache)+32768<=2097152",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:changes(qc::fixtureMap(map)),base(r,changes)",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:for(int map=0;map<9;++map)",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:if(R==48000&&map==5)",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:return root+\"/\"+relative;",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:const std::string root=argv[2],manifest=argv[3]",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:Text readText(",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:return t;",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:_IONBF",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:file=nullptr;cleanupFileClose",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:catch(const Rejection& e)",
+        "passed": true
+      },
+      {
+        "name": "clock_stage.cpp:catch(const std::exception& e)",
+        "passed": true
+      },
+      {
+        "name": "independent_clock.h:std::vector<Change> changes_",
+        "passed": true
+      },
+      {
+        "name": "independent_clock.h:std::vector<double> prefix_",
+        "passed": true
+      },
+      {
+        "name": "independent_clock.h:prefix_.assign(changes_.size(),0.0)",
+        "passed": true
+      },
+      {
+        "name": "independent_clock.h:changes_(std::move(changes))",
+        "passed": true
+      },
+      {
+        "name": "independent_clock.h:return {{0,90.0,false}",
+        "passed": true
+      },
+      {
+        "name": "Time.h:out = CompiledTempoMap {};",
+        "passed": true
+      },
+      {
+        "name": "Time.h:out.changes_.assign (tempoMap.changes, tempoMap.changes + tempoMap.cou",
+        "passed": true
+      },
+      {
+        "name": "Time.h:out.startFrame_.assign (tempoMap.count, 0.0);",
+        "passed": true
+      },
+      {
+        "name": "vector:_STD exchange(_Right._Mypair._Myval2._Myfirst, nullptr)",
+        "passed": true
+      },
+      {
+        "name": "vector:_Construct_n(_Count, _Right_data._Myfirst, _Right_data._Mylast);",
+        "passed": true
+      },
+      {
+        "name": "vector:_Buy_nonzero(_Count);",
+        "passed": true
+      },
+      {
+        "name": "vector:return _Newsize; // geometric growth would be insufficient",
+        "passed": true
+      },
+      {
+        "name": "xstring:_Small_string_capacity = _BUF_SIZE - 1",
+        "passed": true
+      },
+      {
+        "name": "xstring:sizeof(value_type) <= 1 ? 15",
+        "passed": true
+      },
+      {
+        "name": "xstring:return (_STD max)(_Masked, _Old + _Old / 2);",
+        "passed": true
+      },
+      {
+        "name": "xstring:++_Capacity; // Take null terminator into consideration",
+        "passed": true
+      },
+      {
+        "name": "xstring:return _STD move(_Left.append(_Right));",
+        "passed": true
+      },
+      {
+        "name": "xmemory:_Alloc_proxy(const _Fake_allocator&) noexcept {}",
+        "passed": true
+      },
+      {
+        "name": "xmemory:using _Container_proxy_ptr = _Fake_proxy_ptr_impl;",
+        "passed": true
+      },
+      {
+        "name": "xmemory:return _Al.allocate(_Count);",
+        "passed": true
+      },
+      {
+        "name": "utility:_Ty1 first;",
+        "passed": true
+      },
+      {
+        "name": "utility:_Ty2 second;",
+        "passed": true
+      },
+      {
+        "name": "vcruntime_exception.h:__std_exception_data _Data;",
+        "passed": true
+      },
+      {
+        "name": "logical core405320",
+        "passed": true
+      },
+      {
+        "name": "assert expression conditional",
+        "passed": true
+      },
+      {
+        "name": "assert inequality only",
+        "passed": true
+      },
+      {
+        "name": "27 fixture map rows87",
+        "passed": true
+      },
+      {
+        "name": "vector cumulative payload",
+        "passed": true
+      },
+      {
+        "name": "vector request counts",
+        "passed": true
+      },
+      {
+        "name": "live vector backing456",
+        "passed": true
+      },
+      {
+        "name": "root/path capacities",
+        "passed": true
+      },
+      {
+        "name": "fixed number/stem SSO",
+        "passed": true
+      },
+      {
+        "name": "two relative concatenation requests",
+        "passed": true
+      },
+      {
+        "name": "control concatenation capacity",
+        "passed": true
+      },
+      {
+        "name": "cumulative native string payload",
+        "passed": true
+      },
+      {
+        "name": "Text no-NRVO owner counts",
+        "passed": true
+      },
+      {
+        "name": "Stream construction schedule",
+        "passed": true
+      },
+      {
+        "name": "metadata/read construction schedule",
+        "passed": true
+      },
+      {
+        "name": "narrow argv extent",
+        "passed": true
+      },
+      {
+        "name": "eight explicit child environment keys",
+        "passed": true
+      }
+    ]
+  },
+  "input_pins": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+      "bytes": 503610,
+      "sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vector",
+      "bytes": 161282,
+      "sha256": "351604D91A2CEAC79F9BD9448C0553CCCC22711E22955B5938EAF41DE98334A6"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xstring",
+      "bytes": 161127,
+      "sha256": "9407C290A1D0C6BEBC42CF131BD04F09A9892F61B713EECB12827C0F6BBC3045"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "bytes": 112178,
+      "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/utility",
+      "bytes": 42347,
+      "sha256": "403BCF5919D0E0371F25A929752F0A05AAE7B0667129D65CFE3A8DFF858E97D6"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_exception.h",
+      "bytes": 3143,
+      "sha256": "0DD3DCC67B655FBFC96708F131C9E7F86416D2DB95FD33B1E7ACC8489F2C32D4"
+    }
+  ]
+}

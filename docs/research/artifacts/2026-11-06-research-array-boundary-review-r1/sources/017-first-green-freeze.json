@@ -1,0 +1,27 @@
+{
+  "boundary": "FIRST_COMPLETE_OWN_CHECK_EXIT0_WHOLE_AUTHORED_SOURCES_AND_OUTPUT_NOW_FROZEN",
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/derive.py",
+      "bytes": 17132,
+      "sha256": "972FED59EC971485B2E3FABE100485B7C703E1995089B903E21B2F56DA1698EA"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/argument.md",
+      "bytes": 12341,
+      "sha256": "800AD9E0F558A7B8B27D0235533642F0925BA60F207A39E1FC586C871C5532D1"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/owners.json",
+      "bytes": 33532,
+      "sha256": "73B9A2C4F0BACC420EA86E87F1BB7EC46098E9CB5806DD2D4B53EC97C514FDBE"
+    },
+    {
+      "path": "build-ci/20261106-clock-native-child-source-owners-r1/own-check-receipt.json",
+      "bytes": 492,
+      "sha256": "4F71D625D2F44D6DCFD95D86D336DA562FB29AF64F7C9E7FCE59E0076E4D6FDE"
+    }
+  ],
+  "scope": "SCOPED_HOLD_NUMERIC_SOURCE_COMPONENTS_NOT_WHOLE_CHILD_PROOF",
+  "no_target_execution": true
+}
