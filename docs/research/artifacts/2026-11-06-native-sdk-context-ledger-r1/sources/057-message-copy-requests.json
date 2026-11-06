@@ -1,0 +1,181 @@
+{
+  "messages": [
+    {
+      "source": "QC",
+      "line": 28,
+      "literal": "CLOCK_UNKNOWN_FIXTURE",
+      "requested_copy_bytes": 22
+    },
+    {
+      "source": "QC",
+      "line": 54,
+      "literal": "CLOCK_FRAME_DOMAIN",
+      "requested_copy_bytes": 19
+    },
+    {
+      "source": "QC",
+      "line": 61,
+      "literal": "CLOCK_RATIONAL_DOMAIN",
+      "requested_copy_bytes": 22
+    },
+    {
+      "source": "QC",
+      "line": 70,
+      "literal": "CLOCK_LONG_DIVISION",
+      "requested_copy_bytes": 20
+    },
+    {
+      "source": "QC",
+      "line": 75,
+      "literal": "CLOCK_FRACTION_ENCLOSURE",
+      "requested_copy_bytes": 25
+    },
+    {
+      "source": "QC",
+      "line": 84,
+      "literal": "CLOCK_SEGMENT_DOMAIN",
+      "requested_copy_bytes": 21
+    },
+    {
+      "source": "QC",
+      "line": 93,
+      "literal": "CLOCK_RAMP_SLOPE",
+      "requested_copy_bytes": 17
+    },
+    {
+      "source": "QC",
+      "line": 95,
+      "literal": "CLOCK_RAMP_DOMAIN",
+      "requested_copy_bytes": 18
+    },
+    {
+      "source": "QC",
+      "line": 98,
+      "literal": "CLOCK_PREFIX_DOMAIN",
+      "requested_copy_bytes": 20
+    },
+    {
+      "source": "QC",
+      "line": 101,
+      "literal": "CLOCK_NEGATIVE_TICK",
+      "requested_copy_bytes": 20
+    },
+    {
+      "source": "QC",
+      "line": 110,
+      "literal": "CLOCK_CONFIGURATION",
+      "requested_copy_bytes": 20
+    },
+    {
+      "source": "QC",
+      "line": 114,
+      "literal": "CLOCK_BPM_DOMAIN",
+      "requested_copy_bytes": 17
+    },
+    {
+      "source": "QC",
+      "line": 116,
+      "literal": "CLOCK_MAP_ORDER",
+      "requested_copy_bytes": 16
+    },
+    {
+      "source": "QC",
+      "line": 125,
+      "literal": "CLOCK_NATIVE_DOMAIN",
+      "requested_copy_bytes": 20
+    },
+    {
+      "source": "QC",
+      "line": 140,
+      "literal": "CLOCK_LOCAL_SLOPE",
+      "requested_copy_bytes": 18
+    },
+    {
+      "source": "QC",
+      "line": 144,
+      "literal": "CLOCK_LOCAL_BPM",
+      "requested_copy_bytes": 16
+    },
+    {
+      "source": "QC",
+      "line": 146,
+      "literal": "CLOCK_LOCAL_RATIO",
+      "requested_copy_bytes": 18
+    },
+    {
+      "source": "QC",
+      "line": 150,
+      "literal": "CLOCK_LOCAL_LOG_DOMAIN",
+      "requested_copy_bytes": 23
+    },
+    {
+      "source": "QC",
+      "line": 151,
+      "literal": "CLOCK_LOCAL_LOG_RATIO",
+      "requested_copy_bytes": 22
+    },
+    {
+      "source": "QC",
+      "line": 153,
+      "literal": "CLOCK_FRAME_OVERFLOW",
+      "requested_copy_bytes": 21
+    },
+    {
+      "source": "QC",
+      "line": 160,
+      "literal": "CLOCK_CARRY_OVERFLOW",
+      "requested_copy_bytes": 21
+    },
+    {
+      "source": "QC",
+      "line": 173,
+      "literal": "CLOCK_INVERSE_PREFIX_AMBIGUOUS",
+      "requested_copy_bytes": 31
+    },
+    {
+      "source": "QC",
+      "line": 182,
+      "literal": "CLOCK_INVERSE_RAMP",
+      "requested_copy_bytes": 19
+    },
+    {
+      "source": "QC",
+      "line": 183,
+      "literal": "CLOCK_INVERSE_CONSTANT",
+      "requested_copy_bytes": 23
+    },
+    {
+      "source": "QC",
+      "line": 184,
+      "literal": "CLOCK_INVERSE_DOMAIN",
+      "requested_copy_bytes": 21
+    },
+    {
+      "source": "QC",
+      "line": 187,
+      "literal": "CLOCK_INVERSE_OVERFLOW",
+      "requested_copy_bytes": 23
+    },
+    {
+      "source": "QC",
+      "line": 190,
+      "literal": "CLOCK_INVERSE_SEGMENT",
+      "requested_copy_bytes": 22
+    },
+    {
+      "source": "BOOK",
+      "line": 62,
+      "literal": "UNBOUND_OR_INVALID_SOURCE_FAMILY_ID",
+      "requested_copy_bytes": 36
+    },
+    {
+      "source": "BOOK",
+      "line": 64,
+      "literal": "UNBOUND_OR_INVALID_SOURCE_FAMILY_PRICE",
+      "requested_copy_bytes": 39
+    }
+  ],
+  "maximum_literal_plus_NUL": 39,
+  "automatic_InitData_instances": 1,
+  "scope": "Visible message constructor request only. Does not qualify imported __std_exception_copy, EH allocator overhead, refcounts or runtime bookkeeping. Rejection reason pointers reference existing literals without a message clone."
+}

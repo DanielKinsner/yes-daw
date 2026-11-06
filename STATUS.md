@@ -68,8 +68,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    ADR-0090's complete supervisor protocol passed115 independent checks; its v2 diagnostic delta is Accepted.
    The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
    is REVISE, with no runtime credit. A different fresh critic returned R13 scalarR2 REVISE after3,770
-   source/data checks: four source-sponsorship omissions remain. A complete R3 successor is being authored;
-   the5,577,409,900 R2 proposal is unaccepted, without a too-small/NOFIT conclusion.
+   source/data checks: four source-sponsorship omissions remain in that proposal. Complete scalarR3 is now
+   frozen at5,577,542,589 after9,244 own checks and under a fresh whole critic; no price is accepted.
    Next: finish the complete R16 correction/fresh review, R13 scalarR3 and SDK/contextR2 reviews, then resource/native/binding proof
    before any Clock attempt. Detailed evidence and earlier
    source revisions remain in the dated entries below; Dan is not a tester or approval gate.
@@ -93,6 +93,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Correct the C++ helper/context source inventory
+
+- The frozen [SDK/context proposal](docs/research/artifacts/2026-11-06-native-sdk-context-ledger-r1/sources/010-argument.md) passed3,697 own source/data checks, but its [fresh whole review](docs/research/artifacts/2026-11-06-native-sdk-context-independent-review-r1/sources/004-review.md) returned REVISE after2,497 checks. Three source gaps remain: unreachable insert-growth closure, a sibling iterator assigned to the wrong search join, and omitted nested quote argument contexts.
+- A complete R2 successor is authorized; all analogous expressions and typed partial activations are being checked. Thirty missing type facts are only a conditional candidate after correction; every value remains unqualified. The older93 named-scope component remains inherited HOLD, and no OTHER/whole-child/joint32MiB bound or new compiler purpose is accepted.
+- The [preservation receipt](docs/research/2026-11-06-native-sdk-context-whole-review.json) pins the71-file source and63-file critic archives, including the earlier14 failed source-range anchors. Source, failed attempts, Accepted documents, actual194 layout cells and production limits remain exact. R13 scalarR3 is frozen for a fresh whole critic; R16 startup/metadata corrections remain active.
 
 ## 2026-11-06 - Hold target execution after a startup budget cut
 

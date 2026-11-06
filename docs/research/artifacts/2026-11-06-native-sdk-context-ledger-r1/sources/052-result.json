@@ -1,0 +1,1384 @@
+{
+  "checks": [
+    {
+      "id": "V_DEFAULT",
+      "pass": true,
+      "lines": [
+        670,
+        672
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_ILIST",
+      "pass": true,
+      "lines": [
+        719,
+        722
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_COPY",
+      "pass": true,
+      "lines": [
+        745,
+        750
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_MOVE",
+      "pass": true,
+      "lines": [
+        759,
+        766
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_MOVE_ASSIGN",
+      "pass": true,
+      "lines": [
+        798,
+        827
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_DTOR",
+      "pass": true,
+      "lines": [
+        829,
+        836
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_CONSTRUCT",
+      "pass": true,
+      "lines": [
+        2102,
+        2130
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_BUY_NONZERO",
+      "pass": true,
+      "lines": [
+        2040,
+        2056
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_BUY_RAW",
+      "pass": true,
+      "lines": [
+        2024,
+        2038
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_ASSIGN_FILL",
+      "pass": true,
+      "lines": [
+        1335,
+        1390
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_ASSIGN_RANGE",
+      "pass": true,
+      "lines": [
+        1484,
+        1501
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_ASSIGN_COUNTED",
+      "pass": true,
+      "lines": [
+        1420,
+        1480
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_CLEAR",
+      "pass": false,
+      "lines": [
+        1692,
+        1720
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_GROWTH",
+      "pass": true,
+      "lines": [
+        2005,
+        2022
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_MAX",
+      "pass": true,
+      "lines": [
+        1918,
+        1921
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_CAPACITY",
+      "pass": true,
+      "lines": [
+        1922,
+        1925
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_TIDY",
+      "pass": true,
+      "lines": [
+        2081,
+        2100
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_TAKE",
+      "pass": true,
+      "lines": [
+        425,
+        434
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_VAL_CTOR",
+      "pass": true,
+      "lines": [
+        400,
+        403
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_ACCESS",
+      "pass": true,
+      "lines": [
+        1908,
+        1947
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_BEGINEND",
+      "pass": true,
+      "lines": [
+        1840,
+        1858
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_ITER_CTOR",
+      "pass": true,
+      "lines": [
+        46,
+        48
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_ITER_UNWRAP",
+      "pass": false,
+      "lines": [
+        221,
+        229
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_ITER_DIFFERENCE",
+      "pass": true,
+      "lines": [
+        154,
+        157
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_ITER_EQ",
+      "pass": true,
+      "lines": [
+        164,
+        167
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "V_COMPAT",
+      "pass": false,
+      "lines": [
+        199,
+        208
+      ],
+      "source": "vector"
+    },
+    {
+      "id": "C_ZERO",
+      "pass": true,
+      "lines": [
+        1528,
+        1532
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "C_ONE",
+      "pass": true,
+      "lines": [
+        1533,
+        1537
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "FA_ALLOC_PROXY",
+      "pass": true,
+      "lines": [
+        1183,
+        1188
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "FA_SWAP",
+      "pass": true,
+      "lines": [
+        1183,
+        1188
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "FA_ORPHAN",
+      "pass": true,
+      "lines": [
+        1183,
+        1188
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "FA_ADOPT",
+      "pass": true,
+      "lines": [
+        1191,
+        1193
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "FP_CTOR",
+      "pass": true,
+      "lines": [
+        1446,
+        1451
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "FP_RELEASE",
+      "pass": true,
+      "lines": [
+        1452,
+        1453
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "TG_DTOR",
+      "pass": true,
+      "lines": [
+        84,
+        89
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "ALLOC_SELECT",
+      "pass": true,
+      "lines": [
+        749,
+        751
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "ALLOC_MAX",
+      "pass": true,
+      "lines": [
+        745,
+        747
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "ALLOC_AT_LEAST",
+      "pass": true,
+      "lines": [
+        2293,
+        2305
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "ALLOC_ALLOCATE",
+      "pass": true,
+      "lines": [
+        988,
+        991
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "SIZE_OF_N",
+      "pass": true,
+      "lines": [
+        112,
+        124
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "ALLOC_BYTES",
+      "pass": true,
+      "lines": [
+        225,
+        260
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "DEFAULT_NEW",
+      "pass": true,
+      "lines": [
+        135,
+        137
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "ALLOC_DEALLOC",
+      "pass": true,
+      "lines": [
+        982,
+        986
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "DEALLOC_BYTES",
+      "pass": false,
+      "lines": [
+        262,
+        292
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "POCMA",
+      "pass": true,
+      "lines": [
+        1082,
+        1086
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "UNINIT_COPY",
+      "pass": true,
+      "lines": [
+        1860,
+        1906
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "UNINIT_COPY_N",
+      "pass": true,
+      "lines": [
+        1909,
+        1943
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "UNINIT_FILL",
+      "pass": true,
+      "lines": [
+        2006,
+        2034
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "DESTROY_RANGE",
+      "pass": true,
+      "lines": [
+        1098,
+        1107
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "CONVERT",
+      "pass": true,
+      "lines": [
+        1119,
+        1133
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "UNFANCY",
+      "pass": true,
+      "lines": [
+        66,
+        68
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "REFANCY",
+      "pass": true,
+      "lines": [
+        312,
+        314
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "CONSTRUCT_IN_PLACE",
+      "pass": true,
+      "lines": [
+        465,
+        478
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "DESTROY_IN_PLACE",
+      "pass": true,
+      "lines": [
+        320,
+        326
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "S_CSTR",
+      "pass": true,
+      "lines": [
+        768,
+        770
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_PTRCOUNT",
+      "pass": true,
+      "lines": [
+        754,
+        757
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_CONSTRUCT",
+      "pass": true,
+      "lines": [
+        871,
+        931
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_MOVE",
+      "pass": true,
+      "lines": [
+        1027,
+        1031
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_TAKE",
+      "pass": true,
+      "lines": [
+        1258,
+        1295
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_CONCAT_PTRS",
+      "pass": true,
+      "lines": [
+        1048,
+        1077
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_CONCAT_RR",
+      "pass": true,
+      "lines": [
+        1079,
+        1145
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_PLUS_LL",
+      "pass": true,
+      "lines": [
+        3147,
+        3156
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_PLUS_PL",
+      "pass": true,
+      "lines": [
+        3159,
+        3169
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_PLUS_LP",
+      "pass": true,
+      "lines": [
+        3183,
+        3193
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_PLUS_RL",
+      "pass": true,
+      "lines": [
+        3213,
+        3217
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_PLUS_RR",
+      "pass": true,
+      "lines": [
+        3219,
+        3229
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_PLUS_PR",
+      "pass": true,
+      "lines": [
+        3232,
+        3236
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_PLUS_RP",
+      "pass": true,
+      "lines": [
+        3244,
+        3248
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_APPEND_STRING",
+      "pass": true,
+      "lines": [
+        1482,
+        1484
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_APPEND_CSTR",
+      "pass": true,
+      "lines": [
+        1533,
+        1535
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_APPEND_COUNT",
+      "pass": true,
+      "lines": [
+        1509,
+        1531
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_INSERT_CSTR",
+      "pass": true,
+      "lines": [
+        1778,
+        1781
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_INSERT_COUNT",
+      "pass": true,
+      "lines": [
+        1729,
+        1776
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_GROW_APPEND",
+      "pass": true,
+      "lines": [
+        3024,
+        3057
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_GROW_INSERT",
+      "pass": true,
+      "lines": [
+        3024,
+        3057
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "L_APPEND_CALL",
+      "pass": true,
+      "lines": [
+        1524,
+        1529
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "L_INSERT_CALL",
+      "pass": true,
+      "lines": [
+        1769,
+        1774
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_MAX",
+      "pass": true,
+      "lines": [
+        2377,
+        2384
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_GROWTH",
+      "pass": true,
+      "lines": [
+        2990,
+        2992
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_GROWTH_STATIC",
+      "pass": true,
+      "lines": [
+        2976,
+        2988
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_ALLOC_CAP",
+      "pass": true,
+      "lines": [
+        823,
+        847
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_DEALLOC_CAP",
+      "pass": true,
+      "lines": [
+        849,
+        853
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_DTOR",
+      "pass": true,
+      "lines": [
+        1382,
+        1394
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_TIDY",
+      "pass": false,
+      "lines": [
+        3082,
+        3097
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_PTR",
+      "pass": true,
+      "lines": [
+        434,
+        450
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_LARGE",
+      "pass": true,
+      "lines": [
+        452,
+        454
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_SIZE",
+      "pass": true,
+      "lines": [
+        2372,
+        2375
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_CSTR_GET",
+      "pass": true,
+      "lines": [
+        2355,
+        2361
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_CHECK_OFFSET",
+      "pass": false,
+      "lines": [
+        470,
+        476
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_ACTIVATE",
+      "pass": true,
+      "lines": [
+        456,
+        468
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_SWITCH",
+      "pass": false,
+      "lines": [
+        509,
+        521
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_BEGINEND",
+      "pass": false,
+      "lines": [
+        2263,
+        2284
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_ITER_CTOR",
+      "pass": false,
+      "lines": [
+        42,
+        44
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_ITER_DEREF",
+      "pass": false,
+      "lines": [
+        47,
+        60
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_ITER_INC",
+      "pass": true,
+      "lines": [
+        65,
+        78
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "S_ITER_EQ",
+      "pass": false,
+      "lines": [
+        173,
+        177
+      ],
+      "source": "xstring"
+    },
+    {
+      "id": "TRAITS_LENGTH",
+      "pass": true,
+      "lines": [
+        443,
+        461
+      ],
+      "source": "__msvc_string_view.hpp"
+    },
+    {
+      "id": "TRAITS_COPY",
+      "pass": true,
+      "lines": [
+        104,
+        126
+      ],
+      "source": "__msvc_string_view.hpp"
+    },
+    {
+      "id": "TRAITS_MOVE",
+      "pass": true,
+      "lines": [
+        135,
+        187
+      ],
+      "source": "__msvc_string_view.hpp"
+    },
+    {
+      "id": "TRAITS_ASSIGN",
+      "pass": true,
+      "lines": [
+        496,
+        503
+      ],
+      "source": "__msvc_string_view.hpp"
+    },
+    {
+      "id": "UB4",
+      "pass": true,
+      "lines": [
+        7462,
+        7481
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "UB3",
+      "pass": false,
+      "lines": [
+        7485,
+        7488
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "PRED_CALL",
+      "pass": true,
+      "lines": [
+        2385,
+        2394
+      ],
+      "source": "type_traits"
+    },
+    {
+      "id": "EQ_PRED_CALL",
+      "pass": true,
+      "lines": [
+        694,
+        706
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "VERIFY",
+      "pass": true,
+      "lines": [
+        1352,
+        1363
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "UNWRAP",
+      "pass": true,
+      "lines": [
+        1378,
+        1389
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "UNWRAP_N",
+      "pass": true,
+      "lines": [
+        1439,
+        1467
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "RANGE_UNWRAP",
+      "pass": true,
+      "lines": [
+        2722,
+        2745
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "DISTANCE",
+      "pass": true,
+      "lines": [
+        1660,
+        1673
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "NEXT",
+      "pass": true,
+      "lines": [
+        1682,
+        1688
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "ADVANCE",
+      "pass": true,
+      "lines": [
+        1632,
+        1657
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "NEXT_ITER",
+      "pass": true,
+      "lines": [
+        1677,
+        1679
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "SEEK",
+      "pass": true,
+      "lines": [
+        1477,
+        1483
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "TO_ADDRESS",
+      "pass": true,
+      "lines": [
+        4615,
+        4619
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "RAW_ADDRESS",
+      "pass": true,
+      "lines": [
+        540,
+        543
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "COPY_MEMMOVE",
+      "pass": true,
+      "lines": [
+        4762,
+        4771
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "COPY_MEMMOVE_N",
+      "pass": true,
+      "lines": [
+        4774,
+        4779
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "COPY_TAIL",
+      "pass": true,
+      "lines": [
+        4746,
+        4759
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "FILL_ZERO",
+      "pass": true,
+      "lines": [
+        5269,
+        5271
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "BITS_ZERO",
+      "pass": false,
+      "lines": [
+        5275,
+        5283
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "IDL_DISTANCE",
+      "pass": true,
+      "lines": [
+        1550,
+        1559
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "EQUAL3",
+      "pass": true,
+      "lines": [
+        5539,
+        5542
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "EQUAL4",
+      "pass": true,
+      "lines": [
+        5504,
+        5530
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "ARRAY_SUBSCRIPT",
+      "pass": true,
+      "lines": [
+        529,
+        546
+      ],
+      "source": "array"
+    },
+    {
+      "id": "ARRAY_DATA",
+      "pass": true,
+      "lines": [
+        562,
+        568
+      ],
+      "source": "array"
+    },
+    {
+      "id": "ARRAY_SIZE",
+      "pass": true,
+      "lines": [
+        501,
+        503
+      ],
+      "source": "array"
+    },
+    {
+      "id": "ARRAY_EQUAL",
+      "pass": true,
+      "lines": [
+        777,
+        779
+      ],
+      "source": "array"
+    },
+    {
+      "id": "PAIR_DEFAULT",
+      "pass": true,
+      "lines": [
+        250,
+        256
+      ],
+      "source": "utility"
+    },
+    {
+      "id": "PAIR_FORWARD",
+      "pass": true,
+      "lines": [
+        268,
+        278
+      ],
+      "source": "utility"
+    },
+    {
+      "id": "PAIR_ASSIGN",
+      "pass": true,
+      "lines": [
+        363,
+        369
+      ],
+      "source": "utility"
+    },
+    {
+      "id": "I_CTOR",
+      "pass": true,
+      "lines": [
+        33,
+        34
+      ],
+      "source": "initializer_list"
+    },
+    {
+      "id": "I_BEGIN",
+      "pass": true,
+      "lines": [
+        36,
+        38
+      ],
+      "source": "initializer_list"
+    },
+    {
+      "id": "I_END",
+      "pass": true,
+      "lines": [
+        40,
+        42
+      ],
+      "source": "initializer_list"
+    },
+    {
+      "id": "I_SIZE",
+      "pass": true,
+      "lines": [
+        44,
+        46
+      ],
+      "source": "initializer_list"
+    },
+    {
+      "id": "MOVE",
+      "pass": true,
+      "lines": [
+        1512,
+        1514
+      ],
+      "source": "type_traits"
+    },
+    {
+      "id": "FORWARD",
+      "pass": true,
+      "lines": [
+        1501,
+        1509
+      ],
+      "source": "type_traits"
+    },
+    {
+      "id": "ADDRESS",
+      "pass": true,
+      "lines": [
+        523,
+        531
+      ],
+      "source": "xutility"
+    },
+    {
+      "id": "EXCHANGE",
+      "pass": true,
+      "lines": [
+        770,
+        776
+      ],
+      "source": "utility"
+    },
+    {
+      "id": "MINMAX",
+      "pass": true,
+      "lines": [
+        71,
+        103
+      ],
+      "source": "utility"
+    },
+    {
+      "id": "MAX_LIMIT",
+      "pass": true,
+      "lines": [
+        863,
+        872
+      ],
+      "source": "utility"
+    },
+    {
+      "id": "BIT_CAST",
+      "pass": true,
+      "lines": [
+        31,
+        33
+      ],
+      "source": "bit"
+    },
+    {
+      "id": "LIMITS_GET",
+      "pass": true,
+      "lines": [
+        629,
+        641
+      ],
+      "source": "limits"
+    },
+    {
+      "id": "ISFINITE",
+      "pass": true,
+      "lines": [
+        435,
+        438
+      ],
+      "source": "corecrt_math.h"
+    },
+    {
+      "id": "FPCLASSIFY",
+      "pass": true,
+      "lines": [
+        321,
+        327
+      ],
+      "source": "corecrt_math.h"
+    },
+    {
+      "id": "EXCEPTION_DEFAULT",
+      "pass": true,
+      "lines": [
+        51,
+        54
+      ],
+      "source": "vcruntime_exception.h"
+    },
+    {
+      "id": "EXCEPTION_MESSAGE",
+      "pass": true,
+      "lines": [
+        56,
+        62
+      ],
+      "source": "vcruntime_exception.h"
+    },
+    {
+      "id": "EXCEPTION_COPY",
+      "pass": true,
+      "lines": [
+        71,
+        75
+      ],
+      "source": "vcruntime_exception.h"
+    },
+    {
+      "id": "EXCEPTION_DTOR",
+      "pass": true,
+      "lines": [
+        88,
+        91
+      ],
+      "source": "vcruntime_exception.h"
+    },
+    {
+      "id": "EXCEPTION_WHAT",
+      "pass": true,
+      "lines": [
+        93,
+        96
+      ],
+      "source": "vcruntime_exception.h"
+    },
+    {
+      "id": "RUNTIME_ERROR",
+      "pass": true,
+      "lines": [
+        100,
+        106
+      ],
+      "source": "stdexcept"
+    },
+    {
+      "id": "LOGIC_ERROR",
+      "pass": true,
+      "lines": [
+        20,
+        26
+      ],
+      "source": "stdexcept"
+    },
+    {
+      "id": "ALLOC_EQUAL",
+      "pass": false,
+      "lines": [
+        1060,
+        1064
+      ],
+      "source": "xmemory"
+    },
+    {
+      "id": "PRIMITIVE",
+      "pass": true,
+      "lines": [
+        5,
+        17
+      ],
+      "source": "CPP"
+    }
+  ],
+  "failed": 14,
+  "source_only": true,
+  "scope": "Source range/declaration correspondence preliminary gate, not complete own check or source/resource acceptance."
+}

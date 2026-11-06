@@ -1,0 +1,40 @@
+{
+  "scope": "NEW_SELECTED_CPP_SDK_CONTEXT_SOURCE_PROPOSAL_AND_WHOLE_REVIEW_NOT_MEASUREMENT",
+  "verdict": "REVISE",
+  "candidate_own_checks": 3697,
+  "candidate_source_rows": 167,
+  "candidate_contexts": 12,
+  "candidate_lifetime_joins": 14,
+  "candidate_materialization_groups": 25,
+  "candidate_own_closure_contexts": 16,
+  "candidate_SDK_closures": 2,
+  "candidate_unqualified_type_facts": 31,
+  "candidate_pins_sha256": "814915EDB72EFD1049EF15D543C6647F1AD648A54214B1B80D6803695B0DD6FF",
+  "candidate_freeze_sha256": "74717481007876FB89E4206DB4D2829AD0CE3FC0115ACBAD1772F70D320BEB43",
+  "candidate_argument_sha256": "F7094A103EFD968EED295ACC7DB92D0B8D2142F2E1D9DB58C18BE5D9453E9F17",
+  "independent_review_checks": 2497,
+  "independent_review_json_sha256": "09D97A3A2A8F4B73CC78070569D2C4EAA42EA3FF54A9EFA56EF4E252283DEBE1",
+  "independent_review_argument_sha256": "B5C9765AA9B3ACA5ECFCBCF94B5AB663F83D2C8CE7B5867C49CE43A4C4CC3505",
+  "independent_review_pins_sha256": "D66C6A8C97359967B11C8D4CBA591FE2862715929ED57C4BAE4951C8A3EAE7C8",
+  "independent_review_freeze_sha256": "F054826B2C1C16FE35DAAF9E5C3935241EB0E07540FCF9B82D0F919E0692BDC6",
+  "findings": [
+    {"id": "N1", "finding": "Only actual insert ingress is r plus number(R), five digits in capacity15; insert growth closure is unreachable and not a minimal needed type", "required": "Retain nongrowing insert; remove or explicitly exclude the phantom selected growth/type claim"},
+    {"id": "N2", "finding": "Time650-653 Tick full-expression needs sibling begin iterator8; separate-statement prefix search was assigned that sibling instead", "required": "Correct actual Tick versus post-search lifetime joins without borrowing another context"},
+    {"id": "N3", "finding": "Nested quote inventory omits CPP65 times(count,price(id)) and main287 nested Cost::plus", "required": "Close all analogous expressions, retaining initialized typed outer parameters during nested calls"}
+  ],
+  "conditional_missing_type_facts_after_correction": 30,
+  "conditional_type_values_qualified": false,
+  "older_93_named_scope_component": "INHERITED_HOLD_NOT_INDEPENDENTLY_ACCEPTED_BY_ITS_AUTHOR",
+  "OTHER_upper": null,
+  "whole_child_upper": null,
+  "joint_32MiB_fit": null,
+  "new_complete_source_only_R2_authorized": true,
+  "new_compiler_or_layout_purpose_authorized": false,
+  "archives": [
+    {"path": "docs/research/artifacts/2026-11-06-native-sdk-context-ledger-r1/archive-manifest.json", "files": 71, "sha256": "4E09869AA5C689C7D32F631CD0BB00D2C1ED010A53E89CB9C8544FAAA186CEA1", "wrapper_pins_sha256": "8DDCCC4DC5060106F8CF7DB991745ECD993EE5D7F551DAC6AC243BA3AE0C3082"},
+    {"path": "docs/research/artifacts/2026-11-06-native-sdk-context-independent-review-r1/archive-manifest.json", "files": 63, "sha256": "050F7BCE71795142084F23184C0AFDC05E561FCF21D8947F5F006F843EFCBD4D", "wrapper_pins_sha256": "174FE758AE1FFF3241AF039A37E76D10DAFA1C3B5D64E7A55FAF094D6F9EFA0D"}
+  ],
+  "staged_results": ["docs/research/verification-results/2026-11-06-native-sdk-context-ledger-r1.json", "docs/research/verification-results/2026-11-06-native-sdk-context-independent-review-r1.json"],
+  "target_parser_AST_import_compiler_native_API_helper_fixture_Clock_GUI_device_execution": false,
+  "numeric_price_resource_native_ABI_binding_Data_GO": false
+}

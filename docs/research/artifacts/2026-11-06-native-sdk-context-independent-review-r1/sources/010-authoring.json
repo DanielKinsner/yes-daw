@@ -1,0 +1,10 @@
+{
+  "source_rows": 153,
+  "closure_expressions": 18,
+  "critical_joins": 14,
+  "contexts": 12,
+  "missing_type_symbols": 32,
+  "source_ingress_lines": 326,
+  "all_target_execution": false,
+  "status": "Complete source-incidence/context candidate, awaiting own check and independent review; numeric/type/native/wholefit remains HOLD."
+}
