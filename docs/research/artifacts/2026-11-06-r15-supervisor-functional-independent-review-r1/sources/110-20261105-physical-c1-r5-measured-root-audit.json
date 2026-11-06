@@ -1,0 +1,94 @@
+{
+  "kind": "actual_limited_request_bound_C1_measured_root_review",
+  "utc": "2026-11-05T14:39:08.130048+00:00",
+  "execution_receipt_sha256": "2CC6E11BE24EF8807031DB01E30A4088E965CD229639867F4EC3866E1CBB0C99",
+  "candidate_receipt_sha256": "B8D36B906223302DCF5FCAC8C069A8BC84DBE95C45A93F1913EE4F9AC676EB5A",
+  "verification_receipt_sha256": "46DC9C34FA98B2378B2052E1412027DB1E03B81B18C27CB1CD86D741DB16C2E1",
+  "source_pins_verified": 159,
+  "artifact_hashes_verified": 53,
+  "actual_AMD64_console_PE": true,
+  "binary_sha256": "101CC012E8BB39B2A3635B3E283040F0BDA646AC1869CE76BE95EE6609ADEA19",
+  "trace_rows": 5472052,
+  "trace_bytes": 192242578,
+  "retained_relations": 124928,
+  "interior_relations": 115648,
+  "relation_classes": {
+    "interior": 115648,
+    "valued-zero": 4288,
+    "source-zero": 3328,
+    "quiet-refused": 1664
+  },
+  "cases": [
+    {
+      "fixture": "small-mono",
+      "trace_rows": 337055,
+      "trace_bytes": 11414329,
+      "relations": 7936,
+      "classes": {
+        "interior": 7936
+      }
+    },
+    {
+      "fixture": "small-equivalent-reversed",
+      "trace_rows": 337045,
+      "trace_bytes": 11419083,
+      "relations": 7936,
+      "classes": {
+        "interior": 7936
+      }
+    },
+    {
+      "fixture": "small-equivalent-gaps",
+      "trace_rows": 735251,
+      "trace_bytes": 23238749,
+      "relations": 18816,
+      "classes": {
+        "interior": 13376,
+        "valued-zero": 4288,
+        "source-zero": 1152
+      }
+    },
+    {
+      "fixture": "small-equivalent-zero",
+      "trace_rows": 7591,
+      "trace_bytes": 147799,
+      "relations": 1920,
+      "classes": {
+        "source-zero": 1920
+      }
+    },
+    {
+      "fixture": "small-equivalent-quiet",
+      "trace_rows": 7591,
+      "trace_bytes": 161996,
+      "relations": 1920,
+      "classes": {
+        "quiet-refused": 1664,
+        "source-zero": 256
+      }
+    },
+    {
+      "fixture": "default-equivalent",
+      "trace_rows": 4047519,
+      "trace_bytes": 145860622,
+      "relations": 86400,
+      "classes": {
+        "interior": 86400
+      }
+    }
+  ],
+  "old_C2_numeric_differences": [
+    2144,
+    1971
+  ],
+  "record_controls": 12,
+  "physical_controls": 3,
+  "combined_source_work": 127856438,
+  "source_work_not_full_DSP": true,
+  "quiet_nonzero_refused": true,
+  "full_waveform": false,
+  "full_resource_certificate": false,
+  "universal_context": false,
+  "production": false,
+  "native_or_device_run": false
+}

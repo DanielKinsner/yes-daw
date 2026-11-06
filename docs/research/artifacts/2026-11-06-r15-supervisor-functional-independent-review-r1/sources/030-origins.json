@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "scope": "Unchanged Microsoft primary documentation snapshots for R7 stream configuration and poll-policy source reasoning only",
+  "source_binary_equivalence_or_runtime_certificate": false,
+  "download_method": "HTTPS bytes retained unchanged; redirects recorded; no scripts, samples, authored helpers or downloaded content executed/imported/parsed as code",
+  "copyright_license": "Original Microsoft Learn HTML copyright, attribution, license and terms links retained; no additional license claim",
+  "files": [
+    {"path": "microsoft-FileStream-constructors.html", "url": "https://learn.microsoft.com/en-us/dotnet/api/system.io.filestream.-ctor", "final_url": "https://learn.microsoft.com/en-us/dotnet/api/system.io.filestream.-ctor?view=net-10.0", "bytes": 360201, "sha256": "BEFDD8C34258C8F45FDD5B5B797F0CBD8735E100F19CA6397BE489C926258334", "use": "Six-argument path constructor documents default4096 and bufferSize0or1 disabling buffering. R7 chooses positive1 for synchronous hashes/bootstrap/bounded JSON reads; other overload capacities remain accounted."},
+    {"path": "microsoft-Thread-Sleep.html", "url": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.thread.sleep", "final_url": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.thread.sleep?view=net-10.0", "bytes": 74547, "sha256": "91C948A0723274A5CC33D5C62031787B90C50C03493CF6F89A89E4D73E63955F", "use": "Clock-tick adjustment prevents deriving exact poll count from nominal sleep. R7 independently gates at7200 poll bodies;1800s timeout and250ms pacing remain separate."}
+  ]
+}

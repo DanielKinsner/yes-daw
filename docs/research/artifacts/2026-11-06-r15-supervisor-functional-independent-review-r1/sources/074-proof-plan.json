@@ -1,0 +1,368 @@
+{
+  "schema": 1,
+  "stage": "SOURCE_ONLY_PROPOSAL_NO_SOURCE_OR_EXECUTION_GO",
+  "root_head": "1a25a8d886c26fce9f15ec6126c5730a91e1c34d",
+  "fixture_inventory": [
+    {
+      "name": "small-mono",
+      "logical": 1,
+      "physical": 1,
+      "projection": [
+        0
+      ],
+      "W": 256,
+      "H": 64,
+      "K": 256,
+      "N": 1024,
+      "D": 2048,
+      "R": 2304,
+      "calls": 18,
+      "syntheses": 32,
+      "analyses": 64,
+      "fast": 0,
+      "quiet_clears": 0,
+      "observed_upper": 470045,
+      "base_exact": 18858,
+      "combined_upper": 488903,
+      "relation_upper": 10240,
+      "payload_upper": 82604480,
+      "reversed": false,
+      "law": "audible",
+      "expected_refusal": "none",
+      "status": "UNRUN"
+    },
+    {
+      "name": "small-equivalent-reversed",
+      "logical": 2,
+      "physical": 1,
+      "projection": [
+        0,
+        0
+      ],
+      "W": 256,
+      "H": 64,
+      "K": 256,
+      "N": 1024,
+      "D": 2048,
+      "R": 2304,
+      "calls": 18,
+      "syntheses": 32,
+      "analyses": 64,
+      "fast": 0,
+      "quiet_clears": 0,
+      "observed_upper": 470045,
+      "base_exact": 18858,
+      "combined_upper": 488903,
+      "relation_upper": 10240,
+      "payload_upper": 82604480,
+      "reversed": true,
+      "law": "audible",
+      "expected_refusal": "none",
+      "status": "UNRUN"
+    },
+    {
+      "name": "small-equivalent-gaps",
+      "logical": 2,
+      "physical": 1,
+      "projection": [
+        0,
+        0
+      ],
+      "W": 256,
+      "H": 64,
+      "K": 256,
+      "N": 2816,
+      "D": 5632,
+      "R": 5888,
+      "calls": 46,
+      "syntheses": 70,
+      "analyses": 140,
+      "fast": 9,
+      "quiet_clears": 2,
+      "observed_upper": 1027371,
+      "base_exact": 42142,
+      "combined_upper": 1069513,
+      "relation_upper": 28160,
+      "payload_upper": 121483840,
+      "reversed": false,
+      "law": "gaps",
+      "expected_refusal": "none",
+      "status": "UNRUN"
+    },
+    {
+      "name": "small-equivalent-zero",
+      "logical": 2,
+      "physical": 1,
+      "projection": [
+        0,
+        0
+      ],
+      "W": 256,
+      "H": 64,
+      "K": 256,
+      "N": 1024,
+      "D": 2048,
+      "R": 2304,
+      "calls": 18,
+      "syntheses": 0,
+      "analyses": 0,
+      "fast": 16,
+      "quiet_clears": 1,
+      "observed_upper": 5181,
+      "base_exact": 2410,
+      "combined_upper": 7591,
+      "relation_upper": 10240,
+      "payload_upper": 51800512,
+      "reversed": false,
+      "law": "mixed-signed-zero",
+      "expected_refusal": "none",
+      "status": "UNRUN"
+    },
+    {
+      "name": "small-equivalent-quiet",
+      "logical": 2,
+      "physical": 1,
+      "projection": [
+        0,
+        0
+      ],
+      "W": 256,
+      "H": 64,
+      "K": 256,
+      "N": 1024,
+      "D": 2048,
+      "R": 2304,
+      "calls": 18,
+      "syntheses": 0,
+      "analyses": 0,
+      "fast": 16,
+      "quiet_clears": 1,
+      "observed_upper": 5181,
+      "base_exact": 2410,
+      "combined_upper": 7591,
+      "relation_upper": 10240,
+      "payload_upper": 51800512,
+      "reversed": false,
+      "law": "quiet-1e-10",
+      "expected_refusal": "MusicalQuietPathUnsupported",
+      "status": "UNRUN"
+    },
+    {
+      "name": "default-equivalent",
+      "logical": 2,
+      "physical": 1,
+      "projection": [
+        0,
+        0
+      ],
+      "W": 5760,
+      "H": 1440,
+      "K": 6144,
+      "N": 11520,
+      "D": 23040,
+      "R": 28800,
+      "calls": 14,
+      "syntheses": 16,
+      "analyses": 32,
+      "fast": 0,
+      "quiet_clears": 0,
+      "observed_upper": 5655073,
+      "base_exact": 213234,
+      "combined_upper": 5868307,
+      "relation_upper": 115200,
+      "payload_upper": 436962496,
+      "reversed": false,
+      "law": "audible",
+      "expected_refusal": "none",
+      "status": "UNRUN"
+    }
+  ],
+  "rate": 48000,
+  "bpm": 93.75,
+  "S": 0,
+  "L": "N ticks",
+  "A": 0,
+  "B": "2*N",
+  "Q": "2*i",
+  "selected_offset": 7,
+  "original_frames": "N+14",
+  "representative": 0,
+  "original_and_mapped_width": "logical original width unchanged",
+  "same_rate_only": true,
+  "all_main_proof_status": "UNRUN",
+  "all_physical_controls_status": "UNRUN",
+  "main_expected_totals": {
+    "calls": 132,
+    "syntheses": 150,
+    "physical_analyses": 300,
+    "private_samples": 43904,
+    "retained_frames": 36864,
+    "combined_rows_upper": 7930808,
+    "relations_upper": 184320,
+    "payload_upper_bytes": 827256320
+  },
+  "corrected_terminal_flush_family": "+ C*W observed clear rows before execution",
+  "source_work_cap": 268435456,
+  "lifecycle_call_cap": 1048576,
+  "case_payload_cap": 536870912,
+  "revision_payload_cap": 1073741824,
+  "proposed_stage_work_ceilings": {
+    "Freeze": 14000000,
+    "reversible_preparation": 6000000,
+    "candidate_and_controls": 12000000,
+    "independent_replay_and_controls": 228000000,
+    "sum": 260000000,
+    "status": "PENDING_ACTUAL_SOURCE_CALL_GRAPH_REVIEW_NOT_MEASURED"
+  },
+  "physical_control_payload_reservation": 1048576,
+  "payload_main_plus_controls": 828304896,
+  "full_DSP_allocator_or_RSS_certificate": false,
+  "record_controls": [
+    "signed_zero_prerequisite_loss",
+    "wrong_FFT_operand_index",
+    "stale_phase_version",
+    "wrong_clear_coordinate",
+    "wrong_overlap_result",
+    "one_Frame_raw_read_shift",
+    "three_Frame_interior_center_shift",
+    "false_STFT_advance_on_fast_return",
+    "omitted_valued_zero_relation",
+    "omitted_second_synthesis_translation",
+    "suppressed_nonzero_quiet_refusal",
+    "cross_fixture_request_generation_substitution"
+  ],
+  "physical_controls": [
+    {
+      "id": "wrong_representative",
+      "actual_action": "supply original logical1 instead of representative0 at reached differing zero sign",
+      "own_gate": "frozen actual physical input bit identity",
+      "DSP_executed_for_wrong_input": false,
+      "status": "UNRUN"
+    },
+    {
+      "id": "wrong_physical_configuration",
+      "actual_action": "real C1 vendor configuration for legal distinct C2 Plan",
+      "own_gate": "actual queried channels versus immutable descriptor",
+      "DSP_lifecycle_calls": 0,
+      "status": "UNRUN"
+    },
+    {
+      "id": "old_C2_equivalent_path",
+      "actual_action": "real persistent C2 path with original identical audible planes and18 calls",
+      "own_gate": "numerical identical-stereo output equality",
+      "extra_calls": 18,
+      "extra_private_samples": 4608,
+      "equality_pairs": 2304,
+      "post_hoc_repair": false,
+      "status": "UNRUN"
+    }
+  ],
+  "reused_odd_C1_evidence": {
+    "run": "20261105-102915-4929305",
+    "execution_sha256": "231E179D7E2BEAFED2BBC24801C623A198E1E67D337F48E5AFBEAB15E2A3DBD1",
+    "verifier_sha256": "7EAAE7C7E8AEDEFA783435AC0C15419DB32A8010C68ACC83B87484E7115408BE",
+    "physical_C": 1,
+    "calls": 252,
+    "analyses": 258,
+    "syntheses": 129,
+    "retained_relations": 168871,
+    "domain": "exact frozen odd11025 ratio2 mono source/config/lifecycle and reached state paths",
+    "new_Request_binding": "UNRUN_SEPARATE_COMPOSITION_REQUIRED",
+    "rerun_required_merely_for_relabelling": false,
+    "general_C1_or_waveform_credit": false
+  },
+  "new_source_allowlist": [
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/ContextHooks.h",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/context_probe.cpp",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/freeze_context.py",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/prepare_observer.py",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/verify_context.py",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/run-context.ps1",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/README.md",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/authored-manifest.json"
+  ],
+  "proof_rows": [
+    {
+      "id": "P01",
+      "contract": "Exact current public owned request and fixed representative binding",
+      "mechanical_check": "Compare frozen complete original C1/C2 bits/hash/metadata and actual Plan descriptor; retain exact owners",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P02",
+      "contract": "Selection/reversal/context law",
+      "mechanical_check": "Every supplied input uses actual physicalSample(0,x) or separately declared outside-zero, compared with frozen original0 or reversed0",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P03",
+      "contract": "Actual one-plane quiet energy and persistent state",
+      "mechanical_check": "Independent Fraction binary32 threshold/state/callback oracle versus actual C1 records; no halved C2 energy",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P04",
+      "contract": "Every physical analysis has a real owner",
+      "mechanical_check": "Exact W operands/K padding/history generation/current and previous AS roles; no fabricated C2 or phase timestamp",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P05",
+      "contract": "Retained overlap/extraction/context complete",
+      "mechanical_check": "Replay every clear/add/read and exact window arithmetic; enumerate all zero and translated token/read relations",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P06",
+      "contract": "Unchanged <=2 Frame interior center gate",
+      "mechanical_check": "Exact Q=2*i for every nonzero interior relation; full predicate for other context",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P07",
+      "contract": "Observer dynamically preserves private PCM",
+      "mechanical_check": "Persistent pristine/observed twin per fixture; all43904 private bits and hook values match",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P08",
+      "contract": "Zero and nonzero quiet remain separate",
+      "mechanical_check": "Exact zero output counted; quiet192->0 versus384 preserves named refusal with no publication",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P09",
+      "contract": "Reached record controls reject their own predicates",
+      "mechanical_check": "All12 listed controls reached on real C1 records, no fabricated physical channel1",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P10",
+      "contract": "Actual physical input/configuration/DSP controls",
+      "mechanical_check": "Wrong representative, real queried wrong configuration and actual old persistent C2 output all fail separate unchanged gates",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P11",
+      "contract": "Prepaid source-unit/payload envelope",
+      "mechanical_check": "New complete call graph/overlap includes terminal C*W and controls before work; caps unchanged",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P12",
+      "contract": "Narrow odd C1 evidence remains intact",
+      "mechanical_check": "Exact retained receipt/data boundary reused; new owned binding composition remains UNRUN",
+      "status": "OLD_NARROW_EVIDENCE_VERIFIED_NEW_BINDING_UNRUN"
+    }
+  ],
+  "pending_outside_slice": [
+    "other maps/ratios/rates/configurations not independently certified",
+    "full worker scan omission and incorrectly merged result controls",
+    "actual logical materialization and physical mutants",
+    "pitch/RMS/peak/transient/reverse/fade/latency waveform matrix",
+    "complete DSP/FFT/source/view/allocation/work/batch/cache graph",
+    "Ready owners/both builders/jobs/history/model/export/full-load/controls",
+    "RT/deadline/native/device/hardware",
+    "full Option A completion"
+  ]
+}

@@ -1,0 +1,1 @@
+{"checks": 1764, "failed": 0, "frozen": true, "helpers": 88, "bootstrap": {"nodes": 16561, "depth": 4, "maximum_string_units": 435}, "profile": {"input_count": 1240, "input_bytes": 461790563, "maximum_complete_fence_identities": 1321}}

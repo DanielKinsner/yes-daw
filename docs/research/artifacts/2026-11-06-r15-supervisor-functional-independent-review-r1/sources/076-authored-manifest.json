@@ -1,0 +1,889 @@
+{
+  "status": "SOURCE_AUTHORED_ONLY_ALL_NEW_EXECUTION_STAGES_UNRUN",
+  "revision": "measurement-r3",
+  "source_snapshot_head_from_root": "3d8a6dd2b5498909c46f144510fcd225d17bd071",
+  "source_authoring_authorized": true,
+  "execution_authorized": false,
+  "authored_imports": false,
+  "generators_executed": false,
+  "compiler_executed": false,
+  "tests_executed": false,
+  "dsp_executed": false,
+  "environment_changed": false,
+  "tracked_edits": false,
+  "git_writes": false,
+  "native_app_run": false,
+  "desktop_input": false,
+  "audio_device_run": false,
+  "hardware_run": false,
+  "production_accepted": false,
+  "full_resource_certificate": false,
+  "full_vendor_processing_work_certified": false,
+  "physical_lifetime_controls_run": false,
+  "waveform_run": false,
+  "public_pcm_samples": 0,
+  "new_authorized_files": [
+    "ResourceHooks.h",
+    "resource_probe.cpp",
+    "freeze_resources.py",
+    "prepare_observer.py",
+    "verify_resources.py",
+    "run-resources.ps1",
+    "README.md",
+    "authored-manifest.json"
+  ],
+  "scope": "24 pinned manual-setup allocation/capacity profiles and tiny reached PCM/no-growth paths; eight reached actual-RECORD sensitivity controls only",
+  "pending_physical_controls": [
+    "actual extra-owner hold/release",
+    "cancellation and retiring worker overlap",
+    "pending batch/cache concurrent budget",
+    "complete wrapper/view/reverse/unfaded/faded/peak graph",
+    "complete DSP work",
+    "hidden malloc/RSS",
+    "quality/context/renderer/RT/integration"
+  ],
+  "previous_actual_failure": {
+    "revision": "measurement-r2",
+    "manifest_sha256": "699EBD8136ACD1C0C40A2844E209B4A9A85E6A72BBF7956CA91AA2CBCEA89795",
+    "freeze_run": "runs/20261105-114538-5159869",
+    "failed_run": "runs/20261105-114845-5123607",
+    "compile_exit": 0,
+    "candidate_exit": 3,
+    "verify_exit": null,
+    "reason": "object reservation",
+    "failed_before_allocator_forms_or_DSP_construction": true,
+    "source_diagnosis": "default_random_engine mt19937 alone5000B exceeds4096; no measured size backfill",
+    "compile_warnings": {
+      "total": 44,
+      "inherited_vendor_expressions": 43,
+      "harness_M_PI_configuration_collision": 1,
+      "new_observer_or_probe_expression_warnings": 0
+    }
+  },
+  "source_object_abi_prediction": {
+    "basis": "pinned MSVC19.44 release-x64 sources, not observed candidate sizeof",
+    "rng_bytes": 5000,
+    "rng_alignment": 4,
+    "function_bytes": 64,
+    "function_alignment": 8,
+    "FFT_bytes": 128,
+    "RealFFT_bytes": 224,
+    "WindowedFFT_bytes": 280,
+    "MultiBuffer_bytes": 40,
+    "STFT_bytes": 408,
+    "DSP_object_bytes": 5720,
+    "DSP_object_alignment": 8,
+    "optional_bytes": 5728,
+    "optional_alignment": 8,
+    "object_reservation_bytes_each": 8192,
+    "reservation_includes_optional_discriminator_and_padding": true,
+    "vector_objects": 22,
+    "vector_object_bytes_each": 24,
+    "other_fixed_fields_and_padding_bytes": 128,
+    "object_profile_counted_units": 512,
+    "actual_values_only_validate_before_construction": true
+  },
+  "limits": {
+    "clip_new_reserved_bytes": 536870912,
+    "batch_bytes": 1073741824,
+    "cache_bytes": 1073741824,
+    "work_units_per_clip": 268435456,
+    "process_calls_per_clip": 1048576,
+    "fixed_trace_bytes_prechecked_max": 4194304,
+    "research_pair_request_bytes_conditional_max": 67108864,
+    "object_reservation_bytes_each": 8192,
+    "request_record_capacity": 65536,
+    "snapshot_record_capacity": 4096,
+    "pointer_registry_slots": 512
+  },
+  "static_source_inspection": {
+    "python_version": "3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]",
+    "ast_results": [
+      {
+        "file": "freeze_resources.py",
+        "sha256": "D22388728B7283AA1339189BB235817932A3AC1540FAED93B6D8A868698BA822",
+        "syntax": "accepted by read-only stdlib ast.parse; authored module not imported or run"
+      },
+      {
+        "file": "prepare_observer.py",
+        "sha256": "EA3ABA6453CDF539F6A0203E676E31C8D761903A6C1061D48AD6B1C6707EFF2C",
+        "syntax": "accepted by read-only stdlib ast.parse; authored module not imported or run"
+      },
+      {
+        "file": "verify_resources.py",
+        "sha256": "AF18AD229943D034D5DFD08CE4176FACC59562F72A61D6BB60551F283E8C5D61",
+        "syntax": "accepted by read-only stdlib ast.parse; authored module not imported or run"
+      }
+    ],
+    "powershell_ast": "accepted by System.Management.Automation.Language.Parser.ParseFile; runner not executed",
+    "LF_all_8": true,
+    "byte_identical_to_r2": [
+      "ResourceHooks.h",
+      "prepare_observer.py"
+    ],
+    "runner_revision_path_only": true,
+    "python_AST_equivalence": {
+      "freeze_resources.py": {
+        "unchanged_functions": [
+          "need",
+          "Oracle.spend",
+          "Oracle.vector",
+          "Oracle.push",
+          "Oracle.power",
+          "Oracle.fast",
+          "Oracle.fft_plan",
+          "Oracle.mrfft",
+          "Oracle.window",
+          "Oracle.constructor",
+          "Oracle.configure",
+          "Oracle.snapshot"
+        ],
+        "changed_functions": [
+          "Oracle.__init__",
+          "Oracle.request",
+          "Oracle.release",
+          "Oracle.run",
+          "freeze"
+        ],
+        "new_functions": [
+          "source_object_profile"
+        ]
+      },
+      "prepare_observer.py": {
+        "unchanged_functions": [
+          "need",
+          "prepare"
+        ],
+        "changed_functions": [],
+        "new_functions": []
+      },
+      "verify_resources.py": {
+        "unchanged_functions": [
+          "need",
+          "rows",
+          "sequence",
+          "snapshot",
+          "counted"
+        ],
+        "changed_functions": [
+          "lifetime",
+          "verify"
+        ],
+        "new_functions": []
+      }
+    }
+  },
+  "stage_order": [
+    "fresh source/profile/reservation critic and root full review",
+    "separate root Freeze-only GO",
+    "root actual frozen profile and all reversible copies review",
+    "separate one root CompileAndRun GO",
+    "fresh measured limited-scope critic"
+  ],
+  "r2_to_r3_exact_deltas": [
+    {
+      "file": "ResourceHooks.h",
+      "r2_sha256": "5EA1ED1786C2B440EFE62CD2659D0BC80A5B1D851A5D37B1FB5E17A956EC3A68",
+      "r3_sha256": "5EA1ED1786C2B440EFE62CD2659D0BC80A5B1D851A5D37B1FB5E17A956EC3A68",
+      "byte_identical": true,
+      "exact_inverse_to_r2": true,
+      "inverse_edits": []
+    },
+    {
+      "file": "resource_probe.cpp",
+      "r2_sha256": "046F7E6902B82E1AC9F8DA6072D1F34D843C739EE11EC6E8957FD0A7FE9452BE",
+      "r3_sha256": "EB3AD81BCE68E1E6F03F8136DA53612CBDAFE513DA27592F8B1E6240A148AE1D",
+      "byte_identical": false,
+      "exact_inverse_to_r2": true,
+      "inverse_edits": [
+        {
+          "old_line_begin": 28,
+          "old_line_end": 29,
+          "new_line_begin": 28,
+          "new_line_end": 29,
+          "old": "constexpr std::size_t Cap=512u*1024u*1024u, Work=1u<<28;\n",
+          "new": "constexpr std::size_t Cap=512u*1024u*1024u, Work=1u<<28, ObjectReservation=8192;\n"
+        },
+        {
+          "old_line_begin": 54,
+          "old_line_end": 55,
+          "new_line_begin": 54,
+          "new_line_end": 56,
+          "old": "        if(failure||eventCount==events.size()||bytes>2*Cap-8192-live||bytes>Cap-4096-oneLive[std::size_t(instance)])throw std::bad_alloc();\n",
+          "new": "        if(failure||eventCount==events.size()||instance<0||instance>1||live>2*(Cap-ObjectReservation)||oneLive[std::size_t(instance)]>Cap-ObjectReservation\n            ||bytes>2*(Cap-ObjectReservation)-live||bytes>Cap-ObjectReservation-oneLive[std::size_t(instance)])throw std::bad_alloc();\n"
+        },
+        {
+          "old_line_begin": 159,
+          "old_line_end": 160,
+          "new_line_begin": 160,
+          "new_line_end": 168,
+          "old": "    need(sizeof(signalsmith::stretch::SignalsmithStretch<float>)<=4096&&sizeof(signalsmith::stretch_resource_r1::SignalsmithStretch<float>)==sizeof(signalsmith::stretch::SignalsmithStretch<float>),\"object reservation\");\n",
+          "new": "    need(sizeof(std::default_random_engine)==5000&&alignof(std::default_random_engine)==4,\"source-derived RNG ABI profile\");\n    need(sizeof(std::function<float(float)>)==64&&alignof(std::function<float(float)>)==8,\"source-derived function ABI profile\");\n    using Pristine=signalsmith::stretch::SignalsmithStretch<float>;\n    using Observed=signalsmith::stretch_resource_r1::SignalsmithStretch<float>;\n    need(sizeof(Pristine)==5720&&alignof(Pristine)==8&&sizeof(Observed)==5720&&alignof(Observed)==8,\"source-derived DSP object ABI profile\");\n    need(sizeof(std::optional<Pristine>)==5728&&alignof(std::optional<Pristine>)==8\n        &&sizeof(std::optional<Observed>)==5728&&alignof(std::optional<Observed>)==8\n        &&sizeof(std::optional<Pristine>)<=ObjectReservation,\"source-derived optional object reservation\");\n"
+        },
+        {
+          "old_line_begin": 213,
+          "old_line_end": 214,
+          "new_line_begin": 221,
+          "new_line_end": 222,
+          "old": "        receipt<<\"{\\\"status\\\":\\\"private_24_setup_and_reached_lifecycle_records\\\",\\\"cases\\\":24,\\\"abi_validated_before_dsp\\\":true,\\\"object_size\\\":\"<<sizeof(signalsmith::stretch::SignalsmithStretch<float>)<<\",\\\"allocation_forms_mask\\\":\"<<verifiedForms<<\",\\\"request_records\\\":\"<<eventCount<<\",\\\"snapshot_records\\\":\"<<snapshotCount<<\",\\\"pcm_bit_compares\\\":\"<<bitCompares<<\",\\\"full_vendor_processing_work_certified\\\":false,\\\"physical_mutants_run\\\":false,\\\"full_resource_certificate\\\":false,\\\"production_accepted\\\":false,\\\"public_pcm_samples\\\":0}\\n\";\n",
+          "new": "        receipt<<\"{\\\"status\\\":\\\"private_24_setup_and_reached_lifecycle_records\\\",\\\"cases\\\":24,\\\"abi_validated_before_dsp\\\":true,\\\"object_size\\\":\"<<sizeof(signalsmith::stretch::SignalsmithStretch<float>)<<\",\\\"object_alignment\\\":\"<<alignof(signalsmith::stretch::SignalsmithStretch<float>)<<\",\\\"rng_size\\\":\"<<sizeof(std::default_random_engine)<<\",\\\"rng_alignment\\\":\"<<alignof(std::default_random_engine)<<\",\\\"function_size\\\":\"<<sizeof(std::function<float(float)>)<<\",\\\"function_alignment\\\":\"<<alignof(std::function<float(float)>)<<\",\\\"optional_size\\\":\"<<sizeof(std::optional<signalsmith::stretch::SignalsmithStretch<float>>)<<\",\\\"optional_alignment\\\":\"<<alignof(std::optional<signalsmith::stretch::SignalsmithStretch<float>>)<<\",\\\"object_reservation_bytes_each\\\":\"<<ObjectReservation<<\",\\\"allocation_forms_mask\\\":\"<<verifiedForms<<\",\\\"request_records\\\":\"<<eventCount<<\",\\\"snapshot_records\\\":\"<<snapshotCount<<\",\\\"pcm_bit_compares\\\":\"<<bitCompares<<\",\\\"full_vendor_processing_work_certified\\\":false,\\\"physical_mutants_run\\\":false,\\\"full_resource_certificate\\\":false,\\\"production_accepted\\\":false,\\\"public_pcm_samples\\\":0}\\n\";\n"
+        }
+      ]
+    },
+    {
+      "file": "freeze_resources.py",
+      "r2_sha256": "A5DF9FAACE32739D0F96EEEE7C112B2DC3EEE2FE17983CDB5CE05B6B74FCA294",
+      "r3_sha256": "D22388728B7283AA1339189BB235817932A3AC1540FAED93B6D8A868698BA822",
+      "byte_identical": false,
+      "exact_inverse_to_r2": true,
+      "inverse_edits": [
+        {
+          "old_line_begin": 10,
+          "old_line_end": 10,
+          "new_line_begin": 10,
+          "new_line_end": 11,
+          "old": "",
+          "new": "OBJECT_RESERVATION=8192\n"
+        },
+        {
+          "old_line_begin": 20,
+          "old_line_end": 21,
+          "new_line_begin": 21,
+          "new_line_end": 22,
+          "old": "        self.stage=1;self.instance=0;self.next_id=0;self.live=0;self.peak=0\n",
+          "new": "        self.stage=1;self.instance=0;self.next_id=0;self.live=0;self.peak=0;self.one_live=[0,0]\n"
+        },
+        {
+          "old_line_begin": 32,
+          "old_line_end": 34,
+          "new_line_begin": 33,
+          "new_line_end": 35,
+          "old": "        need(size<=2*CAP-self.live,'ResourceLimit: paired request payload')\n        self.next_id+=1;self.live+=size;self.peak=max(self.peak,self.live)\n",
+          "new": "        need(size<=2*(CAP-OBJECT_RESERVATION)-self.live and size<=CAP-OBJECT_RESERVATION-self.one_live[self.instance],'ResourceLimit: requests plus both optional object reservations')\n        self.next_id+=1;self.live+=size;self.one_live[self.instance]+=size;self.peak=max(self.peak,self.live)\n"
+        },
+        {
+          "old_line_begin": 43,
+          "old_line_end": 44,
+          "new_line_begin": 44,
+          "new_line_end": 45,
+          "old": "            self.live-=size;a['id']=0;a['cap']=0\n",
+          "new": "            self.live-=size;self.one_live[self.instance]-=size;a['id']=0;a['cap']=0\n"
+        },
+        {
+          "old_line_begin": 167,
+          "old_line_end": 168,
+          "new_line_begin": 168,
+          "new_line_end": 169,
+          "old": "        need(self.live==0,'independent release inventory')\n",
+          "new": "        need(self.live==0 and self.one_live==[0,0],'independent release inventory')\n"
+        },
+        {
+          "old_line_begin": 179,
+          "old_line_end": 179,
+          "new_line_begin": 180,
+          "new_line_end": 213,
+          "old": "",
+          "new": "def source_object_profile():\n    # Pinned MSVC release-x64 object layout, constructed before any candidate.\n    # Each tuple is (member name, source-derived bytes, required alignment).\n    records={}\n    def layout(name,members):\n        offset=0;alignment=1;rows=[]\n        for member,size,align in members:\n            offset=(offset+align-1)//align*align\n            rows.append(dict(member=member,offset=offset,bytes=size,alignment=align))\n            offset+=size;alignment=max(alignment,align)\n        size=(offset+alignment-1)//alignment*alignment\n        records[name]=dict(bytes=size,alignment=alignment,members=rows)\n        return size,alignment\n    rng=layout('mt19937',[('_Idx',4,4),('_Ax[2*624]',2*624*4,4),('_Dxval',4,4)])\n    function=layout('function',[('_Storage pointers[6+16/8]',8*8,8)])\n    fft=layout('FFT',[('_size',8,8)]+[(v,24,8) for v in ('workingVector','factors','plan','twiddleVector','permutation')])\n    real=layout('RealFFT',[(v,24,8) for v in ('complexBuffer1','complexBuffer2','twiddlesMinusI','modifiedRotations')]+[('complexFft',*fft)])\n    window=layout('WindowedFFT',[('mrfft',*real),('fftWindow',24,8),('timeBuffer',24,8),('offsetSamples',4,4)])\n    buffer=layout('Buffer',[('bufferIndex',4,4),('bufferMask',4,4),('buffer',24,8)])\n    multi=layout('MultiBuffer',[('channels',4,4),('stride',4,4),('buffer',*buffer)])\n    spectrum=layout('MultiSpectrum',[('channels',4,4),('stride',4,4),('buffer',24,8)])\n    stft=layout('STFT',[('Super',*multi)]+[(v,4,4) for v in ('channels','_windowSize','_fftSize','_interval','validUntilIndex')]\n        +[('timeBuffer',24,8),('rotate',1,1),('windowShape',4,4),('spectrum',*spectrum),('fft',*window)])\n    dsp=layout('SignalsmithStretch',[('silenceCounter',4,4),('silenceFirst',1,1),('freqMultiplier',4,4),('freqTonalityLimit',4,4),\n        ('customFreqMap',*function),('stft',*stft),('inputBuffer',*multi),('channels',4,4),('bands',4,4),('prevInputOffset',4,4),\n        ('timeBuffer',24,8),('didSeek',1,1),('flushed',1,1),('seekTimeFactor',4,4)]\n        +[(v,24,8) for v in ('channelBands','peaks','energy','smoothedEnergy','outputMap','channelPredictions')]+[('randomEngine',*rng)])\n    optional=layout('optional',[('_Value union',*dsp),('_Has_value',1,1)])\n    need((rng,function,fft,real,window,multi,stft,dsp,optional)==((5000,4),(64,8),(128,8),(224,8),(280,8),(40,8),(408,8),(5720,8),(5728,8)),\n         'independent pinned ABI layout qualification')\n    need(optional[0]<=OBJECT_RESERVATION<CAP and 2*OBJECT_RESERVATION<2*CAP,'optional object reservation source bound')\n    return records\n\n"
+        },
+        {
+          "old_line_begin": 181,
+          "old_line_end": 181,
+          "new_line_begin": 215,
+          "new_line_end": 217,
+          "old": "",
+          "new": "    object_profile_units=512;need(object_profile_units<=WORK,'ResourceLimit: fixed object-profile allowance')\n    object_layout=source_object_profile()\n"
+        },
+        {
+          "old_line_begin": 192,
+          "old_line_end": 193,
+          "new_line_begin": 228,
+          "new_line_end": 229,
+          "old": "    need(sum(g['oracle_counted_units'] for g in geometry)+serialization_units+qualification.work<=WORK,'research oracle matrix work limit')\n",
+          "new": "    need(sum(g['oracle_counted_units'] for g in geometry)+serialization_units+qualification.work+object_profile_units<=WORK,'research oracle matrix work limit')\n"
+        },
+        {
+          "old_line_begin": 201,
+          "old_line_end": 202,
+          "new_line_begin": 237,
+          "new_line_end": 240,
+          "old": "                 object_reservation_bytes_each=4096,ordinary_vector_big_threshold=4096,ordinary_big_adjustment_bytes=39,\n",
+          "new": "                 object_reservation_bytes_each=OBJECT_RESERVATION,object_bytes=5720,object_alignment=8,rng_bytes=5000,rng_alignment=4,\n                 function_bytes=64,function_alignment=8,optional_bytes=5728,optional_alignment=8,source_object_layout=object_layout,\n                 ordinary_vector_big_threshold=4096,ordinary_big_adjustment_bytes=39,\n"
+        },
+        {
+          "old_line_begin": 207,
+          "old_line_end": 208,
+          "new_line_begin": 245,
+          "new_line_end": 246,
+          "old": "                 oracle_counted_units=sum(g['oracle_counted_units'] for g in geometry),serialization_counted_units=serialization_units,\n",
+          "new": "                 oracle_counted_units=sum(g['oracle_counted_units'] for g in geometry),serialization_counted_units=serialization_units,object_profile_counted_units=object_profile_units,\n"
+        }
+      ]
+    },
+    {
+      "file": "prepare_observer.py",
+      "r2_sha256": "EA3ABA6453CDF539F6A0203E676E31C8D761903A6C1061D48AD6B1C6707EFF2C",
+      "r3_sha256": "EA3ABA6453CDF539F6A0203E676E31C8D761903A6C1061D48AD6B1C6707EFF2C",
+      "byte_identical": true,
+      "exact_inverse_to_r2": true,
+      "inverse_edits": []
+    },
+    {
+      "file": "verify_resources.py",
+      "r2_sha256": "197A3CA3068EDF1AD1CF36D636DCB4723486760A4E7FAEF93E9C3AD9599AD3CC",
+      "r3_sha256": "AF18AD229943D034D5DFD08CE4176FACC59562F72A61D6BB60551F283E8C5D61",
+      "byte_identical": false,
+      "exact_inverse_to_r2": true,
+      "inverse_edits": [
+        {
+          "old_line_begin": 9,
+          "old_line_end": 9,
+          "new_line_begin": 9,
+          "new_line_end": 10,
+          "old": "",
+          "new": "OBJECT_RESERVATION=8192\n"
+        },
+        {
+          "old_line_begin": 30,
+          "old_line_end": 31,
+          "new_line_begin": 31,
+          "new_line_end": 33,
+          "old": "            need(e['bytes']<=CAP-one[i] and e['bytes']<=2*CAP-current,'RequestedPayloadLimit')\n",
+          "new": "            need(0<=one[i]<=CAP-OBJECT_RESERVATION and 0<=current<=2*(CAP-OBJECT_RESERVATION)\n                 and e['bytes']<=CAP-OBJECT_RESERVATION-one[i] and e['bytes']<=2*(CAP-OBJECT_RESERVATION)-current,'RequestedPayloadLimit')\n"
+        },
+        {
+          "old_line_begin": 71,
+          "old_line_end": 72,
+          "new_line_begin": 73,
+          "new_line_end": 83,
+          "old": "    need(receipt['abi_validated_before_dsp'] is True and 0<receipt['object_size']<=4096 and len(actual_abi)==6,'PreDSPAbiMismatch')\n",
+          "new": "    need(receipt['abi_validated_before_dsp'] is True and len(actual_abi)==6,'PreDSPAbiMismatch')\n    source_abi=dict(object_size=5720,object_alignment=8,rng_size=5000,rng_alignment=4,function_size=64,function_alignment=8,\n                    optional_size=5728,optional_alignment=8,object_reservation_bytes_each=OBJECT_RESERVATION)\n    frozen_names=dict(object_size='object_bytes',object_alignment='object_alignment',rng_size='rng_bytes',rng_alignment='rng_alignment',\n                      function_size='function_bytes',function_alignment='function_alignment',optional_size='optional_bytes',optional_alignment='optional_alignment',\n                      object_reservation_bytes_each='object_reservation_bytes_each')\n    need(all(receipt[k]==value and profile[frozen_names[k]]==value for k,value in source_abi.items()),'PreDSPObjectAbiMismatch')\n    need(profile['source_object_layout']['mt19937']['bytes']==5000 and profile['source_object_layout']['function']['bytes']==64\n         and profile['source_object_layout']['SignalsmithStretch']['bytes']==5720 and profile['source_object_layout']['optional']['bytes']==5728,\n         'FrozenObjectLayoutMismatch')\n"
+        },
+        {
+          "old_line_begin": 91,
+          "old_line_end": 92,
+          "new_line_begin": 102,
+          "new_line_end": 104,
+          "old": "    units=0;library_bound=0\n",
+          "new": "    need(freeze['object_profile_counted_units']==512,'FrozenObjectProfileWorkMismatch')\n    units=freeze['object_profile_counted_units'];library_bound=0\n"
+        }
+      ]
+    },
+    {
+      "file": "run-resources.ps1",
+      "r2_sha256": "0D5D43FD711A846450745FA096EF866E7DB965F00C59AD26BD7C5747CF3BAE75",
+      "r3_sha256": "FA21F499AEBB07A5C6AED83E1039E362DCD98F97E9C18ABB57CDCB865D8DFE15",
+      "byte_identical": false,
+      "exact_inverse_to_r2": true,
+      "inverse_edits": [
+        {
+          "old_line_begin": 6,
+          "old_line_end": 7,
+          "new_line_begin": 6,
+          "new_line_end": 7,
+          "old": "if($taskRevision -cne [IO.Path]::GetFullPath((Join-Path $taskRepo 'build-ci/20261105-musical-resource-graph-prep/measurement-r2'))){throw 'Unexpected measurement revision path'}\n",
+          "new": "if($taskRevision -cne [IO.Path]::GetFullPath((Join-Path $taskRepo 'build-ci/20261105-musical-resource-graph-prep/measurement-r3'))){throw 'Unexpected measurement revision path'}\n"
+        }
+      ]
+    },
+    {
+      "file": "README.md",
+      "r2_sha256": "3713A231EA888443402CDC0E3605974DCE5AF4047AB1BD428703358FE98DF83D",
+      "r3_sha256": "3396DAA4A94D19CD41AA69642E787EF24CC3571A0F3EE3C7856B774EE5A03ED1",
+      "byte_identical": false,
+      "exact_inverse_to_r2": true,
+      "inverse_edits": [
+        {
+          "old_line_begin": 0,
+          "old_line_end": 1,
+          "new_line_begin": 0,
+          "new_line_end": 1,
+          "old": "# Resource measurement r2 \u2014 exact fast-size filter; all stages UNRUN\n",
+          "new": "# Resource measurement r3 \u2014 source-derived RNG/object profile; all new stages UNRUN\n"
+        },
+        {
+          "old_line_begin": 4,
+          "old_line_end": 5,
+          "new_line_begin": 4,
+          "new_line_end": 5,
+          "old": "Root and the fresh critic held R1 before Freeze: its independent fast-size model incorrectly included27 and omitted the pinned `n<32` loop guard. At input410 it would predict432, while the pinned filter advances26 through31 to32 and returns512. Removing27 without the guard would loop indefinitely after reaching32. R1 remains immutable and entirely unexecuted. R2 copies the exact pinned true set {0,1,2,3,4,6,8,9,12,16,18,24} and guard, then qualifies three independently specified integer literals before freezing:410->512,32768->32768,32769->36864. Those qualifications and their own counted work remain UNRUN. No observed candidate capacity or result supplies their expectations.\n",
+          "new": "R2's actual Freeze completed0 at `runs/20261105-114538-5159869`, with4392 request/release rows and1584 snapshots. Its single CompileAndRun at `runs/20261105-114845-5123607` compiled0, then candidate3 printed `object reservation` before allocator-form checks or any DSP construction; verifier remained unrun. Those genuine artifacts and every R1/R2 source remain immutable and pinned here. R1's earlier fast-size source hold and R2's corrected literal qualifications remain separately preserved.\n"
+        },
+        {
+          "old_line_begin": 6,
+          "old_line_end": 7,
+          "new_line_begin": 6,
+          "new_line_end": 13,
+          "old": "Only the freezer correction/literal qualifications, runner revision path, this README and manifest metadata change. Hooks, probe, preparer and verifier stay byte-identical to R1. Root approved the final background endpoint-repair source binding: `src/engine/MusicalAudioCutPlan.h` SHA256 `17A84770B9B4904162008492ADC393EB183678ECD00113C0658EFE355413B390`. The original SHA256 `BF45331340A89BE37CB3485121DFF8E6EE29CAEE676A68FF23874BFAA093BC20` is pinned at `build-ci/20261105-musical-cut-endpoint-red/before-header.h`; the entire R1 manifest and its authored sources remain pinned unchanged. R1's old live-header pin would correctly refuse the new source and is not ignored or rewritten. R2 explicitly binds the replacement source while preserving that historical mismatch. Root's canonical regression and CI outcomes are not claimed here. Any further planner source change invalidates this proposed binding. This metadata finalization does not authorize execution.\n",
+          "new": "The independent source diagnosis is not a measured-size backfill: pinned MSVC `default_random_engine=mt19937` contains `_Circ_buf` with4-byte index and `2*624` four-byte words, then the4-byte `_Dxval`:5000 bytes/alignment4. RNG alone exceeds the former4096-byte object envelope. Pinned release-x64 vectors are24 bytes, and `std::function`'s eight-pointer `_Storage` is64 bytes/alignment8. Recursive member layout derives FFT128, RealFFT224, WindowedFFT280, MultiBuffer40 and STFT408 bytes. The full DSP object is5720 bytes/alignment8:5000 RNG+22*24 vector objects+64 function+128 fixed fields/padding. The pinned nontrivial optional adds its boolean and trailing padding, yielding5728 bytes/alignment8. `source_object_profile()` independently computes every member offset and freezes that table before candidate execution.\n\nR3 reserves8192 bytes for each optional-backed DSP object, including its discriminator/padding. The unchanged512MiB single-instance and1GiB paired limits subtract those reservations before accepting allocation requests. Freezer, allocator, verifier and profile all use the same independently fixed reservation; actual ABI values only validate literal predictions before construction and never replace the oracle. The frozen object-layout work allowance is512 source units. No measured candidate size supplied5720/5728 or8192, and this is not a production cap increase.\n\nOnly this profile/reservation/prerequisite/receipt/verifier correction, runner revision path and documentation/manifest change. ResourceHooks and reversible copy preparer are byte-identical to R2. Existing vector growth/request/FFT/ring expectations, DSP arithmetic/RNG, process policies and thresholds stay unchanged. The new profile additionally pins MSVC random/typeinfo/optional sources; functional was already pinned. The final background CutPlan17A84770 and historical BF453313 archive remain explicitly bound as before.\n\nR2 compilation had44 warnings:43 inherited vendor expressions and one harness configuration `M_PI` macro collision. All20 warnings in observer copies map to unchanged original expressions; no added observer/probe expression warning was found by the independent critic. This revision does not suppress warnings, modify vendor expressions or claim warning-free compilation. Its own compilation remains UNRUN.\n"
+        },
+        {
+          "old_line_begin": 16,
+          "old_line_end": 17,
+          "new_line_begin": 22,
+          "new_line_end": 23,
+          "old": "Before any DSP object construction, the probe checks compiler/STL macros, NDEBUG/no_DEBUG/iterator-debug0, current FP nearest/no-FTZ/no-DAZ controls, null new-handler, all frozen private element sizes/alignment, vector/object reservation and fixed trace capacities. Actual sizeof values **validate** frozen values; they never replace them or populate the oracle. Object storage is conservatively reserved4096 bytes per instance, with actual type size checked below that bound and pristine/observed object sizes equal.\n",
+          "new": "Before any DSP object construction, the probe checks compiler/STL macros, NDEBUG/no_DEBUG/iterator-debug0, current FP nearest/no-FTZ/no-DAZ controls, null new-handler, all frozen private element sizes/alignment, vector/object reservation and fixed trace capacities. Actual sizeof values **validate** frozen values; they never replace them or populate the oracle. Object storage is conservatively reserved8192 bytes per optional-backed instance. Before DSP construction, actual RNG5000/function64/DSP5720/optional5728 sizes and4/8/8/8 alignments must match the independently frozen ABI, with pristine/observed objects equal.\n"
+        },
+        {
+          "old_line_begin": 24,
+          "old_line_end": 25,
+          "new_line_begin": 30,
+          "new_line_end": 31,
+          "old": "The oracle freezes requests and releases with allocation identities, all22 private vector snapshots at constructor/configured/post-flush stages, geometry/latencies, expected paired peak, source/output-access counts and exact fixed-registry visit counts. Initial constructor allocations and new/old capacity overlap are included. A successful Freeze is bounded to<=65536 request records,<=4096 snapshots,<=64MiB paired requested payload,<=2^25 counted oracle units per case and<=2^28 across the oracle matrix. These are enforced **conditional source bounds**, not measured results. C++ trace arrays are fixed to<4MiB; each DSP object has4096 bytes reserved separately. Trace hooks'512-slot searches are bounded and counted; allocator hooks never use vectors/strings/iostream/mutexes.\n",
+          "new": "The oracle freezes requests and releases with allocation identities, all22 private vector snapshots at constructor/configured/post-flush stages, geometry/latencies, expected paired peak, source/output-access counts and exact fixed-registry visit counts. Initial constructor allocations and new/old capacity overlap are included. A successful Freeze is bounded to<=65536 request records,<=4096 snapshots,<=64MiB paired requested payload,<=2^25 counted oracle units per case and<=2^28 across the oracle matrix. These are enforced **conditional source bounds**, not measured results. C++ trace arrays are fixed to<4MiB; each optional-backed DSP object has8192 bytes reserved separately. Trace hooks'512-slot searches are bounded and counted; allocator hooks never use vectors/strings/iostream/mutexes.\n"
+        },
+        {
+          "old_line_begin": 30,
+          "old_line_end": 31,
+          "new_line_begin": 36,
+          "new_line_end": 37,
+          "old": "Both fresh instances coexist, so research pair peaks are compared with the independent paired ledger. The single-instance peak and4096-byte object reservation must fit512MiB; paired peak plus both reservations must fit1GiB. The measured scope begins before constructors and ends after explicit destruction. Outside that scope, the harness owns fixed trace storage and two tiny32+OL output planes; those are research storage, not silently counted as production storage. All reached reset/seek/process/flush vector growth is rejected. Actual source-operand reads and output accesses are counted and compared with independently derived counts; complete FFT/band/math instruction work remains unproved.\n",
+          "new": "Both fresh instances coexist, so research pair peaks are compared with the independent paired ledger. The single-instance peak and8192-byte optional-object reservation must fit512MiB; paired peak plus both reservations must fit1GiB. The measured scope begins before constructors and ends after explicit destruction. Outside that scope, the harness owns fixed trace storage and two tiny32+OL output planes; those are research storage, not silently counted as production storage. All reached reset/seek/process/flush vector growth is rejected. Actual source-operand reads and output accesses are counted and compared with independently derived counts; complete FFT/band/math instruction work remains unproved.\n"
+        },
+        {
+          "old_line_begin": 47,
+          "old_line_end": 48,
+          "new_line_begin": 53,
+          "new_line_end": 54,
+          "old": "pwsh -NoProfile -File build-ci/20261105-musical-resource-graph-prep/measurement-r2/run-resources.ps1 -Execute -Stage Freeze\n",
+          "new": "pwsh -NoProfile -File build-ci/20261105-musical-resource-graph-prep/measurement-r3/run-resources.ps1 -Execute -Stage Freeze\n"
+        },
+        {
+          "old_line_begin": 55,
+          "old_line_end": 56,
+          "new_line_begin": 61,
+          "new_line_end": 62,
+          "old": "pwsh -NoProfile -File build-ci/20261105-musical-resource-graph-prep/measurement-r2/run-resources.ps1 -Execute -Stage CompileAndRun -PreparedRun 'C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/<reviewed-freeze-id>'\n",
+          "new": "pwsh -NoProfile -File build-ci/20261105-musical-resource-graph-prep/measurement-r3/run-resources.ps1 -Execute -Stage CompileAndRun -PreparedRun 'C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-musical-resource-graph-prep/measurement-r3/runs/<reviewed-freeze-id>'\n"
+        }
+      ]
+    }
+  ],
+  "pins": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77"
+    },
+    {
+      "path": "CLAUDE.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77"
+    },
+    {
+      "path": "docs/adr/0083-musical-audio-prepared-lane.md",
+      "bytes": 31387,
+      "sha256": "7C45C564AC86079A82E487E8AE6AD510A34FCC6AB630663C2B56F8EFEF6FC646"
+    },
+    {
+      "path": "docs/plans/2026-11-04-musical-audio-prepared-lane-plan.md",
+      "bytes": 14255,
+      "sha256": "6A2087759DCE5A89BCF472589C3C94F822E41C0132077AAFACB3BC642FB4E95F"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    {
+      "path": "src/engine/MusicalAudioWindow.h",
+      "bytes": 19572,
+      "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D"
+    },
+    {
+      "path": "src/engine/MusicalAudioCutPlan.h",
+      "bytes": 28956,
+      "sha256": "17A84770B9B4904162008492ADC393EB183678ECD00113C0658EFE355413B390"
+    },
+    {
+      "path": "src/engine/TimeStretch.h",
+      "bytes": 7540,
+      "sha256": "7F759B9A8015E8C020F4EA0EE6E0F7283CBC0D563A20CED6CC5A219D5A761227"
+    },
+    {
+      "path": "src/engine/RateMatchedView.h",
+      "bytes": 5293,
+      "sha256": "9A0770E8690FBC60048BDF13FF1D1BD332B6D620A1985C52895E7FE916BB0571"
+    },
+    {
+      "path": "src/engine/Resample.h",
+      "bytes": 7045,
+      "sha256": "57367C4381837EB6753A62EE1276A85C63E25085DAB7F6108C2600809E442832"
+    },
+    {
+      "path": "src/engine/ClipSchedule.h",
+      "bytes": 6706,
+      "sha256": "681ED77653AF195480FAA63FBB57D1804C1C3CBCA813310B18F0B058B7552D1A"
+    },
+    {
+      "path": "src/app/StretchPreparationJob.h",
+      "bytes": 11728,
+      "sha256": "9BB8AB39327E6E1A9810C018E2904DCBF62177B2DE709AA2E083BE1102E6132D"
+    },
+    {
+      "path": "src/ui/WaveformPeakService.h",
+      "bytes": 10270,
+      "sha256": "D53E4A6458A30B8D1447AC520873BFCD8F54C26F5B7A686D850AE5EDACDF174F"
+    },
+    {
+      "path": "src/persistence/WaveformPeakCache.h",
+      "bytes": 21706,
+      "sha256": "1381648DE83C131BB3D4FDC53208974C2B44FC79A78EE6F7C6F2C61F55D0EDAC"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/signalsmith-stretch.h",
+      "bytes": 22145,
+      "sha256": "E7BD5C4E35AE05DE34ADE0CFC0E0C2285598543BEDB91420AC863812AF2A035E"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/common.h",
+      "bytes": 1834,
+      "sha256": "9F0C24BEA6536715026DFEC2EDECD05D130FC121B0F40590D1948A878671BF52"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/delay.h",
+      "bytes": 24125,
+      "sha256": "876F3A5B69EC8E55E6769E14383A99A4354060EF0B76594D509444CE1FEAAC72"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/fft.h",
+      "bytes": 16832,
+      "sha256": "B75422EE9E261F4268FB85BF9693388AF565F57B4F14D637B732FB570A818B30"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/spectral.h",
+      "bytes": 17009,
+      "sha256": "8B15F3E710BDEB2F7DDF9DA9DB10C0123FE0B0C675726202A6770F18ECFAED96"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/windows.h",
+      "bytes": 8421,
+      "sha256": "71B0556F7A5C0293C8C2D6B9209E54AFDB86319438C1E49BC815DCFCE62B4312"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/perf.h",
+      "bytes": 2534,
+      "sha256": "2D253878B514D23178223A3C6EAF9113B0C8C03412836A998387FAA4415348D8"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vector",
+      "bytes": 161282,
+      "sha256": "351604D91A2CEAC79F9BD9448C0553CCCC22711E22955B5938EAF41DE98334A6"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xmemory",
+      "bytes": 112178,
+      "sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/packet.md",
+      "bytes": 19390,
+      "sha256": "3CA2A2A66417EF2164781D6260048B0068934B16137C0DEEA402A339F115EE21"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/source-pins.json",
+      "bytes": 4724,
+      "sha256": "9F0017D7CA32C3F3A949796CFE86E91D11E49382C9AB6224010C6D6364853B66"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/proof-plan.json",
+      "bytes": 4471,
+      "sha256": "DD71BCC137DBF61DD3C7D34D12E2918301DDB54D1E7ABFCFDA7B70C454D13A41"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r1/freeze_resources.py",
+      "bytes": 12043,
+      "sha256": "50A05AF4BB8F53A95310A60CA31872B415CBCD3756FAAE5D117ACC04067DA7BE"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r1/prepare_observer.py",
+      "bytes": 7812,
+      "sha256": "EA3ABA6453CDF539F6A0203E676E31C8D761903A6C1061D48AD6B1C6707EFF2C"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r1/README.md",
+      "bytes": 10658,
+      "sha256": "3CA6BE5F1AC8E9AAB85D63A7BF936FCF9EB49FD48FD68FC33C3FFC7E87D06075"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r1/resource_probe.cpp",
+      "bytes": 16207,
+      "sha256": "046F7E6902B82E1AC9F8DA6072D1F34D843C739EE11EC6E8957FD0A7FE9452BE"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r1/ResourceHooks.h",
+      "bytes": 546,
+      "sha256": "5EA1ED1786C2B440EFE62CD2659D0BC80A5B1D851A5D37B1FB5E17A956EC3A68"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r1/run-resources.ps1",
+      "bytes": 10808,
+      "sha256": "04BA15009EA7E97879A51464CC0A8C503CDE562E496C5001538FC0105F764BC0"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r1/verify_resources.py",
+      "bytes": 9774,
+      "sha256": "197A3CA3068EDF1AD1CF36D636DCB4723486760A4E7FAEF93E9C3AD9599AD3CC"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals_core.h",
+      "bytes": 104524,
+      "sha256": "5070449E37A1735ADF49204A12C7A7D5EFA145D6AA607720AEF5ADBD2C57EF83"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/functional",
+      "bytes": 127532,
+      "sha256": "A8C6B1A515AFF37BD9314475BAFB1F1F1A1CBFBC5C771974EA68A22A85625A6C"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "bytes": 677736,
+      "sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D"
+    },
+    {
+      "path": "build-ci/20261105-musical-cut-endpoint-red/before-header.h",
+      "bytes": 24810,
+      "sha256": "BF45331340A89BE37CB3485121DFF8E6EE29CAEE676A68FF23874BFAA093BC20"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r1/authored-manifest.json",
+      "bytes": 9573,
+      "sha256": "75313FBE61B3A03F862DF652C3C8CC067B52F575DAB949AA61CCA869B60AC8B0"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/freeze_resources.py",
+      "bytes": 12477,
+      "sha256": "A5DF9FAACE32739D0F96EEEE7C112B2DC3EEE2FE17983CDB5CE05B6B74FCA294"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/prepare_observer.py",
+      "bytes": 7812,
+      "sha256": "EA3ABA6453CDF539F6A0203E676E31C8D761903A6C1061D48AD6B1C6707EFF2C"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/README.md",
+      "bytes": 12317,
+      "sha256": "3713A231EA888443402CDC0E3605974DCE5AF4047AB1BD428703358FE98DF83D"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/resource_probe.cpp",
+      "bytes": 16207,
+      "sha256": "046F7E6902B82E1AC9F8DA6072D1F34D843C739EE11EC6E8957FD0A7FE9452BE"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/ResourceHooks.h",
+      "bytes": 546,
+      "sha256": "5EA1ED1786C2B440EFE62CD2659D0BC80A5B1D851A5D37B1FB5E17A956EC3A68"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/run-resources.ps1",
+      "bytes": 10808,
+      "sha256": "0D5D43FD711A846450745FA096EF866E7DB965F00C59AD26BD7C5747CF3BAE75"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/verify_resources.py",
+      "bytes": 9774,
+      "sha256": "197A3CA3068EDF1AD1CF36D636DCB4723486760A4E7FAEF93E9C3AD9599AD3CC"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/authored-manifest.json",
+      "bytes": 27709,
+      "sha256": "699EBD8136ACD1C0C40A2844E209B4A9A85E6A72BBF7956CA91AA2CBCEA89795"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/authored-manifest.json",
+      "bytes": 27709,
+      "sha256": "699EBD8136ACD1C0C40A2844E209B4A9A85E6A72BBF7956CA91AA2CBCEA89795"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/execution-receipt.json",
+      "bytes": 6177,
+      "sha256": "263E5BDE56674A69E430F85FF3D7FF7B704C87BC3F9986DA4A9D61CE997FD279"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/freeze.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/frozen/cases.txt",
+      "bytes": 268,
+      "sha256": "9B974EA154A771A818DF82B6A8FFF2FBD21D95701E8BAE2BDBA7466BB0073FE5"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/frozen/freeze-receipt.json",
+      "bytes": 1394,
+      "sha256": "9013BCCD2579D68ECA99AE28A7623DEC53C7808CFD8F76CA670F5606C8B54CCB"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/frozen/geometry.json",
+      "bytes": 30204,
+      "sha256": "80F1273365AE12AAC6260F96EDAD3945D946E9469F7C1A2A11A84614CA40F5BB"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/frozen/profile.json",
+      "bytes": 1011,
+      "sha256": "DFC4F85E89E08DBEB9618B2E2D457ACE30E40157A3B5095A4B2178734CA40BAA"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/frozen/requests.csv",
+      "bytes": 87985,
+      "sha256": "A10BE21FCB74B8CF8547766FD9F249CA06DD9045F304280D353590A5B3E574A2"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/frozen/snapshots.csv",
+      "bytes": 31649,
+      "sha256": "6A89025F85F4CC03C8E75A0004268BB203BA90865F02D2663CFA11AF02E8FC40"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/edits.json",
+      "bytes": 8790,
+      "sha256": "D159BA85C14FA722622C4A427749ACFDCD7AEB313765B0085BD1973FF63CED08"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/ObservedDelay.h",
+      "bytes": 24385,
+      "sha256": "93BB451826DAF95A11B2C87B4FC486B61479DD1C6249AF53AA6E0FDCDA6920C5"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/ObservedDelay.h.patch",
+      "bytes": 1670,
+      "sha256": "F2067C9C979529316BEE59D1C8D89DCC2BB437AE13D384E32BCBB255D2B25038"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/ObservedFFT.h",
+      "bytes": 17497,
+      "sha256": "CB7B9DB0C025DCDC29315B8C34FCF2009E50444FF9078FAC2F91BAE734769403"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/ObservedFFT.h.patch",
+      "bytes": 1509,
+      "sha256": "FB1E6C9BAF87A92534B92EDCAA2A6C751A24484985EAC0105F14B3BCB9A4D5D0"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/ObservedSpectral.h",
+      "bytes": 17698,
+      "sha256": "6D4B8BD1DFDAECA16EDC60B1E541F7B25AF57855BF03281E2D23C6625DF54900"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/ObservedSpectral.h.patch",
+      "bytes": 3244,
+      "sha256": "152B06665EF9607CAF6DA704B03EAF92D3E184882D744EFDD60BFC3610709679"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/ObservedStretch.h",
+      "bytes": 22752,
+      "sha256": "8D3536CE298BD4C2B8E94CDC1C7A2279FA25C5B46BD02414A2DE7E5C90388462"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/ObservedStretch.h.patch",
+      "bytes": 1811,
+      "sha256": "F7412572CF4A704896868A19388A07964FB842019D97CB74466F3037B331088D"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/preparation-receipt.json",
+      "bytes": 1656,
+      "sha256": "93914BD28D40F62AFF4DF8F675CAF7E64367F7FE34AF7B3843EA3883C0C7580D"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/pristine.h",
+      "bytes": 22145,
+      "sha256": "E7BD5C4E35AE05DE34ADE0CFC0E0C2285598543BEDB91420AC863812AF2A035E"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/observer/ResourceHooks.h",
+      "bytes": 546,
+      "sha256": "5EA1ED1786C2B440EFE62CD2659D0BC80A5B1D851A5D37B1FB5E17A956EC3A68"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114538-5159869/prepare.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114845-5123607/authored-manifest.json",
+      "bytes": 27709,
+      "sha256": "699EBD8136ACD1C0C40A2844E209B4A9A85E6A72BBF7956CA91AA2CBCEA89795"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114845-5123607/candidate.log",
+      "bytes": 20,
+      "sha256": "DE3131DC8886C9EEF10BC8C889B0344CBAA4F84542FA165AA8D19F4630FDE218"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114845-5123607/compile.log",
+      "bytes": 63810,
+      "sha256": "DF2D118F87DE5C8CF26C63955E928C140EEE4085609F78583AC3A4A4D96418FD"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114845-5123607/compiler-environment.log",
+      "bytes": 263,
+      "sha256": "77172E41DB4031BF2E2271543DC9D497BE43335F87A7A88C9AA417B69F0C7249"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114845-5123607/execution-receipt.json",
+      "bytes": 2380,
+      "sha256": "0ABF5AA4BB6170600C932EC5FE4DAF707B0DEB896B55C28F932551E37AAD69FB"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114845-5123607/resource-probe.exe",
+      "bytes": 228864,
+      "sha256": "2C59C46D79F191055282A5303661DE580073189C0B704396B771C527B7B4B64C"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r2/runs/20261105-114845-5123607/resource-probe.obj",
+      "bytes": 1887682,
+      "sha256": "A926893998719648FCDD0C890D1E31F64A72FBA184210551F5C23B8A9E1D140F"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/random",
+      "bytes": 200380,
+      "sha256": "F05547B8C652511942154F249C5B63E44FEB45BF330DFAE192314988591E253B"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/typeinfo",
+      "bytes": 2112,
+      "sha256": "9FE7FD18AAF6EA9714837A862D40D3BBAEBDF57321A60F0951A0FAFD157E25D2"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/optional",
+      "bytes": 40581,
+      "sha256": "C597C685B29C361CF9689B1B7FD19B42155982DBEF5729E9A21C033F73C24A88"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r3/ResourceHooks.h",
+      "bytes": 546,
+      "sha256": "5EA1ED1786C2B440EFE62CD2659D0BC80A5B1D851A5D37B1FB5E17A956EC3A68"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r3/resource_probe.cpp",
+      "bytes": 17562,
+      "sha256": "EB3AD81BCE68E1E6F03F8136DA53612CBDAFE513DA27592F8B1E6240A148AE1D"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r3/freeze_resources.py",
+      "bytes": 15752,
+      "sha256": "D22388728B7283AA1339189BB235817932A3AC1540FAED93B6D8A868698BA822"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r3/prepare_observer.py",
+      "bytes": 7812,
+      "sha256": "EA3ABA6453CDF539F6A0203E676E31C8D761903A6C1061D48AD6B1C6707EFF2C"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r3/verify_resources.py",
+      "bytes": 11090,
+      "sha256": "AF18AD229943D034D5DFD08CE4176FACC59562F72A61D6BB60551F283E8C5D61"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r3/run-resources.ps1",
+      "bytes": 10808,
+      "sha256": "FA21F499AEBB07A5C6AED83E1039E362DCD98F97E9C18ABB57CDCB865D8DFE15"
+    },
+    {
+      "path": "build-ci/20261105-musical-resource-graph-prep/measurement-r3/README.md",
+      "bytes": 13637,
+      "sha256": "3396DAA4A94D19CD41AA69642E787EF24CC3571A0F3EE3C7856B774EE5A03ED1"
+    }
+  ]
+}

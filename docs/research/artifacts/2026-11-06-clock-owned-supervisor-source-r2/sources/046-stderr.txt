@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261106-clock-owned-supervisor-source-r2\check.py", line 217, in <module>
+    check('read-write-tickets-before-native-API','!admit_read(state.meter)' in main and io.index('if (!admit_write(state.meter))')<io.index('if (!WriteFile(state.logs'))
+                                                                                        ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: substring not found

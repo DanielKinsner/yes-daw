@@ -1,0 +1,14 @@
+{
+  "scope": "ARCHIVE_ELIGIBILITY_FAILURE_NOT_CANDIDATE_OR_TARGET_CHECK",
+  "command": "python -E build-ci/20261106-archive-fragment-source-packet-r1.py 20261106-clock-owned-supervisor-source-r2 2026-11-06-clock-owned-supervisor-source-r2 5806F35FE26CC1CB2A43B7E49AD6CEBEDE6C28EE7ABAC6BE52CDBE77292FDDB1",
+  "raw_exit": 1,
+  "helper_sha256": "F1AAE86FF8C9FA0A09EBD26FF157572ABB9BAD0D1FEE30B2C9ED25694E3A1D3A",
+  "failure": "AssertionError at line32 allowed textual extensions; packet contained generated __pycache__/regressions.cpython-313.pyc",
+  "unsupported_cache_bytes": 18650,
+  "output_directory_created": false,
+  "original_packet_files_observed": 80,
+  "original_source_pins_sha256": "5806F35FE26CC1CB2A43B7E49AD6CEBEDE6C28EE7ABAC6BE52CDBE77292FDDB1",
+  "correction": "Create a new lossless source index; preserve non-source cache bytes in compressed raw Base64 without treating or executing them as proof inputs",
+  "frozen_helper_or_candidate_modified": false,
+  "target_execution": false
+}

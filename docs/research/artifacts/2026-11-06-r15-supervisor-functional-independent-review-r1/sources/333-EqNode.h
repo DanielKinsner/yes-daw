@@ -1,0 +1,569 @@
+// YES DAW -- EqNode: six-band built-in EQ for H14 CP4.
+//
+// Stereo, in-place, TPT SVF per Appendix A1 of the H14 FX-suite plan. Parameter events carry
+// normalized values; the node maps them to real values, clamps finitely, and ramps real-valued
+// frequency/gain/Q changes from the event's absolute frame.
+
+#pragma once
+
+#include "engine/Node.h"
+#include "engine/ParamSpec.h"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <span>
+
+namespace yesdaw::engine {
+
+class EqNode final : public Node
+{
+public:
+    enum class BandType : std::uint8_t
+    {
+        Bell = 0,
+        LowShelf,
+        HighShelf,
+        Hpf,
+        Lpf,
+        Notch
+    };
+
+    static constexpr int kBands = 6;
+    static constexpr int kChannels = 2;
+    static constexpr ParameterId kParamsPerBand = 16;
+    static constexpr ParameterId kTypeParamOffset = 0;
+    static constexpr ParameterId kFrequencyParamOffset = 1;
+    static constexpr ParameterId kGainParamOffset = 2;
+    static constexpr ParameterId kQParamOffset = 3;
+    static constexpr double kDefaultFrequencyHz = 1000.0;
+    static constexpr double kDefaultGainDb = 0.0;
+    static constexpr double kDefaultQ = 1.0;
+
+    explicit EqNode (NodeId id = 0) noexcept : id_ (id) {}
+
+    NodeProperties properties() const noexcept override
+    {
+        return NodeProperties { /*producesAudio*/ true, /*producesEvents*/ false,
+                                kChannels, /*latencySamples*/ 0, id_, /*blockParallelSafe*/ false };
+    }
+
+    std::span<Node* const> directInputs() const noexcept override
+    {
+        return std::span<Node* const> (&input_, input_ != nullptr ? 1u : 0u);
+    }
+
+    void prepare (double sampleRate, int /*maxBlockSize*/) override
+    {
+        sampleRate_ = std::isfinite (sampleRate) && sampleRate > 0.0 ? sampleRate : 48000.0;
+        rampLengthSamples_ = std::max<std::int64_t> (1, static_cast<std::int64_t> (std::round (sampleRate_ * kRampSeconds)));
+        runningFrame_ = 0;
+        prepared_ = true;
+
+        for (int band = 0; band < kBands; ++band)
+            recomputeBand (band, 0);
+    }
+
+    void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
+    {
+        if (! prepared_)
+            return;
+
+        const int frames = args.numFrames > 0 ? args.numFrames : 0;
+        const int channels = std::min (args.audio.numChannels, kChannels);
+        if (channels <= 0 || args.audio.channels == nullptr)
+        {
+            advanceRunningFrame (args, frames);
+            return;
+        }
+
+        const std::int64_t blockStart = absoluteBlockStart (args);
+        std::size_t eventIndex = 0;
+        const std::span<const Event> events = args.events.events();
+        std::size_t automationIndex = 0;
+        const std::span<const Event> automationEvents =
+            args.automationEvents != nullptr ? args.automationEvents->events() : std::span<const Event> {};
+
+        for (int frame = 0; frame < frames; ++frame)
+        {
+            const std::uint32_t frameOffset = static_cast<std::uint32_t> (frame);
+            while ((eventIndex < events.size() && events[eventIndex].timeInBlock <= frameOffset)
+                   || (automationIndex < automationEvents.size() && automationEvents[automationIndex].timeInBlock <= frameOffset))
+            {
+                const bool useRegular = automationIndex >= automationEvents.size()
+                                     || (eventIndex < events.size()
+                                         && events[eventIndex].timeInBlock <= automationEvents[automationIndex].timeInBlock);
+                const Event& event = useRegular ? events[eventIndex++] : automationEvents[automationIndex++];
+                if (event.timeInBlock == frameOffset)
+                    consumeEvent (event, blockStart + frame);
+            }
+
+            const std::int64_t absoluteFrame = blockStart + frame;
+            refreshRampingBands (absoluteFrame);
+
+            for (int channel = 0; channel < channels; ++channel)
+            {
+                float* const channelData = args.audio.channels[channel];
+                if (channelData == nullptr)
+                    continue;
+
+                double sample = static_cast<double> (channelData[frame]);
+                for (int band = 0; band < kBands; ++band)
+                    sample = processBandSample (bands_[band], states_[band][channel], sample);
+
+                channelData[frame] = static_cast<float> (sample);
+            }
+        }
+
+        advanceRunningFrame (args, frames);
+    }
+
+    void reset() noexcept override
+    {
+        for (auto& channelStates : states_)
+            for (BandState& state : channelStates)
+                state = BandState {};
+
+        for (Band& band : bands_)
+        {
+            snapParam (band.frequency, band.frequency.target);
+            snapParam (band.gainDb, band.gainDb.target);
+            snapParam (band.q, band.q.target);
+            band.nextRecomputeFrame = 0;
+        }
+
+        for (int band = 0; band < kBands; ++band)
+            recomputeBand (band, runningFrame_);
+    }
+
+    void release() override {}
+
+    void setInput (Node* in) noexcept { input_ = in; }
+
+    // Steady-state response of the current coefficients, with all six bands in series.
+    // Editors use their own prepared node: this does not synchronize with a live audio node.
+    // Probe frequencies are bounded to DC..Nyquist; non-finite probes use DC.
+    [[nodiscard]] double magnitudeAtFrequency (double frequencyHz) const noexcept
+    {
+        const double frequency = std::clamp (std::isfinite (frequencyHz) ? frequencyHz : 0.0,
+                                             0.0, sampleRate_ * 0.5);
+        const double angle = kPi * frequency / sampleRate_;
+        const double sine = std::sin (angle);
+        const double cosine = std::cos (angle);
+        const double sineSquared = sine * sine;
+        const double cosineSquared = cosine * cosine;
+        const double sineCosine = sine * cosine;
+        double magnitude = 1.0;
+        for (const Band& band : bands_)
+        {
+            const Coefficients& c = band.coeffs;
+            if (c.m1 == 0.0 && c.m2 == 0.0)
+            {
+                magnitude *= std::fabs (c.m0);
+                continue;
+            }
+
+            // The TPT transfer is m0 + (m1*g*s + m2*g*g)/(s*s + k*g*s + g*g),
+            // s = j*tan(angle). Multiplying by a1*cos(angle)^2 evaluates it directly
+            // from the processing coefficients and stays bounded at Nyquist.
+            const double denominatorReal = c.a3 * cosineSquared - c.a1 * sineSquared;
+            const double denominatorImag = (1.0 - c.a1 - c.a3) * sineCosine;
+            const double numeratorReal = c.m0 * denominatorReal + c.m2 * c.a3 * cosineSquared;
+            const double numeratorImag = c.m0 * denominatorImag + c.m1 * c.a2 * sineCosine;
+            magnitude *= std::hypot (numeratorReal, numeratorImag)
+                       / std::hypot (denominatorReal, denominatorImag);
+        }
+        return magnitude;
+    }
+
+    void setBand (int band, BandType type, double frequencyHz, double gainDb, double q) noexcept
+    {
+        if (! isValidBand (band))
+            return;
+
+        Band& b = bands_[band];
+        b.type = type;
+        snapParam (b.frequency, clampFrequency (frequencyHz));
+        snapParam (b.gainDb, clampGainDb (gainDb));
+        snapParam (b.q, clampQ (q));
+        recomputeBand (band, runningFrame_);
+    }
+
+    void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept
+    {
+        int band = 0;
+        ParameterId offset = 0;
+        if (! decodeParameterId (parameterId, band, offset))
+            return;
+
+        Band& b = bands_[band];
+        if (offset == kTypeParamOffset)
+        {
+            b.type = typeFromNormalized (normalizedValue);
+            recomputeBand (band, runningFrame_);
+            return;
+        }
+
+        const double real = mapNormalizedParameter (parameterId, normalizedValue);
+        if (offset == kFrequencyParamOffset)
+            snapParam (b.frequency, clampFrequency (real));
+        else if (offset == kGainParamOffset)
+            snapParam (b.gainDb, clampGainDb (real));
+        else if (offset == kQParamOffset)
+            snapParam (b.q, clampQ (real));
+
+        recomputeBand (band, runningFrame_);
+    }
+
+    [[nodiscard]] static constexpr ParameterId parameterIdFor (int band, ParameterId offset) noexcept
+    {
+        return static_cast<ParameterId> (band) * kParamsPerBand + offset;
+    }
+
+    [[nodiscard]] static ParamSpec parameterSpec (ParameterId parameterId) noexcept
+    {
+        int band = 0;
+        ParameterId offset = 0;
+        if (! decodeParameterId (parameterId, band, offset))
+            return {};
+        (void) band;
+
+        // E15: the band type is a CHOICE param — UIs render its six filter shapes as a chooser.
+        static constexpr const char* kBandTypeNames[] = {
+            "Bell", "Low Shelf", "High Shelf", "HPF", "LPF", "Notch"
+        };
+
+        switch (offset)
+        {
+            case kTypeParamOffset:
+                return ParamSpec { parameterId, "eq.band.type", "", 0.0, 5.0, 0.0,
+                                   ParamMapping::Linear, ParamSmoothing::None, 6, kBandTypeNames };
+            case kFrequencyParamOffset:
+                return ParamSpec { parameterId, "eq.band.freq", "Hz", 20.0, 20000.0, kDefaultFrequencyHz,
+                                   ParamMapping::Log, ParamSmoothing::Linear5Ms };
+            case kGainParamOffset:
+                return ParamSpec { parameterId, "eq.band.gain", "dB", -24.0, 24.0, kDefaultGainDb,
+                                   ParamMapping::Db, ParamSmoothing::Linear5Ms };
+            case kQParamOffset:
+                return ParamSpec { parameterId, "eq.band.q", "", 0.1, 18.0, kDefaultQ,
+                                   ParamMapping::Log, ParamSmoothing::Linear5Ms };
+            default:
+                return {};
+        }
+    }
+
+    [[nodiscard]] static double mapNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept
+    {
+        int band = 0;
+        ParameterId offset = 0;
+        if (! decodeParameterId (parameterId, band, offset))
+            return 0.0;
+        (void) band;
+
+        if (offset == kTypeParamOffset)
+            return static_cast<double> (typeIndexFromNormalized (normalizedValue));
+
+        return mapNormalized (parameterSpec (parameterId), normalizedValue);
+    }
+
+private:
+    struct Coefficients
+    {
+        double a1 = 1.0;
+        double a2 = 0.0;
+        double a3 = 0.0;
+        double m0 = 1.0;
+        double m1 = 0.0;
+        double m2 = 0.0;
+    };
+
+    struct BandState
+    {
+        double ic1eq = 0.0;
+        double ic2eq = 0.0;
+    };
+
+    struct RampedParam
+    {
+        double current = 0.0;
+        double start = 0.0;
+        double target = 0.0;
+        std::int64_t eventFrame = 0;
+        std::int64_t duration = 1;
+        bool active = false;
+    };
+
+    struct Band
+    {
+        BandType type = BandType::Bell;
+        RampedParam frequency { kDefaultFrequencyHz, kDefaultFrequencyHz, kDefaultFrequencyHz, 0, 1, false };
+        RampedParam gainDb { kDefaultGainDb, kDefaultGainDb, kDefaultGainDb, 0, 1, false };
+        RampedParam q { kDefaultQ, kDefaultQ, kDefaultQ, 0, 1, false };
+        Coefficients coeffs;
+        std::int64_t nextRecomputeFrame = 0;
+    };
+
+    static constexpr double kRampSeconds = 0.005;
+    static constexpr double kPi = 3.141592653589793238462643383279502884;
+    static constexpr int kCoefficientCadenceSamples = 16;
+
+    [[nodiscard]] static constexpr bool isValidBand (int band) noexcept
+    {
+        return band >= 0 && band < kBands;
+    }
+
+    [[nodiscard]] static bool decodeParameterId (ParameterId parameterId, int& band, ParameterId& offset) noexcept
+    {
+        band = static_cast<int> (parameterId / kParamsPerBand);
+        offset = parameterId % kParamsPerBand;
+        return isValidBand (band)
+               && (offset == kTypeParamOffset || offset == kFrequencyParamOffset
+                   || offset == kGainParamOffset || offset == kQParamOffset);
+    }
+
+    [[nodiscard]] static int typeIndexFromNormalized (double normalizedValue) noexcept
+    {
+        if (! std::isfinite (normalizedValue))
+            return 0;
+
+        const double clamped = std::clamp (normalizedValue, 0.0, 1.0);
+        return static_cast<int> (std::clamp (std::floor (clamped * 5.0 + 0.5), 0.0, 5.0));
+    }
+
+    [[nodiscard]] static BandType typeFromNormalized (double normalizedValue) noexcept
+    {
+        return static_cast<BandType> (typeIndexFromNormalized (normalizedValue));
+    }
+
+    [[nodiscard]] static double finiteOrDefault (double value, double fallback) noexcept
+    {
+        return std::isfinite (value) ? value : fallback;
+    }
+
+    [[nodiscard]] double clampFrequency (double frequencyHz) const noexcept
+    {
+        const double nyquistSafe = std::min (20000.0, 0.49 * sampleRate_);
+        const double maxHz = nyquistSafe > 20.0 ? nyquistSafe : 20.0;
+        return std::clamp (finiteOrDefault (frequencyHz, kDefaultFrequencyHz), 20.0, maxHz);
+    }
+
+    [[nodiscard]] static double clampGainDb (double gainDb) noexcept
+    {
+        return std::clamp (finiteOrDefault (gainDb, kDefaultGainDb), -24.0, 24.0);
+    }
+
+    [[nodiscard]] static double clampQ (double q) noexcept
+    {
+        return std::clamp (finiteOrDefault (q, kDefaultQ), 0.1, 18.0);
+    }
+
+    static void snapParam (RampedParam& param, double value) noexcept
+    {
+        param.current = value;
+        param.start = value;
+        param.target = value;
+        param.duration = 1;
+        param.active = false;
+    }
+
+    [[nodiscard]] static double valueAtFrame (const RampedParam& param, std::int64_t frame) noexcept
+    {
+        if (! param.active)
+            return param.current;
+
+        if (frame <= param.eventFrame)
+            return param.start;
+
+        const std::int64_t elapsed = frame - param.eventFrame;
+        if (elapsed >= param.duration)
+            return param.target;
+
+        const double t = static_cast<double> (elapsed) / static_cast<double> (param.duration);
+        return param.start + (param.target - param.start) * t;
+    }
+
+    void startRamp (RampedParam& param, double target, std::int64_t eventFrame) noexcept
+    {
+        const std::int64_t previousFrame = eventFrame > 0 ? eventFrame - 1 : eventFrame;
+        param.current = valueAtFrame (param, previousFrame);
+        param.start = param.current;
+        param.target = target;
+        param.eventFrame = eventFrame;
+        param.duration = rampLengthSamples_;
+        param.active = param.target != param.start;
+    }
+
+    [[nodiscard]] static bool paramIsActiveAt (const RampedParam& param, std::int64_t frame) noexcept
+    {
+        return param.active && frame < param.eventFrame + param.duration;
+    }
+
+    [[nodiscard]] static bool bandHasActiveRampAt (const Band& band, std::int64_t frame) noexcept
+    {
+        return paramIsActiveAt (band.frequency, frame)
+               || paramIsActiveAt (band.gainDb, frame)
+               || paramIsActiveAt (band.q, frame);
+    }
+
+    void consumeEvent (const Event& event, std::int64_t absoluteFrame) noexcept YESDAW_RT_HOT
+    {
+        if (event.type != EventType::ParameterChange
+            || event.payload.parameter.targetNode != id_)
+            return;
+
+        int band = 0;
+        ParameterId offset = 0;
+        if (! decodeParameterId (event.payload.parameter.parameterId, band, offset))
+            return;
+
+        Band& b = bands_[band];
+        if (offset == kTypeParamOffset)
+        {
+            b.type = typeFromNormalized (event.payload.parameter.normalizedValue);
+            b.nextRecomputeFrame = absoluteFrame;
+            recomputeBand (band, absoluteFrame);
+            return;
+        }
+
+        const double real = mapNormalizedParameter (event.payload.parameter.parameterId,
+                                                    event.payload.parameter.normalizedValue);
+        if (offset == kFrequencyParamOffset)
+            startRamp (b.frequency, clampFrequency (real), absoluteFrame);
+        else if (offset == kGainParamOffset)
+            startRamp (b.gainDb, clampGainDb (real), absoluteFrame);
+        else if (offset == kQParamOffset)
+            startRamp (b.q, clampQ (real), absoluteFrame);
+
+        b.nextRecomputeFrame = absoluteFrame;
+    }
+
+    void refreshRampingBands (std::int64_t absoluteFrame) noexcept YESDAW_RT_HOT
+    {
+        for (int band = 0; band < kBands; ++band)
+        {
+            Band& b = bands_[band];
+            const bool anyActive = bandHasActiveRampAt (b, absoluteFrame);
+            const bool anyCompleting = (b.frequency.active && absoluteFrame >= b.frequency.eventFrame + b.frequency.duration)
+                                    || (b.gainDb.active && absoluteFrame >= b.gainDb.eventFrame + b.gainDb.duration)
+                                    || (b.q.active && absoluteFrame >= b.q.eventFrame + b.q.duration);
+            if (! anyActive && ! anyCompleting)
+                continue;
+
+            if (absoluteFrame >= b.nextRecomputeFrame || anyCompleting)
+            {
+                recomputeBand (band, absoluteFrame);
+                b.nextRecomputeFrame = absoluteFrame + kCoefficientCadenceSamples;
+            }
+        }
+    }
+
+    void finishCompletedRamp (RampedParam& param, std::int64_t frame) noexcept
+    {
+        param.current = valueAtFrame (param, frame);
+        if (param.active && frame >= param.eventFrame + param.duration)
+            snapParam (param, param.target);
+    }
+
+    void recomputeBand (int bandIndex, std::int64_t frame) noexcept YESDAW_RT_HOT
+    {
+        Band& b = bands_[bandIndex];
+        finishCompletedRamp (b.frequency, frame);
+        finishCompletedRamp (b.gainDb, frame);
+        finishCompletedRamp (b.q, frame);
+
+        const double f = clampFrequency (b.frequency.current);
+        const double q = clampQ (b.q.current);
+        const double db = clampGainDb (b.gainDb.current);
+        const double a = std::pow (10.0, db / 40.0);
+        const double a2 = a * a;
+
+        double g = std::tan (kPi * f / sampleRate_);
+        double k = 1.0 / q;
+        double m0 = 1.0;
+        double m1 = 0.0;
+        double m2 = 0.0;
+
+        switch (b.type)
+        {
+            case BandType::Bell:
+                k = 1.0 / (q * a);
+                m0 = 1.0;
+                m1 = k * (a2 - 1.0);
+                m2 = 0.0;
+                break;
+
+            case BandType::LowShelf:
+                g /= std::sqrt (a);
+                k = 1.0 / q;
+                m0 = 1.0;
+                m1 = k * (a - 1.0);
+                m2 = a2 - 1.0;
+                break;
+
+            case BandType::HighShelf:
+                g *= std::sqrt (a);
+                k = 1.0 / q;
+                m0 = a2;
+                m1 = k * (1.0 - a) * a;
+                m2 = 1.0 - a2;
+                break;
+
+            case BandType::Hpf:
+                k = 1.0 / q;
+                m0 = 1.0;
+                m1 = -k;
+                m2 = -1.0;
+                break;
+
+            case BandType::Lpf:
+                k = 1.0 / q;
+                m0 = 0.0;
+                m1 = 0.0;
+                m2 = 1.0;
+                break;
+
+            case BandType::Notch:
+                k = 1.0 / q;
+                m0 = 1.0;
+                m1 = -k;
+                m2 = 0.0;
+                break;
+        }
+
+        const double aa1 = 1.0 / (1.0 + g * (g + k));
+        b.coeffs = Coefficients { aa1, g * aa1, g * g * aa1, m0, m1, m2 };
+    }
+
+    [[nodiscard]] static double processBandSample (const Band& band, BandState& state, double v0) noexcept YESDAW_RT_HOT
+    {
+        const Coefficients& c = band.coeffs;
+        const double v3 = v0 - state.ic2eq;
+        const double v1 = c.a1 * state.ic1eq + c.a2 * v3;
+        const double v2 = state.ic2eq + c.a2 * state.ic1eq + c.a3 * v3;
+        state.ic1eq = 2.0 * v1 - state.ic1eq;
+        state.ic2eq = 2.0 * v2 - state.ic2eq;
+        return c.m0 * v0 + c.m1 * v1 + c.m2 * v2;
+    }
+
+    [[nodiscard]] std::int64_t absoluteBlockStart (const ProcessArgs& args) const noexcept
+    {
+        return args.transport.hasTimelineFrame ? args.transport.timelineFrame : runningFrame_;
+    }
+
+    void advanceRunningFrame (const ProcessArgs& args, int frames) noexcept
+    {
+        runningFrame_ = absoluteBlockStart (args) + frames;
+    }
+
+    NodeId id_;
+    Node* input_ = nullptr;
+    double sampleRate_ = 48000.0;
+    std::int64_t rampLengthSamples_ = 240;
+    std::int64_t runningFrame_ = 0;
+    bool prepared_ = false;
+    std::array<Band, kBands> bands_;
+    std::array<std::array<BandState, kChannels>, kBands> states_;
+};
+
+} // namespace yesdaw::engine

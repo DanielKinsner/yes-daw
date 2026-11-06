@@ -55,7 +55,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    passed all ten jobs. Later evidence/docs commits use the separate docs-only CI path, with runtime jobs skipped.
    Research runner R13's bootstrap receiver is wrong and its operation-budget proposal remains REVISE.
    R14 corrects that receiver, but its whole functional source review found eight failure-path issues.
-   The complete R15 correction is now frozen after1,764 own source checks and under a fresh whole critic.
+   The complete R15 correction is frozen after1,764 own checks; its fresh whole critic returned REVISE
+   after3,374 checks for a pre-resume budget-cut gap and stale descriptive policy counts. R16 is being authored.
    No new scalar price is accepted.
    All Clock execution guards remain false; no supervisor/Clock run has started.
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
@@ -63,12 +64,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    cells; this supplies selected object-size evidence, without physical-frame, whole-fit or Clock-run credit.
    A frozen native-object proposal lists93 named scopes/16 closures; its777 own checks preserve explicit
    unknown SDK/context/layout terms. The measured405,128-byte large-object component is not whole fit.
+   The selected C++ helper/context R1 also returned REVISE for three source-incidence gaps; R2 is being authored.
    ADR-0090's complete supervisor protocol passed115 independent checks; its v2 diagnostic delta is Accepted.
    The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
    is REVISE, with no runtime credit. A different fresh critic returned R13 scalarR2 REVISE after3,770
    source/data checks: four source-sponsorship omissions remain. A complete R3 successor is being authored;
    the5,577,409,900 R2 proposal is unaccepted, without a too-small/NOFIT conclusion.
-   Next: finish the fresh whole R15 review, the R13 numeric review, and resource/native/binding proof
+   Next: finish the complete R16 correction/fresh review, R13 scalarR3 and SDK/contextR2 reviews, then resource/native/binding proof
    before any Clock attempt. Detailed evidence and earlier
    source revisions remain in the dated entries below; Dan is not a tester or approval gate.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
@@ -91,6 +93,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Hold target execution after a startup budget cut
+
+- The [whole R15 review](docs/research/artifacts/2026-11-06-r15-supervisor-functional-independent-review-r1/sources/158-review.md) is REVISE. It supports the eight earlier source corrections, but a worker can cut the budget before resume while tail-mode spend still permits target resume. Current descriptive failure-policy counts are also stale. These are source findings, with no observed runtime failure.
+- The frozen [R15 proposal](docs/research/artifacts/2026-11-06-clock-owned-supervisor-source-r2/sources/086-proposal.md) passed1,764 own checks; the different whole critic passed3,374 source/data checks,1240 input pins and33 namespaces. The [receipt](docs/research/2026-11-06-r15-supervisor-whole-review.json) preserves both complete packets, failed attempts and staged raw-byte roundtrips; no target parser/compiler/helper/fixture/Clock ran.
+- One complete unrun R16 is authorized: linearized prefix-only worker/setup/resume admission plus accurate current metadata, preserving already admitted completion and mandatory tail. Prospective catalogue75, normal pre-bundle73/final74, root85 and cleanup15 remain distinct. R13 scalarR3 and SDK/contextR2 corrections continue independently; no accepted price/fit/native/binding/Data/GO follows.
+- Preceding13f7ef63 passed docs-only CI42237857664, with runtime/package/sanitizer jobs skipped. The generated non-source Python cache and73 opaque historical inputs were preserved as raw compressed bytes, never executed or credited as measurements. Protected test/instructions and app source remain unchanged.
 
 ## 2026-11-06 - Fresh whole scalar review; correct four sponsorship gaps
 

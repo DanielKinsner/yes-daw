@@ -1,0 +1,65 @@
+{
+  "source_only": true,
+  "runtime_observation": false,
+  "defined_Data_or_prices": false,
+  "steps": [
+    {
+      "step": 1,
+      "event": "established target remains suspended",
+      "tail": false,
+      "may_have_run": false
+    },
+    {
+      "step": 2,
+      "event": "worker0 started event observed",
+      "tail": false,
+      "may_have_run": false
+    },
+    {
+      "step": 3,
+      "event": "first WorkerRead ticket refuses; admit_read freezes prefix",
+      "tail": true,
+      "may_have_run": false
+    },
+    {
+      "step": 4,
+      "event": "later WorkerStart spend sees tail and returns true; start_workers returns true",
+      "tail": true,
+      "may_have_run": false
+    },
+    {
+      "step": 5,
+      "event": "supervisor_main sets TargetMayHaveRun and attempts ResumeThread",
+      "tail": true,
+      "may_have_run": true
+    },
+    {
+      "step": 6,
+      "event": "coordinator immediately notices tail; cleanup follows",
+      "tail": true,
+      "may_have_run": true
+    }
+  ],
+  "source_spans": {
+    "sup_core.cpp": [
+      [
+        9,
+        34
+      ],
+      [
+        43,
+        60
+      ]
+    ],
+    "sup_main.cpp": [
+      [
+        209,
+        233
+      ],
+      [
+        435,
+        450
+      ]
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "finding": "Update exact source matcher from admit_write(state.meter) to accepted R15 State wrapper that immediately preserves meter refusal. No implementation change.",
+  "old_input": "inputs/build-ci/20261106-clock-owned-supervisor-source-r2/check.py"
+}

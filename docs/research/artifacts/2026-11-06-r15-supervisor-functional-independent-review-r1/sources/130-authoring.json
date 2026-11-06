@@ -1,0 +1,101 @@
+{
+  "candidate": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1",
+  "sources": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "lines": 289,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/source-costs.h",
+      "bytes": 3725,
+      "lines": 72,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/run-clock.ps1",
+      "bytes": 131334,
+      "lines": 1279,
+      "sha256": "6B1016841798BA2B4D6F7CEAEFC8F663F3A5FE0D7CEC3CEC34355EC71B527A38"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/source-manifest.json",
+      "bytes": 516072,
+      "lines": 13053,
+      "sha256": "BDC2BE017BDF269691D727AE10A489FD6C1EFBB82F2B1C71DB392B1728D1B86F"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/README.md",
+      "bytes": 5003,
+      "lines": 72,
+      "sha256": "180849DFAF0F4A4B74D753AE6402CCEBA86C485FECA98B699042C0C7E9F3C447"
+    }
+  ],
+  "native": [
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup.h",
+      "bytes": 11641,
+      "lines": 325,
+      "sha256": "2FAC2C57C731C7C997D67627DCB7AE15ED6995B912B433051213514018A94ECC"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_codec.cpp",
+      "bytes": 28790,
+      "lines": 479,
+      "sha256": "84C84E6E1B47883AAE58C9C68859FE980B420C58AECF7E29300DDF43840FEC53"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_core.cpp",
+      "bytes": 11208,
+      "lines": 263,
+      "sha256": "9EF4468E9B43E43FEBF8B44D602FDBD305B9F94ED04643A551496C8D4BB69FC1"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_io.cpp",
+      "bytes": 25564,
+      "lines": 429,
+      "sha256": "AAFA64282A3E1C0EBE3AD10BD47FCA0FF43EEECA5DD353FD50D1A7D28ABCEA89"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_main.cpp",
+      "bytes": 25980,
+      "lines": 467,
+      "sha256": "C6848C0F94892C4EFF6461C9DB6641E737DD51E25F5369F18C9937953845A161"
+    }
+  ],
+  "bootstrap_nodes": 16561,
+  "depth_max_string": [
+    4,
+    435
+  ],
+  "profile": {
+    "input_count": 1240,
+    "input_bytes": 461790563,
+    "input_hash_chunks": 7886,
+    "include_input_count": 1241,
+    "directory_namespaces_count": 33,
+    "directory_namespace_entries": 1102,
+    "directory_namespace_files": 1055,
+    "complete_current_inputs": 1246,
+    "maximum_complete_fence_identities": 1321,
+    "declared_success_run_files": 74,
+    "declared_failure_extra_files": 1,
+    "failure_inventory_max_files": 85,
+    "root_walk_entries_max": 85,
+    "root_walk_depth_max": 64,
+    "normal_fence_calls": 8,
+    "prepaid_fence_calls_upper": 9,
+    "own5_max_bytes": 1048576,
+    "R4_244_individual_paths_preserved": true,
+    "R4_256_firststage_immutable": true,
+    "R1_R2_R3_R4_source_seals_preserved": true,
+    "profile_source": "PROVISIONAL_R15_SOURCE_UNION_ONLY_NATIVE_SDK_BINARY_AND_FINAL_CANONICAL_UNION_UNBOUND",
+    "future_constinit_data_identity_included": false,
+    "future_literal_binding_profile_state": "PENDING_CANONICAL_FUNCTIONAL_SOURCE_CONTRACT_CENSUS_RESOURCE_PROOF_DATA_UNION_AND_COMPLETE_RECOMPOSITION",
+    "R14_pending_native_sdk_and_binary_inputs": true
+  },
+  "no_target_execution": true,
+  "all_prices_native_ABI_profile_resources_binding_GO": "UNBOUND_HOLD",
+  "whole_own_check": "EXTERNAL_CHECKS_AND_FREEZE_REQUIRED"
+}

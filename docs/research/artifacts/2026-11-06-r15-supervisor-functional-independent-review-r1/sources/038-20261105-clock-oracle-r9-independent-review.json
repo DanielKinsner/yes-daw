@@ -1,0 +1,37 @@
+{
+  "schema": "CLOCK_ORACLE_R9_WHOLE_FUNCTIONAL_REVIEW",
+  "verdict": "ACCEPT_FUNCTIONAL_SOURCE_R9_PENDING_FULL_NUMERIC_CAPACITY_LIFETIME",
+  "reviewer": "/root/clock_runner_census_independent_review",
+  "seals": {
+    "run-clock.ps1": "34B85E7CA230DA34A86EDBF5250BC8D460106C9B3F10ADF7D40541B9A604BBE5",
+    "README.md": "55F2AC89F86E274B50C561B15DC4D00D21EDE12D81D3CAADB2AAC6DB8F332AD2",
+    "source-manifest.json": "777F41A33837BFA8F1E2517A062D0C144CBDCCE93B59CA08FBAF54718E72F75A",
+    "clock_stage.cpp": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+    "source-costs.h": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+  },
+  "exact_PS_delta": "Onlybootstrap15139to15335at677;allfunctionalbodiesandCPP/headerexactR8",
+  "independently_rehashed_inputs": 1186,
+  "own_files": 4,
+  "closed_namespaces": 27,
+  "namespace_entries": 1058,
+  "namespace_files": 1012,
+  "reparse_entries": 0,
+  "bootstrap": {
+    "values": 9513,
+    "keys": 5822,
+    "sum": 15335,
+    "max_UTF16_string": 435,
+    "depth": 4,
+    "floats": 0
+  },
+  "own5bytes": 618256,
+  "retention_arithmetic_only": 779799988,
+  "unsupported_reader_upper_withdrawn": true,
+  "counterexamples_correctly_recorded": true,
+  "all4SDKsites_raw_admission": true,
+  "no_remaining_functional_or_identity_blocker": true,
+  "target_parser_helper_compiler_program_or_test_execution": false,
+  "numeric_scalar_census_or_payload_upper_or_32MiB_fit": false,
+  "ABI_RSS_or_completeU_or_limit_or_binding_or_GO": false,
+  "all_execution_guards_false": true
+}

@@ -1,0 +1,437 @@
+{
+  "schema": 1,
+  "stage": "SOURCE_ONLY_PROPOSAL_NO_CODE_OR_EXECUTION_GO",
+  "root_head_snapshot": "2b6d46e9fd60e0ca3cece1686d2d2edd8b5b8017",
+  "writes_only": [
+    "packet.md",
+    "proof-plan.json",
+    "source-pins.json"
+  ],
+  "new_code_written": false,
+  "new_execution": "UNRUN",
+  "recommended_option": "A: twelve-file private candidate with literal prerequisite/readiness HOLD",
+  "calibrated_core": {
+    "manifest": "F48B3B5683B881C9DC6D7112E65CDE42250FF0977A4DCF0DCA3D2E0634946B67",
+    "core_fitter": "761C74E7D83800E08000CAD4E7542A0BC063CBE751C68D31F7CF361FF8E7BE51",
+    "clock": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64",
+    "freeze_bundle": "F5F981826BBA93B49D1E103D60916A60AC81959F7721A4C7FC508B527966E071",
+    "actual_execution": "2B6FC1631999AA948169FFEC89E29091A7BD563F405E54A98F3A5650AE2BFF2D",
+    "rows": 1125,
+    "expected_refusals": 45,
+    "clock_rows": 690,
+    "whole_cases": 6,
+    "whole_windows": 3564,
+    "maximum_whole_source_reservation": 16712563090,
+    "maximum_declared_whole_payload": 53081104,
+    "new_driver_integration_credit": "UNRUN_REQUIRED",
+    "source_error_2powminus20": "CONDITIONAL_UNMEASURED",
+    "controls_logging_limit": "Reached by fail-closed frozen code and exit0; individual errors, grid/finalist counts not logged; seventh vector polarity reversal, not separately logged destructive two-tone cancellation"
+  },
+  "matrix": {
+    "rates": [
+      44100,
+      48000,
+      96000
+    ],
+    "PPQ": 15360,
+    "S": "3*PPQ+1",
+    "L": "10*PPQ",
+    "N": "10*R",
+    "source_offset": 7,
+    "original_frames": "N+14",
+    "prefix_bpm": 90,
+    "constant_ratios": [
+      0.5,
+      0.75,
+      1,
+      1.5,
+      2
+    ],
+    "constant_bpm": "60/ratio",
+    "ramps": [
+      [
+        120,
+        30
+      ],
+      [
+        30,
+        120
+      ]
+    ],
+    "jumps": [
+      [
+        120,
+        30
+      ],
+      [
+        30,
+        120
+      ]
+    ],
+    "jump_tick": "S+4*PPQ+1",
+    "source_jump": "4*R+R/PPQ",
+    "base_tones": 135,
+    "base_zero": 54,
+    "base_bursts": 54,
+    "base_total": 243,
+    "additional_signed_zero": 1,
+    "additional_reverse": 2,
+    "additional_nontrivial_bake": 48,
+    "non_mutant_requested_total": 294,
+    "reverse_selection": "48k,120->30 jump,p=2R,mono/equivalent",
+    "bake_selection": "48k,120->30 ramp,220Hz,mono/equivalent; 4shapes*3curves*2nontrivial length pairs*2layouts",
+    "bake_no_fade_references": "two already required base-tone rows; do not duplicate behavior-identical zero-fade dimensions",
+    "actual_numeric_a_inventory": "UNRUN_MUST_FREEZE",
+    "planner_refusal_policy": "all rows retained; actual precise ChordBoundUnproved or other refusal is NOT_REACHED waveform, never PASS"
+  },
+  "physical_layouts": [
+    [
+      1,
+      1,
+      [
+        0
+      ]
+    ],
+    [
+      2,
+      1,
+      [
+        0,
+        0
+      ]
+    ],
+    [
+      2,
+      2,
+      [
+        0,
+        1
+      ]
+    ]
+  ],
+  "gates": {
+    "clock_bracket_frames": 0.0009765625,
+    "clock_inverse_forward_frames": 0.0009765625,
+    "actual_center_frames": 2,
+    "pitch_cents": 5,
+    "raw_RMS_dB": 1,
+    "calibration_cents": 0.25,
+    "calibration_dB": 0.01,
+    "peak": "1.25*actualInputPeak+1e-6",
+    "transient_seconds": 0.005,
+    "burst_region": "inclusive[e-2W,e+2W]",
+    "fractional_bake": "2e-6*max(1,abs(unfadedSample))",
+    "native_envelope": "min(in,out),never product; gain live",
+    "exact_signal": "all finite; exact numeric zeros/equivalent pairs; signed zeros diagnostic",
+    "tone_edge": "[max(W,Q(W)),min(D-W,Q(N-W))]",
+    "tone_grid": "250ms M=R/4 every50ms R/20; no ramp/jump interior exclusions",
+    "seed": "global nonDC; +/-2R/M mask;4x remaining power",
+    "trial_grid": "all <=0.02Hz +/-2R/K including endpoints; direct fixed-beta RSS all unresolved finalists"
+  },
+  "checker_caps": {
+    "complete_case_work": 17179869184,
+    "scratch": 67108864,
+    "one_unreset_budget_across_all_logical_channels_windows_and_auxiliary_work": true,
+    "reset_per_window": false
+  },
+  "checker_source_proposal": {
+    "status": "HOLD_ACTUAL_NEW_DRIVER_CALL_GRAPH_STORAGE_AND_CONTROLS_REVIEW_REQUIRED",
+    "setup": 400000000,
+    "seed_per_window": 10500000,
+    "rank_per_window": 9000000,
+    "per_actual_grid": 2000000,
+    "direct_per_finalist": "40*M+128",
+    "direct_bookkeeping_per_window": 4096,
+    "case_metadata": 1048576,
+    "planarization_or_retained_conservative_input_allowance": "26*logicalChannels*D",
+    "additional_auxiliary_envelope": 128000000,
+    "auxiliary_is_proved": false,
+    "must_include": [
+      "bin discovery",
+      "source/PCM/metadata reads",
+      "identity comparisons",
+      "complete cryptographic hash work or explicit qualified contract",
+      "serialization",
+      "clock/reference traversal",
+      "whole output scans",
+      "control/helper/library operations",
+      "capacity/growth/retirement overlap"
+    ],
+    "actual_grids_or_finalists_assumed": false,
+    "after_actual_counts": "prepay all caches/ranks and TOTAL finalists; any insufficient cap refuses entire case before direct loops"
+  },
+  "checker_dimension_example": {
+    "rate": 96000,
+    "logical_channels": 2,
+    "frames": 1920000,
+    "windows": 792,
+    "actual_grids_hypothesis": 8,
+    "finalists_hypothesis": 792,
+    "plus_proposed_aux": 16852553984,
+    "remaining_units": 327315200,
+    "r5_payload": 53089040,
+    "extra_metadata": 1048576,
+    "proposed_payload": 54137616,
+    "remaining_scratch": 12971248,
+    "actual_vendor_or_driver_measurement": false,
+    "arbitrary_seed_grid_guarantee": false,
+    "r5_phase_and_input_subtotal_excluding_discovery": 16724553984
+  },
+  "production_caps": {
+    "calls": 1048576,
+    "complete_preparation_work": 268435456,
+    "new_payload_clip": 536870912,
+    "pending_batch": 1073741824,
+    "reusable_cache": 1073741824,
+    "complete_resource_admission": "HOLD_UNPROVED",
+    "checker_budget_donation": false,
+    "Plan_materializer_subtotals_are_complete": false
+  },
+  "prerequisite_holds": [
+    "fresh actual twelve-file source review",
+    "exact independent same-runtime Numeric A dense references and actual output review",
+    "checked real production call manifest",
+    "actual new driver analytic self-check",
+    "complete new driver source/scratch cap closure",
+    "matched varying physical state/context/quiet detector certificate; Q=2i evidence alone insufficient",
+    "complete production allocation/work/ownership graph",
+    "physical3Frame intervention seam meaning",
+    "all own-gate controls reached"
+  ],
+  "physical_controls": [
+    {
+      "id": "pitch6cent",
+      "actual_action": "actual private transpose2^(6/1200)",
+      "own_gate": "each reached window<=5cent",
+      "baseline_required": "tone baseline",
+      "status": "UNRUN"
+    },
+    {
+      "id": "level1p1dB",
+      "actual_action": "actual PCM*10^(1.1/20)",
+      "own_gate": "raw RMS<=1dB, not peak-only",
+      "baseline_required": "tone baseline",
+      "status": "UNRUN"
+    },
+    {
+      "id": "double_fade",
+      "actual_action": "actual physical native envelope applied twice",
+      "own_gate": "once-only independent sample error<=2e-6*max(1,abs(unfaded))",
+      "baseline_required": "nontrivial bake witness",
+      "status": "UNRUN"
+    },
+    {
+      "id": "reverse_after",
+      "actual_action": "actual forward stretch then reverse retained PCM",
+      "own_gate": "asymmetric-jump burst centroid<=5ms",
+      "baseline_required": "jump burst baseline",
+      "status": "UNRUN"
+    },
+    {
+      "id": "latency_plus1",
+      "actual_action": "actual retained read OL+j+1",
+      "own_gate": "exact physical extraction/read index",
+      "baseline_required": "baseline with changed samples",
+      "status": "UNRUN"
+    },
+    {
+      "id": "omit_OL",
+      "actual_action": "actual retained read j",
+      "own_gate": "exact extraction and separately reached centroid",
+      "baseline_required": "burst baseline",
+      "status": "UNRUN"
+    },
+    {
+      "id": "center3Frame",
+      "actual_action": "actual extraction-to-Project origin shifted sign(d)*3; + when d>=0",
+      "own_gate": "actual contributing center<=2Frame and real changed sample locations",
+      "baseline_required": "interior center witness",
+      "status": "UNRUN"
+    },
+    {
+      "id": "skip_late_finite",
+      "actual_action": "actual worker path omits a late finite validation",
+      "own_gate": "unchanged full source finite gate",
+      "baseline_required": "late nonfinite after early distinct mismatch",
+      "status": "UNRUN"
+    },
+    {
+      "id": "merge_last_ulp",
+      "actual_action": "actual worker path merges final-right oneULP mismatch",
+      "own_gate": "unchanged exact complete equivalence/provenance/layout",
+      "baseline_required": "legal distinct request",
+      "status": "UNRUN"
+    },
+    {
+      "id": "omit_logical_stereo",
+      "actual_action": "actual output/consumer uses mono width/widening",
+      "own_gate": "logical2D geometry and unity C2 read",
+      "baseline_required": "equivalent stereo baseline",
+      "status": "UNRUN"
+    },
+    {
+      "id": "swap_distinct",
+      "actual_action": "actual materialization channel projection swapped",
+      "own_gate": "independent distinct channel provenance/order",
+      "baseline_required": "distinct220/997 baseline",
+      "status": "UNRUN"
+    },
+    {
+      "id": "damage_materialized_sample",
+      "actual_action": "actual private output sample corrupted",
+      "own_gate": "unchanged full output/independent projection integrity",
+      "baseline_required": "reached materialized owner",
+      "status": "UNRUN"
+    },
+    {
+      "id": "old_C2_equivalent",
+      "actual_action": "actual persistent C2 path on equivalent original input",
+      "own_gate": "unchanged numerical identical-stereo gate",
+      "baseline_required": "quarantined old C2 baseline",
+      "status": "UNRUN"
+    }
+  ],
+  "stages": [
+    {
+      "id": 1,
+      "name": "DefinitionFreeze",
+      "execution": "Python independent definitions/source bits/analytic refs only",
+      "root_actual_output_review_required": true
+    },
+    {
+      "id": 2,
+      "name": "OracleFreeze",
+      "execution": "standalone C++ independent clock, no engine/planner/vendor; freeze Q/eligibility/inverse/centers",
+      "root_actual_output_review_required": true
+    },
+    {
+      "id": 3,
+      "name": "PlanPreflight",
+      "execution": "production Clock/Window/CutPlan only; independent cut validation then freeze physical-state expectations for checked call manifest",
+      "root_actual_output_review_required": true
+    },
+    {
+      "id": 4,
+      "name": "AnalyticSelfCheck",
+      "execution": "new checker driver; all original1125/45/690 and6whole/3564 data/controls; no vendor",
+      "root_actual_output_review_required": true
+    },
+    {
+      "id": 5,
+      "name": "CandidateBaseline",
+      "execution": "only after every exact matched state/context/resource/preflight prerequisite accepted",
+      "root_actual_output_review_required": true
+    },
+    {
+      "id": 6,
+      "name": "ActualOwnGateControls",
+      "execution": "after reached complete baseline; real interventions and unchanged own gates",
+      "root_actual_output_review_required": true
+    }
+  ],
+  "next_source_allowlist": [
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/WaveformCandidate.h",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/waveform_probe.cpp",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/waveform_check.cpp",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/clock_oracle.cpp",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/plan_probe.cpp",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/independent_clock.h",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/fast_fit.h",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/freeze_waveform.py",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/verify_waveform.py",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/run-waveform.ps1",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/README.md",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-r1/authored-manifest.json"
+  ],
+  "proof_rows": [
+    {
+      "id": "P01",
+      "contract": "Full original fixture inventory and source laws frozen independently",
+      "mechanical_check": "243 base rows +1 signed-zero +2 reverse +48 bake, separately named; all actual mutants separately inventoried",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P02",
+      "contract": "Exact computed clock distinct from analytic references",
+      "mechanical_check": "standalone same-runtime independent clock freezes denseQ/A/B/D/edges/centers/inverse; <=1/1024/common floor",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P03",
+      "contract": "Production call plan validated before vendor construction",
+      "mechanical_check": "every actual cut/source boundary vs frozen independent tables; N/D conservation and1..2048",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P04",
+      "contract": "Actual owned request/channel law",
+      "mechanical_check": "complete finite/equivalence classification; fixed representative0; actual source bit binding; selected reverse; queried layout",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P05",
+      "contract": "One persistent physical lifecycle and extraction",
+      "mechanical_check": "one seeded instance, configure/reset/seek, all plan calls, flushW, exact raw[OL,OL+D)",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P06",
+      "contract": "Varying physical state/context/quiet prerequisite",
+      "mechanical_check": "exact call/source/config binding; all retained relations; actual<=2Frame center; named nonzero quiet refusal",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P07",
+      "contract": "Complete production resources",
+      "mechanical_check": "new/full retained graph +actual allocation/work and physical controls under unchanged2^28/512MiB/1GiB",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P08",
+      "contract": "Changed checker driver qualified without vendor",
+      "mechanical_check": "byte-exact R5core; actual new driver1125/45/690 +6whole/3564 controls before vendor",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P09",
+      "contract": "One whole-case checker budget",
+      "mechanical_check": "all logical windows; actual grids/finalists before direct work; exact all-helper/IO/hash work/scratch preflight",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P10",
+      "contract": "Unchanged whole-output/tone/transient gates",
+      "mechanical_check": "full finite/peak/zero/stereo; every eligible window; raw RMS; complete local centroid",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P11",
+      "contract": "Once-only fractional native bake",
+      "mechanical_check": "independent inverse+shape/min law, all shapes/curves/overlap/overlong, exact outside silence",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P12",
+      "contract": "Physical own-gate controls",
+      "mechanical_check": "all13 real interventions reach unchanged own gates; earlier refusal is NOT_REACHED",
+      "status": "UNRUN"
+    },
+    {
+      "id": "P13",
+      "contract": "No admission by association",
+      "mechanical_check": "working materializer and old C1/C2 traces retain scope; no Ready/builders/jobs/model/export/UI/RT/hardware credit",
+      "status": "UNRUN"
+    }
+  ],
+  "not_claimed": [
+    "vendor waveform PASS",
+    "full matrix complete",
+    "new driver calibrated",
+    "production resource admission",
+    "Ready owner",
+    "both builders",
+    "jobs/history/model/export/load/UI activation",
+    "RT/deadline/native/device/hardware",
+    "full Option A completion"
+  ]
+}

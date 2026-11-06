@@ -1,0 +1,8 @@
+{
+  "exit_code": 1,
+  "scope": "OWN_SOURCE_FILE_HASH_INTEGER_ONLY",
+  "uncaught": "ValueError: predecessor matcher still expected Meter-only write ticket; F7 intentionally uses State wrapper",
+  "implementation_changed": false,
+  "stderr_preserved": "stderr.txt",
+  "target_execution": false
+}

@@ -1,0 +1,38 @@
+{
+  "schema": "YESDAW_WAVEFORM_R4_FIRST_STAGE_ROOT_OUTPUT_REVIEW_V1",
+  "bundle_sha256": "28909B793046C026890456FA59A841DA2B75450B60AAD5E8DD3888DFCCB23E71",
+  "execution_receipt_sha256": "C9A9D20A77EA0735DCDFA73B3F40F53E39B1E4C0E4DB863B82DD5F766143A776",
+  "run": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/runs/20261105-171222-6659395",
+  "raw_parent_exit": 0,
+  "raw_children": [
+    0,
+    0
+  ],
+  "all96_artifacts_and147_transitive_hashes_verified": true,
+  "exact97_run_file_tree": true,
+  "retention_domain": "Current new authored five sources plus generated data and raw stage files; historical immutable inputs are separately bounded",
+  "actual_run_tree_bytes": 69798868,
+  "actual_current_five_source_bytes": 225572,
+  "actual_whole_retention_pool_bytes": 70024440,
+  "actual_data_bytes": 69672789,
+  "pcm_words": 14166000,
+  "finite_pcm_words": 14165999,
+  "real_control_counts": {
+    "runner": 3,
+    "generation": 3,
+    "replay": 14
+  },
+  "full_owner_count": 30,
+  "combined_source_prepaid_work": 14896615424,
+  "runner_region1_used": 265506,
+  "runner_region2_prefix_used": 268683,
+  "all_children_eof_settled_and_no_omission_quarantine": true,
+  "scope": "FIRST definition generation plus independent full-index source replay ONLY",
+  "all_compiler_DSP_quality_context_Ready_production_renderer": false,
+  "native_window": false,
+  "audio_device": false,
+  "hardware_credit": false,
+  "heap_RSS_primitive_CPU_credit": false,
+  "earlier_root_scratch_assumption_refused": "Run-tree-only total omitted new authored source pool; authored code/data unchanged and no retry",
+  "fresh_measured_critic": "PENDING"
+}

@@ -1,0 +1,154 @@
+{
+  "status": "ACTUAL_LIMITED_STEREO_CONTEXT_AUDIT_WITH_EXPLICIT_FORECAST_CORRECTION",
+  "old_harness_changed": false,
+  "rerun": false,
+  "incorrect_forecast_disqualified": true,
+  "omitted_family": "terminal flush CL C*W per fixture; separate from flush field writes",
+  "corrected_combined_row_upper": 10203803,
+  "original_combined_row_upper": 10189211,
+  "enforced_combined_row_limit": 10400000,
+  "fixtures": [
+    {
+      "fixture": "small-identical",
+      "observed_rows": 547499,
+      "base_rows": 37546,
+      "old_observed_forecast": 553821,
+      "omitted_terminal_flush_clear_rows": 512,
+      "corrected_combined_forecast": 591879,
+      "enforced_row_limit": 600000,
+      "retained_relations": 15872,
+      "classifications": {
+        "interior": 15872
+      },
+      "interior_residual_half_frames": [
+        0,
+        0
+      ],
+      "actual_payload_with16MiB_reservation": 38792809
+    },
+    {
+      "fixture": "small-distinct",
+      "observed_rows": 547475,
+      "base_rows": 37546,
+      "old_observed_forecast": 553821,
+      "omitted_terminal_flush_clear_rows": 512,
+      "corrected_combined_forecast": 591879,
+      "enforced_row_limit": 600000,
+      "retained_relations": 15872,
+      "classifications": {
+        "interior": 15872
+      },
+      "interior_residual_half_frames": [
+        0,
+        0
+      ],
+      "actual_payload_with16MiB_reservation": 38788785
+    },
+    {
+      "fixture": "small-left-zero",
+      "observed_rows": 550071,
+      "base_rows": 37546,
+      "old_observed_forecast": 553821,
+      "omitted_terminal_flush_clear_rows": 512,
+      "corrected_combined_forecast": 591879,
+      "enforced_row_limit": 600000,
+      "retained_relations": 15872,
+      "classifications": {
+        "valued-zero": 7936,
+        "interior": 7936
+      },
+      "interior_residual_half_frames": [
+        0,
+        0
+      ],
+      "actual_payload_with16MiB_reservation": 35969452
+    },
+    {
+      "fixture": "small-all-zero",
+      "observed_rows": 9789,
+      "base_rows": 4714,
+      "old_observed_forecast": 9277,
+      "omitted_terminal_flush_clear_rows": 512,
+      "corrected_combined_forecast": 14503,
+      "enforced_row_limit": 25000,
+      "retained_relations": 3840,
+      "classifications": {
+        "source-zero": 3840
+      },
+      "interior_residual_half_frames": [
+        null,
+        null
+      ],
+      "actual_payload_with16MiB_reservation": 17271495
+    },
+    {
+      "fixture": "small-gaps-resume",
+      "observed_rows": 1191315,
+      "base_rows": 83870,
+      "old_observed_forecast": 1210983,
+      "omitted_terminal_flush_clear_rows": 512,
+      "corrected_combined_forecast": 1295365,
+      "enforced_row_limit": 1350000,
+      "retained_relations": 37632,
+      "classifications": {
+        "interior": 26752,
+        "valued-zero": 8576,
+        "source-zero": 2304
+      },
+      "interior_residual_half_frames": [
+        0,
+        0
+      ],
+      "actual_payload_with16MiB_reservation": 61810543
+    },
+    {
+      "fixture": "small-nonzero-quiet",
+      "observed_rows": 9789,
+      "base_rows": 4714,
+      "old_observed_forecast": 9277,
+      "omitted_terminal_flush_clear_rows": 512,
+      "corrected_combined_forecast": 14503,
+      "enforced_row_limit": 25000,
+      "retained_relations": 3840,
+      "classifications": {
+        "quiet-refused": 3328,
+        "source-zero": 512
+      },
+      "interior_residual_half_frames": [
+        null,
+        null
+      ],
+      "actual_payload_with16MiB_reservation": 17397346
+    },
+    {
+      "fixture": "default-distinct",
+      "observed_rows": 6578743,
+      "base_rows": 426354,
+      "old_observed_forecast": 6665921,
+      "omitted_terminal_flush_clear_rows": 11520,
+      "corrected_combined_forecast": 7103795,
+      "enforced_row_limit": 7200000,
+      "retained_relations": 172800,
+      "classifications": {
+        "interior": 172800
+      },
+      "interior_residual_half_frames": [
+        0,
+        0
+      ],
+      "actual_payload_with16MiB_reservation": 294997227
+    }
+  ],
+  "combined_declared_source_units": 217360045,
+  "actual_revision_bytes": 390689482,
+  "actual_record_controls": 12,
+  "source_unit_scope_not_full_DSP_or_RSS": true,
+  "production_admission": false,
+  "waveform_identity_pass": false,
+  "small_identical_diagnostic": {
+    "raw_pairs": 2304,
+    "numeric_differences": 2144,
+    "max_abs": 0.000536702573299408
+  },
+  "execution_receipt_sha256": "D97C1F19ACBBC584C80BC0A664DB182B3F1A5B522AD65DC3B170D9595AE8C283"
+}

@@ -1,0 +1,31 @@
+{
+  "scope": "COMPLETE_UNRUN_R15_SOURCE_AND_FRESH_WHOLE_REVIEW_PRESERVATION",
+  "verdict": "REVISE",
+  "candidate_own_source_checks": 1764,
+  "candidate_pins_sha256": "5806F35FE26CC1CB2A43B7E49AD6CEBEDE6C28EE7ABAC6BE52CDBE77292FDDB1",
+  "candidate_freeze_sha256": "895F4F1BB04F955E9E40BFDC29AC29AE15AB844ECE21AF068D3DFAEF16914169",
+  "candidate_runner_sha256": "6B1016841798BA2B4D6F7CEAEFC8F663F3A5FE0D7CEC3CEC34355EC71B527A38",
+  "candidate_manifest_sha256": "BDC2BE017BDF269691D727AE10A489FD6C1EFBB82F2B1C71DB392B1728D1B86F",
+  "independent_review_checks": 3374,
+  "independent_review_json_sha256": "48B4373D394809EE3AEA5E2A0B2D89BD19FEF64AEA088FABA9897FF01AFC45E8",
+  "independent_review_argument_sha256": "FA57CD7CABE11DB932A14AE87AFBE7A9EDBB6156FCFA7513E065F7D83EF708ED",
+  "independent_review_pins_sha256": "2F455971EAE1F023BA5D49FF295C893736997C846A0D73E71DF29A57A5B3980A",
+  "independent_review_freeze_sha256": "8D68D9BA4F652BEDD83A64B89C5C459577789631D6F190441F589CED01B14788",
+  "findings": [
+    {"id": "F9", "priority": 1, "source": "sup_core43-60 and sup_main209-233/443-449", "finding": "A pre-resume WorkerRead refusal cuts the prefix, but tail-capable spend permits later startup and ResumeThread without fresh body admission", "required": "Linearized prefix-only startup/resume admission under the existing meter cut; keep target suspended if cut precedes resume admission; preserve admitted completion and prepaid cleanup"},
+    {"id": "F10", "priority": 2, "finding": "Unqualified predecessor failure-policy78/13/69 remain despite current runtime/profile85/15 and prospective recipe75", "required": "Derive current meanings explicitly, including normal pre-bundle73/final74; distinguish prospective catalogue/failure positions and historical provenance"}
+  ],
+  "prior_F1_to_F8_source_corrections_supported": true,
+  "individual_prices_functional_native_resource_or_execution_accepted": false,
+  "current_provisional_profile": {"inputs": 1240, "input_bytes": 461790563, "hash_chunks": 7886, "namespaces": 33, "complete_current_inputs": 1246, "catalogue_identities": 1321, "bootstrap_nodes": 16561},
+  "R16_complete_source_only_successor_authorized": true,
+  "archives": [
+    {"path": "docs/research/artifacts/2026-11-06-clock-owned-supervisor-source-r2/archive-manifest.json", "files": 105, "sha256": "5B1F8831ABC06D08E0FF637425C1EAE88C22B75E6759482D68B178CF4461E19A", "wrapper_pins_sha256": "FB3C1EFF53C4EA28EC3D3D758F1880BEDD75BB89EE6CC3E13CD2886DC2E6D81A", "raw_payloads": 1},
+    {"path": "docs/research/artifacts/2026-11-06-r15-supervisor-functional-independent-review-r1/archive-manifest.json", "files": 352, "sha256": "B833471524D90DEBBB45A1AE80911A1D41112D967E21CC5B850B5797DD26D8F7", "wrapper_pins_sha256": "0B3C4A1AF51AE7752226CFAA5683BC146842CC963DD3BBB7EC826D04FF5815D6", "raw_payloads": 73}
+  ],
+  "archive_scope": "Complete named source/attempt packets and selected pinned repository-local inputs; non-text bytes are opaque raw preservation, never execution inputs, measurements or scope promotion. External identities are verified, not newly byte-archived.",
+  "staged_results": ["docs/research/verification-results/2026-11-06-clock-owned-supervisor-source-r2.json", "docs/research/verification-results/2026-11-06-r15-supervisor-functional-independent-review-r1.json"],
+  "target_parser_AST_import_compiler_native_API_helper_fixture_Clock_execution": false,
+  "source_prices_resources_ABI_native_profile_final_union_binding_Data_GO": false,
+  "preceding_CI": {"commit": "13f7ef639d730874b5c793432931ac104186d0d4", "run": 42237857664, "conclusion": "success", "scope": "DOCS_ONLY_RUNTIME_PACKAGE_SANITIZER_SKIPPED"}
+}

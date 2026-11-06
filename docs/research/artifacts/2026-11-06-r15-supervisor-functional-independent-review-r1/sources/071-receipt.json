@@ -1,0 +1,35 @@
+{
+  "exit": 0,
+  "stages": {
+    "compiler-environment": {
+      "exit": 0,
+      "seconds": 1.2762996
+    },
+    "feature-build": {
+      "exit": 0,
+      "seconds": 20.7192046
+    },
+    "ctest-static-list": {
+      "exit": 0,
+      "seconds": 0.2052481
+    },
+    "feature-list": {
+      "exit": 0,
+      "seconds": 0.0188682
+    },
+    "feature-smoke": {
+      "exit": 0,
+      "seconds": 0.014176
+    }
+  },
+  "native_app_run": false,
+  "desktop_input": false,
+  "audio_device_run": false,
+  "fresh_ui_or_screenshots": false,
+  "binary_sha256": "A0186B34A068B054DE3C38ECCEF42268539885F9AE00352C5010BFE606CB7E9D",
+  "test_cases": 1,
+  "assertions": 898,
+  "protected_paths": 542,
+  "header_sha256": "6C96FC13BCBDD21040DCD53E990F35F336A6C6E8436CE404BA28B6240E2B7EC7",
+  "whole_proof_sha256": "2E976A026C9EC14CC04A8482B6A9286A8216C84BE246163FBE3AEE49642DB155"
+}

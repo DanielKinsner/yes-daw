@@ -1,0 +1,389 @@
+{
+  "scope": "independent source-based symbolic graph model; no runner helper execution",
+  "graphs": {
+    "receipt": {
+      "independent": {
+        "maps": 58,
+        "arrays": 23,
+        "keys": 300,
+        "strings": 155,
+        "integers": 177,
+        "booleans": 52,
+        "key_units": 2877,
+        "string_units": 7591,
+        "array_elements": 164,
+        "map_separators": 242,
+        "array_separators": 141,
+        "value_calls": 465,
+        "nodes_keys": 765
+      },
+      "differences": {
+        "string_units": [
+          7591,
+          7601
+        ]
+      },
+      "field_histogram": {
+        "30": 1,
+        "24": 3,
+        "3": 37,
+        "2": 3,
+        "5": 5,
+        "4": 6,
+        "6": 1,
+        "13": 2
+      },
+      "clone_prime_capacity": 362
+    },
+    "bundle": {
+      "independent": {
+        "maps": 1260,
+        "arrays": 2,
+        "keys": 5115,
+        "strings": 3836,
+        "integers": 1268,
+        "booleans": 8,
+        "key_units": 45174,
+        "string_units": 807965,
+        "array_elements": 1258,
+        "map_separators": 3855,
+        "array_separators": 1256,
+        "value_calls": 6374,
+        "nodes_keys": 11489
+      },
+      "differences": {},
+      "field_histogram": {
+        "21": 1,
+        "6": 1,
+        "5": 56,
+        "4": 1202
+      },
+      "clone_prime_capacity": 8836
+    },
+    "failure": {
+      "independent": {
+        "maps": 79,
+        "arrays": 1,
+        "keys": 397,
+        "strings": 158,
+        "integers": 78,
+        "booleans": 160,
+        "key_units": 3313,
+        "string_units": 42504,
+        "array_elements": 78,
+        "map_separators": 318,
+        "array_separators": 77,
+        "value_calls": 476,
+        "nodes_keys": 873
+      },
+      "differences": {},
+      "field_histogram": {
+        "7": 1,
+        "5": 78
+      },
+      "clone_prime_capacity": 553
+    },
+    "marker": {
+      "independent": {
+        "maps": 1,
+        "arrays": 0,
+        "keys": 6,
+        "strings": 2,
+        "integers": 3,
+        "booleans": 1,
+        "key_units": 80,
+        "string_units": 75,
+        "array_elements": 0,
+        "map_separators": 5,
+        "array_separators": 0,
+        "value_calls": 7,
+        "nodes_keys": 13
+      },
+      "differences": {},
+      "field_histogram": {
+        "6": 1
+      },
+      "clone_prime_capacity": 7
+    }
+  },
+  "checks": [
+    {
+      "name": "receipt.maps",
+      "actual": 58,
+      "packet_upper": 58,
+      "pass": true
+    },
+    {
+      "name": "receipt.arrays",
+      "actual": 23,
+      "packet_upper": 23,
+      "pass": true
+    },
+    {
+      "name": "receipt.keys",
+      "actual": 300,
+      "packet_upper": 300,
+      "pass": true
+    },
+    {
+      "name": "receipt.strings",
+      "actual": 155,
+      "packet_upper": 155,
+      "pass": true
+    },
+    {
+      "name": "receipt.integers",
+      "actual": 177,
+      "packet_upper": 177,
+      "pass": true
+    },
+    {
+      "name": "receipt.booleans",
+      "actual": 52,
+      "packet_upper": 52,
+      "pass": true
+    },
+    {
+      "name": "receipt.key_units",
+      "actual": 2877,
+      "packet_upper": 2877,
+      "pass": true
+    },
+    {
+      "name": "receipt.string_units",
+      "actual": 7591,
+      "packet_upper": 7601,
+      "pass": true
+    },
+    {
+      "name": "receipt.array_elements",
+      "actual": 164,
+      "packet_upper": 164,
+      "pass": true
+    },
+    {
+      "name": "receipt.map_separators",
+      "actual": 242,
+      "packet_upper": 242,
+      "pass": true
+    },
+    {
+      "name": "receipt.array_separators",
+      "actual": 141,
+      "packet_upper": 141,
+      "pass": true
+    },
+    {
+      "name": "receipt.value_calls",
+      "actual": 465,
+      "packet_upper": 465,
+      "pass": true
+    },
+    {
+      "name": "receipt.nodes_keys",
+      "actual": 765,
+      "packet_upper": 765,
+      "pass": true
+    },
+    {
+      "name": "receipt.clone_primes",
+      "actual": 362,
+      "packet_upper": 462,
+      "pass": false
+    },
+    {
+      "name": "bundle.maps",
+      "actual": 1260,
+      "packet_upper": 1260,
+      "pass": true
+    },
+    {
+      "name": "bundle.arrays",
+      "actual": 2,
+      "packet_upper": 2,
+      "pass": true
+    },
+    {
+      "name": "bundle.keys",
+      "actual": 5115,
+      "packet_upper": 5115,
+      "pass": true
+    },
+    {
+      "name": "bundle.strings",
+      "actual": 3836,
+      "packet_upper": 3836,
+      "pass": true
+    },
+    {
+      "name": "bundle.integers",
+      "actual": 1268,
+      "packet_upper": 1268,
+      "pass": true
+    },
+    {
+      "name": "bundle.booleans",
+      "actual": 8,
+      "packet_upper": 8,
+      "pass": true
+    },
+    {
+      "name": "bundle.key_units",
+      "actual": 45174,
+      "packet_upper": 45174,
+      "pass": true
+    },
+    {
+      "name": "bundle.string_units",
+      "actual": 807965,
+      "packet_upper": 807965,
+      "pass": true
+    },
+    {
+      "name": "bundle.array_elements",
+      "actual": 1258,
+      "packet_upper": 1258,
+      "pass": true
+    },
+    {
+      "name": "bundle.map_separators",
+      "actual": 3855,
+      "packet_upper": 3855,
+      "pass": true
+    },
+    {
+      "name": "bundle.array_separators",
+      "actual": 1256,
+      "packet_upper": 1256,
+      "pass": true
+    },
+    {
+      "name": "bundle.value_calls",
+      "actual": 6374,
+      "packet_upper": 6374,
+      "pass": true
+    },
+    {
+      "name": "bundle.nodes_keys",
+      "actual": 11489,
+      "packet_upper": 11489,
+      "pass": true
+    },
+    {
+      "name": "bundle.clone_primes",
+      "actual": 8836,
+      "packet_upper": 8836,
+      "pass": true
+    },
+    {
+      "name": "failure.maps",
+      "actual": 79,
+      "packet_upper": 79,
+      "pass": true
+    },
+    {
+      "name": "failure.arrays",
+      "actual": 1,
+      "packet_upper": 1,
+      "pass": true
+    },
+    {
+      "name": "failure.keys",
+      "actual": 397,
+      "packet_upper": 397,
+      "pass": true
+    },
+    {
+      "name": "failure.strings",
+      "actual": 158,
+      "packet_upper": 158,
+      "pass": true
+    },
+    {
+      "name": "failure.integers",
+      "actual": 78,
+      "packet_upper": 78,
+      "pass": true
+    },
+    {
+      "name": "failure.booleans",
+      "actual": 160,
+      "packet_upper": 160,
+      "pass": true
+    },
+    {
+      "name": "failure.key_units",
+      "actual": 3313,
+      "packet_upper": 3313,
+      "pass": true
+    },
+    {
+      "name": "failure.string_units",
+      "actual": 42504,
+      "packet_upper": 42504,
+      "pass": true
+    },
+    {
+      "name": "failure.clone_primes",
+      "actual": 553,
+      "packet_upper": 553,
+      "pass": true
+    },
+    {
+      "name": "marker.maps",
+      "actual": 1,
+      "packet_upper": 1,
+      "pass": true
+    },
+    {
+      "name": "marker.keys",
+      "actual": 6,
+      "packet_upper": 6,
+      "pass": true
+    },
+    {
+      "name": "marker.strings",
+      "actual": 2,
+      "packet_upper": 2,
+      "pass": true
+    },
+    {
+      "name": "marker.integers",
+      "actual": 3,
+      "packet_upper": 3,
+      "pass": true
+    },
+    {
+      "name": "marker.booleans",
+      "actual": 1,
+      "packet_upper": 1,
+      "pass": true
+    },
+    {
+      "name": "marker.key_units",
+      "actual": 80,
+      "packet_upper": 80,
+      "pass": true
+    },
+    {
+      "name": "marker.string_units",
+      "actual": 75,
+      "packet_upper": 75,
+      "pass": true
+    },
+    {
+      "name": "marker.clone_primes",
+      "actual": 7,
+      "packet_upper": 7,
+      "pass": true
+    }
+  ],
+  "failures": [
+    {
+      "name": "receipt.clone_primes",
+      "actual": 362,
+      "packet_upper": 462,
+      "pass": false
+    }
+  ]
+}

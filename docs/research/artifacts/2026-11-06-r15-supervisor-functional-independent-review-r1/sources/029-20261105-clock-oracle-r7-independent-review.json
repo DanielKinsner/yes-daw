@@ -1,0 +1,28 @@
+{
+  "created_utc": "2026-11-05T23:27:06.380618+00:00",
+  "reviewer": "/root/musical_parent_provenance",
+  "review_received_exact_utc": null,
+  "verdict": "ACCEPT_WHOLE_R7_FUNCTIONAL_SOURCE_FOR_RENEWED_INDEPENDENT_CENSUS",
+  "manifest_sha256": "80ECBBC86547880C262C772884DEA12B6EA206283D7625B13696F5AB8A68158F",
+  "PS_sha256": "AD1134DED9FCAF6329F49D7C3F81F17E99D09BEA670DD9F9E7CBFC7FB5FE0A07",
+  "README_sha256": "9585FECAA26F661C396D1187B0AC65D6378A01F03D86B963683B21E6D0FD9FE6",
+  "CPP_and_header_exact_R6": true,
+  "scope": "whole700-linePS/README/header/CPP bodies plus complete functional/profile/control manifest; own5 identities",
+  "mechanisms": [
+    "explicit7200 normal-poll admission beforeSpend/IO, separatetruthfulpollrefusal; actualnormalgate7199/7200control",
+    "one rooted64KiB synchronoushashowner distinctasync/quarantinearrays;3documentedunbufferedreadsites",
+    "indexeddependencyUTF16scanpreservescontinueadvancement",
+    "controllerprovenance/BigIntegeroperandnormalization/onceencoding/fixedpoint/rawprimarysecondary/close/quarantine",
+    "full56files16929027words785fractionsnativeinverseandbothproductionendpointsperQ",
+    "old completefitUNKNOWN undercanonicalarithmeticcorrection; no newlimit"
+  ],
+  "root_separate_mechanical_audit": {
+    "all1171inputs_and4own_exact": true,
+    "all24closednamespaces_exact": true,
+    "entries": 1045,
+    "files": 999,
+    "no_reparse": true
+  },
+  "all_guards_false_prices_U_data_absent": true,
+  "numeric_lifetime_ABI_runtime_or_fit_credit": false
+}

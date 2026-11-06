@@ -1,0 +1,101 @@
+{
+  "packet_kind": "SOURCE_ONLY_PREPARATION",
+  "overall_status": "UNRUN_NOT_ADMITTED_NO_IMPLEMENTATION_GO",
+  "runnable_candidate_created": false,
+  "oracle_implemented": false,
+  "estimator_implemented": false,
+  "calibration_executed": false,
+  "vendor_candidate_executed": false,
+  "actual_mutants_executed": false,
+  "builds_or_tests_executed": false,
+  "native_device_or_hardware_execution": false,
+  "clock_roles": {
+    "normative": "NUMERIC_A_PINNED_BINARY64_COMPUTED_CLOCK_COMMON_FLOOR",
+    "analytic": "REAL_LOG_HIGH_PRECISION_FIXTURE_CALIBRATION_ONLY_NOT_NORMATIVE_FLOORS",
+    "future_dsp_supplies_expected_values": false
+  },
+  "immutable_gates": {
+    "rational_bracket_frames": 0.0009765625,
+    "inverse_forward_residual_frames": 0.0009765625,
+    "tone_hz": [220, 997],
+    "minimum_input_seconds": 4,
+    "fixture_input_seconds": 10,
+    "input_peak_max": 0.25,
+    "window_milliseconds": 250,
+    "step_milliseconds": 50,
+    "pitch_error_cents_max": 5,
+    "rms_error_db_max": 1,
+    "peak_limit": "1.25*actualInputPeak+1e-6",
+    "calibration_error_cents_max": 0.25,
+    "calibration_error_db_max": 0.01,
+    "burst_support_milliseconds_max": 1,
+    "burst_minimum_spacing_queried_windows": 4,
+    "burst_analysis_half_region_queried_windows": 2,
+    "burst_centroid_error_milliseconds_max": 5,
+    "fade_sample_error": "2e-6*max(1,abs(unfadedSample))",
+    "actual_interior_center_error_frames_max": 2,
+    "source_clip_edge_exclusion_queried_windows": 1,
+    "ramp_jump_interior_exclusions": 0,
+    "physical_read_index_disagreements_max": 0,
+    "same_owner_sample_inequalities_max": 0,
+    "exact_zero_and_identical_stereo_required": true
+  },
+  "fixture_matrix": {
+    "sample_rates": [44100, 48000, 96000],
+    "channels": [1, 2],
+    "constant_ratios": [0.5, 0.75, 1, 1.5, 2],
+    "varying_maps": ["bpm120_to30_linear", "bpm30_to120_linear", "bpm120_to30_fractional_source_jump", "bpm30_to120_fractional_source_jump"],
+    "base_tone_preparations": 135,
+    "base_zero_preparations": 54,
+    "base_burst_preparations": 54,
+    "reverse_fade_variants": "ADDITIONAL_NOT_YET_ENUMERATED_AS_EXECUTED_ROWS",
+    "api_whitelist": false
+  },
+  "own_gate_controls": [
+    { "name": "pitch_plus6cent", "own_gate": "pitch_max5cent", "status": "UNRUN", "receipt": null },
+    { "name": "level_plus1p1db", "own_gate": "raw_rms_max1db", "status": "UNRUN", "receipt": null },
+    { "name": "double_fade", "own_gate": "one_time_fractional_native_sample_error", "status": "UNRUN", "receipt": null },
+    { "name": "reverse_after_stretch", "own_gate": "independent_jump_burst_centroid_max5ms", "status": "UNRUN", "receipt": null },
+    { "name": "latency_plus1frame", "own_gate": "exact_physical_extraction_index", "status": "UNRUN", "receipt": null },
+    { "name": "actual_center_signed3frames", "own_gate": "actual_interior_center_max2frames", "status": "UNRUN_SEAM_MUST_BE_REVIEWED", "receipt": null },
+    { "name": "omit_full_output_latency", "own_gate": "exact_physical_index_and_separate_centroid", "status": "UNRUN", "receipt": null }
+  ],
+  "production_caps_unchanged": {
+    "process_calls_per_clip": 1048576,
+    "preparation_work_units_per_clip": 268435456,
+    "new_reserved_bytes_per_clip": 536870912,
+    "pending_batch_bytes": 1073741824,
+    "reusable_cache_bytes": 1073741824
+  },
+  "proposed_checker_only_caps": {
+    "simultaneous_cases": 1,
+    "new_scratch_bytes": 67108864,
+    "counted_operations_per_case": 17179869184,
+    "frequency_trials_per_window_max": 203,
+    "elementary_library_calls": "COUNT_AND_REPORT_SEPARATELY",
+    "may_enlarge_production_caps": false,
+    "measured_or_certified": false
+  },
+  "unresolved_proof": [
+    "Finish standalone Numeric A clock/inverse implementation and independent operation-order review; no future renderer/planner expected values",
+    "Finish analytic fixture and competing-tone/DC amplitude table; freeze expected seed-localization qualification",
+    "Implement independent FFT/direct-DFT comparison and grid sinusoid fit; no code exists in this packet",
+    "Pass all analytic calibration rows before any candidate waveform use",
+    "Admit or precisely refuse actual state/context/quiet/configuration/resource path; packet does not certify private context-r3",
+    "Record actual baseline finite/pitch/raw-RMS/peak/transient/zero/stereo/fade results without omitted interior windows",
+    "Run actual wrapper/sample mutants; each must reach and fail its own unchanged gate",
+    "Review real physical signed3Frame mutation seam without vendor modification or observer-only edits",
+    "Integrate both real schedule builders with exact owner/offset/blocks/seek/loops/live gain",
+    "Reconcile predicted and actual complete allocation/work graph under unchanged ADR limits",
+    "Root-owned exact-source builds/suites/CI; native/device/hardware proof remains separate"
+  ],
+  "receipts": {
+    "calibration": null,
+    "baseline_waveform": null,
+    "mutants": null,
+    "resources": null,
+    "integration": null,
+    "ci": null,
+    "hardware": null
+  }
+}

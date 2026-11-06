@@ -1,0 +1,289 @@
+[
+  {
+    "finding": "F1",
+    "predecessor_counterexample": "ready Full4096 then failed ack wait rewrote kind/count while coordinator reads",
+    "corrected_trace": {
+      "published": {
+        "kind": "Full",
+        "count": 4096,
+        "partial": 0,
+        "error": 0,
+        "generation": 9
+      },
+      "after_ack_failure": {
+        "kind": "Full",
+        "count": 4096,
+        "partial": 0,
+        "error": 0,
+        "generation": 9
+      },
+      "separate_exit": {
+        "failures": [
+          {
+            "site": 9,
+            "reason": 30,
+            "native_known": true,
+            "native_error": 5
+          }
+        ]
+      }
+    },
+    "runtime_execution": false
+  },
+  {
+    "finding": "F2",
+    "predecessor_counterexample": {
+      "kind": "Full",
+      "count_before": 4096,
+      "count_after": 0,
+      "partial_after": 0,
+      "bytes_lost": 4096
+    },
+    "corrected_traces": [
+      {
+        "kind": "Full",
+        "event": "publisher_meter_refusal",
+        "observed_once": 4096,
+        "EOF": false,
+        "partial": 0
+      },
+      {
+        "kind": "Full",
+        "event": "ready_signal_failure",
+        "observed_once": 4096,
+        "EOF": false,
+        "partial": 0
+      },
+      {
+        "kind": "Full",
+        "event": "ack_wait_failure",
+        "observed_once": 4096,
+        "EOF": false,
+        "partial": 0
+      },
+      {
+        "kind": "EofShort",
+        "event": "publisher_meter_refusal",
+        "observed_once": 17,
+        "EOF": false,
+        "partial": 0
+      },
+      {
+        "kind": "EofShort",
+        "event": "ready_signal_failure",
+        "observed_once": 17,
+        "EOF": false,
+        "partial": 0
+      },
+      {
+        "kind": "EofShort",
+        "event": "ack_wait_failure",
+        "observed_once": 17,
+        "EOF": false,
+        "partial": 0
+      },
+      {
+        "kind": "ZeroEof",
+        "event": "publisher_meter_refusal",
+        "observed_once": 0,
+        "EOF": true,
+        "partial": 0
+      },
+      {
+        "kind": "ZeroEof",
+        "event": "ready_signal_failure",
+        "observed_once": 0,
+        "EOF": true,
+        "partial": 0
+      },
+      {
+        "kind": "ZeroEof",
+        "event": "ack_wait_failure",
+        "observed_once": 0,
+        "EOF": true,
+        "partial": 0
+      }
+    ],
+    "runtime_execution": false
+  },
+  {
+    "finding": "F3",
+    "predecessor_counterexample": "WAIT_FAILED code5 discarded by inline/cleanup-ready waits; later timeout replaces first cause",
+    "corrected_wait_roles": [
+      "body-ready",
+      "body-exit",
+      "initial-cleanup-ready",
+      "retry-cleanup-ready",
+      "retry-cleanup-exit",
+      "started",
+      "ack",
+      "target-body",
+      "target-cleanup"
+    ],
+    "runtime_execution": false
+  },
+  {
+    "finding": "F4",
+    "predecessor_counterexample": "TRUE0 followed by real bytes was falsely consumed as EOF",
+    "corrected_traces": [
+      {
+        "initial_positive_fill": 0,
+        "TRUE0": {
+          "control": "NoProgress",
+          "observed": 0,
+          "EOF": false
+        },
+        "Continue_fill": 0,
+        "Stop_exit_partial": 0,
+        "later_full_observed": 4096
+      },
+      {
+        "initial_positive_fill": 17,
+        "TRUE0": {
+          "control": "NoProgress",
+          "observed": 0,
+          "EOF": false
+        },
+        "Continue_fill": 17,
+        "Stop_exit_partial": 17,
+        "later_full_observed": 4096
+      },
+      {
+        "initial_positive_fill": 4095,
+        "TRUE0": {
+          "control": "NoProgress",
+          "observed": 0,
+          "EOF": false
+        },
+        "Continue_fill": 4095,
+        "Stop_exit_partial": 4095,
+        "later_full_observed": 4096
+      }
+    ],
+    "normal_control_consumptions_upper": 14400,
+    "pending_slots_upper": 2,
+    "no_new_input_guard": true,
+    "runtime_execution": false
+  },
+  {
+    "finding": "F5",
+    "predecessor_counterexample": "FindClose(H0) false then new scan overwrote H0 with H1/INVALID",
+    "corrected_trace": {
+      "held": "established-search-H0",
+      "new_find_calls": 0
+    },
+    "runtime_execution": false
+  },
+  {
+    "finding": "F6",
+    "predecessor_counterexample": {
+      "length": 4096,
+      "confirmed_written": 1,
+      "omitted": 0,
+      "required_omitted": 4095
+    },
+    "corrected_traces": [
+      {
+        "length": 4096,
+        "confirmed_written": 0,
+        "cap_omitted": 4096,
+        "noncap_omitted": 0,
+        "unretained": 4096
+      },
+      {
+        "length": 4096,
+        "confirmed_written": 1,
+        "cap_omitted": 4095,
+        "noncap_omitted": 0,
+        "unretained": 4095
+      },
+      {
+        "length": 4096,
+        "confirmed_written": 2048,
+        "cap_omitted": 2048,
+        "noncap_omitted": 0,
+        "unretained": 2048
+      },
+      {
+        "length": 4096,
+        "confirmed_written": 4095,
+        "cap_omitted": 1,
+        "noncap_omitted": 0,
+        "unretained": 1
+      }
+    ],
+    "runtime_execution": false
+  },
+  {
+    "finding": "F7",
+    "predecessor_counterexample": "valid short join with refused debit fabricated StageExtent before SourcePrefixLimit",
+    "corrected_cases": [
+      {
+        "debit_ok": false,
+        "extent_ok": true,
+        "typed_cause": "SourceRefused",
+        "primary_reason": 37,
+        "stage_guard_flag": false
+      },
+      {
+        "debit_ok": false,
+        "extent_ok": false,
+        "typed_cause": "SourceRefused",
+        "primary_reason": 37,
+        "stage_guard_flag": false
+      },
+      {
+        "debit_ok": true,
+        "extent_ok": false,
+        "typed_cause": "ExtentRejected",
+        "primary_reason": 21,
+        "stage_guard_flag": true
+      },
+      {
+        "debit_ok": true,
+        "extent_ok": true,
+        "typed_cause": "Ok",
+        "primary_reason": null,
+        "stage_guard_flag": false
+      }
+    ],
+    "runtime_execution": false
+  },
+  {
+    "finding": "F8",
+    "predecessor_counterexample": "failed raw words passed live test then promoted/waited/closed and PID/ChildCreated set",
+    "corrected_traces": [
+      {
+        "failed_raw": "all-zero",
+        "trusted_handles": [],
+        "pid": 0,
+        "ChildCreated": false,
+        "known_job_empty": true,
+        "established_settled": true,
+        "unknown_native_creation": true,
+        "status": 4
+      },
+      {
+        "failed_raw": "nonzero-invalid-words",
+        "trusted_handles": [],
+        "pid": 0,
+        "ChildCreated": false,
+        "known_job_empty": true,
+        "established_settled": true,
+        "unknown_native_creation": true,
+        "status": 4
+      },
+      {
+        "failed_raw": "possible-valid-looking-words",
+        "trusted_handles": [],
+        "pid": 0,
+        "ChildCreated": false,
+        "known_job_empty": true,
+        "established_settled": true,
+        "unknown_native_creation": true,
+        "status": 4
+      }
+    ],
+    "runtime_execution": false
+  }
+]

@@ -1,0 +1,788 @@
+{
+  "schema": 1,
+  "subject": "ClockOracle R6 PowerShell runner",
+  "date": "2026-11-05",
+  "verdict": "HOLD_RUNNER_ITERATION_AND_CONTROLLED_PAYLOAD_CLOSURE",
+  "scope": "Independent source-only runner review and partial numeric census. No source execution, parsing of authored code, imports, compilation, tests, CI, app or device activity.",
+  "functionalReview": {
+    "state": "ACCEPT_SEPARATE_FROM_NUMERIC_HOLD",
+    "record": "build-ci/20261105-clock-oracle-r6-independent-review.json",
+    "sha256": "AA5158C15218FD3D36F91E8D1EC328E166FC04833EAA319E4F96255E17826798",
+    "sourceGuardsAllFalse": true,
+    "privateCatalogueDefinitionsPresent": false
+  },
+  "authority": {
+    "runnerUpper": null,
+    "wholeUpper": null,
+    "selectedLimit": null,
+    "helperActionVectorsComplete": false,
+    "wholeActionFitCertified": false,
+    "controlledPayloadUpper": null,
+    "controlledPayloadFitCertified": false,
+    "runtimeOrCompilerCredit": false,
+    "oldR4PricesReused": false,
+    "productionPolicyChanged": false
+  },
+  "convention": {
+    "contractSha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010",
+    "leafClarificationSha256": "DE33D91712372C2FE887A02FB137AA9A96C8C3BB93CB0D88BF57AA32DBEAE564",
+    "scalar": "Count reached scalar/literal reads; actual destination initialization/writes; arithmetic/bitwise/comparison/boolean/conversion; selected branches; dispatch/entry/return; and every actual loop/control event once. All own helpers, callers, defaults, reference formation, receiver/property/access and administration remain expanded.",
+    "leaf": "Count evaluated caller arguments/reference formation and dispatch, plus the declared primitive boundary's entry and return. An actually reached visible wrapper has its own entry/body/return. Existing CLR/JSON/OS/CRT/libm/intrinsic internal CPU remains opaque; selected C++ SDK and all own helpers are expanded.",
+    "transfers": "External scalar/result/out-buffer destination writes occur once. Guaranteed result initialization into the caller destination is not another transfer. Caller evaluation supplies a by-value source read, parameter initialization supplies its write without a second source read. Reference binding copies no referent cells.",
+    "payload": "Opaque primitive CPU and general heap/RSS exclusions do not remove controlled arrays, configured stream buffers, clones, capacities, preprocessing, retained owners, or lifetime obligations. Null/local exit is not physical GC reclamation.",
+    "notProductionModel": "Production ADR0085 O/A/F logical primitive prices and branch/literal convention are not imported.",
+    "bulk": "Existing declared bulk CRT/CLR primitive effects are represented by the counted call boundary and visible caller arguments/wrappers: do not add n internal byte destination writes or one invented bulk-scalar write. Scalar results/out-parameters have one actual destination write. All byte extents and controlled payload/lifetime obligations remain. Actual visible aggregate element initialization/copy expands; opaque CLR internals do not.",
+    "bulkClarificationSha256": "268597D1F066779CE76DACFDBBC384FC452DC6B9AD319419F52DE597242BB3E8"
+  },
+  "sourceNumbers": {
+    "historicalInputs": 1153,
+    "historicalBytes": 455802146,
+    "historicalHashChunks": 7731,
+    "ownFourBytes": 137673,
+    "manifestBytes": 449904,
+    "ownFiveBytes": 587577,
+    "ownFourChunks": 5,
+    "manifestChunks": 7,
+    "completeFenceIdentities": 1158,
+    "completeFenceBytes": 456389723,
+    "completeFenceChunks": 7743,
+    "namespaces": 21,
+    "namespaceEntries": 1034,
+    "namespaceFiles": 988,
+    "namespaceSubdirectories": 46,
+    "normalDirectoryEnumeratorsPerFence": 67,
+    "normalFences": 8,
+    "prepaidFenceUpper": 9,
+    "normalFenceHashCalls": 9264,
+    "normalFenceHashChunks": 61944,
+    "normalFenceBytes": 3651117784,
+    "normalFenceOwnBufferRequests": 607125504,
+    "reservedNineFenceHashCalls": 10422,
+    "reservedNineFenceHashChunks": 69687,
+    "reservedNineFenceBytes": 4107507507,
+    "normalNonFenceHashCalls": 136,
+    "normalAllGetTaskHashCalls": 9400,
+    "normalGetTaskHashBufferRequestBytes": 616038400,
+    "bootstrapHashCalls": 7,
+    "bootstrapHashBytes": 24581790,
+    "bootstrapHashChunks": 379,
+    "bootstrapOwnBufferRequests": 458752,
+    "normalAllHashOwnBufferRequestBytes": 616497152,
+    "oneFenceOwnBufferRequests": 75890688,
+    "firstOverScratchArrayOrdinal": 513,
+    "firstOverScratchArrayRequests": 33619968,
+    "scratchCap": 33554432,
+    "referenceFiles": 56,
+    "referencePoolCap": 152627224,
+    "referenceDenseWords": 16929027,
+    "referenceDenseBytes": 135432216,
+    "fractions": 785,
+    "inverseRecordsCap": 960000,
+    "inverseBytesCap": 15360000,
+    "referenceHashChunksPerPassUpper": 2342,
+    "referencePasses": 2,
+    "codecByteCap": 10354688,
+    "reachableCodecByteCapUsingSealedLengths": 8281161,
+    "retainedCap": 880803840,
+    "declaredRetainedReservation": 777348131,
+    "declaredRetainedHeadroom": 103455709,
+    "actualOwnFiveReservation": 776887132,
+    "actualOwnFiveHeadroom": 103916708,
+    "normalChildCount": 3,
+    "childTimeoutSeconds": 1800,
+    "pollSleepMilliseconds": 250,
+    "childBuffersPerChild": 2,
+    "childBufferBytesEach": 4096,
+    "childRawLogBytesCap": 1048576,
+    "childObservedBytesUpper": 1056768,
+    "childResultObservationsUpper": 262,
+    "childReadRequestsUpper": 260,
+    "childCleanupRowsUpper": 13,
+    "secondarySlots": 11,
+    "receiptsDeclaredUpper": 12,
+    "receiptsReachableUpper": 4,
+    "encodesReachableUpper": 7,
+    "measurementsReachableUpper": 11,
+    "bundleMeasurementsUpper": 5,
+    "jsonDepth": 24,
+    "jsonMapFields": 30,
+    "jsonArrayEntries": 1158,
+    "jsonStringUnits": 512,
+    "jsonDocumentBytes": 1048576,
+    "receiptBytes": 65536,
+    "dependencyBytes": 4194304,
+    "dependencyShapeNodeCap": 2564,
+    "normalControls": 8,
+    "moduleControlsProduced": 3,
+    "moduleControlsVerified": 11,
+    "normalOperandConversions": 84,
+    "normalSummaryCopies": 24,
+    "declaredSuccessRunFiles": 68,
+    "declaredFailureExtraFiles": 1,
+    "declaredCompleteRunFiles": 69,
+    "declaredCompleteIdentities": 1227,
+    "actualFailurePrefixFileRowsUpper": 78,
+    "rootWalkEntriesCap": 78,
+    "rootWalkDepthCap": 64,
+    "compilerArgumentCount": 28,
+    "oracleArgumentCount": 6,
+    "replacementCalls": 84,
+    "includeCount": 1154,
+    "inputIndexEntries": 1153,
+    "includeIndexEntries": 1154
+  },
+  "residuals": [
+    {
+      "id": "R6-RUNNER-POLL-MULTIPLICITY",
+      "locations": [
+        "run-clock.ps1:91-110",
+        "run-clock.ps1:55",
+        "run-clock.ps1:591-603"
+      ],
+      "classification": "SOURCE_NUMERIC_CLOSURE",
+      "finding": "Each child poll loop has a stopwatch refusal and nominal Sleep(250), but no independent counted poll admission. Neither source nor admitted timing premise establishes a numeric upper on poll body visits. Productive I/O bounds do not bound idle polls.",
+      "forbiddenInference": "Do not infer 7200/7201 iterations from 1800s/250ms. Do not price the runner by its future unbound Spend limit. No observed nontermination or runtime failure is alleged.",
+      "effect": "Fixed source-bound polling coefficient and therefore complete disjoint RunnerUpper cannot be sealed.",
+      "prospectiveHypothesis": "Independently explicit finite poll-count gate derived from existing policy, with truthful distinct POLL_LIMIT refusal; retain original1800s deadline. Review changed source and all new caller/branch/counter actions before binding any limit."
+    },
+    {
+      "id": "R6-RUNNER-HASH-BUFFER-RETIREMENT",
+      "locations": [
+        "run-clock.ps1:63-68",
+        "run-clock.ps1:196-202",
+        "run-clock.ps1:404-409",
+        "source-manifest.json:10963-10981"
+      ],
+      "classification": "CONTROLLED_EXPLICIT_LIFETIME",
+      "finding": "Each hash creates a fresh65536-byte array. A complete fence requests1158 such arrays=75890688 bytes, with no reuse or physical reclamation guarantee. Seven bootstrap hashes add458752 bytes. One normal path requests616497152 bytes in hash arrays alone. These are request totals, not measured simultaneous live bytes/RSS.",
+      "effect": "No conservative32MiB physical controlled-payload certificate follows from Dispose/local exit/null assignment. Configured65536-byte FileStream buffers and nonhash payloads remain additional obligations.",
+      "prospectiveHypothesis": "One rooted reused65536-byte synchronous hash buffer for the closed sequential bootstrap/fence/caller graph, prove no pending borrower; audit all FileStream overloads and use documented unbuffered bufferSize1 where appropriate. This alone does not certify remaining JSON/collection payload fit."
+    },
+    {
+      "id": "R6-FAILURE-PREFIX-COUNT-CORRECTION",
+      "locations": [
+        "run-clock.ps1:372-380",
+        "run-clock.ps1:578-584",
+        "source-manifest.json:10423-10427",
+        "source-manifest.json:10984-10987"
+      ],
+      "classification": "CENSUS_SCOPE_CORRECTION_NOT_FUNCTIONAL_REJECTION",
+      "finding": "Declared failure artifact recipe has69 files, but raw partial failed-compiler inventory can retain78 file rows: Get-TaskEntries caps total admitted entries at78 and observes/refuses candidate79 before adding. No Save-TaskFailureInventory check caps files at69.",
+      "effect": "Use78 raw failure prefix rows for source/payload upper;1227=1158+69 remains the declared complete admitted identity recipe, not a universal raw failure inventory bound.",
+      "prospectiveHypothesis": "No source change needed merely to count the existing raw prefix honestly; any future changed profile must preserve the distinction."
+    }
+  ],
+  "finiteSchedules": {
+    "hash": {
+      "formula": "8*(1153 historical +4 own sources +1 manifest)+136 nonfence =9400 Get-TaskHash calls; +7 bootstrap calls. Complete-fence chunks7731+5+7=7743.",
+      "nonFenceCalls": {
+        "predecessorBeforeCopyAndMutation": 3,
+        "buildArtifactsTwoPasses": 6,
+        "binaryAndGuiMutationIdentities": 4,
+        "referenceTwoPasses": 112,
+        "controlFilesFinal": 4,
+        "stageFilesFinal": 4,
+        "bundleFinal": 1,
+        "oracleAfterBinary": 2
+      },
+      "normalSourceHashReadBodiesUpper": 72480,
+      "normalPlusBootstrapReadBodiesUpper": 72859,
+      "hashChunkUpperExplanation": "Normal fences61944 + references4684 + other extra hashes5852. Extra cap recipe: predecessor6; buildfiles2176; four binary hashes2048; controls516; final logs/receipt/marker66; bundle16; oracle after-binary1024. Upper from accepted caps, not measured read counts.",
+      "fullFenceLoopControls": {
+        "perHash": "B bodies, B+1 while tests, B successful ReadExactly calls, one explicit EOF ReadByte; finalfalse belongs to that invocation.",
+        "parentWalk": "<=64 admitted parent nodes; possible65th refusing body entry; no fabricated finalfalse on a throwing path."
+      }
+    },
+    "directories": {
+      "normalPerFence": {
+        "namespaces": 21,
+        "entries": 1034,
+        "files": 988,
+        "subdirectories": 46,
+        "enumerators": 67
+      },
+      "changedNamespaceCoarseUpper": {
+        "admittedRows": 1055,
+        "positiveCandidates": 1076,
+        "reason": "Each namespace Maximum=declared entry_count+1; next candidate refuses. Sum is broad upper, not a reachable simultaneous maximal path assertion."
+      },
+      "generalWalker": "Maximum admitted rows and at mostMaximum+1 positive MoveNext candidates; <=Maximum+1 directory dequeues including root. Each completed enumerator adds its own finalfalse; throwing enumeration adds no invented finalfalse."
+    },
+    "children": {
+      "names": [
+        "one-opaque-compile",
+        "oracle-produce",
+        "independent-full-verify"
+      ],
+      "sequential": true,
+      "pollVisitsUpper": null,
+      "directionBodiesPerPoll": 2,
+      "readTasksPerChildUpper": 260,
+      "getResultAttemptsPerChildCoarseUpper": 262,
+      "retainedPositiveReadBodiesPerChildUpper": 258,
+      "nonretainedReadSlotsPerChildUpper": 2,
+      "observedBytesUpperPerChild": 1056768,
+      "argumentArrayExtents": [
+        28,
+        6,
+        6
+      ],
+      "environmentKeys": 8,
+      "cleanupCodesUpperPerChild": 13,
+      "finallyDirectionBodies": 2,
+      "flushOwnerCandidates": 2,
+      "disposeOwnerCandidates": 4,
+      "settlementWaitMilliseconds": 2000,
+      "reapWaitMilliseconds": 2000,
+      "quarantineOwnersUpper": 1,
+      "reason": "At most256 retained full4096-byte chunks plus at mosttwo short EOF-positive tails, followed by at mosttwo outstanding/unretained observations; intentionally conservative. Fault GetResult cleanup reattempts are included in coarse262. These facts do not bound idle polls."
+    },
+    "json": {
+      "receiptsProfileReserve": 12,
+      "receiptsReachable": 4,
+      "markerEncodes": 1,
+      "bundleEncodes": 1,
+      "failureInventoryEncodes": 1,
+      "encodesReachableUpper": 7,
+      "measurementsReachableUpper": 11,
+      "bundleMeasurementPasses": 5,
+      "preflightNodeVisitsUpper": 7602176,
+      "preflightNodeVisitFormula": "marker1MiB +4receipts64KiB +5bundle1MiB +failure1MiB =7602176; each cap is nodes+keys upper; successful byte output generally much smaller.",
+      "codecByteCounterCap": 10354688,
+      "reachableCodecByteUpperUsingSealedManifestAndPredecessor": 8281161,
+      "stringEscapes": {
+        "safeAscii": 1,
+        "shortOrQuoteBackslash": 2,
+        "otherUtf16Unit": 6,
+        "quotes": 2,
+        "finalLF": 1
+      },
+      "integerThresholds": {
+        "negative": 18,
+        "nonnegative": 19,
+        "maxDecimalCharacters": 20
+      },
+      "childParseLineCallsNormal": 16,
+      "childRawSlicesEachUpper": 33,
+      "controlOperandProjectionCopiesNormal": 84,
+      "summaryFieldProjectionCopiesNormal": 24,
+      "controlsParsedTransientUpper": 64,
+      "controlsParsedTransientExplanation": "Before exact ID-set completion each child may parse at most32 control rows from33 admitted slices; unknown/duplicate IDs reject before operand copies. Accepted whole normal path is3+11 controls."
+    },
+    "collectionExtents": {
+      "inputIndex": 1153,
+      "includeIndex": 1154,
+      "referenceCaps": 56,
+      "buildCaps": 3,
+      "runnerControlList": 8,
+      "childrenList": 3,
+      "rawSecondaryObjectSlots": 11,
+      "rawSecondaryCountSlots": 11,
+      "projectedSecondaryRowsPerReceipt": 11,
+      "transitiveRows": 1158,
+      "artifactsFinalNormal": 67,
+      "preBundleObservedFiles": 67,
+      "postBundleSuccessFiles": 68,
+      "rawFailurePrefixRows": 78,
+      "peHeadersNormal": 4,
+      "peHeaderExplicitBytePayloadPerCallUpper": 4184,
+      "replacementCallsNormal": 84
+    }
+  },
+  "payloadWorksheet": [
+    {
+      "phase": "bootstrap",
+      "controlled": "manifest byte[]449904 actual sealed length; strict UTF8 text<=899808 UTF16 payload bytes; parsed graph; seven hash byte[] requests458752; seven configured65536 streambuffers; static arrays/receipt30 fields/11+11 secondary slots/digit arrays18+19",
+      "physicalRelease": "NOT_PROVED",
+      "fit": null
+    },
+    {
+      "phase": "fence/index",
+      "controlled": "1153-entry input dictionary plus1154-entry include dictionary coexist; exact source manifest graph;21 namespace traversals, file-set hashes/lists/queues/DTOs;1158 per-fence explicit hash arrays each65536",
+      "physicalRelease": "No buffer reuse; one fence byte-array requests75890688 alone; list/dictionary backing capacities are not equal to Count and are not certified away.",
+      "fit": null
+    },
+    {
+      "phase": "dependency",
+      "controlled": "byte[]<=4194304 plus text<=8388608 UTF16 payload plus ToCharArray<=8388608 =20971520 before parsed graph and prior surviving objects; preparse node cap2564, Includes<=1154",
+      "physicalRelease": "taskBytes=null does not prove physical byte[] reclamation before char[] or parse graph; retain all in conservative envelope.",
+      "fit": null
+    },
+    {
+      "phase": "child",
+      "controlled": "two4096-byte arrays per child, two configured4096 log streambuffers, process/token/two task slots; child row21 fields and cleanup capacity13; quarantine one actual full owner graph",
+      "physicalRelease": "Settled disposal or quarantine ownership is explicit; disposed wrappers and prior buffers may remain allocated until GC. General process/CLR/error graph heap not qualified.",
+      "fit": null
+    },
+    {
+      "phase": "child-result",
+      "controlled": "each of two results byte[]<=65536 plus text<=131072 UTF16 bytes, <=33 substrings with aggregate UTF16 payload<=131072, line list capacity33, parsed transient controls/summary; accepted3+11 projected6-slot operands and two12-field summaries",
+      "physicalRelease": "Old parsed maps and replaced operands remain potential physical allocations; exactBigInteger normalization uses fixedUInt64 bound only for six-operand branch.",
+      "fit": null
+    },
+    {
+      "phase": "JSON document",
+      "controlled": "preflight state+source graph+codec preprocessing clone graph/capacities+escape/output buffers+compressed UTF16 result<=2*(C-1)+LF-concat<=2*C+UTF8byte[]<=C; result/concat/output alone<=5*C-2 payload bytes",
+      "physicalRelease": "No null/out-of-scope GC credit; prior receipt buffers, marker buffer, later bundle, clone and diagnostic graph lifetimes may overlap.",
+      "fit": null
+    },
+    {
+      "phase": "all reachable encodes",
+      "controlled": "C sum <=3*1MiB +4*64KiB=3407872; result+concat+UTF8 pure payload requests <=17039346 for at most7encodes, before source strings/clones/escape builders/array headers/capacities",
+      "physicalRelease": "Cumulative request envelope, not measured live upper or substitute for whole32MiB review.",
+      "fit": null
+    },
+    {
+      "phase": "copy/mutation/PE",
+      "controlled": "two65536 copy arrays; two mutation-before arrays sizes1+2; replacement literal bytes1+2; four PE headers each64+24+optional<=4096; overload-selected default FileStream buffers additionally accountable",
+      "physicalRelease": "Dispose is not generic array-free proof; no new streambuffer zero-cost assumption.",
+      "fit": null
+    },
+    {
+      "phase": "retained pool",
+      "controlled": "declared conservative777348131 bytes under880803840 by103455709; using exactown5 gives776887132 under by103916708",
+      "physicalRelease": "Source reservation only, not runtime admitted artifact, physical memory, compiler temporary disk or unknown failure tail qualification.",
+      "fit": null
+    }
+  ],
+  "coverage": {
+    "allSixtyHelpersMapped": true,
+    "fixedBootstrapAndFunctionDefinitionAdministration": "RETAINED_UNPRICED_OBLIGATION",
+    "wholeErrorAndFooterPaths": "MAPPED_NOT_CLOSED_ACTION_PRICE",
+    "completeHelperActionVectors": "HOLD_NOT_SUPPLIED",
+    "reason": "A closed universal runner action result cannot be supplied until actual poll multiplicity and controlled payload lifetime close. Finite extent/control-event arithmetic here is not relabelled as scalar source prices."
+  },
+  "helpers": [
+    {
+      "name": "Spend-Task",
+      "start": 55,
+      "end": 55,
+      "bound": "Bounded scalar gate; not an action-price certificate.",
+      "obligations": "Call count inherits caller visits; poll contribution unresolved."
+    },
+    {
+      "name": "Assert-NoLink",
+      "start": 56,
+      "end": 60,
+      "bound": "At most 64 admitted parent nodes; a 65th body entry refuses before attributes.",
+      "obligations": "Every while test, final false or throw, parent lookup and caller/default actions remain chargeable."
+    },
+    {
+      "name": "Get-TaskHash",
+      "start": 61,
+      "end": 69,
+      "bound": "One 65536-byte array per call; ceil(length/65536) read bodies plus exact EOF probe; two close attempts.",
+      "obligations": "9400 successful normal calls including eight fences; per-call chunks bounded by actual pin/cap."
+    },
+    {
+      "name": "Invoke-TaskChild",
+      "start": 70,
+      "end": 143,
+      "bound": "Three possible children, argument extents 28/6/6, environment eight fields, two directions per poll and cleanup.",
+      "obligations": "P_compile + P_produce + P_verify has no independent finite source bound; 13 cleanup-code entries per child."
+    },
+    {
+      "name": "Add-TaskChildCleanup",
+      "start": 144,
+      "end": 151,
+      "bound": "Capacity 13; refuses before a 14th row; code ASCII <=64.",
+      "obligations": "At most 39 successful additions over three children; cleanup refusal paths also count."
+    },
+    {
+      "name": "Set-TaskRawExit",
+      "start": 152,
+      "end": 154,
+      "bound": "Three exact switch cases; one optional footer fallback per child.",
+      "obligations": "At most three fallback invocations; no arbitrary child-name dispatch."
+    },
+    {
+      "name": "Invoke-TaskFencedChild",
+      "start": 155,
+      "end": 166,
+      "bound": "Three callers; two fence attempts each; two optional after-binary hashes.",
+      "obligations": "Both primary and secondary failure alternatives retained; after-fence attempted in finally."
+    },
+    {
+      "name": "Replace-TaskBounded",
+      "start": 167,
+      "end": 176,
+      "bound": "Input/token/replacement <=512; nonempty token; <=512 successful matches, <=513 loop-body entries.",
+      "obligations": "84 calls (28 arguments times three replacements); final false or explicit break included, not both invented."
+    },
+    {
+      "name": "Reject-TaskGate",
+      "start": 177,
+      "end": 177,
+      "bound": "One exception and exact two witness entries per reached rejection.",
+      "obligations": "Fixed controls plus actual first failure; not recursive exception serialization."
+    },
+    {
+      "name": "Expect-TaskGate",
+      "start": 178,
+      "end": 184,
+      "bound": "Eight explicit control callers; expected witness maps have 2..6 fields.",
+      "obligations": "Action dispatch, pipeline sink, caught record, witness loop and result map are real code."
+    },
+    {
+      "name": "Add-TaskJsonVisit",
+      "start": 185,
+      "end": 185,
+      "bound": "Whole codec-byte cap 10354688; addition before continuation.",
+      "obligations": "Counter extent is a data admission gate, not scalar-price equivalence."
+    },
+    {
+      "name": "Get-TaskRuntimeType",
+      "start": 186,
+      "end": 186,
+      "bound": "Null or pinned Object.GetType MethodInfo invocation.",
+      "obligations": "All wrapper/caller/receiver/reflection-dispatch actions count; CLR internals opaque."
+    },
+    {
+      "name": "Get-TaskBootstrapHash",
+      "start": 187,
+      "end": 203,
+      "bound": "Seven fixed files, 24581790 bytes, 379 read bodies; <=65 parent-body entries per file.",
+      "obligations": "Seven own 65536-byte arrays plus explicit FileStream bufferSize65536; two close attempts each."
+    },
+    {
+      "name": "Initialize-TaskController",
+      "start": 204,
+      "end": 239,
+      "bound": "Seven startup names, seven pins, fourteen command arguments, two module imports and two codecs.",
+      "obligations": "Fixed setup/authentication and argument construction are prepaid obligations, not free bootstrap."
+    },
+    {
+      "name": "Assert-TaskString",
+      "start": 240,
+      "end": 248,
+      "bound": "At most Maximum UTF16-unit loop bodies; defaults 512/false; some callers 64 or128.",
+      "obligations": "Malformed surrogate refusal and ASCII alternatives count; complete loop final false counted."
+    },
+    {
+      "name": "Get-TaskSafePrefix",
+      "start": 249,
+      "end": 254,
+      "bound": "One caller; maximum512; optional high-surrogate decrement.",
+      "obligations": "Bounded substring, no Exception.Message or arbitrary ToString."
+    },
+    {
+      "name": "Assert-TaskIntegral",
+      "start": 255,
+      "end": 259,
+      "bound": "Exact eight integral types; optional nonnegative comparison.",
+      "obligations": "No general BigInteger acceptance; actual type-test/call/return actions remain."
+    },
+    {
+      "name": "Convert-TaskControlOperand",
+      "start": 260,
+      "end": 271,
+      "bound": "Exactly six operands per accepted control; 14 normal controls =>84 calls.",
+      "obligations": "BigInteger Sign, UInt64.MaxValue bound construction, CompareTo and cast counted on that alternative."
+    },
+    {
+      "name": "Assert-TaskExactKeys",
+      "start": 272,
+      "end": 279,
+      "bound": "Two loops: declared keys, then actual map keys; accepted map cardinality equals key count.",
+      "obligations": "Actual finite keys at callers: environment8, predecessor6, child control3, summary12; output map cap30."
+    },
+    {
+      "name": "Set-TaskSecondary",
+      "start": 280,
+      "end": 284,
+      "bound": "Eleven slots, first raw owner per slot; saturating Int64 counters.",
+      "obligations": "Calls inherit bounded nonpoll failure schedule; raw objects excluded from output graph."
+    },
+    {
+      "name": "Close-TaskOwner",
+      "start": 285,
+      "end": 287,
+      "bound": "One conditional Dispose attempt and bounded primary/secondary handling.",
+      "obligations": "Never assumes Dispose implies GC reclamation of an unrelated explicit array."
+    },
+    {
+      "name": "Complete-TaskOwnerClose",
+      "start": 288,
+      "end": 288,
+      "bound": "One fixed conditional primary propagation.",
+      "obligations": "Caller/default/argument evaluation and exception transfer count."
+    },
+    {
+      "name": "Get-TaskSecondaryCodes",
+      "start": 289,
+      "end": 293,
+      "bound": "Eleven loop bodies; result list initialized capacity11.",
+      "obligations": "At most eleven projected rows per receipt; up to four reachable receipt calls."
+    },
+    {
+      "name": "Assert-TaskCodecBinding",
+      "start": 294,
+      "end": 298,
+      "bound": "Two bound-command checks and one DefaultSettings property read.",
+      "obligations": "No delegate invoked; exact startup/caller proof is restricted, not arbitrary-session theorem."
+    },
+    {
+      "name": "Get-TaskIntegerDigits",
+      "start": 299,
+      "end": 310,
+      "bound": "Negative path18 thresholds; nonnegative path19 thresholds; digits <=20.",
+      "obligations": "Both threshold-loop alternatives and signed/unsigned conversion actions count."
+    },
+    {
+      "name": "Get-TaskEscapedStringBytes",
+      "start": 311,
+      "end": 321,
+      "bound": "At most512 UTF16-unit bodies; exact widths1/2/6 and quote bytes2.",
+      "obligations": "String validation scan is separate; count each actual pass, global string counter and Spend caller."
+    },
+    {
+      "name": "Add-TaskJsonBound",
+      "start": 322,
+      "end": 322,
+      "bound": "One checked addition to document bytes.",
+      "obligations": "Every invocation and scalar caller remains in final census."
+    },
+    {
+      "name": "Visit-TaskJsonValue",
+      "start": 323,
+      "end": 356,
+      "bound": "Depth <=24; nodes+keys <=document cap; map<=30, array<=1158, string<=512.",
+      "obligations": "Separate branches for null/string/bool/integral/map/array; unsupported types refuse before stringify."
+    },
+    {
+      "name": "Measure-TaskJson",
+      "start": 357,
+      "end": 363,
+      "bound": "At most11 reachable invocations over success-plus-late-failure; per-document node cap.",
+      "obligations": "State/result maps, LF addition and actual recursion included; no codec invocation here."
+    },
+    {
+      "name": "Join-TaskBoundedNames",
+      "start": 364,
+      "end": 371,
+      "bound": "One indexed pass through admitted list, each name<=512.",
+      "obligations": "Maximum caller extent1158; joined length<=594053 UTF16 units at that coarse maximum."
+    },
+    {
+      "name": "Get-TaskEntries",
+      "start": 372,
+      "end": 380,
+      "bound": "Queue traversal; Maximum admitted rows, Maximum+1 observed overflow candidate; depth<=64.",
+      "obligations": "Every iterator MoveNext/final-false, queue entry, DTO, iterator-close and overflow action counts."
+    },
+    {
+      "name": "Copy-TaskOwned",
+      "start": 381,
+      "end": 385,
+      "bound": "Two callers; one65536-byte array each; chunks<=2+512=514.",
+      "obligations": "Four stream owners using overload-selected default buffers; do not silently count zero buffering."
+    },
+    {
+      "name": "Mutate-TaskOwnedBytes",
+      "start": 386,
+      "end": 390,
+      "bound": "Two callers; replacement lengths1 and2; own before arrays total3 bytes.",
+      "obligations": "Offset/length checks, reads/writes/flush, returned hex strings and close/error paths count."
+    },
+    {
+      "name": "Assert-TaskDependencyJsonShape",
+      "start": 391,
+      "end": 403,
+      "bound": "One <=4194304-character traversal; node gate2*1154+256=2564; depth24,string512.",
+      "obligations": "ToCharArray duplicates text payload; continue/escape/unicode alternatives are real control paths."
+    },
+    {
+      "name": "Read-TaskBoundedBytes",
+      "start": 404,
+      "end": 408,
+      "bound": "Three main callers: manifest<=1MiB, predecessor<=1MiB, dependencies<=4MiB.",
+      "obligations": "Opened length admitted before length-sized byte[]; each explicit FileStream bufferSize65536 remains accountable."
+    },
+    {
+      "name": "Read-TaskJson",
+      "start": 409,
+      "end": 409,
+      "bound": "Two calls after auth; strict UTF8 then exact pinned decoder; defaultMaximum1MiB.",
+      "obligations": "Nulling byte variable does not establish physical release; dependency preparse is additional."
+    },
+    {
+      "name": "Encode-TaskJson",
+      "start": 410,
+      "end": 423,
+      "bound": "At most7 reachable once-encodes; actual ASCII result scan <=Maximum-1.",
+      "obligations": "Preprocess clone, UTF16 result, LF concat and UTF8 bytes coexist; result destination write once."
+    },
+    {
+      "name": "Get-TaskStageBytes",
+      "start": 424,
+      "end": 426,
+      "bound": "Nonrecursive walk admits<=7 rows and refuses on eighth; names restricted to six.",
+      "obligations": "Positive retained child reads bounded independently of poll count; document guards call twice per write path."
+    },
+    {
+      "name": "Assert-TaskDocumentWrite",
+      "start": 427,
+      "end": 431,
+      "bound": "One path validation, old length stat and stage walk per call.",
+      "obligations": "Measurement-before-encode and byte-write recheck are separate actual invocations."
+    },
+    {
+      "name": "Write-TaskJsonBytes",
+      "start": 432,
+      "end": 435,
+      "bound": "Receipt<=64KiB; other docs<=1MiB; one exact bytes write.",
+      "obligations": "No second serialization; WriteAllBytes primitive boundary still has caller/entry/return obligations."
+    },
+    {
+      "name": "Write-TaskJson",
+      "start": 436,
+      "end": 441,
+      "bound": "Bundle once and failure inventory at most once; optional premeasurement.",
+      "obligations": "Bundle passes measurement; failure inventory measures; never treat unused default path as executed."
+    },
+    {
+      "name": "Save-TaskReceipt",
+      "start": 442,
+      "end": 450,
+      "bound": "Guard12 is reserve; main graph reaches<=4 (three progress plus one failure).",
+      "obligations": "Each has one measure and one encode; previous encoded buffers are not proved physically freed."
+    },
+    {
+      "name": "Assert-TaskIdentity",
+      "start": 451,
+      "end": 451,
+      "bound": "Two field comparisons; bounded exact failure witness.",
+      "obligations": "Fence and reference identities remain separate even when byte-equal."
+    },
+    {
+      "name": "Assert-TaskBoundSourceInteger",
+      "start": 452,
+      "end": 460,
+      "bound": "Four source-work fields; exact positive signed builtins only.",
+      "obligations": "Int64.MaxValue is representation, not selected work allowance."
+    },
+    {
+      "name": "Assert-TaskReservation",
+      "start": 461,
+      "end": 461,
+      "bound": "Fixed main/control calls; checks unbound reviewed limit.",
+      "obligations": "Cannot supply independent source price or justify its own upper via Spend."
+    },
+    {
+      "name": "Assert-TaskRetainedReservation",
+      "start": 462,
+      "end": 462,
+      "bound": "Initial, control, final bundle reservation calls; cap880803840 unchanged.",
+      "obligations": "Source arithmetic only; no actual compiler scratch/disk/RSS inference."
+    },
+    {
+      "name": "Assert-TaskAttempt",
+      "start": 463,
+      "end": 463,
+      "bound": "Actual root absence plus one already-consumed control.",
+      "obligations": "No automatic retry; one marker attempt, CreateNew."
+    },
+    {
+      "name": "Assert-TaskPredecessor",
+      "start": 464,
+      "end": 469,
+      "bound": "One parsed predecessor; exact96 artifacts/147 transitive plus manifestidentity.",
+      "obligations": "Does not recursively copy entire predecessor into output; descriptor six fields."
+    },
+    {
+      "name": "Get-TaskPredecessorDescriptor",
+      "start": 470,
+      "end": 476,
+      "bound": "One six-key projection; four integral-field loop bodies.",
+      "obligations": "Complete predecessor union244 paths/74499159 bytes remains exact."
+    },
+    {
+      "name": "Resolve-TaskInput",
+      "start": 477,
+      "end": 477,
+      "bound": "Path<=512 before joins; rooted/relative alternatives.",
+      "obligations": "No arbitrary runtime include path becomes admitted by this normalization alone."
+    },
+    {
+      "name": "Assert-TaskPins",
+      "start": 478,
+      "end": 490,
+      "bound": "Eight reachable normal calls, nine reserved; each21 namespaces then1158 hashes.",
+      "obligations": "A complete fence has1034 entries/988 files and7743 actual hash chunks including own5."
+    },
+    {
+      "name": "Assert-TaskFileSet",
+      "start": 491,
+      "end": 499,
+      "bound": "Expected loop E, observed O, missing loop E; E,O<=1158.",
+      "obligations": "No per-observed linear membership scan; three bounded diagnostic joins only on rejection."
+    },
+    {
+      "name": "Get-TaskReferences",
+      "start": 500,
+      "end": 504,
+      "bound": "Two calls; each walk Maximum60 and exact56 file hashes; referencepool<=152627224.",
+      "obligations": "At most2342 hash chunks each; row/name arrays and dictionaries remain owned payloads."
+    },
+    {
+      "name": "Assert-TaskSameReferences",
+      "start": 505,
+      "end": 505,
+      "bound": "Before56 entries builds index, After56 checks identities.",
+      "obligations": "Old reference descriptors remain through comparison and later output assembly."
+    },
+    {
+      "name": "Get-TaskPEHeader",
+      "start": 506,
+      "end": 510,
+      "bound": "Four actual normal callers; byte[] sizes64+24+optional<=4096 per call.",
+      "obligations": "No GUI-mutant launch; source-controlled default streambuffer also needs accounting."
+    },
+    {
+      "name": "Assert-TaskConsolePE",
+      "start": 511,
+      "end": 511,
+      "bound": "Four ordinary checks plus one deliberate GUI-subsystem rejection.",
+      "obligations": "Actual PE signature/machine/magic/subsystem checked before child launch."
+    },
+    {
+      "name": "Read-TaskChildResult",
+      "start": 512,
+      "end": 558,
+      "bound": "Three ordinary console checks plus one deliberate GUI-subsystem rejection.",
+      "obligations": "Accepted records3+11; six-operand projection84; summary copies12+12 after exact validation."
+    },
+    {
+      "name": "Get-TaskBuildArtifacts",
+      "start": 559,
+      "end": 563,
+      "bound": "Two calls; nonrecursive Maximum4, exact three file hashes each.",
+      "obligations": "Each file cap32MiB/32MiB/4MiB, combinedpool64MiB; all six calls remain separate."
+    },
+    {
+      "name": "Assert-TaskDependencies",
+      "start": 564,
+      "end": 577,
+      "bound": "One bounded4MiB parsed report; optional modules two fields; Includes1..1154.",
+      "obligations": "Retains only three-field summary; arbitrary parsed extras not in output graph."
+    },
+    {
+      "name": "Save-TaskFailureInventory",
+      "start": 578,
+      "end": 584,
+      "bound": "At most one call; rootwalk<=78 admitted entries, hence<=78 actual prefix file rows, depth64.",
+      "obligations": "The declared69-file artifact recipe is not a raw failed-compiler prefix cap; partial destination survives overflow."
+    }
+  ],
+  "primaryContext": [
+    {
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.thread.sleep",
+      "use": "Root-checked primary context: clock-tick adjustment/exact duration not guaranteed; no7200 iteration derivation or runtime credit."
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/system.io.filestream.-ctor",
+      "use": "Root-checked primary context: six-argument path ctor bufferSize0or1 disables buffering. Proposed successor may choose positive1 after exact source review; not applied to sealedR6."
+    }
+  ],
+  "next": "Preserve sealedR6 UNRUN; review explicit finite poll gate plus single rooted reused hash buffer and source-controlled streambuffer policy, then author successor only after parent review. Recount changed source, JSON/collection lifetime worksheet, independent child census and whole-U review before private data/binding/any execution."
+}

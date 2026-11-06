@@ -1,0 +1,1260 @@
+{
+  "schema": 1,
+  "status": "EXACT_ADL_COMPILER_CORRECTION_PENDING_FRESH_REVIEW_ALL_R5_EXECUTION_UNRUN",
+  "revision": "physical-c1-context-r5",
+  "source_authoring_authorized": true,
+  "source_authoring_basis": "Root inspected actual R4 compiler exit2 and std::_Binder errors; exact private-helper rename hypothesis, fresh review required",
+  "accepted_packet_sha256": "1AB6799790F6B6BC4D082A81F643C13ECF5CB2725179BD484BAB0600D23B7DD2",
+  "accepted_proof_plan_sha256": "7374575E498100F000B4D95FD08B1E6C06B6927AB2DC5859783F78A861D53305",
+  "accepted_source_pins_sha256": "F3C9FD207E3833B22E29C4F58783D519331C3E3A8E763055042113C5DAECE78E",
+  "proposal_head": "1a25a8d886c26fce9f15ec6126c5730a91e1c34d",
+  "authoring_head_read_from_ordinary_main_ref": "80dcad36bfa077abcca23662ad0f5e9a1a5064d6",
+  "moving_root_surfaces_not_pinned": [
+    "STATUS.md",
+    "CMakeLists.txt"
+  ],
+  "new_authorized_files": [
+    "ContextHooks.h",
+    "context_probe.cpp",
+    "freeze_context.py",
+    "prepare_observer.py",
+    "verify_context.py",
+    "run-context.ps1",
+    "README.md",
+    "authored-manifest.json"
+  ],
+  "sources": [
+    {
+      "path": "ContextHooks.h",
+      "bytes": 4417,
+      "sha256": "915CF1079DCAB9B8A3ACCEFF6E041B9B432CE2DB1D1325F91211080B9FD8215F"
+    },
+    {
+      "path": "context_probe.cpp",
+      "bytes": 33924,
+      "sha256": "1BBE6AE8ABDAE0F9D239B04C087291E93CAB0A8A9F01186B15095B179AD887A0"
+    },
+    {
+      "path": "freeze_context.py",
+      "bytes": 24617,
+      "sha256": "412921F9B2EC9FED0D2684A422703922BDA104D2DDF5F0B11A52520996DDED7B"
+    },
+    {
+      "path": "prepare_observer.py",
+      "bytes": 6453,
+      "sha256": "DD3BE52A10CBBBB189D85ED28003C97E29769FE8F70C3B13A05AD7BDFD50DB02"
+    },
+    {
+      "path": "verify_context.py",
+      "bytes": 38656,
+      "sha256": "E1788A1CA34B300E707BC372CF50933E97457848D6226F0291892530959489D0"
+    },
+    {
+      "path": "run-context.ps1",
+      "bytes": 28835,
+      "sha256": "E00CC274236EFB216907E3F3DAB23360B74EF97BE8DA9A37E4F6BC7327D5EF5B"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2631,
+      "sha256": "66FA47A7D70B7E0D13C059494A3EA41C7711F8D7C0DA3792783B5A085A96BC73"
+    }
+  ],
+  "pins": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "CLAUDE.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "CONTEXT.md",
+      "bytes": 46352,
+      "sha256": "C94A06170918C62ADD5D97E9B4C9DF8EF00278426E1BCDE93B97E9B55898A916",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0030-time-stretch-node.md",
+      "bytes": 6083,
+      "sha256": "0EA5C76A6C4BBA22E51627A3AFCCFF737A73686C3EFAA3F68DFAAE2204577407",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0042-stereo-sources-track-width-and-balance.md",
+      "bytes": 5595,
+      "sha256": "16B7162657A178DC6BE1B3A80BCB4DA9AB1C195507DC0BABD888225A9E299A6C",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0049-autonomous-delivery-and-usable-song-milestone.md",
+      "bytes": 9124,
+      "sha256": "CB99B27721D379AD631B43527724BEA8AB53D6EB82D1C27C01CA795175775843",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0055-cross-rate-audio.md",
+      "bytes": 11568,
+      "sha256": "95D92D6B0B657313F28694F08069F9744EF20B3DDEC4E5DC353E1545E796668E",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0059-shared-decoded-assets.md",
+      "bytes": 10327,
+      "sha256": "6284E8C11F1264463D472E41E299A8DFDFF2BEEB21FDF6E6226FF68D2F74331E",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0078-ship-first-cadence.md",
+      "bytes": 3882,
+      "sha256": "16FF2736DE8D9DDCCF88D146EFBDD295697FF64B54EBAB5135883AB706AD6AEC",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0083-musical-audio-prepared-lane.md",
+      "bytes": 31387,
+      "sha256": "7C45C564AC86079A82E487E8AE6AD510A34FCC6AB630663C2B56F8EFEF6FC646",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/adr/0084-musical-audio-channel-equivalence.md",
+      "bytes": 11431,
+      "sha256": "50036D3AEFE09133298B85EA00D93C37E5E41CBFC21F8A3DFBF46725F8CCFA45",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/plans/2026-11-03-editing-improvements-headless-plan.md",
+      "bytes": 6776,
+      "sha256": "A4958D3AF415423055F0C71E3A5883F0B4FB6445CB94E6304134FFC7EA53CCC2",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "docs/plans/2026-11-04-musical-audio-prepared-lane-plan.md",
+      "bytes": 15036,
+      "sha256": "FFC05053978459CBC090000A72B0EE8261C18229A2803355DD4BAC2EEAA679CB",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/MusicalAudioChannelPlan.h",
+      "bytes": 17081,
+      "sha256": "F47C6E49B02A69C16CD554A4C5520CC891146A434603F4E1BB73E9099EB97F16",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/MusicalAudioWindow.h",
+      "bytes": 19572,
+      "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/MusicalAudioCutPlan.h",
+      "bytes": 28956,
+      "sha256": "17A84770B9B4904162008492ADC393EB183678ECD00113C0658EFE355413B390",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/ClipSchedule.h",
+      "bytes": 6706,
+      "sha256": "681ED77653AF195480FAA63FBB57D1804C1C3CBCA813310B18F0B058B7552D1A",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/RateMatchedView.h",
+      "bytes": 5293,
+      "sha256": "9A0770E8690FBC60048BDF13FF1D1BD332B6D620A1985C52895E7FE916BB0571",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "tests/musical_audio_channel_plan_tests.cpp",
+      "bytes": 31649,
+      "sha256": "943EA981BF42E7C389D28E8408C47B501B9DDBBCA34FECC9DD0C67A8907D95BB",
+      "role": "CURRENT_SOURCE_PROTECTED"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/signalsmith-stretch.h",
+      "bytes": 22145,
+      "sha256": "E7BD5C4E35AE05DE34ADE0CFC0E0C2285598543BEDB91420AC863812AF2A035E",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/spectral.h",
+      "bytes": 17009,
+      "sha256": "8B15F3E710BDEB2F7DDF9DA9DB10C0123FE0B0C675726202A6770F18ECFAED96",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/20261105-stereo-context-r1-root-measured-audit.json",
+      "bytes": 4499,
+      "sha256": "CD73FC22614DE13C6C65EB8319BA38CE7DB67E47E0073E2014B5B8CBBEFF66BE",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/README.md",
+      "bytes": 15673,
+      "sha256": "EA7A7B5E35BE03242C934E620FF1E17325BD74E28E8E5F00541D2B82344F0291",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/authored-manifest.json",
+      "bytes": 74092,
+      "sha256": "AD0837999552269370A7511B3727E112DB71CD680BDA2CBE23381ED70F536625",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/ContextHooks.h",
+      "bytes": 4311,
+      "sha256": "EBE4B9FCC2A2B1287626F71890AC8D545736C876105AC70B80F3B54A2E6EC81D",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/context_probe.cpp",
+      "bytes": 14136,
+      "sha256": "CD148D4D1B794343A10CBB2E784E84193B249065E56520DECF3559F64A90391A",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/freeze_context.py",
+      "bytes": 11101,
+      "sha256": "5F0EF98D683D4DD38B59FA052DB93E3C3934E0481D52A9724C5756DACBF7D9A9",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/prepare_observer.py",
+      "bytes": 18899,
+      "sha256": "9858EC4923365F5FD84C2EDBC55977D217BA92385B59979A972FF34A884FBB1C",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/verify_context.py",
+      "bytes": 24335,
+      "sha256": "93CE6A1EC89F76A3A911F26DDD5EFFE9C28FD20AB63AB09464E9A46D8FCEA48B",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/run-context.ps1",
+      "bytes": 10841,
+      "sha256": "D9FAEADE5B4113324BBC1E400D5EC6B90CDB6DC555FD0189CD1975B21A5FD99A",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/README.md",
+      "bytes": 14683,
+      "sha256": "538EB8C65A04FC0BEFF085CB4C969A8E6D1D9F1606AA2BCB16B03AB2E19751E3",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/authored-manifest.json",
+      "bytes": 17564,
+      "sha256": "1121DD78F582932DBD6D9C0022DEF0CFFD1085BF6FFC9497FBB2E4A1216ACAA0",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/ContextHooks.h",
+      "bytes": 4413,
+      "sha256": "69E483399229C627789F35B6D40C906C37535E40F5F0320817D19572BC71787D",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/context_probe.cpp",
+      "bytes": 19975,
+      "sha256": "4CFE4B202E4AF70324F637D2DA0CBFCEA46A6D14BBB02AF9193A557DFA94A2AC",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/freeze_context.py",
+      "bytes": 19775,
+      "sha256": "408CE6C23D15BE92B6B1F8BC20A98FBFEC4FBF4A882C4B42B5AD89647BE5FD29",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/prepare_observer.py",
+      "bytes": 6201,
+      "sha256": "40CC3A88D45ABB0178411E3ED62BF07391FA32E669A106FD1D10B682D8734DC7",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/verify_context.py",
+      "bytes": 34028,
+      "sha256": "C47D63BA12E8B8BACE3B9A92069E9F8BE546319E4978C055B5F6CDC5CEDB1460",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/run-context.ps1",
+      "bytes": 12325,
+      "sha256": "B1EC42FB12366F2989B9987AD63D62D2018B133CBB742AE2C5A468DF200BF207",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/README.md",
+      "bytes": 10666,
+      "sha256": "F1AC8DDBF4A5B9B408B4DA3C0432384D0A9BF7BE7D9A337237EFF40EF4D39AAF",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/authored-manifest.json",
+      "bytes": 15492,
+      "sha256": "2EC0463CE0C6895782526AB77D0E2CB065B22F9530CD78BE10A5D5DEE74D9932",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/freeze_oracles.py",
+      "bytes": 20689,
+      "sha256": "36C51DF7F9FF8E6BC9F40706549F7792382FA6B9B8920FAA591FB325ECD1F971",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/quiet_state.cpp",
+      "bytes": 19626,
+      "sha256": "01F45E235AC317059A088F81B4E6DEEE456626D8FC41AD86B7FB4D4F3147E690",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/verify_records.py",
+      "bytes": 6689,
+      "sha256": "1C25A25F9FC9F4B041DFC07A38774490CA907B5401DB5C9BB0DACC8513AEF1A0",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/run-quiet-state.ps1",
+      "bytes": 11890,
+      "sha256": "90E46C2C2147914C99B924760C183434293E70F0FB4A2424E2D00D30DA62093F",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/geometry.json",
+      "bytes": 432,
+      "sha256": "A13528DA27E637A80187E4CE487D29270604E81CB845DA2B089551421564B8D2",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/calls.txt",
+      "bytes": 9437,
+      "sha256": "5221361E6BD670C63A403106F724BDB76EEC6D28F29C08AF81C9359CECC64C82",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/operands.bin",
+      "bytes": 91284,
+      "sha256": "E647B2FCEEEA37A8B502A2983392247F5010F7334082BE517D726D9B2E80C248",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/expected-base.txt",
+      "bytes": 10080977,
+      "sha256": "4D886BC5BDE2A4972361D8443BB80580A05B3EA2B313EC889F39285668C6CDC5",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/analysis-oracle.json",
+      "bytes": 3712188,
+      "sha256": "5FDE03EB23157B41623D1ED4D33EC429CB0924AE17BE03C036E5C6801109F905",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/synthesis-oracle.json",
+      "bytes": 19497,
+      "sha256": "7863959347F5076651F2EE2E32186A09B55F456F8DCC2932DC20C9A46407F251",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/ownership-rules.json",
+      "bytes": 210458,
+      "sha256": "3A1F44A551A24AD935228634D8F60EFEA37B02F4B8D642206881150CF5D0E84E",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/frozen/freeze-receipt.json",
+      "bytes": 2365,
+      "sha256": "5B82EC457FB6BAE945AEE3C920F63B830DC268E467F2B88B43EF90F0520AD009",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/ObservedStretch.h",
+      "bytes": 29236,
+      "sha256": "D7B14A928EA28EFDA8C971BBF4B57576624E23D920EF0201D1050F69D1B0FB3A",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/ObservedSpectral.h",
+      "bytes": 17997,
+      "sha256": "868CB636C1CEC5525482B8DAE84D75364B2A4EDE2CCCA4949D8A4917430843EA",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/ContextHooks.h",
+      "bytes": 4311,
+      "sha256": "EBE4B9FCC2A2B1287626F71890AC8D545736C876105AC70B80F3B54A2E6EC81D",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/stretch-edits.json",
+      "bytes": 29768,
+      "sha256": "370BD55E00E6A8E838059806312E049D5C7A339869984FB18EBB25AC3C2FCD80",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/spectral-edits.json",
+      "bytes": 5211,
+      "sha256": "232FFC8AE55A2DCEEC37A783D7A1E0A4233C1BFF95BEE7299571DF46EDB2DD1F",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102842-7560821/observer/preparation-receipt.json",
+      "bytes": 9939,
+      "sha256": "6399424ACEB22E9B267EA222A2E24FF9B16F1712EDDDF9FDF26C812605D9784C",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102915-4929305/execution-receipt.json",
+      "bytes": 4247,
+      "sha256": "231E179D7E2BEAFED2BBC24801C623A198E1E67D337F48E5AFBEAB15E2A3DBD1",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102915-4929305/candidate/candidate-receipt.json",
+      "bytes": 326,
+      "sha256": "68D9F085157C81FAC57AAC14D8612831A75610A92A79C39298D343A9291D67FA",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/context-r4/runs/20261105-102915-4929305/candidate/verification-receipt.json",
+      "bytes": 2208,
+      "sha256": "7EAAE7C7E8AEDEFA783435AC0C15419DB32A8010C68ACC83B87484E7115408BE",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/runs/20261105-090102-7859189/execution-receipt.json",
+      "bytes": 4363,
+      "sha256": "664FBA8B2EE069DE19A9E36B0673BAEE4D9150AE3821882CCCDDC1C9602BB585",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/runs/20261105-090102-7859189/candidate/verification-receipt.json",
+      "bytes": 910,
+      "sha256": "5FA57AE7F453780D7446D9C30215F90F47A233C2CC25DC2EAD98A57D1D51F5BB",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/quiet-state-r1/runs/20261105-090102-7859189/candidate/summary.csv",
+      "bytes": 1307,
+      "sha256": "90D3B4376883A424E3C3FE142D071AED8241F1B7CA665D66EC1F17178B7D5A0B",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114929-3203284/execution-receipt.json",
+      "bytes": 9244,
+      "sha256": "D97C1F19ACBBC584C80BC0A664DB182B3F1A5B522AD65DC3B170D9595AE8C283",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/stereo-context-r1/runs/20261105-114929-3203284/candidate/verification-receipt.json",
+      "bytes": 10722,
+      "sha256": "D3A6B7F699E6717789EE44AE8D77521FEB45194571AC6D896DC963C198E4EAFF",
+      "role": "IMMUTABLE_EXISTING_SOURCE_OR_DATA_NOT_NEW_EXECUTION"
+    },
+    {
+      "path": "build-ci/20261105-musical-physical-c1-context-prep/packet.md",
+      "bytes": 18049,
+      "sha256": "1AB6799790F6B6BC4D082A81F643C13ECF5CB2725179BD484BAB0600D23B7DD2",
+      "role": "IMMUTABLE_ACCEPTED_SOURCE_PROPOSAL"
+    },
+    {
+      "path": "build-ci/20261105-musical-physical-c1-context-prep/proof-plan.json",
+      "bytes": 11786,
+      "sha256": "7374575E498100F000B4D95FD08B1E6C06B6927AB2DC5859783F78A861D53305",
+      "role": "IMMUTABLE_ACCEPTED_SOURCE_PROPOSAL"
+    },
+    {
+      "path": "build-ci/20261105-musical-physical-c1-context-prep/source-pins.json",
+      "bytes": 20792,
+      "sha256": "F3C9FD207E3833B22E29C4F58783D519331C3E3A8E763055042113C5DAECE78E",
+      "role": "IMMUTABLE_ACCEPTED_SOURCE_PROPOSAL"
+    },
+    {
+      "path": "src/engine/Resample.h",
+      "bytes": 7045,
+      "sha256": "57367C4381837EB6753A62EE1276A85C63E25085DAB7F6108C2600809E442832",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/Project.h",
+      "bytes": 181566,
+      "sha256": "0294E0B6592633B2601F09B45A9FC724EDD6921512A66B9AB7AD82FB8F817D97",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/nodes/ReverbNode.h",
+      "bytes": 27524,
+      "sha256": "FF0D5718FAD1F6735A4428914C085337317C2749FFB87DA18CAC9D69AA5E0EC9",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/ParamSpec.h",
+      "bytes": 4327,
+      "sha256": "8459F6683CFF26CF2AA4DF17DC428755A540B5E811E50D8E47F27FC3B5DBEE7B",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/Node.h",
+      "bytes": 14358,
+      "sha256": "B9CC354879A703F2BCC31E52BA3F8DB6243611E55478A2FFA52D8E7FF5C1E2B1",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/rt/RtHot.h",
+      "bytes": 2559,
+      "sha256": "C279973D8F1812E713C7757BDBBB86EE763D656196B7C0F54E90D91CDDD74497",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/nodes/PanNode.h",
+      "bytes": 9822,
+      "sha256": "89C7987ADD4BC62E766498B4F76ACA453E3475C15209EE5CCD1270D269BDDB2C",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/dsp/LinearRamp.h",
+      "bytes": 2571,
+      "sha256": "F39B72B99B806E63CCB993DFE22A491E7AF91E0B47A201E271AEE8BEBA973C09",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/nodes/MidiEffectNode.h",
+      "bytes": 32944,
+      "sha256": "65220634417E3C90BFF5B923BECC5A2CA418F04DD22AD5ACFA802D917256FE91",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/nodes/LimiterNode.h",
+      "bytes": 23166,
+      "sha256": "4038929B609B0A06A40B47646E772B84B430666BD174618266E268DEF59B89E2",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/nodes/FxDelayNode.h",
+      "bytes": 24393,
+      "sha256": "E844EF3B83571CB2D244FAEA363EF717EB7F64378215F2F6BACF1B2222AF5221",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/nodes/FaderNode.h",
+      "bytes": 8698,
+      "sha256": "88B69774A48C09BDD487A34F0D512FF50159EB08C680B15F43ACD3A78005C50E",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/nodes/SamplerNode.h",
+      "bytes": 17532,
+      "sha256": "407AB0B64DE44A1F8889CA282717866A1C2E765A8504DDDE7E43A7BACF132CA9",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/nodes/SimpleSynthNode.h",
+      "bytes": 26617,
+      "sha256": "9D3A8F0AE17EE8C02EA082D5D2D104260A7576B4D200CF09BE5EE90FEDCAAAB8",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/nodes/EqNode.h",
+      "bytes": 20715,
+      "sha256": "EFC12C1B5D93F278F12EF570C014614FAF8272DF02DFA5E761111CE470D02598",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/InstrumentState.h",
+      "bytes": 4068,
+      "sha256": "0E6F4E3C422CE9FBE52611B0F03C0636F212A453101788A31C03F0DD8F8E165E",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/nodes/CompressorNode.h",
+      "bytes": 21153,
+      "sha256": "74E27DFA24B41649324CD1E0F6508C21AF271A7272EAFDC35D21A5C228676ECC",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/MixerValue.h",
+      "bytes": 470,
+      "sha256": "ABFBC5A9F79410BF5C3D766F61C16E5F197B710F59ADC880FA8D70D68ABF0E49",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/Automation.h",
+      "bytes": 10749,
+      "sha256": "8DD3153C64D8F3410682CB58C583C9E85BBD99A5E9AB5FD411503B6191605932",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "src/engine/ClipEnvelope.h",
+      "bytes": 5221,
+      "sha256": "1375368503D68E8BCFB09014687B4A84CBF72F92FC1548FC5AB281EE19A89B9D",
+      "role": "TRANSITIVE_CURRENT_OWNED_REQUEST_HEADER"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/common.h",
+      "bytes": 1834,
+      "sha256": "9F0C24BEA6536715026DFEC2EDECD05D130FC121B0F40590D1948A878671BF52",
+      "role": "PINNED_VENDOR_TRANSITIVE_HEADER_NO_MATH_CREDIT"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/curves.h",
+      "bytes": 11954,
+      "sha256": "73E00DE896A7E0E565EBDD1DA9ABCFED1ACC176F3CD4997DCE8EE7376070883C",
+      "role": "PINNED_VENDOR_TRANSITIVE_HEADER_NO_MATH_CREDIT"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/delay.h",
+      "bytes": 24125,
+      "sha256": "876F3A5B69EC8E55E6769E14383A99A4354060EF0B76594D509444CE1FEAAC72",
+      "role": "PINNED_VENDOR_TRANSITIVE_HEADER_NO_MATH_CREDIT"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/envelopes.h",
+      "bytes": 17566,
+      "sha256": "DED002FE8DFB27BF13946A9D0AD4F4948C02E44B7340B8B239FE6B8253E2CEB5",
+      "role": "PINNED_VENDOR_TRANSITIVE_HEADER_NO_MATH_CREDIT"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/fft.h",
+      "bytes": 16832,
+      "sha256": "B75422EE9E261F4268FB85BF9693388AF565F57B4F14D637B732FB570A818B30",
+      "role": "PINNED_VENDOR_TRANSITIVE_HEADER_NO_MATH_CREDIT"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/filters.h",
+      "bytes": 17854,
+      "sha256": "5E61F1E3E19C40BF325F53A89DC85C318D5612DE07C7846DC7E62FA0A808E6B7",
+      "role": "PINNED_VENDOR_TRANSITIVE_HEADER_NO_MATH_CREDIT"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/mix.h",
+      "bytes": 6821,
+      "sha256": "2BD0B441CFDCE378141A0D00EEC411484D141434AD4F189D2A38F0A453D2A310",
+      "role": "PINNED_VENDOR_TRANSITIVE_HEADER_NO_MATH_CREDIT"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/perf.h",
+      "bytes": 2534,
+      "sha256": "2D253878B514D23178223A3C6EAF9113B0C8C03412836A998387FAA4415348D8",
+      "role": "PINNED_VENDOR_TRANSITIVE_HEADER_NO_MATH_CREDIT"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/rates.h",
+      "bytes": 6915,
+      "sha256": "CF947B7AAD410F5A21CD00904361D0403A45AC00487381AA5B25F00FB40B4D5E",
+      "role": "PINNED_VENDOR_TRANSITIVE_HEADER_NO_MATH_CREDIT"
+    },
+    {
+      "path": "build-ci/_deps/signalsmith_stretch-src/dsp/windows.h",
+      "bytes": 8421,
+      "sha256": "71B0556F7A5C0293C8C2D6B9209E54AFDB86319438C1E49BC815DCFCE62B4312",
+      "role": "PINNED_VENDOR_TRANSITIVE_HEADER_NO_MATH_CREDIT"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/ContextHooks.h",
+      "bytes": 4420,
+      "sha256": "4A892D83FC9528EED682DC5E3E54A52C487AF5B3B744E69D67CAE8A44EAF8DED",
+      "role": "NEW_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/context_probe.cpp",
+      "bytes": 33891,
+      "sha256": "176E9E63268E98E49F2710DE45365E0ECAA514C423FF6A5F7D9B42467FF790BC",
+      "role": "NEW_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/freeze_context.py",
+      "bytes": 24218,
+      "sha256": "A8DE201F4A318A92CDE6E8E426F4FEBB77851A5077317C7EB044E062F144C227",
+      "role": "NEW_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/prepare_observer.py",
+      "bytes": 6474,
+      "sha256": "55C3DDDDEF8F0D223BCEE37DA675DE8B332FA34D3341C6E6A90E05A7D9CC183B",
+      "role": "NEW_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/verify_context.py",
+      "bytes": 38610,
+      "sha256": "A3BD22D4B126619D14E1A2933BD421FF6CBA3D62A7F6DC59D0E6F149E67403A8",
+      "role": "NEW_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/run-context.ps1",
+      "bytes": 17158,
+      "sha256": "714AB622710B5599F7FFEA5DB495243183F532F73C8EA9A5EC970A9416350FF8",
+      "role": "NEW_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/README.md",
+      "bytes": 11487,
+      "sha256": "63843EE2E9A36FBC24FE7B9D3A0753DD8AC18BF85115926442CA7C59E43E45FB",
+      "role": "NEW_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/HostX64/x64/cl.exe",
+      "bytes": 677736,
+      "sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+      "role": "PINNED_COMPILER_OR_PI_HEADER_READ_ONLY_NOT_EXECUTED"
+    },
+    {
+      "absolute_path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/numbers",
+      "bytes": 4872,
+      "sha256": "53AF2276596D45F8A9BFA8C6BB5FEE451AC3F57BB32F3C40F74C527B8BEEA5C1",
+      "role": "PINNED_COMPILER_OR_PI_HEADER_READ_ONLY_NOT_EXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r1/authored-manifest.json",
+      "bytes": 36171,
+      "sha256": "B0236347E7180445537D56CF6F0E662DA80EF556BBCFB1F6C3D97234E1A058D9",
+      "role": "PRESERVED_R1_MANIFEST"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/ContextHooks.h",
+      "bytes": 4417,
+      "sha256": "44A564EE468827B2C0399FE5B222119CD8A06310452EFE407BE8C88BA5B8130D",
+      "role": "NEW_R2_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/context_probe.cpp",
+      "bytes": 33891,
+      "sha256": "F1F0F4A60E1732F60F4D2FADB7FAB7AF2C9EAE50826E622C06908A161C8C78C8",
+      "role": "NEW_R2_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/freeze_context.py",
+      "bytes": 24617,
+      "sha256": "A8C5F4080EC91EDE996DE834538AF1214F1A1052433C39D666FC3CE6751E2AC2",
+      "role": "NEW_R2_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/prepare_observer.py",
+      "bytes": 6453,
+      "sha256": "AC3365A7B00A88D6D64181BB406E1DAD8D7E33ABD849E4C867BD7FADC0D719AD",
+      "role": "NEW_R2_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/verify_context.py",
+      "bytes": 38656,
+      "sha256": "6D1E6BF69D50D0F1A4AE27CCA0A9CF3890F083147BAF9378F7072D4CE9AF4240",
+      "role": "NEW_R2_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/run-context.ps1",
+      "bytes": 23608,
+      "sha256": "194D0A344E7F77150527F31C1F1BFC19F44DFC36E49F4B236C2684D65D6F9374",
+      "role": "NEW_R2_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/README.md",
+      "bytes": 6968,
+      "sha256": "B58E5D17F851AF002931F9C84325062FE6ABC01E524BA3C609A25D74DF35297B",
+      "role": "NEW_R2_SOURCE_AUTHORED_UNEXECUTED"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/authored-manifest.json",
+      "bytes": 40559,
+      "sha256": "3A3C046F098A4ECBD0D3C8CF2D9A939031B0AB4E53F111550F8ABC8FEFF8F9BD",
+      "role": "IMMUTABLE_R2_SOURCE_LINEAGE_NOT_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/context_probe.cpp",
+      "bytes": 33891,
+      "sha256": "F1F0F4A60E1732F60F4D2FADB7FAB7AF2C9EAE50826E622C06908A161C8C78C8",
+      "role": "IMMUTABLE_R2_SOURCE_LINEAGE_NOT_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/ContextHooks.h",
+      "bytes": 4417,
+      "sha256": "44A564EE468827B2C0399FE5B222119CD8A06310452EFE407BE8C88BA5B8130D",
+      "role": "IMMUTABLE_R2_SOURCE_LINEAGE_NOT_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/freeze_context.py",
+      "bytes": 24617,
+      "sha256": "A8C5F4080EC91EDE996DE834538AF1214F1A1052433C39D666FC3CE6751E2AC2",
+      "role": "IMMUTABLE_R2_SOURCE_LINEAGE_NOT_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/prepare_observer.py",
+      "bytes": 6453,
+      "sha256": "AC3365A7B00A88D6D64181BB406E1DAD8D7E33ABD849E4C867BD7FADC0D719AD",
+      "role": "IMMUTABLE_R2_SOURCE_LINEAGE_NOT_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/README.md",
+      "bytes": 6968,
+      "sha256": "B58E5D17F851AF002931F9C84325062FE6ABC01E524BA3C609A25D74DF35297B",
+      "role": "IMMUTABLE_R2_SOURCE_LINEAGE_NOT_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/run-context.ps1",
+      "bytes": 23608,
+      "sha256": "194D0A344E7F77150527F31C1F1BFC19F44DFC36E49F4B236C2684D65D6F9374",
+      "role": "IMMUTABLE_R2_SOURCE_LINEAGE_NOT_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r2/verify_context.py",
+      "bytes": 38656,
+      "sha256": "6D1E6BF69D50D0F1A4AE27CCA0A9CF3890F083147BAF9378F7072D4CE9AF4240",
+      "role": "IMMUTABLE_R2_SOURCE_LINEAGE_NOT_EXECUTION"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r3/authored-manifest.json",
+      "bytes": 44987,
+      "sha256": "F800DC0B04F266F58862275925F2228352BC4433087C8C7A1DED8B607627B775",
+      "role": "IMMUTABLE_R3_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r3/context_probe.cpp",
+      "bytes": 33891,
+      "sha256": "502C46BECC9BA3D2D279BABACF469408FBEA62A1486EFD7F43603C1AD53A11F9",
+      "role": "IMMUTABLE_R3_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r3/ContextHooks.h",
+      "bytes": 4417,
+      "sha256": "915CF1079DCAB9B8A3ACCEFF6E041B9B432CE2DB1D1325F91211080B9FD8215F",
+      "role": "IMMUTABLE_R3_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r3/freeze_context.py",
+      "bytes": 24617,
+      "sha256": "412921F9B2EC9FED0D2684A422703922BDA104D2DDF5F0B11A52520996DDED7B",
+      "role": "IMMUTABLE_R3_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r3/prepare_observer.py",
+      "bytes": 6453,
+      "sha256": "DD3BE52A10CBBBB189D85ED28003C97E29769FE8F70C3B13A05AD7BDFD50DB02",
+      "role": "IMMUTABLE_R3_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r3/README.md",
+      "bytes": 9767,
+      "sha256": "E945CC24B09940007B100B6EC7F59FF88A2C0D36BDDF51353F8290F5287006A1",
+      "role": "IMMUTABLE_R3_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r3/run-context.ps1",
+      "bytes": 28836,
+      "sha256": "2449EA30D76C32CF6C07E89938B1FC86AFD49A132ED59182E13F1282E0655EEE",
+      "role": "IMMUTABLE_R3_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r3/verify_context.py",
+      "bytes": 38656,
+      "sha256": "E1788A1CA34B300E707BC372CF50933E97457848D6226F0291892530959489D0",
+      "role": "IMMUTABLE_R3_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/ContextHooks.h",
+      "bytes": 4417,
+      "sha256": "915CF1079DCAB9B8A3ACCEFF6E041B9B432CE2DB1D1325F91211080B9FD8215F",
+      "role": "CURRENT_R4_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/context_probe.cpp",
+      "bytes": 33889,
+      "sha256": "9730B9B166851CEFAC39CB39987F5AB1554F041CA89E7F8D3704DEA86C92992F",
+      "role": "CURRENT_R4_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/freeze_context.py",
+      "bytes": 24617,
+      "sha256": "412921F9B2EC9FED0D2684A422703922BDA104D2DDF5F0B11A52520996DDED7B",
+      "role": "CURRENT_R4_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/prepare_observer.py",
+      "bytes": 6453,
+      "sha256": "DD3BE52A10CBBBB189D85ED28003C97E29769FE8F70C3B13A05AD7BDFD50DB02",
+      "role": "CURRENT_R4_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/verify_context.py",
+      "bytes": 38656,
+      "sha256": "E1788A1CA34B300E707BC372CF50933E97457848D6226F0291892530959489D0",
+      "role": "CURRENT_R4_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/run-context.ps1",
+      "bytes": 28835,
+      "sha256": "3097A19BD198DF5F576C2CFB6C4877FF83AF6C9497E000B03051D73279709C49",
+      "role": "CURRENT_R4_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/README.md",
+      "bytes": 3634,
+      "sha256": "08B7D8EB9A05023666D5EFB0EB76D81D0E57BE7F70325D868D08460772725697",
+      "role": "CURRENT_R4_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/authored-manifest.json",
+      "bytes": 49700,
+      "sha256": "168BC03EC79601516763CF51E48D7B24C3EA9CDB8984CB4474E09981DEDC2EA4",
+      "role": "IMMUTABLE_R4_SOURCE_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/context_probe.cpp",
+      "bytes": 33889,
+      "sha256": "9730B9B166851CEFAC39CB39987F5AB1554F041CA89E7F8D3704DEA86C92992F",
+      "role": "IMMUTABLE_R4_SOURCE_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/ContextHooks.h",
+      "bytes": 4417,
+      "sha256": "915CF1079DCAB9B8A3ACCEFF6E041B9B432CE2DB1D1325F91211080B9FD8215F",
+      "role": "IMMUTABLE_R4_SOURCE_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/freeze_context.py",
+      "bytes": 24617,
+      "sha256": "412921F9B2EC9FED0D2684A422703922BDA104D2DDF5F0B11A52520996DDED7B",
+      "role": "IMMUTABLE_R4_SOURCE_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/prepare_observer.py",
+      "bytes": 6453,
+      "sha256": "DD3BE52A10CBBBB189D85ED28003C97E29769FE8F70C3B13A05AD7BDFD50DB02",
+      "role": "IMMUTABLE_R4_SOURCE_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/README.md",
+      "bytes": 3634,
+      "sha256": "08B7D8EB9A05023666D5EFB0EB76D81D0E57BE7F70325D868D08460772725697",
+      "role": "IMMUTABLE_R4_SOURCE_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/run-context.ps1",
+      "bytes": 28835,
+      "sha256": "3097A19BD198DF5F576C2CFB6C4877FF83AF6C9497E000B03051D73279709C49",
+      "role": "IMMUTABLE_R4_SOURCE_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/verify_context.py",
+      "bytes": 38656,
+      "sha256": "E1788A1CA34B300E707BC372CF50933E97457848D6226F0291892530959489D0",
+      "role": "IMMUTABLE_R4_SOURCE_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/runs/20261105-143211-0568691/execution-receipt.json",
+      "bytes": 4140,
+      "sha256": "4AE3DA03605DE388ED63063431E9C33E13239A25C617E7D1D4B5A9D6FCAC235E",
+      "role": "ACTUAL_R4_FAILURE_OR_FREEZE_REVIEW_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/runs/20261105-143211-0568691/compile.stdout.log",
+      "bytes": 14247,
+      "sha256": "D8776CCE8CA11B1F5F5AC8995F66DC95214B84E37F14D43AE0D6F939089E7701",
+      "role": "ACTUAL_R4_FAILURE_OR_FREEZE_REVIEW_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r4/runs/20261105-142812-8285107/execution-receipt.json",
+      "bytes": 28417,
+      "sha256": "CA5D73A9F03F48D58554C2BF616B1D69BEE398C4D8CD59DE2DCB2508B6564268",
+      "role": "ACTUAL_R4_FAILURE_OR_FREEZE_REVIEW_LINEAGE"
+    },
+    {
+      "path": "build-ci/20261105-physical-c1-r4-freeze-root-review.json",
+      "bytes": 2376,
+      "sha256": "5FCD461B73214AAFD8F70C676876A359B7480707E7ADA1748DD786C5510DB9F2",
+      "role": "ACTUAL_R4_FAILURE_OR_FREEZE_REVIEW_LINEAGE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/ContextHooks.h",
+      "bytes": 4417,
+      "sha256": "915CF1079DCAB9B8A3ACCEFF6E041B9B432CE2DB1D1325F91211080B9FD8215F",
+      "role": "CURRENT_R5_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/context_probe.cpp",
+      "bytes": 33924,
+      "sha256": "1BBE6AE8ABDAE0F9D239B04C087291E93CAB0A8A9F01186B15095B179AD887A0",
+      "role": "CURRENT_R5_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/freeze_context.py",
+      "bytes": 24617,
+      "sha256": "412921F9B2EC9FED0D2684A422703922BDA104D2DDF5F0B11A52520996DDED7B",
+      "role": "CURRENT_R5_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/prepare_observer.py",
+      "bytes": 6453,
+      "sha256": "DD3BE52A10CBBBB189D85ED28003C97E29769FE8F70C3B13A05AD7BDFD50DB02",
+      "role": "CURRENT_R5_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/verify_context.py",
+      "bytes": 38656,
+      "sha256": "E1788A1CA34B300E707BC372CF50933E97457848D6226F0291892530959489D0",
+      "role": "CURRENT_R5_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/run-context.ps1",
+      "bytes": 28835,
+      "sha256": "E00CC274236EFB216907E3F3DAB23360B74EF97BE8DA9A37E4F6BC7327D5EF5B",
+      "role": "CURRENT_R5_OWN_SOURCE_RUNTIME_FENCE"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/README.md",
+      "bytes": 2631,
+      "sha256": "66FA47A7D70B7E0D13C059494A3EA41C7711F8D7C0DA3792783B5A085A96BC73",
+      "role": "CURRENT_R5_OWN_SOURCE_RUNTIME_FENCE"
+    }
+  ],
+  "pin_count": 159,
+  "transitive_project_header_count": 25,
+  "compiler_profile": {
+    "artifact_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+    "family": "MSVC1944",
+    "architecture": "x64",
+    "NDEBUG": true,
+    "optimization": "O2",
+    "floating_point": "strict",
+    "PE_console_required": true,
+    "pi_header_sha256": "53AF2276596D45F8A9BFA8C6BB5FEE451AC3F57BB32F3C40F74C527B8BEEA5C1",
+    "nonsticky_MXCSR": "0x1f80",
+    "rounding": "FE_TONEAREST",
+    "controls_read_never_changed": true,
+    "COFF_Machine_required": "0x8664",
+    "PE_optional_header_magic_required": "0x20b",
+    "PE_subsystem_required": 3
+  },
+  "source_guards": {
+    "runner": "literal reviewed readiness true; explicit Execute, separately authorized stage and sole successful hash-bound Freeze required",
+    "main": "literal sourceProofReviewed=true and sourceAccountingClosed=true for limited reviewed source hypothesis only",
+    "metadata_can_unlock": false,
+    "reviewed_source_successor_required": false,
+    "fresh_exact_R5_review_required_before_execution": true
+  },
+  "execution": {
+    "authored_imports": false,
+    "generator": false,
+    "Freeze": false,
+    "observer_preparation": false,
+    "compiler": false,
+    "tests": false,
+    "DSP": false,
+    "environment_probe": false,
+    "network": false,
+    "Git": false,
+    "native_app": false,
+    "desktop_input": false,
+    "audio_device": false,
+    "hardware": false,
+    "subagents": false
+  },
+  "protected_existing_files_changed": false,
+  "new_execution_status": "ALL_UNRUN",
+  "source_expected_inventory": {
+    "main_fixtures": 6,
+    "calls": 132,
+    "syntheses": 150,
+    "physical_analyses": 300,
+    "private_sample_compares": 43904,
+    "retained_frames": 36864,
+    "extra_old_C2_control_calls": 18,
+    "extra_private_control_samples": 4608,
+    "record_controls": 12,
+    "physical_controls": 3
+  },
+  "source_bounds": {
+    "status": "PROPOSED_PENDING_FRESH_COMPLETE_SOURCE_CRITIQUE_NOT_MEASURED",
+    "terminal_flush_C_times_W_included": true,
+    "main_rows_upper": 7930808,
+    "relations_upper": 184320,
+    "maximum_chain_depth": 5,
+    "main_payload_upper": 827256320,
+    "control_payload_reserved": 1048576,
+    "complete_two_stage_payload_upper": 828304896,
+    "maximum_case_payload_upper": 470551088,
+    "case_payload_cap": 536870912,
+    "revision_payload_cap": 1073741824,
+    "frozen_case_uppers": [
+      1553336,
+      1557488,
+      3453168,
+      193520,
+      193520,
+      16811376
+    ],
+    "frozen_case_reservation": 33554432,
+    "other_per_case": 50331648,
+    "source_work_cap": 268435456,
+    "parent_source_work_reserved": 260000000,
+    "stage_ceilings": {
+      "Freeze_including_runner": 14000000,
+      "reversible_preparation": 6000000,
+      "candidate_including_controls": 12000000,
+      "independent_replay_including_controls": 228000000
+    },
+    "runner_reserved_from_Freeze": 2097152,
+    "per_event_bytes": 64,
+    "per_relation_bytes": 96,
+    "complete_DSP_or_allocator_RSS_credit": false,
+    "freezer_child_guard": 3000000,
+    "freezer_case_source_uppers": [
+      97769,
+      100883,
+      248583,
+      100883,
+      100883,
+      1003151
+    ],
+    "freezer_complete_source_upper": 2859244,
+    "preparation_source_upper": 4987625,
+    "candidate_source_upper": 10963596,
+    "replay_source_upper_strict": 168000000,
+    "runner_reserved_per_invocation": 1048576,
+    "maximum_prepared_prior": 11097152,
+    "maximum_phase_runtime_total": 251097152,
+    "detailed_shared_payload_upper": 701072360,
+    "original_main_case_subtotal": 436962496,
+    "child_log_raw_byte_cap_per_invocation": 8388608,
+    "compiler_environment_capture_cap": 65536,
+    "shared_other_reservation": 50331648,
+    "shared_breakdown_MiB": {
+      "logs_both_invocations": 16,
+      "build": 8,
+      "observer": 4,
+      "metadata": 8,
+      "launcher_transient": 2,
+      "spare": 10
+    },
+    "normal_read_buffers": 8192,
+    "normal_file_buffers": 8192,
+    "hash_requested_buffers": 8192,
+    "PE_requested_buffers": 4352,
+    "compiler_environment_requested_profile_less_than": 614400,
+    "compiler_environment_reserved_profile": 1048576,
+    "cleanup_source_reservation_per_child": 1024,
+    "cleanup_fixed_source_worksheet": 608,
+    "cleanup_read_tasks_max": 2,
+    "cleanup_diagnostic_slots_reserved": 16,
+    "cleanup_diagnostics_reachable_max": 11,
+    "own_child_exit_wait_ms": 2000,
+    "combined_raw_read_settlement_wait_ms": 2000,
+    "quarantined_owner_bundles_max": 1,
+    "quarantine_copies_byte_payload": false,
+    "cleanup_cannot_raise_runner_or_parent_ceiling": true,
+    "cleanup_CLR_API_walltime_certified": false
+  },
+  "separate_control_scope": [
+    "actual original1 signed-zero source plane versus original0 bit gate, rejected before DSP",
+    "actual queried C1 configuration versus actual distinct C2 Plan, no process calls",
+    "actual persistent old C2 equivalent-input output fails numerical equality, raw PCM quarantined; no repair"
+  ],
+  "prior_odd_C1_reused_as_new_execution": false,
+  "prior_odd_scope": "exact old odd11025 ratio2 C1 context receipt only; new owned odd binding remains unrun",
+  "static_inspection": {
+    "LF_files": 8,
+    "Python_AST_files": 3,
+    "PowerShell_AST_parse": true,
+    "Cpp_lexical_delimiters_balanced": true,
+    "Cpp_compilation": "UNRUN",
+    "existing67pins_verified": true,
+    "table_formulas_independently_recalculated": true,
+    "no_authored_module_imported": true,
+    "Cpp_exact_delta_inverse_to_R1": true,
+    "source_worksheets_recalculated": true,
+    "R1_seven_sources_and_manifest_exact": true,
+    "R2_eight_source_files_exact": true,
+    "Cpp_exact_delta_inverse_to_R2": true,
+    "five_nonlauncher_code_exact_R2_inverse": true,
+    "PowerShell_only_Invoke_TaskChild_PE_machine_and_path_changed": true,
+    "existing125pins_verified": true
+  },
+  "remaining_HOLD_items": [
+    "fresh R5 exact private-helper ADL correction and current-source fence criticism",
+    "root sole Freeze-only GO and actual new output/reversal/hash review",
+    "separate sole CompileAndRun GO; R4 failure retained, no candidate DSP ran in R4"
+  ],
+  "production_accepted": false,
+  "context_certified": false,
+  "waveform_run": false,
+  "resource_certificate": false,
+  "public_pcm_samples": 0,
+  "superseded_immutable_manifest_sha256": "168BC03EC79601516763CF51E48D7B24C3EA9CDB8984CB4474E09981DEDC2EA4",
+  "inherited_R2_corrected_source_deltas": {
+    "CPP_exact_inverse_to_R1_after": [
+      "Clock span syntax correction",
+      "derived prior bound11097152",
+      "physical_c1_r2 namespace and R2 Stretch namespace"
+    ],
+    "Python_changed_definitions_only": {
+      "freeze_context.py": [
+        "freeze"
+      ],
+      "verify_context.py": [
+        "verify"
+      ],
+      "prepare_observer.py": [
+        "prepare"
+      ]
+    },
+    "C1_arithmetic_context_controls_fixtures_unchanged": true,
+    "runner_cumulative_allowance": 2097152,
+    "bounded_raw_logging_and_env_parser": true,
+    "bounded_PE_and_SHA_reads": true,
+    "compiler_hash_before_after": true,
+    "executable_hash_prelaunch_after_candidate_after_verifier": true,
+    "R1_immutable": true
+  },
+  "corrected_source_deltas": {
+    "CPP_and_four_support_files_exact_inverse_to_R2_after": [
+      "physical_c1_r3 to physical_c1_r2",
+      "physical_c1_context_r3 to physical_c1_context_r2",
+      "PHYSICAL_C1_CONTEXT_HOOKS_R3 to PHYSICAL_C1_CONTEXT_HOOKS_R2",
+      "PHYSICAL_C1_CONTEXT_R3 to PHYSICAL_C1_CONTEXT_R2",
+      "physical-c1-context-r3 to physical-c1-context-r2"
+    ],
+    "runner_only_function_replaced": "Invoke-TaskChild: direct typed array assignment, owned token-cancellable raw reads, bounded settlement and truthful diagnostics",
+    "runner_outside_function_only": [
+      "revision path r2 to r3",
+      "COFF Machine at PE offset4 equals0x8664"
+    ],
+    "R2_all_eight_actual_lineage_pins_added": 8,
+    "C1_arithmetic_context_phase_factory_controls_fixtures_unchanged": true,
+    "source_guards_both_literal_HOLD": true,
+    "R1_and_R2_immutable": true
+  },
+  "readiness_delta": {
+    "cpp_only_two_source_readiness_booleans": true,
+    "runner_only_literal_readiness_and_exact_revision_path": true,
+    "R3_namespaces_and_phase_format_preserved": true,
+    "numeric_oracle_control_threshold_changes": false,
+    "runtime_source_fence_added": true,
+    "R3_prior_pin_entries_preserved": 125,
+    "new_R3_lineage_entries": 8,
+    "new_R4_own_source_entries": 7,
+    "four_support_sources_byte_exact_R3": true
+  },
+  "compiler_correction": {
+    "private_declaration_and_calls_renamed": 5,
+    "old": "bind",
+    "new": "bindRequest",
+    "cpp_exact_inverse_to_R4": true,
+    "runner_only_exact_revision_path_changed": true,
+    "four_support_sources_exact_R4": true,
+    "R4_compile_exit": 2,
+    "R4_candidate_exit": null,
+    "R4_verifier_exit": null,
+    "R4_failure_receipt_sha256": "4AE3DA03605DE388ED63063431E9C33E13239A25C617E7D1D4B5A9D6FCAC235E",
+    "actual_R5_execution": "UNRUN",
+    "ADL_supported_hypothesis": "Remove std::bind overload resolution by unique private name; no numeric or control change"
+  }
+}

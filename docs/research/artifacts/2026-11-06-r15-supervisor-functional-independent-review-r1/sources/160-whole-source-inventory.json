@@ -1,0 +1,1117 @@
+{
+  "parent_helpers": [
+    {
+      "name": "Spend-Task",
+      "first_line": 67,
+      "sha256": "66DF6C55461CDF58502EC0F611FEB24F657362C7CF10FC853B88668C1CD012FD",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Test-TaskPathCatalogueContext",
+      "first_line": 68,
+      "sha256": "D10F058738B1EFF90307AC5425230C45F21D06C6C30BDB21770A8325AEE52041",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Add-TaskPathCatalogueEntry",
+      "first_line": 71,
+      "sha256": "C9DE3543766471C4654BA2734AB311128333F3B3E5F501D091F3B17ABE644C58",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Initialize-TaskPathCatalogue",
+      "first_line": 86,
+      "sha256": "0F75DFDD138E452B0127DE6A4DEE3AB8775659AC7FD69D3AE5E34FA5EF1B6CAA",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskCatalogueString",
+      "first_line": 103,
+      "sha256": "60F9684C05BADCA5067AC82E8AEA97E2948643576548D91B6D3460BA188A4609",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskCatalogueEntryPath",
+      "first_line": 109,
+      "sha256": "BB22B5A5FDDBC7AC5926974C7FDDB948D85626DA066C682B2FF296E806BC5542",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskCanonicalPath",
+      "first_line": 140,
+      "sha256": "67C28288B8F0324E376AEBAAE7CC8370DF8055D6AAE352EC73CDAEC0E85DB2CE",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-NoLink",
+      "first_line": 148,
+      "sha256": "31DE6D632202DA09BAA1014F5635A30B88EAB2F76E1BDFE9E35DF23E2859718E",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskHash",
+      "first_line": 153,
+      "sha256": "08A684A5B35E118473A0CEC4A151D1F1E3E8510C703352875C7672C941FF019E",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskHashHex",
+      "first_line": 164,
+      "sha256": "D08B2EE66428DA87A240FF55DCB7DD0321417FA2A7A2E8B9D30607D4A46A89B6",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Test-TaskHashValue",
+      "first_line": 165,
+      "sha256": "8B8B916CDEF6085D4EBEDB0F266D4EBECF843298848D080B9C901AAEC11A0F4F",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskFreshHashIdentity",
+      "first_line": 183,
+      "sha256": "CF9E7C786EEAEF89A45A48F6A86F9FC7A82335BC76DAFA55844C1D12E3C76A73",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskPollAdmission",
+      "first_line": 190,
+      "sha256": "554418A08FE8E11283901184255FFE7CC73B3D3BCF2CA940E718EDD47FE228FA",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Spend-TaskSupervisor",
+      "first_line": 193,
+      "sha256": "BE3351FEB0FC96C069B594C7DE62CBAE8C07BE75C4B976451CA1DA4DE7A59382",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Set-TaskSupervisorInteger",
+      "first_line": 199,
+      "sha256": "0513982A96944D45C7F1A8A5CB1F693932ED649DEFD092E8885C43CC818B8C50",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskSupervisorInteger",
+      "first_line": 203,
+      "sha256": "BE19E84183D3C580761B01F1E57C9EB279E4731F18C38EFB9F8B58BC1EF6644F",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskSupervisorRunHash",
+      "first_line": 209,
+      "sha256": "06CC774058BB55A55B32BB72C1CD0E0E5496D64FC9A76FD1FC8B492E0923A51F",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskSupervisorEnvironment",
+      "first_line": 220,
+      "sha256": "9E67AE6A06E2A2DD726B47ED999DC2CE478670CD5126CC80988150E64EBE001B",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskSupervisorBinding",
+      "first_line": 230,
+      "sha256": "3E1C5F9DD64E3FE5767DD7CDD981D4819A37B8A678B7185FEF64E496B17138F8",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Write-TaskSupervisorRequest",
+      "first_line": 251,
+      "sha256": "EBDBFAAAFAC4235A637E267EDF8564FB8E1F4D11EBB3B75A1DF6066F0BAA47FD",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskSupervisorRequestArgument",
+      "first_line": 285,
+      "sha256": "B71DA4A27B1C9CDF647A21C7CB7BB50984154130031C56382DC34C2F6C4F7BFE",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Read-TaskSupervisorTerminal",
+      "first_line": 293,
+      "sha256": "C910A4AE91FB5A39DD3999ADBD32ACE2A2FAF0D63B02DEDC2BF9B94FE9D75038",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Test-TaskSupervisorReason",
+      "first_line": 314,
+      "sha256": "C50640D5C0C0CED9AB5FD92FFCE450EDFB0BA1F1A946BF2371E059DD0E7F52BA",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskSupervisorTerminal",
+      "first_line": 335,
+      "sha256": "4C96E6D4193A3426FF5ED8623B4800F951373FB8497E5AF80357133177F3A6A6",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "New-TaskSupervisorFailure",
+      "first_line": 391,
+      "sha256": "3B49E547ED51AA24784B263E630F452508F964E473D3640C887D498F406B5BD3",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "New-TaskSupervisorParentFailure",
+      "first_line": 397,
+      "sha256": "1E52CB3A6870FD9A00A304C7056A0C23B8CA243CD7AE8208026DD2957310326B",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Add-TaskSupervisorCleanup",
+      "first_line": 405,
+      "sha256": "B382578314F280A218EE156F0DB760027EB7A6C88F8BB407338330C54B744177",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Invoke-TaskChild",
+      "first_line": 409,
+      "sha256": "E6384F268F395026A8753046EA8F230A0B01B45E3E3F6D56D3B32137DCB6E07B",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Add-TaskChildCleanup",
+      "first_line": 496,
+      "sha256": "835A85F3B35C7ABB68188466D89643FD6A118C9EFB67D6C5E38FE939B51103DE",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Set-TaskRawExit",
+      "first_line": 504,
+      "sha256": "64EEFFAE10F4615EC62E2DC886CF76D4A8FC204C18429CFD71F07134B23AA289",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Invoke-TaskFencedChild",
+      "first_line": 507,
+      "sha256": "DF83B57BD0E3613FB9F9C228447507C4CC260EEB474939EB15A326814F29A2C0",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Replace-TaskBounded",
+      "first_line": 519,
+      "sha256": "F901E745C106D048C40F4DB380ABE30A219B877B96398C35DF45E13C2477F18E",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Reject-TaskGate",
+      "first_line": 529,
+      "sha256": "FC77B4889EABB262D71C625FBF7BEA2E6E51147935AE75ABFBCF39E12D5F3D3C",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Expect-TaskGate",
+      "first_line": 530,
+      "sha256": "C360A7FC3DA5907ADD2A2E57C68EBAE7E301E101D7C764197EF7922A4EAC896E",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Add-TaskJsonVisit",
+      "first_line": 537,
+      "sha256": "02D89EEB39F1883222C829E56E115CB2C75A30CBEFE1E9A745336D3F0C42E28E",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskRuntimeType",
+      "first_line": 538,
+      "sha256": "AD2EAEE448A91B13627C15F7CBA318950933961D1AACCC56F18805C0932E03E6",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskBootstrapHash",
+      "first_line": 539,
+      "sha256": "321A61EFA8943E426683B992F28703FD4B3F849A4883A74A256E33B9C407E8B6",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Initialize-TaskController",
+      "first_line": 556,
+      "sha256": "0DB12DCB1E23BA7E357CCCEEC760FA0697A6A5446AC92F409F4F714B5877822E",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskString",
+      "first_line": 597,
+      "sha256": "F548E737114445FF3F79C5FD141D8FAEF67CB43E2352D482921B660542C10029",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskSafePrefix",
+      "first_line": 606,
+      "sha256": "3C5728959EBFDFC9B42EC546024FF091BE26CDD2A6A1F6CB9ACDA9D1AF17B1B3",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskIntegral",
+      "first_line": 612,
+      "sha256": "969F43F7AF8A6264029EABF9B3962E9461AD5B97F82C7276C0E3333243A90073",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Convert-TaskControlOperand",
+      "first_line": 617,
+      "sha256": "7EA222987257CB45FC35647BCBECD34FF81866DCC297C57C850B70035260C095",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskExactKeys",
+      "first_line": 629,
+      "sha256": "9A8567F45E2E60D601D6F3A704382F1958FF7ED37BBBDA1FEF0C882D06F3231F",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Set-TaskSecondary",
+      "first_line": 637,
+      "sha256": "FF03E3455BC4674D846078959C2921B1246B8B01E3B7267A55C3057D006DA6F1",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Close-TaskOwner",
+      "first_line": 642,
+      "sha256": "72E316378A28206B6F7F76B670939190AC7EE70548BDBFD51E80F02A3D699A38",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Complete-TaskOwnerClose",
+      "first_line": 645,
+      "sha256": "B8ECBE3FAFDBBF6C0A4438CAFCF7015AF7A07395F197C36EA5A14FADF1C7651B",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskSecondaryCodes",
+      "first_line": 646,
+      "sha256": "93517996E8E9F4A3C62DF5164BB93E83B6300110078F7EB568202764250D92E4",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskCodecBinding",
+      "first_line": 651,
+      "sha256": "EB7E0A604A790D4F170D3A56E92F86A07B232D7A66A2B6060E7133CE305ED903",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskIntegerDigits",
+      "first_line": 656,
+      "sha256": "003FBA34880FB1BDC76391D1BC9EC4351D158801000CEE6582699FF8D8A906EA",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskEscapedStringBytes",
+      "first_line": 668,
+      "sha256": "E16DABA3C9A515A74D933AC068D6CBA6577F8B7A5218173320DD304034445CBB",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Add-TaskJsonBound",
+      "first_line": 679,
+      "sha256": "B5F0D9BB9AB9F991FF223DFC1285A281697C2CFB720A0E4894EC075F21EB4F80",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Visit-TaskJsonValue",
+      "first_line": 680,
+      "sha256": "5C0E11824A220212FB1A8F4F6818ACDBBC3176678F712AC0B37CC29FC85D4AC6",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Measure-TaskJson",
+      "first_line": 714,
+      "sha256": "E78FD6B81B027A42C213245FB9BB1B61684F724E8899D1AC4439A38EB968092E",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Join-TaskBoundedNames",
+      "first_line": 722,
+      "sha256": "D812256123C623F3C99256FA66CAC03EC1C69C435934989EA75817C6E27274D9",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskEntries",
+      "first_line": 732,
+      "sha256": "2C76B5ED85D473E4C4129079997F9B9175909AD0B33590968264CFB9D6AC78BF",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Copy-TaskOwned",
+      "first_line": 741,
+      "sha256": "4FAEC5F4DBCA060864F90DD92C35854129CB3639A12D5AA2D0C88CA54A199B56",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Mutate-TaskOwnedBytes",
+      "first_line": 746,
+      "sha256": "8D438322970963721084243437F6E4473CF6C0AC57695FE1CDD85820C09A959C",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskRawJson",
+      "first_line": 751,
+      "sha256": "1045DDE01BAC7566821A22CC9251E99BEC1ECBF079ABD5472CC285496EF14A97",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskRawJsonBytes",
+      "first_line": 828,
+      "sha256": "408D55883E67E1FE590C3F4752F0C7EB86A933E25D0AF1E30173B457387AFC75",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Read-TaskBoundedBytes",
+      "first_line": 930,
+      "sha256": "4B8CA888AF65EA910F5FDCA2E2C4BFC9995CAD2DE9D282FFDE2132205E6B03BB",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Close-TaskJsonReader",
+      "first_line": 935,
+      "sha256": "86FF6D1B87FCA5CCF0391C0817A5EE050191CBE57C021590F7E813330C469FBD",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Read-TaskDependencyJson",
+      "first_line": 940,
+      "sha256": "A9D9C5F4DA1AC33CBD448CFBAA83BDD6F501CD67C3017FC4D4595D27AD42C853",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskDependencyString",
+      "first_line": 959,
+      "sha256": "A1B455B285F7A73263D21D60A018BA03FF6CB0EE19D66E82E33A81C9302B0BA2",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Read-TaskJson",
+      "first_line": 966,
+      "sha256": "BD7F95DC4B6A5B04DE0D7426802460AAB2F9DD0467AEBC8474F0BEFB46277165",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Encode-TaskJson",
+      "first_line": 976,
+      "sha256": "FF51919D5486E83F24F6844530AE14CBD0E9EAF7364B4F6C561AF5BD5808BA46",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskStageBytes",
+      "first_line": 990,
+      "sha256": "41CEEC0A80E810F8CC951C54FFE0CCD7DDA38422783138EF26F3406D228F0596",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskDocumentWrite",
+      "first_line": 993,
+      "sha256": "EECA40CEBD5D341D2A58C6E984206BE53BDB8F36316B58F79B284B084B35CC58",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Write-TaskJsonBytes",
+      "first_line": 998,
+      "sha256": "B8DE29C710613B3E16F39B9FBBF2C467D33F74B29B8B0D900329C590D0511D2D",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Write-TaskJson",
+      "first_line": 1002,
+      "sha256": "6C653F1737985BEEE7F65EF9324DFCF68DDDE72D20F6F4250FD9156CDB60D44A",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Save-TaskReceipt",
+      "first_line": 1008,
+      "sha256": "BE0F05E08906BC4D14FE3692134B503B037CE665C6166694E9F46F0904A7847F",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskIdentity",
+      "first_line": 1017,
+      "sha256": "E23648748312EEDAFA2909395636F9371075F3E8601F5A580AE389889C4CA40B",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskBoundSourceInteger",
+      "first_line": 1018,
+      "sha256": "4837738395F5F05AE9B1E872E608EA65890B2CF4F4AE6E1C924E77F3D39D5B71",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskReservation",
+      "first_line": 1027,
+      "sha256": "3CA827A88402D9695E7F4955F976AFD9C249A1013721A0456D677459CADB9ACA",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskRetainedReservation",
+      "first_line": 1028,
+      "sha256": "7F9689E1E793F5F4F33BD1B5C5CD3EB848A14C56DE008716CE5C4D272E1BFCC4",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskAttempt",
+      "first_line": 1029,
+      "sha256": "4078F861FA9F7845E4D5BDB79596CCA7355ACF6E3820CFF752A7F183C6F763CC",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskPredecessor",
+      "first_line": 1030,
+      "sha256": "681761E0F704F5718B4C28556FBA31837A11E9954C00A81FF25328443979E9F4",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskPredecessorDescriptor",
+      "first_line": 1036,
+      "sha256": "36BDAB98314CBB0D43B9A44D90E45EFB81C57074D116FAED961CC0177DB454F2",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Resolve-TaskInput",
+      "first_line": 1043,
+      "sha256": "4E5BDEC2369F8F5E7799559DFD2107E2960C413A8C4EAEB9757B9335D6F93C4D",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskPins",
+      "first_line": 1054,
+      "sha256": "0ACD2862B7E64146A617C23143AD6C4A9DE7A2A2A888B08E3628C25DD54D1ED2",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskFileSet",
+      "first_line": 1068,
+      "sha256": "F6E56EAFE2F61EA171AC769D6B2AA34C833F0C52DDF6C488E69CDCB023F3EA9F",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskReferences",
+      "first_line": 1077,
+      "sha256": "0B540CB4E0C1AE22D48691CA022DE7B44C686622DDDD7EE7ED939915352C6553",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskSameReferences",
+      "first_line": 1082,
+      "sha256": "D30DCCED7B2F18A17A6C777D28A028D1B910DEBE28737410818A71E9CA952589",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskPEHeader",
+      "first_line": 1083,
+      "sha256": "238BD87174EC1409330E3902602A3F44ED8C443CD18FDEC433053A574748AC0F",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskConsolePE",
+      "first_line": 1088,
+      "sha256": "7A29B47575EC105978EB01E1BF1E9D79410A1A107FB926BE345B9CFAC8CC4366",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Read-TaskChildResult",
+      "first_line": 1089,
+      "sha256": "957CC7CC4ABF890AFFD7011FE668182016F4C43816DB34D31D6EEFFF25C0A24C",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Get-TaskBuildArtifacts",
+      "first_line": 1138,
+      "sha256": "01A41FE37FEE5B66B60E51EF07B4FB00F2165505A8BF2376532ABDC945834C6D",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Assert-TaskDependencies",
+      "first_line": 1143,
+      "sha256": "F5675EC09ABBF022F77DF332BEEAE07DA0D8B948CAA14BD115E7A41ECFCA000F",
+      "R14_byte_text_equal": true
+    },
+    {
+      "name": "Save-TaskFailureInventory",
+      "first_line": 1162,
+      "sha256": "B86AAA24F49DDB8BC79ECD77EC8A07F30EE6662F053E7687100AF0B3A4DDAD67",
+      "R14_byte_text_equal": true
+    }
+  ],
+  "native_modules": [
+    {
+      "name": "sup.h",
+      "lines": 325,
+      "sha256": "2FAC2C57C731C7C997D67627DCB7AE15ED6995B912B433051213514018A94ECC",
+      "whole_read": true,
+      "declarations": [
+        {
+          "line": 279,
+          "name": "charge"
+        },
+        {
+          "line": 280,
+          "name": "spend"
+        },
+        {
+          "line": 281,
+          "name": "admit_read"
+        },
+        {
+          "line": 282,
+          "name": "admit_write"
+        },
+        {
+          "line": 283,
+          "name": "admit_write"
+        },
+        {
+          "line": 284,
+          "name": "request_tail"
+        },
+        {
+          "line": 285,
+          "name": "tail_requested"
+        },
+        {
+          "line": 286,
+          "name": "begin_tail"
+        },
+        {
+          "line": 287,
+          "name": "fail"
+        },
+        {
+          "line": 288,
+          "name": "failure"
+        },
+        {
+          "line": 289,
+          "name": "checked_add"
+        },
+        {
+          "line": 290,
+          "name": "equal_digest"
+        },
+        {
+          "line": 291,
+          "name": "equal_wide"
+        },
+        {
+          "line": 292,
+          "name": "validate_profile"
+        },
+        {
+          "line": 293,
+          "name": "parse_command"
+        },
+        {
+          "line": 294,
+          "name": "read_request"
+        },
+        {
+          "line": 295,
+          "name": "decode_request"
+        },
+        {
+          "line": 296,
+          "name": "validate_request_recipe"
+        },
+        {
+          "line": 297,
+          "name": "encode_terminal"
+        },
+        {
+          "line": 298,
+          "name": "validate_terminal"
+        },
+        {
+          "line": 299,
+          "name": "build_target_command"
+        },
+        {
+          "line": 300,
+          "name": "build_environment"
+        },
+        {
+          "line": 301,
+          "name": "copy_text"
+        },
+        {
+          "line": 302,
+          "name": "join_path"
+        },
+        {
+          "line": 303,
+          "name": "validate_path"
+        },
+        {
+          "line": 304,
+          "name": "hash_file"
+        },
+        {
+          "line": 305,
+          "name": "hash_run_identity"
+        },
+        {
+          "line": 306,
+          "name": "sha_init"
+        },
+        {
+          "line": 307,
+          "name": "sha_update"
+        },
+        {
+          "line": 308,
+          "name": "sha_finish"
+        },
+        {
+          "line": 309,
+          "name": "stage_scan"
+        },
+        {
+          "line": 310,
+          "name": "observe_position"
+        },
+        {
+          "line": 311,
+          "name": "open_capture_owners"
+        },
+        {
+          "line": 312,
+          "name": "create_contained_target"
+        },
+        {
+          "line": 313,
+          "name": "start_workers"
+        },
+        {
+          "line": 314,
+          "name": "worker_entry"
+        },
+        {
+          "line": 315,
+          "name": "consume_ready"
+        },
+        {
+          "line": 316,
+          "name": "write_chunk"
+        },
+        {
+          "line": 317,
+          "name": "observe_target_exit"
+        },
+        {
+          "line": 318,
+          "name": "coordinator"
+        },
+        {
+          "line": 319,
+          "name": "cleanup_prefix"
+        },
+        {
+          "line": 320,
+          "name": "finalize_record"
+        },
+        {
+          "line": 321,
+          "name": "publish_terminal"
+        },
+        {
+          "line": 322,
+          "name": "close_safe_owners"
+        },
+        {
+          "line": 323,
+          "name": "finish"
+        },
+        {
+          "line": 324,
+          "name": "supervisor_main"
+        }
+      ]
+    },
+    {
+      "name": "sup_codec.cpp",
+      "lines": 479,
+      "sha256": "84C84E6E1B47883AAE58C9C68859FE980B420C58AECF7E29300DDF43840FEC53",
+      "whole_read": true,
+      "declarations": [
+        {
+          "line": 5,
+          "name": "get32"
+        },
+        {
+          "line": 9,
+          "name": "get64"
+        },
+        {
+          "line": 12,
+          "name": "put32"
+        },
+        {
+          "line": 15,
+          "name": "put64"
+        },
+        {
+          "line": 18,
+          "name": "cell"
+        },
+        {
+          "line": 22,
+          "name": "high"
+        },
+        {
+          "line": 23,
+          "name": "low"
+        },
+        {
+          "line": 24,
+          "name": "valid_wide"
+        },
+        {
+          "line": 34,
+          "name": "wide_from_binding"
+        },
+        {
+          "line": 42,
+          "name": "literal"
+        },
+        {
+          "line": 47,
+          "name": "append"
+        },
+        {
+          "line": 52,
+          "name": "text_matches"
+        },
+        {
+          "line": 57,
+          "name": "pair"
+        },
+        {
+          "line": 79,
+          "name": "same_failure"
+        },
+        {
+          "line": 82,
+          "name": "reason_present"
+        },
+        {
+          "line": 86,
+          "name": "append_template"
+        },
+        {
+          "line": 116,
+          "name": "validate_profile"
+        },
+        {
+          "line": 146,
+          "name": "copy_text"
+        },
+        {
+          "line": 153,
+          "name": "join_path"
+        },
+        {
+          "line": 165,
+          "name": "parse_command"
+        },
+        {
+          "line": 202,
+          "name": "decode_request"
+        },
+        {
+          "line": 248,
+          "name": "validate_request_recipe"
+        },
+        {
+          "line": 317,
+          "name": "build_environment"
+        },
+        {
+          "line": 336,
+          "name": "build_target_command"
+        },
+        {
+          "line": 370,
+          "name": "validate_terminal"
+        },
+        {
+          "line": 461,
+          "name": "encode_terminal"
+        }
+      ]
+    },
+    {
+      "name": "sup_core.cpp",
+      "lines": 263,
+      "sha256": "9EF4468E9B43E43FEBF8B44D602FDBD305B9F94ED04643A551496C8D4BB69FC1",
+      "whole_read": true,
+      "declarations": [
+        {
+          "line": 4,
+          "name": "checked_add"
+        },
+        {
+          "line": 9,
+          "name": "charge"
+        },
+        {
+          "line": 36,
+          "name": "spend"
+        },
+        {
+          "line": 43,
+          "name": "admit_read"
+        },
+        {
+          "line": 62,
+          "name": "admit_write"
+        },
+        {
+          "line": 75,
+          "name": "admit_write"
+        },
+        {
+          "line": 80,
+          "name": "request_tail"
+        },
+        {
+          "line": 85,
+          "name": "tail_requested"
+        },
+        {
+          "line": 91,
+          "name": "failure"
+        },
+        {
+          "line": 95,
+          "name": "fail"
+        },
+        {
+          "line": 117,
+          "name": "begin_tail"
+        },
+        {
+          "line": 138,
+          "name": "equal_digest"
+        },
+        {
+          "line": 142,
+          "name": "equal_wide"
+        },
+        {
+          "line": 164,
+          "name": "rotate"
+        },
+        {
+          "line": 167,
+          "name": "compress"
+        },
+        {
+          "line": 200,
+          "name": "sha_init"
+        },
+        {
+          "line": 209,
+          "name": "sha_update"
+        },
+        {
+          "line": 226,
+          "name": "sha_finish"
+        },
+        {
+          "line": 247,
+          "name": "hash_run_identity"
+        }
+      ]
+    },
+    {
+      "name": "sup_io.cpp",
+      "lines": 429,
+      "sha256": "AAFA64282A3E1C0EBE3AD10BD47FCA0FF43EEECA5DD353FD50D1A7D28ABCEA89",
+      "whole_read": true,
+      "declarations": [
+        {
+          "line": 5,
+          "name": "live"
+        },
+        {
+          "line": 6,
+          "name": "capture_raw"
+        },
+        {
+          "line": 12,
+          "name": "close_one"
+        },
+        {
+          "line": 25,
+          "name": "path_failure"
+        },
+        {
+          "line": 30,
+          "name": "same_name"
+        },
+        {
+          "line": 34,
+          "name": "allowed_stage_name"
+        },
+        {
+          "line": 39,
+          "name": "native_count"
+        },
+        {
+          "line": 51,
+          "name": "validate_path"
+        },
+        {
+          "line": 99,
+          "name": "read_request"
+        },
+        {
+          "line": 129,
+          "name": "hash_file"
+        },
+        {
+          "line": 163,
+          "name": "stage_scan"
+        },
+        {
+          "line": 224,
+          "name": "observe_position"
+        },
+        {
+          "line": 239,
+          "name": "open_capture_owners"
+        },
+        {
+          "line": 287,
+          "name": "create_contained_target"
+        },
+        {
+          "line": 339,
+          "name": "write_chunk"
+        },
+        {
+          "line": 374,
+          "name": "close_safe_owners"
+        },
+        {
+          "line": 409,
+          "name": "publish_terminal"
+        }
+      ]
+    },
+    {
+      "name": "sup_main.cpp",
+      "lines": 467,
+      "sha256": "C6848C0F94892C4EFF6461C9DB6641E737DD51E25F5369F18C9937953845A161",
+      "whole_read": true,
+      "declarations": [
+        {
+          "line": 5,
+          "name": "live"
+        },
+        {
+          "line": 6,
+          "name": "counter"
+        },
+        {
+          "line": 14,
+          "name": "worker_error"
+        },
+        {
+          "line": 19,
+          "name": "worker_exit_error"
+        },
+        {
+          "line": 25,
+          "name": "finish_worker"
+        },
+        {
+          "line": 35,
+          "name": "publish_ready"
+        },
+        {
+          "line": 62,
+          "name": "stop_workers"
+        },
+        {
+          "line": 65,
+          "name": "acknowledge"
+        },
+        {
+          "line": 69,
+          "name": "workers_settled"
+        },
+        {
+          "line": 72,
+          "name": "ready_now"
+        },
+        {
+          "line": 82,
+          "name": "cancel_workers"
+        },
+        {
+          "line": 95,
+          "name": "settle_one"
+        },
+        {
+          "line": 148,
+          "name": "zero_unavailable_counters"
+        },
+        {
+          "line": 157,
+          "name": "worker_entry"
+        },
+        {
+          "line": 209,
+          "name": "start_workers"
+        },
+        {
+          "line": 236,
+          "name": "consume_ready"
+        },
+        {
+          "line": 280,
+          "name": "observe_target_exit"
+        },
+        {
+          "line": 303,
+          "name": "coordinator"
+        },
+        {
+          "line": 331,
+          "name": "cleanup_prefix"
+        },
+        {
+          "line": 402,
+          "name": "finalize_record"
+        },
+        {
+          "line": 428,
+          "name": "finish"
+        },
+        {
+          "line": 435,
+          "name": "supervisor_main"
+        },
+        {
+          "line": 465,
+          "name": "wmain"
+        }
+      ]
+    }
+  ],
+  "bootstrap": {
+    "values": 10258,
+    "keys": 6303,
+    "max_depth": 4,
+    "max_string_units": 435
+  },
+  "added_physical_input_paths": [
+    "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup.h",
+    "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_codec.cpp",
+    "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_core.cpp",
+    "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_io.cpp",
+    "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_main.cpp",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/README.md",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/clock_stage.cpp",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/run-clock.ps1",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-costs.h",
+    "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-manifest.json"
+  ],
+  "complete_source_only": true
+}

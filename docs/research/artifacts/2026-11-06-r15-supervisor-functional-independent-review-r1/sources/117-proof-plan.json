@@ -1,0 +1,1013 @@
+{
+  "schema": 1,
+  "stage": "PREPARATION_ONLY_NO_SOURCE_AUTHORING_OR_EXECUTION_GO",
+  "purpose": "Finite DefinitionFreeze plus exact independent source/private-copy replay only; no renderer or waveform candidate admission",
+  "writes_only": [
+    "packet.md",
+    "proof-plan.json",
+    "source-pins.json"
+  ],
+  "immutable_r1_manifest_sha256": "8EC6B5A41D2AD217881A9D43BBADE9187C678E42F58A5C02531B76920E6D5EAC",
+  "r1_source_code_implied_lower_not_executed": {
+    "phase": 3235921920,
+    "base_tones": 1926144000,
+    "dyadic": 481536000,
+    "controls": 737280000,
+    "Store_64_per_byte_on_69304320": 4435476480,
+    "owner_27294000_words_256_each": 6987264000,
+    "control_owner": 737301504,
+    "fixed": 128000000,
+    "sum": 18668923904,
+    "cap": 17179869184,
+    "excess_before_private_copy_json_replay": 1489054720,
+    "execution": "UNRUN_HOLD"
+  },
+  "options": [
+    {
+      "id": "A",
+      "description": "Keep R1 byte/per-word billing and add exact replay",
+      "outcome": "HOLD: generation lower alone exceeds cap; genuine mixed-zero-owner dedup alone cannot close it",
+      "recommended": false
+    },
+    {
+      "id": "B",
+      "description": "Source-supported fixed-chunk writer/hash/interleaving and independent chunk owner replay, with unchanged numeric ceilings and one composed cap",
+      "outcome": "RECOMMENDED source successor hypothesis. Source-operation model is explicit; opaque primitive CPU/RSS unqualified. Actual-source critic must accept before separate first-stage execution GO.",
+      "recommended": true
+    },
+    {
+      "id": "C",
+      "description": "Require a full internal SHA/array/JSON/libm/CPython CPU/allocator bound instead of the established source-operation research model",
+      "outcome": "HOLD for separate research. This packet gives no such primitive/RSS/production bound, and no cap increase or guessed coefficient.",
+      "recommended": false
+    }
+  ],
+  "counting_convention": {
+    "authority_paths": [
+      "build-ci/20261105-musical-cut-endpoint-green/source-cost-audit.md",
+      "build-ci/20261105-musical-waveform-quality-prep/quality-calibration-r5/README.md",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/freeze_context.py",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/physical-c1-context-r5/run-context.ps1"
+    ],
+    "meaning": "Reviewed bounded elementary source operations and declared opaque primitive invocations, not CPU cycles, wall time, total heap or RSS. Loop bodies, guards, counter updates, callbacks, helper calls and finite domains are composed explicitly.",
+    "opaque_primitives": [
+      "SHA256 update/compression internals",
+      "read/write and OS filesystem internals",
+      "CPython bytearray/bytes/slice/array allocation-copy internals",
+      "struct pack/unpack internals",
+      "math.sin/factorial/gcd and host libm internals",
+      "JSON parser/serializer internals",
+      "bounded-width integer/Fraction runtime internals",
+      "CLR process/task/stream/cancellation/disposal internals"
+    ],
+    "not_credit": [
+      "production2^28 work",
+      "512MiB Clip full resource",
+      "1GiB batch/cache full resource",
+      "RT/deadline/hardware",
+      "waveform/vendor/context",
+      "full primitive CPU/RSS"
+    ],
+    "no_hidden_repricing": "R1 Store64/B was an unproved bulk proxy with no explicit byte loop. Its successor must actually use bounded chunk source bodies and audit their calls; metadata changes alone cannot replace that charge. R1 per-word owner SHA.update calls are eliminated by real chunk interleaving, not relabeled. Numeric phase/word allowances are retained for both children."
+  },
+  "exact_source_replay": {
+    "base_profiles": 12,
+    "base_tone_words": 7524000,
+    "phase_rows": 395010,
+    "dyadic_base_words": 3762000,
+    "control_words": 2880000,
+    "tone_law": "binary32(0.2*math.sin(2*math.pi*f*n/R + (math.pi/7 if phase1q7 else 0.0))) using original Python operation grouping, original full n=0..10R-1, f220/997, R44100/48000/96000; do not replay libm words by phase-period repetition",
+    "two_independent_obligations": [
+      "Reconstruct and compare exact original binary32 words from the full-index source law without importing generator code",
+      "Independently recompute analytic P56 enclosure from exact rational phase and a separate Machin bracket, contain it inside the frozen directed Q48 enclosure, and check each finite word error<=2^-20. Same-libm bit equality alone is insufficient."
+    ],
+    "exact_control_laws": {
+      "r48000-equivalent-last-ulp": "At every n L=base220phase1q7(n); R=L except R[N-1]=L xor1. Compare every exact word and finite error; only this one right-last change exists.",
+      "r48000-early-distinct-late-nan": "L=base everywhere; R=base except R[0]=base(0) xor1 and R[N-1]=0x7fc00035. Only exact right-final NaN is allowed; all other words, positions and payloads must match. Definition replay gives no production classification execution credit.",
+      "r48000-mixed-signed-zero": "n even: (L,R)=(0x00000000,0x80000000); n odd: (0x80000000,0x00000000). Require exact parity/representative0 bits, not merely opposite signs or numeric equality."
+    },
+    "dyadic_law": "Replay every zero word and every burst word against independent integer hash/parity, exact dyadic rounding, source symmetry, zero DC and exact source centroid. No epsilon source replacement.",
+    "original_owner": "Exact srcOffset7, framesN+14, original logical width and full interleaved order. Every prefix/suffix has seven frames: L0x3d800000 and R0xbe000000 at BOTH ends. Hash prefix+all selected words+suffix, and independently reconstruct descriptor/id/rate/window/logical/physical-policy/reverse/fade/frequency/profile binding for each of all294 original ids.",
+    "unique_owner_keys": 28,
+    "unique_base_owner_selected_words": 27294000,
+    "base_owner_sentinel_words": 616,
+    "extra_control_owner_keys": 2,
+    "extra_control_selected_words": 1920000,
+    "extra_control_sentinel_words": 56,
+    "unique_complete_owner_streams": 30,
+    "complete_owner_bytes": 116858688,
+    "owner_chunks_65536": 1796,
+    "allowed_dedup": "The mixed-zero control owner and its one identical base owner key share only their genuinely identical frozen byte stream/hash. All other actual source-file/rate/logical/sentinel keys remain distinct; all294 request rows remain separate.",
+    "generation_owner_stream": "Stream bounded chunks. Mono passes original bytes unchanged. For stereo, allocate one2*planeChunk byte block and assign eight explicit extended BYTE lanes: block[b::8]=L[b::4], block[b+4::8]=R[b::4], b0..3. Update SHA once per block, with exact prefix and suffix. No per-frame SHA call or full retained original-owner file.",
+    "independent_owner_replay": "Separate verifier opens pinned frozen plane/control bytes, independently checks all source bits first, then streams owner. Stereo replay uses independent array(I) grouping: require itemsize4; frombytes each plane; out[0::2]=Lwords; out[1::2]=Rwords; hash out.tobytes(), prefix and suffix. No arithmetic/endian reinterpretation changes a word: native read and native write preserve each original4-byte group. The verifier never imports the generator or its ledger/number/owner helpers.",
+    "source_copy_replay": "Independently verify all40 exact paths, ten headers, reviewed namespace/include anchors, every forward/inverse patch, unique anchors, isolated baseline hashes and restoration to pinned production bytes. Verify include/helper lineage against R2 closure; no forged descriptor/getter/cast/mutable alias, no compilation.",
+    "serialized_pcm_words": 14166000,
+    "finite_pcm_words": 14165999,
+    "finite_tone_and_nonzero_control_words": 9443999,
+    "exact_dyadic_including_mixed_control_words": 4722000,
+    "all_control_finite_errors": "Generator and independent verifier both check every finite base/control word against the applicable tone interval or exact-zero law. Control descriptors retain per-stream maximum/witness; source-error summary composes all finite maxima. Only exact right[N-1]0x7fc00035 is exempt as the intentional invalid classification fixture. Mixed-zero parity is exact. All14,166,000 PCM words are reconstructed; exactly one is intentionally nonfinite."
+  },
+  "numeric_source_body_ceiling_worksheet": {
+    "unit_note": "Conservative elementary source-operation uppers including validation and ledger updates. Must be rederived against the exact corrective bodies; any excess or unlisted helper keeps SOURCE_HOLD.",
+    "q48_phase": {
+      "domain_exact_phase": 300,
+      "theta_square": 190,
+      "26_coefficients_at30": 780,
+      "24_horner_mul_add_at116": 2784,
+      "finish_quadrant_division": 200,
+      "row_pack_counter_guards": 200,
+      "sum": 4454,
+      "reserved": 8192
+    },
+    "p56_phase": {
+      "domain_exact_phase": 300,
+      "theta_square": 190,
+      "initial_terms": 50,
+      "12_recurrences_at308": 3696,
+      "remainder_quadrant_division": 150,
+      "row_pack_counter_guards": 200,
+      "sum": 4586,
+      "reserved": 8192
+    },
+    "base_word_generation": {
+      "loop": 6,
+      "original_libm_formula": 16,
+      "pack_unpack": 12,
+      "interval_row_lookup": 16,
+      "float149_decode": 18,
+      "error_endpoint_ops": 36,
+      "guards": 24,
+      "maximum_witness": 50,
+      "ledger": 12,
+      "sum": 190,
+      "reserved": 256
+    },
+    "base_word_replay": "At most256 including full-n libm reconstruction, exact bit compare, both interval lookups, one exact float149 decode reused for two endpoint errors, finite/error/maximum guards and ledger. Do not compute a periodic libm word surrogate.",
+    "control_word_replay": "At most256 including full-n expected word construction, exact exception placement/payload/parity comparison, original/profile binding, every finite analytic error and ledger; all2,880,000 words charged even when exact zero.",
+    "dyadic_word": "128 per actual zero/burst word for complete generation/replay admission; burst integer setup stays in fixed setup. No source samples skipped.",
+    "private_source_byte_pass": "Each direction uses <=1,800,000 counted visited bytes. Ten original headers total145,205B; 12*145205 +4*10*256 final-byte growth +32768 anchor/patch/control overhead=1,785,468<1,800,000. Unique namespace/include/fault growth<256/header and literal old+new fault anchor bytes659 are checked statically. Keep512 units/visited byte +16Mi fixed for generation AND independent replay; no old2^31 reuse/reset.",
+    "opaque_chunk_body": "Generator and verifier each <=128 elementary source operations per owner chunk (eight explicit byte lanes or independent array lanes, length/position/EOF checks, hash call, counters, allocation/teardown guards). Their1796 chunks per child use229888 units, covered in fixed helper reservation; bulk primitive internals are separately unqualified.",
+    "fixed_helpers_128M_each": {
+      "scope": [
+        "separate Machin qualification/finite bounded-width checks",
+        "all chunk reads/writes/SHA/API calls and actual per-file hash/EOF guards",
+        "30 complete original-owner stream setup/chunks/descriptor verification",
+        "strict metadata schemas, duplicate keys, finite depth/node/byte bounds and actual source/manifest/lineage walks",
+        "byte/input/source fences and92-file manifest construction/replay",
+        "bounded in-memory own-gate controls and failure reports"
+      ],
+      "upper_conditions": {
+        "metadata_depth": 16,
+        "metadata_nodes": 131072,
+        "metadata_node_source_ops": 256,
+        "node_work_upper": 33554432,
+        "total_encoded_metadata_bytes": 4194304,
+        "byte_schema_prescan_source_ops_per_byte": 12,
+        "prescan_upper": 50331648,
+        "chunk_body_calls_per_child_upper": 20000,
+        "chunk_body_ops": 128,
+        "chunk_upper": 2560000,
+        "owner_chunk_ops": 229888,
+        "file_case_path_schema_helpers_upper": 8388608,
+        "Machin_and_fixed_width_setup_upper": 1048576,
+        "in_memory_replay_controls_upper": 1048576,
+        "sum_bound": 97161728,
+        "reserve": 128000000,
+        "unknown_helper": "HOLD; no silent inclusion after authoring"
+      }
+    },
+    "private_source_visit_derivation": {
+      "counted_scope": "Explicit whole-header unique-anchor count/replace and exact comparison byte visits. Hash/I/O/strict JSON scans and serialization are separately in fixed helpers; no primitive CPU bound implied.",
+      "generator_all_plan_passes": 42,
+      "generator_all_materializer_passes": 58,
+      "independent_replay_all_plan_passes_upper": 44,
+      "independent_replay_all_materializer_passes_upper": 60,
+      "pinned_plan_bytes": 17081,
+      "pinned_materializer_bytes": 11960,
+      "replay_header_visit_upper": 1469164,
+      "growth_104_passes_times256": 26624,
+      "anchor_and_control_visit_upper": 32768,
+      "sum": 1528556,
+      "looser_retained_worksheet": 1785468,
+      "reserved_visited_bytes": 1800000,
+      "requirement": "Corrective helpers must match these finite pass maxima; additional repeated scanning is HOLD unless covered by the same unchanged reserve after actual-source criticism."
+    }
+  },
+  "combined_work": {
+    "cap": 17179869184,
+    "single_parent_resets": false,
+    "generator_and_replay_same_ceiling_each": {
+      "phase395010_times8192": 3235921920,
+      "base7524000_times256": 1926144000,
+      "dyadic3762000_times128": 481536000,
+      "controls2880000_times256": 737280000,
+      "private1800000_times512_plus16Mi": 938377216,
+      "fixed_all_helpers": 128000000,
+      "per_child_upper": 7447259136
+    },
+    "generator_upper": 7447259136,
+    "independent_replay_upper": 7447259136,
+    "two_runner_guards_1Mi_each": 2097152,
+    "total_upper": 14896615424,
+    "headroom": 2283253760,
+    "composition": "Before any child, the root runner prepays the complete14,896,615,424 once. Two disjoint child reservations validate those prepaid slots. Verifier receives the hash-bound generator receipt and prior/composed work; it independently checks the generator categories and adds its own fixed slot. No counter may reset at process/window/channel/profile boundaries, no claimed small observed work can create extra authority. Child overflow or missing category refuses the complete stage.",
+    "runner_guard_each": {
+      "cap": 1048576,
+      "max_pins_and_artifacts_per_fence": 256,
+      "max_immutable_bytes": 8388608,
+      "max_generated_hash_bytes": 276824064,
+      "hash_chunk_bytes": 65536,
+      "two_fence_chunk_ops": 278528,
+      "path_open_setup_ops": 32768,
+      "poll_250ms_1800s_at64_ops": 460864,
+      "raw_log_read_ops": 16512,
+      "fixed_receipts_startup": 131072,
+      "bounded_cleanup": 8192,
+      "sum_bound": 927936,
+      "controlled_raw_log_cap_per_child": 1048576,
+      "receipt_writes_max": 8,
+      "overflow": "raw refusal; no next child"
+    }
+  },
+  "first_stage_artifacts": {
+    "private_count": 40,
+    "private": [
+      {
+        "path": "generated/private-sources/baseline/engine/MusicalAudioChannelPlan.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "baseline",
+        "namespace": "yesdaw::engine::waveform_private_baseline",
+        "input": "src/engine/MusicalAudioChannelPlan.h"
+      },
+      {
+        "path": "generated/private-sources/patches/baseline.plan.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "baseline"
+      },
+      {
+        "path": "generated/private-sources/patches/baseline.plan.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "baseline"
+      },
+      {
+        "path": "generated/private-sources/baseline/engine/MusicalAudioChannelMaterialization.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "baseline",
+        "namespace": "yesdaw::engine::waveform_private_baseline",
+        "input": "src/engine/MusicalAudioChannelMaterialization.h"
+      },
+      {
+        "path": "generated/private-sources/patches/baseline.materializer.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "baseline"
+      },
+      {
+        "path": "generated/private-sources/patches/baseline.materializer.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "baseline"
+      },
+      {
+        "path": "generated/private-sources/skip_late_finite/engine/MusicalAudioChannelPlan.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite",
+        "namespace": "yesdaw::engine::waveform_private_skip_late_finite",
+        "input": "src/engine/MusicalAudioChannelPlan.h"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.plan.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.plan.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/skip_late_finite/engine/MusicalAudioChannelMaterialization.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite",
+        "namespace": "yesdaw::engine::waveform_private_skip_late_finite",
+        "input": "src/engine/MusicalAudioChannelMaterialization.h"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.materializer.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.materializer.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/ignore_last_mismatch/engine/MusicalAudioChannelPlan.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch",
+        "namespace": "yesdaw::engine::waveform_private_ignore_last_mismatch",
+        "input": "src/engine/MusicalAudioChannelPlan.h"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.plan.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.plan.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/ignore_last_mismatch/engine/MusicalAudioChannelMaterialization.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch",
+        "namespace": "yesdaw::engine::waveform_private_ignore_last_mismatch",
+        "input": "src/engine/MusicalAudioChannelMaterialization.h"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.materializer.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.materializer.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/swap_stored_channels/engine/MusicalAudioChannelPlan.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels",
+        "namespace": "yesdaw::engine::waveform_private_swap_stored_channels",
+        "input": "src/engine/MusicalAudioChannelPlan.h"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.plan.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.plan.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/swap_stored_channels/engine/MusicalAudioChannelMaterialization.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels",
+        "namespace": "yesdaw::engine::waveform_private_swap_stored_channels",
+        "input": "src/engine/MusicalAudioChannelMaterialization.h"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.materializer.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.materializer.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/corrupt_constructed_output/engine/MusicalAudioChannelPlan.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output",
+        "namespace": "yesdaw::engine::waveform_private_corrupt_constructed_output",
+        "input": "src/engine/MusicalAudioChannelPlan.h"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.plan.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.plan.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/corrupt_constructed_output/engine/MusicalAudioChannelMaterialization.h",
+        "kind": "namespace_isolated_header",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output",
+        "namespace": "yesdaw::engine::waveform_private_corrupt_constructed_output",
+        "input": "src/engine/MusicalAudioChannelMaterialization.h"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.isolation.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.isolation.inverse.patch",
+        "kind": "exact_isolation_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.plan.fault.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/patches/skip_late_finite.plan.fault.inverse.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "skip_late_finite"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.plan.fault.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/patches/ignore_last_mismatch.plan.fault.inverse.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "ignore_last_mismatch"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.materializer.fault.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/patches/swap_stored_channels.materializer.fault.inverse.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "swap_stored_channels"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.fault.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/patches/corrupt_constructed_output.materializer.fault.inverse.patch",
+        "kind": "single_semantic_fault_patch_or_inverse",
+        "bytes_cap": 65536,
+        "variant": "corrupt_constructed_output"
+      },
+      {
+        "path": "generated/private-sources/source-copy-manifest.json",
+        "kind": "manifest_or_mechanical_inverse_receipt",
+        "bytes_cap": 262144
+      },
+      {
+        "path": "generated/private-sources/source-copy-verification.json",
+        "kind": "manifest_or_mechanical_inverse_receipt",
+        "bytes_cap": 262144
+      }
+    ],
+    "reference_count": 52,
+    "references": [
+      {
+        "path": "references/tone/r44100-f220-p0.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 1764000,
+        "records": 441000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r44100-f220-p0.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 70560,
+        "records": 2205,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r44100-f220-p0.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/tone/r44100-f220-p1q7.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 1764000,
+        "records": 441000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r44100-f220-p1q7.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 70560,
+        "records": 2205,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r44100-f220-p1q7.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/tone/r44100-f997-p0.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 1764000,
+        "records": 441000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r44100-f997-p0.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 1411200,
+        "records": 44100,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r44100-f997-p0.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/tone/r44100-f997-p1q7.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 1764000,
+        "records": 441000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r44100-f997-p1q7.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 1411200,
+        "records": 44100,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r44100-f997-p1q7.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/zero/r44100.bin",
+        "kind": "exact dyadic source words",
+        "bytes_cap": 1764000,
+        "records": 441000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/burst/r44100.bin",
+        "kind": "exact dyadic source words",
+        "bytes_cap": 1764000,
+        "records": 441000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/tone/r48000-f220-p0.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 1920000,
+        "records": 480000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r48000-f220-p0.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 76800,
+        "records": 2400,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r48000-f220-p0.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/tone/r48000-f220-p1q7.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 1920000,
+        "records": 480000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r48000-f220-p1q7.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 76800,
+        "records": 2400,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r48000-f220-p1q7.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/tone/r48000-f997-p0.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 1920000,
+        "records": 480000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r48000-f997-p0.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 1536000,
+        "records": 48000,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r48000-f997-p0.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/tone/r48000-f997-p1q7.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 1920000,
+        "records": 480000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r48000-f997-p1q7.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 1536000,
+        "records": 48000,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r48000-f997-p1q7.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/zero/r48000.bin",
+        "kind": "exact dyadic source words",
+        "bytes_cap": 1920000,
+        "records": 480000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/burst/r48000.bin",
+        "kind": "exact dyadic source words",
+        "bytes_cap": 1920000,
+        "records": 480000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/tone/r96000-f220-p0.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 3840000,
+        "records": 960000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r96000-f220-p0.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 153600,
+        "records": 4800,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r96000-f220-p0.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/tone/r96000-f220-p1q7.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 3840000,
+        "records": 960000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r96000-f220-p1q7.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 153600,
+        "records": 4800,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r96000-f220-p1q7.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/tone/r96000-f997-p0.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 3840000,
+        "records": 960000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r96000-f997-p0.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 3072000,
+        "records": 96000,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r96000-f997-p0.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/tone/r96000-f997-p1q7.bin",
+        "kind": "original frozen float words",
+        "bytes_cap": 3840000,
+        "records": 960000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/phase-intervals/r96000-f997-p1q7.bin",
+        "kind": "analytic fixed32B phase records",
+        "bytes_cap": 3072000,
+        "records": 96000,
+        "record_bytes": 32
+      },
+      {
+        "path": "references/source-certificates/r96000-f997-p1q7.json",
+        "kind": "actual all-word source certificate",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/zero/r96000.bin",
+        "kind": "exact dyadic source words",
+        "bytes_cap": 3840000,
+        "records": 960000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/burst/r96000.bin",
+        "kind": "exact dyadic source words",
+        "bytes_cap": 3840000,
+        "records": 960000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/control-sources/r48000-equivalent-last-ulp.interleaved.bin",
+        "kind": "frozen actual control source words",
+        "bytes_cap": 3840000,
+        "records": 960000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/control-sources/r48000-equivalent-last-ulp.json",
+        "kind": "control identities/expected validity and exact source error or dyadic proof",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/control-sources/r48000-early-distinct-late-nan.interleaved.bin",
+        "kind": "frozen actual control source words",
+        "bytes_cap": 3840000,
+        "records": 960000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/control-sources/r48000-early-distinct-late-nan.json",
+        "kind": "control identities/expected validity and exact source error or dyadic proof",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/control-sources/r48000-mixed-signed-zero.interleaved.bin",
+        "kind": "frozen actual control source words",
+        "bytes_cap": 3840000,
+        "records": 960000,
+        "record_bytes": 4
+      },
+      {
+        "path": "references/control-sources/r48000-mixed-signed-zero.json",
+        "kind": "control identities/expected validity and exact source error or dyadic proof",
+        "bytes_cap": 65536
+      },
+      {
+        "path": "references/definition-manifest.json",
+        "kind": "fixed reference manifest/receipt",
+        "bytes_cap": 262144
+      },
+      {
+        "path": "references/source-error-summary.json",
+        "kind": "fixed reference manifest/receipt",
+        "bytes_cap": 262144
+      },
+      {
+        "path": "references/reference-manifest.json",
+        "kind": "fixed reference manifest/receipt",
+        "bytes_cap": 262144
+      },
+      {
+        "path": "references/original-case-inventory.json",
+        "kind": "fixed reference manifest/receipt",
+        "bytes_cap": 262144
+      }
+    ],
+    "stage_files": [
+      "stages/DefinitionFreeze/stdout.log",
+      "stages/DefinitionFreeze/stderr.log",
+      "stages/DefinitionFreeze/receipt.json",
+      "stages/DefinitionFreeze/bundle.json",
+      "stages/DefinitionFreeze/consumed.json"
+    ],
+    "private_individual_cap_sum": 3014656,
+    "reference_individual_cap_sum": 71335936,
+    "data_cap_sum": 74350592,
+    "stage_log_pool": 67108864,
+    "complete_retained_first_stage_upper": 141459456,
+    "scratch_requested_payload_upper": 33554432,
+    "scratch_not_RSS": "Only explicitly requested controlled buffers; Python/CLR/object/allocator total heap and RSS remain unqualified. Sequential children; no generator/replay process overlap.",
+    "untouched_original_pools": {
+      "source": 8388608,
+      "reference": 268435456,
+      "stage": 67108864,
+      "whole_revision": 880803840
+    },
+    "whole_pool_enforcement": "Prepay all92 individual caps plus the64Mi stage pool before any directory/write/child. A child Store validates the exact path, kind, byte cap, per-pool and complete sum BEFORE allocation/write; one listed .part replaces its final name without double payload. Runner checks the exact subset, no unknown files/reparse/path escape, actual per-file lengths and whole sum before replay and final sealing. Preserve partial failure within the same reservation; stop. Compiler, case, DSP control, failure PCM and the other110 references are forbidden in this stage.",
+    "manifest_order": "Generate and hash the first90 outputs, then definition-manifest binds those90; reference-manifest binds all91 other data outputs and excludes itself. Runner bundle binds all92 plus closed stage files and full transitive predecessors; no self-hash cycle. Verifier verifies the exact fixed inventory and both manifest schemas, never merely trusts a supplied files list.",
+    "stage_pool_subcaps": {
+      "authored_current12_input_bytes": 1048576,
+      "two_controlled_child_log_prefixes_total": 2097152,
+      "at_most8_receipt_encodings": 2097152,
+      "bundle_and_single_consumption_marker": 524288,
+      "other_failure_footer_metadata_reserved": 1048576,
+      "sum": 6815744,
+      "pool": 67108864,
+      "note": "All are inside the unchanged64MiB pool, not additive extra retained pools. One partial listed payload owns its existing per-file reservation."
+    },
+    "whole_revision_note": "The141,459,456B first-stage sum covers the exact92 data caps and the unchanged64MiB pool including current authored revision inputs. Historical preserved inputs remain immutable in place, hash-bound transitively; no payload copy. Whole future840MiB multi-stage admission remains HOLD."
+  },
+  "runner_completion": {
+    "two_children_in_order": [
+      "python -B freeze_waveform.py (generation/private-copy only)",
+      "python -B verify_waveform.py (actually invoked independent exact-source/private-copy replay)"
+    ],
+    "no_source_module_import": "Verifier imports no authored generator; stdlib only. Direct module entry gates remain false until actual-source review and separate root first-stage GO.",
+    "startup_and_cleanup": "All log opens, Process.Start, cancellation source, read-task creation and child ownership registration are inside one guarded try/finally from initialized null handles. Failure after start always enters owned-child cleanup.",
+    "bounded_waits": "Polling250ms,1800s per controlled child; timeout cancels reads, kills only owned process tree, waits at most2000ms for exit and2000ms total for read settlement. No parameterless WaitForExit/WaitAll/GetResult on an unsettled task. Retain one rooted un-settled owner, never clear/reuse/dispose its live buffers; record pending/unknown drainage and forbid another child.",
+    "raw_receipts": "Record started/raw_exit_observed/raw_exit nullable/raw child exit/timeout/cap/output bytes/unknown-undrained/pending reads/cleanup faults. Never replace an observed compiler or child exit with a synthetic success. Parent exception status is separate.",
+    "fences": "Exact own11 unique names/bytes/hashes plus external manifest hash and complete input/transitive pins BEFORE AND AFTER each child and before final seal. Generated data92 hashes before/after verifier. Immediate compiler hash before/after compilation and executable hash before/after every actual launch remain required for future stages; all compiler stages stay literal HOLD here.",
+    "transitive_bundles": "Carry the full path/bytes/hash/origin-bundle closure of every predecessor artifact and protected source, not only predecessor bundle path or current output roots. Dedup only identical absolute normalized path+bytes+hash; conflicting aliases reject. Bind source manifest, generation summary, exact replay receipt and reserved/observed composition.",
+    "first_stage_success": "Only successful generated-data freeze plus exact independent replay with raw0, complete92 artifacts, matching all fences, settled reads, valid transitive closure and prepaid complete pool may report DEFINITION_SOURCE_REPLAY_COMPLETE_REQUIRES_FRESH_ROOT_OUTPUT_REVIEW. All renderer/context/resource/quality flags remain false.",
+    "compiler_fence_scope": "First stage cannot invoke a compiler and records compiler_called=false/raw_exit=null. Any compiler artifact already in protected pins is still rehashed with immutable inputs. Future immediate before/after compiler/binary fences remain mandatory; their disabled branches cannot be unlocked by metadata."
+  },
+  "future_source_allowlist_proposed_only": {
+    "directory": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/",
+    "files": [
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/WaveformCandidate.h",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/waveform_probe.cpp",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/waveform_check.cpp",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/clock_oracle.cpp",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/plan_probe.cpp",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/independent_clock.h",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/fast_fit.h",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/freeze_waveform.py",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/verify_waveform.py",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/run-waveform.ps1",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/README.md",
+      "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r2/authored-manifest.json"
+    ],
+    "modified_bodies": [
+      "freeze_waveform.py",
+      "verify_waveform.py",
+      "run-waveform.ps1",
+      "README.md",
+      "authored-manifest.json"
+    ],
+    "seven_cpp_core_sources_byte_exact_copies_from_r1": [
+      "WaveformCandidate.h",
+      "waveform_probe.cpp",
+      "waveform_check.cpp",
+      "clock_oracle.cpp",
+      "plan_probe.cpp",
+      "independent_clock.h",
+      "fast_fit.h"
+    ],
+    "no_authoring_authority_from_this_packet": true
+  },
+  "first_stage_negative_controls": [
+    "base word oneULP changes outside declared control exceptions",
+    "lastULP moved or extra modified sample",
+    "lateNaN wrong channel/index/payload or early mismatch moved",
+    "mixed signed-zero parity reversed though signs remain opposite",
+    "prefix/suffix count or original-width/interleaving corruption",
+    "source interval excludes independent P56 or error above2^-20",
+    "private patch/inverse/source lineage mismatch",
+    "unlisted output/path escape/oversize or prepayment one below required",
+    "missing predecessor hash or source mutated across child fences",
+    "child startup/read-task failure, raw nonzero, timeout, cap, unsettled read and cleanup diagnostic never become success"
+  ],
+  "remaining_literal_holds": [
+    "C/K queried-layout seam",
+    "full nine-map varying physical context",
+    "retained center-owner issuer and complete physical center witnesses",
+    "vendor candidate and all13 physical controls",
+    "complete-case checker support under original unreset2^34/64MiB",
+    "mono burst receipt count8 must become4*Cl in a later source successor",
+    "bake case/window/qualified-unfaded binding",
+    "denseQ/native inverse/full later-stage replay and remaining110 references",
+    "full renderer and production2^28/512MiB/1GiB resource graph",
+    "complete internal primitive CPU/total heap/RSS/RT/hardware"
+  ],
+  "unchanged_objective_thresholds_matrix_caps": true,
+  "all_execution_now": "HOLD_UNRUN",
+  "review_gate": "Root full read and fresh numeric/cost/runner critique of these three docs before any corrective source GO; actual successor source and outputs require their own reviews.",
+  "critic_findings_incorporated": {
+    "root_relay": "Final engine-cost REVISE; numeric and cost critics agree current literal HOLD",
+    "confirmed": "Actual11/95 pins and exact294/13/40/162/15 inventory; eight unique isolation/fault anchors and include routing structurally sound. Code-implied generation lower18,668,923,904>2^34; independent replay absent, its counters reset and source-copy replay uncharged. Launcher start/read setup outside try, no owned-child reap, unbounded wait/pending reads; before-only fences; transitive bundle loss; post-run single-root retention check.",
+    "this_scope": "Correct finite generation+source replay/launcher/accounting only. Later thirteen-control stage ordinary-id/missing-unique-invocation/marker-only defects remain held."
+  },
+  "genuine_redundancy_removed": [
+    "Repeated per-phase factorial/coefficient and constant remainder construction: compute immutable26 Q48 coefficient intervals and fixed remainder qualifications once per child; verifier caches its24 integer recurrence denominators. Preserve old per-phase8192 reservation anyway; only exact identical arithmetic results are cached.",
+    "Per-frame SHA.update and Python interleaving loops for30 full owner streams: actual bounded chunk algorithms, independently implemented in verifier. Full original byte stream still hashed; no sample/owner data omitted.",
+    "Duplicate mixed-zero control/base owner hash only; remaining30 distinct streams all reconstructed.",
+    "Control generation needs one current output buffer and the pinned base220 stream, not both a complete pair template and its cloned full mutation.",
+    "Writer computes each frozen file SHA while streaming the actual write; verifier independently rehashes actual retained files. Avoid serializing large buffers into metadata and re-reading identical source bytes solely to recompute a hash already pinned and independently replayed."
+  ],
+  "controlled_lifetime_matrix": {
+    "retirement_is_executable_requirement": "Separate scoped helpers; release/unbind every prior PCM/table/encoded metadata buffer before entering the next phase. No accumulation of profile/source/owner buffers or retained full interleaved originals. Child process exit is observed and reads settled before replay starts.",
+    "generator_source_copy": {
+      "raw_production_inputs": 29041,
+      "all_private_artifact_caps": 3014656,
+      "encoded_metadata_cap": 4194304,
+      "bounded_working_header_and_patch_temporaries": 393216,
+      "sum": 7631217,
+      "controlled_payload_ceiling": 8388608
+    },
+    "generator_profile": {
+      "largest_tone_bytes": 3840000,
+      "largest_Q48_phase_bytes": 3072000,
+      "two_metadata_and_math_buffers": 131072,
+      "three_chunks": 196608,
+      "sum": 7239680,
+      "ceiling": 8388608
+    },
+    "generator_control": {
+      "pinned_base220_bytes": 1920000,
+      "one_current_control_bytes": 3840000,
+      "chunk_and_schema_buffers": 1310720,
+      "sum": 7070720,
+      "ceiling": 8388608,
+      "forbidden": "No extra full pair clone or three simultaneous control outputs"
+    },
+    "generator_owner": "Stream at most64KiB interleaved output with two32KiB planes and bounded transient byte lanes; encoded metadata<=4MiB; complete phase payload<=8MiB. No full original owner retained.",
+    "verifier_profile": {
+      "tone_bytes": 3840000,
+      "Q48_phase_bytes": 3072000,
+      "P56_refined_bytes": 1536000,
+      "control_reference_cache_bytes": 38400,
+      "math_and_metadata_bytes": 131072,
+      "two_chunks": 131072,
+      "sum": 8748544,
+      "ceiling": 16777216
+    },
+    "verifier_dyadic": "Two files<=7,680,000B plus bounded sparse burst integers, metadata and chunks; <=8MiB.",
+    "verifier_control_owner_copy": "Controls one current3,840,000B source plus38,400B analytic cache; owner/patch replay streamed/scoped. Each phase<=8MiB.",
+    "launcher_controlled_payload": "At most2MiB: current own/input/bundle/receipt encoded buffers with explicit262144B caps, two4096B read buffers,65536B hash buffer and bounded footer state. One rooted unsettled owner blocks another child; no accumulation.",
+    "maximum_sequential_child_plus_runner_payload": 18874368,
+    "prepaid_scratch_payload": 33554432,
+    "scratch_headroom": 14680064,
+    "excluded_claim": "These are explicit buffer/payload lifetimes and finite metadata geometry, not total CPython/CLR/allocator heap or RSS. Opaque primitive internals never receive production resource credit."
+  },
+  "later_control_stage_status": "HOLD: exact13 unique frozen invocations, ordinary case ids forbidden in that stage, complete actual output/witness/own-gate coverage required; marker substring alone is insufficient. No execution or source correction in this three-doc scope.",
+  "metadata_actual_format_bounds": {
+    "note": "These are source-template bounds to enforce before serialization/write, not an assertion that all loose per-file caps can be saturated together. Retain aggregate encoded metadata4MiB guard. Unknown field, larger string/depth/node count or larger helper refuses before writing.",
+    "case_inventory": {
+      "rows": 294,
+      "max_encoded_row": 768,
+      "profiles": 12,
+      "max_profile_descriptor": 2048,
+      "fixed_fields": 4096,
+      "sum": 254464,
+      "file_cap": 262144
+    },
+    "source_certificates": 24576,
+    "control_source_descriptors": 6144,
+    "source_error_summary": 4096,
+    "definition_manifest": 50176,
+    "reference_manifest": 50688,
+    "private_patch_and_inverse28": 57344,
+    "private_lineage_manifest": 14336,
+    "private_verification": 4096,
+    "total_encoded_bound": 465920,
+    "aggregate_guard": 4194304,
+    "string_and_schema_caps": "Canonical compact JSON. Data-output relative path<=192 ASCII bytes and case id<=128; source/transitive absolute paths<=512 and bundle entries have separate256KiB bounds. Hash64 hex; integer fields admitted fixed domains; private patch strings<=1024. No PCM or phase rows embedded in JSON."
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "kind": "ROOT_RECORD_OF_INDEPENDENT_CONTRACT_PREPARATION_REVIEW",
+  "reviewer": "/root/critic_history_linux_allocator",
+  "message_timestamp": null,
+  "verdict": "ACCEPT_PREPARATION_SELECT_EXISTING_CONTAINER_ROUTE_A_WITH_STATED_CLARIFICATIONS",
+  "contract": {
+    "path": "C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+    "bytes": 7998,
+    "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+  },
+  "inputs": [
+    {
+      "path": "C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-separate-research-contract-prep/packet.md",
+      "bytes": 24477,
+      "sha256": "D7E13A33F9DA83B82DE838D6C0986A68FF446B5EF5EE82FF31E4825A9796B07D"
+    },
+    {
+      "path": "C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-separate-research-contract-prep/source-pins.json",
+      "bytes": 6586,
+      "sha256": "9D145A2D942C5AAD370D71CCADC520E89B03D5CCDE0E7BBD8E6C0C35F05A65D3"
+    },
+    {
+      "path": "C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/20261105-clock-oracle-r4-independent-review.json",
+      "bytes": 3806,
+      "sha256": "E2E059805440624991E757826258C57511AF5534B56F425D4A377A005AC398C0"
+    }
+  ],
+  "installed_runtime_identities": [
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe",
+      "bytes": 301368,
+      "sha256": "362A356CE7F0940EC74F73A8FC2C990A2CC24A38A11C90BBD8ECA947110AD139"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Management.Automation.dll",
+      "bytes": 19646264,
+      "sha256": "2D8AF026E589C5603629BFC3E7C57265B4167B12ECA3AE549C6A6C3CA7E4967B"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Microsoft.PowerShell.Commands.Utility.dll",
+      "bytes": 1652504,
+      "sha256": "2F6201BB3CAF4C08158BE733E786DD85B11537694F7E6AB40356FC0727A3596F"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Newtonsoft.Json.dll",
+      "bytes": 1824600,
+      "sha256": "9AF3870D53662BA1C8E9B19EC8AD0020E815FFE9E916A1F3204AC6E206447F60"
+    }
+  ],
+  "version_metadata_observation": "Read only Windows VersionInfo: PowerShell components7.6.5 product commit ea554a8f9c6085f54fb2828f7ea286c65c35599f; Newtonsoft13.0.4 commit4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a. Version metadata is not by itself a compiled-source certificate.",
+  "root_authority": "NEW_SUCCESSOR_SOURCE_PREPARATION_ONLY_AFTER_EXACT_CONTRACT_CONFIRMATION",
+  "new_limit": null,
+  "prices": null,
+  "binding": "NONE",
+  "execution": "NONE",
+  "old_2pow34_NOFIT_preserved": true,
+  "all_production_and_other_research_limits_unchanged": true,
+  "accepted_adrs_changed": false
+}

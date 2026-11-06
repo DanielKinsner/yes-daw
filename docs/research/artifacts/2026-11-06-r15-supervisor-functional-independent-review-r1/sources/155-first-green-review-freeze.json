@@ -1,0 +1,48 @@
+{
+  "schema": "R15_INDEPENDENT_FIRST_COMPLETE_REVIEW_FREEZE",
+  "files": [
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/check.py",
+      "bytes": 19179,
+      "sha256": "A275E170F30224EC3A4456B71A91AACA4572723C321C2E5A6F3A877E0F6748E2"
+    },
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/checks.json",
+      "bytes": 378210,
+      "sha256": "61CE3F92BAE53CD5E08D6C7CAEDB993B7804A97FC6ACEC3B9810C6335A6DABEF"
+    },
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/counterexample-pre-resume-cut.json",
+      "bytes": 1253,
+      "sha256": "8FD5DBC09362ECA3FB593B8A0879E5ECB9D801865E2DA515471B460168373159"
+    },
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/review-draft.json",
+      "bytes": 5897,
+      "sha256": "9A486B3C101156EBADC247900FE7F79D0136EF707EC05C1372A9E27921BC2BCE"
+    },
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/review.json",
+      "bytes": 6397,
+      "sha256": "48B4373D394809EE3AEA5E2A0B2D89BD19FEF64AEA088FABA9897FF01AFC45E8"
+    },
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/review.md",
+      "bytes": 13564,
+      "sha256": "FA57CD7CABE11DB932A14AE87AFBE7A9EDBB6156FCFA7513E065F7D83EF708ED"
+    },
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/whole-source-inventory.json",
+      "bytes": 29523,
+      "sha256": "27A2A733B87EAE7945973A302E5905A9CC05DC934F3B8941A195C90BBCEEEE99"
+    },
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/source-pins.json",
+      "bytes": 315148,
+      "sha256": "2F455971EAE1F023BA5D49FF295C893736997C846A0D73E71DF29A57A5B3980A"
+    }
+  ],
+  "subject_manifest_sha256": "BDC2BE017BDF269691D727AE10A489FD6C1EFBB82F2B1C71DB392B1728D1B86F",
+  "verdict": "REVISE_WHOLE_SOURCE_CANDIDATE",
+  "checks": 3374
+}

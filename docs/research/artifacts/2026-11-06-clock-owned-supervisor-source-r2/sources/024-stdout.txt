@@ -1,0 +1,1 @@
+{"written": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1", "bootstrap_nodes": 16561, "geometry": [4, 435], "inputs": 1240, "bytes": 461790563}
