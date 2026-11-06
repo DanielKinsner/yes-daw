@@ -1,0 +1,30 @@
+{
+  "schema": "FORMATION_WHOLE_PROOF_FIRST_GREEN_FREEZE_V1",
+  "proof_sha256": "D5F041F751D7B482C6C63C251CA52B2BE30160592E7A542DDC413F2EAFFC8D85",
+  "whole_proof_frozen_including_helpers_and_comments": true,
+  "checks_measured": 135111,
+  "requests_measured": 88,
+  "native_allocations_measured": 117,
+  "native_attempts_asserted_actual": 121,
+  "observed_site_count_asserted": 125,
+  "source_only_sites": [
+    21,
+    29,
+    30,
+    31
+  ],
+  "compiler": "MSVC19.44 C++20/EHsc/MD/O2/DNDEBUG/W4/WX/fp:strict AMD64 console",
+  "all_bound_source_static_gates_compiled": true,
+  "receipt_sha256": "5F3BB977BDAC2F5EF2300AFD12793D861A821352F646F3556D0307AAABCC6E8B",
+  "log_sha256": "0D9D936E11423B05EA1ECEB925F652B40BADDA330C47DE2459541672671156D9",
+  "not_qualified": [
+    "ClockOracle",
+    "legacyadapter",
+    "wholepublicrecipe",
+    "productiontaskintegration",
+    "ABIwholeheap",
+    "DSPquality",
+    "model",
+    "Ready"
+  ]
+}

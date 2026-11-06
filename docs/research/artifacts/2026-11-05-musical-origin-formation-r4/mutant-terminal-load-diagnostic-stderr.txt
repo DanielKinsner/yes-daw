@@ -1,0 +1,2 @@
+FAIL normal Worker then real direct acquire line 325: raw.terminalLoads == n (Site::AcquireWorker) + n (Site::AcquireReader)
+FAIL formation whole proof: stopped before dependent work; no complete lifetime/inventory credit

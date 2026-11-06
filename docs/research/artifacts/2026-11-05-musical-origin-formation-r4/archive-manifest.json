@@ -1,0 +1,238 @@
+{
+  "schema": "YESDAW_FORMATION_R4_HEADLESS_PROOF_ARCHIVE_V1",
+  "purpose": "Exact source/structured-receipt archive of a standalone Windows-native prototype proof. Raw logs have LF text copies plus exact original-byte base64. No production wiring, generic ABI/wholeheap, ClockOracle, recipe, DSP, model, task or Ready claim.",
+  "execution_checkout_head": "5785a3f2b2f17b7b0f42f7cbadbdc40bb088f27d",
+  "archive_checkout_head": "d3ec66137088b491acec4bdd614809105bed8c8f",
+  "all_proof_helpers_comments_preserved": true,
+  "source_namespace": "yesdaw::app::musical_origin_source_r4",
+  "no_executables_or_objects": true,
+  "files": [
+    {
+      "file": "proof.cpp",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-r3/proof.cpp",
+      "original_sha256": "D5F041F751D7B482C6C63C251CA52B2BE30160592E7A542DDC413F2EAFFC8D85",
+      "bytes": 84278,
+      "sha256": "D5F041F751D7B482C6C63C251CA52B2BE30160592E7A542DDC413F2EAFFC8D85"
+    },
+    {
+      "file": "formation.h",
+      "original_path": "build-ci/20261105-musical-formation-bound-source-r2/formation.h",
+      "original_sha256": "1673DFB9FEB370FFD8C3491E0EB2DE9AF2C006D0CCF25FA0BE7DB5CFFB391BF7",
+      "bytes": 58543,
+      "sha256": "1673DFB9FEB370FFD8C3491E0EB2DE9AF2C006D0CCF25FA0BE7DB5CFFB391BF7"
+    },
+    {
+      "file": "formation-data.cpp",
+      "original_path": "build-ci/20261105-musical-formation-bound-source-r2/formation-data.cpp",
+      "original_sha256": "50B44CEDADE31A1B9280E96CFCB308406522BE30D005B262FBAD4319A40AA35D",
+      "bytes": 6973,
+      "sha256": "50B44CEDADE31A1B9280E96CFCB308406522BE30D005B262FBAD4319A40AA35D"
+    },
+    {
+      "file": "proof-access.h",
+      "original_path": "build-ci/20261105-musical-formation-bound-source-r2/proof-access.h",
+      "original_sha256": "099D46D2DDEBD03C803F3C0E95EEBC674E46A7C4B7004168099B721F20A04D60",
+      "bytes": 13815,
+      "sha256": "099D46D2DDEBD03C803F3C0E95EEBC674E46A7C4B7004168099B721F20A04D60"
+    },
+    {
+      "file": "native-layout.cpp",
+      "original_path": "build-ci/20261105-musical-formation-native-layout-r1/layout.cpp",
+      "original_sha256": "B4B51D59B9968CBF8E49CEC163F4BFE841EB315C884D680077DA3FD1B8076F07",
+      "bytes": 1466,
+      "sha256": "B4B51D59B9968CBF8E49CEC163F4BFE841EB315C884D680077DA3FD1B8076F07"
+    },
+    {
+      "file": "numeric-census.md",
+      "original_path": "build-ci/20261105-musical-origin-formation-r4-census-r2/census.md",
+      "original_sha256": "300714170387FF05302A5B4D0429275DBA403A73A4A1674478A810A26C51D4E9",
+      "bytes": 29625,
+      "sha256": "300714170387FF05302A5B4D0429275DBA403A73A4A1674478A810A26C51D4E9"
+    },
+    {
+      "file": "numeric-census.json",
+      "original_path": "build-ci/20261105-musical-origin-formation-r4-census-r2/census.json",
+      "original_sha256": "F9ED34808925F8546BDD7C4ED201F438A18A5D88128F91A79BD5DAEBF0B34BB4",
+      "bytes": 16527,
+      "sha256": "F9ED34808925F8546BDD7C4ED201F438A18A5D88128F91A79BD5DAEBF0B34BB4"
+    },
+    {
+      "file": "first-green-freeze.json",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-r3/first-green-freeze.json",
+      "original_sha256": "56BE0598727F92B5B2A57CB806E86C6C3EC300D719E18C1D223A40EDBB6C7FA8",
+      "bytes": 936,
+      "sha256": "56BE0598727F92B5B2A57CB806E86C6C3EC300D719E18C1D223A40EDBB6C7FA8"
+    },
+    {
+      "file": "whole-proof-source-review.json",
+      "original_path": "build-ci/20261105-formation-whole-proof-r3-independent-review.json",
+      "original_sha256": "78F14882448D8394606DEFA1A37D955C547AC809B07692EFD13E4D8C163C1AED",
+      "bytes": 797,
+      "sha256": "78F14882448D8394606DEFA1A37D955C547AC809B07692EFD13E4D8C163C1AED"
+    },
+    {
+      "file": "whole-proof-run-receipt.json",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-r3/execution-r1/receipt.json",
+      "original_sha256": "5F3BB977BDAC2F5EF2300AFD12793D861A821352F646F3556D0307AAABCC6E8B",
+      "bytes": 531,
+      "sha256": "5F3BB977BDAC2F5EF2300AFD12793D861A821352F646F3556D0307AAABCC6E8B"
+    },
+    {
+      "file": "whole-proof-stdout.txt",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-r3/execution-r1/whole-proof.log",
+      "original_sha256": "0D9D936E11423B05EA1ECEB925F652B40BADDA330C47DE2459541672671156D9",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "UEFTUyBmb3JtYXRpb24gd2hvbGUgcHJvb2Y6IDEzNTExMSBjaGVja3MsIDAgZmFpbHVyZXMsIDg4IHJlcXVlc3RzLCAxMTcgbmF0aXZlIGFsbG9jYXRpb25zDQo=",
+      "bytes": 91,
+      "sha256": "02B844F264376607BB832B0EBFFF1984765333EC9AB31F55D1EB9301B1D41185"
+    },
+    {
+      "file": "native-layout-run-receipt.json",
+      "original_path": "build-ci/20261105-musical-formation-native-layout-r1/execution-r1/receipt.json",
+      "original_sha256": "6BCF6BAC24ECFF8D887385463BFAE60FD14E7472B6340562B31F427D0C40F7F1",
+      "bytes": 889,
+      "sha256": "6BCF6BAC24ECFF8D887385463BFAE60FD14E7472B6340562B31F427D0C40F7F1"
+    },
+    {
+      "file": "native-layout-stdout.txt",
+      "original_path": "build-ci/20261105-musical-formation-native-layout-r1/execution-r1/layout.log",
+      "original_sha256": "F6A67535CAB39C2C20A6934509740DDF56964E674F46BBEA69AF1B903CFB1CD9",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "eyJyYXdfYnl0ZXMiOjEyMDAsInN0YXRlX2J5dGVzIjoxOTUyLCJzdGF0ZV9hbGlnbm1lbnQiOjgsIm1ldGFkYXRhX2J5dGVzIjozODQsInBhcmVudHNfYnl0ZXMiOjMyLCJtYXBfcm93X2J5dGVzIjoyNCwiYXBwbGljYXRpb25fYnl0ZXMiOjUyMDAsImNvbnRyb2xfb3duZXJfYnl0ZXMiOjI1ODQsInNsb3RfYnl0ZXMiOjI1ODQsInNpemVfdF9ieXRlcyI6OCwiY29udmVyc2lvbl91bml0IjowLCJyb290X3Jlc2VydmF0aW9uIjoyNjI3MX0NCg==",
+      "bytes": 249,
+      "sha256": "C448EC37C40F1B24E8133002A224B10FB4B5E958D34E50F6D4A65F22F2DDFC5D"
+    },
+    {
+      "file": "mutation-source-preparation.json",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/source-preparation.json",
+      "original_sha256": "DA7E8ED90115277BE465EAE34E9813D1408CBA4470EAB2F9C4D5A32994EF9886",
+      "bytes": 4641,
+      "sha256": "DA7E8ED90115277BE465EAE34E9813D1408CBA4470EAB2F9C4D5A32994EF9886"
+    },
+    {
+      "file": "mutation-source-review.json",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/independent-review.json",
+      "original_sha256": "2C9E0A45EB86145B736EF38F7332FCF769271A84BCC34D1D7266FBCB734D71BE",
+      "bytes": 979,
+      "sha256": "2C9E0A45EB86145B736EF38F7332FCF769271A84BCC34D1D7266FBCB734D71BE"
+    },
+    {
+      "file": "mutation-run-receipt.json",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/receipt.json",
+      "original_sha256": "BA4A68F979E184BA5DC1D7AE76532B858FEC745BB1B53DAB7E03CF5E68643C18",
+      "bytes": 1936,
+      "sha256": "BA4A68F979E184BA5DC1D7AE76532B858FEC745BB1B53DAB7E03CF5E68643C18"
+    },
+    {
+      "file": "formation-source-review.json",
+      "original_path": "build-ci/20261105-musical-formation-r4-independent-review.json",
+      "original_sha256": "325582CB22568CD19C36D0E72FA881A4BE5852067D92323387C994FD4714EA92",
+      "bytes": 2793,
+      "sha256": "325582CB22568CD19C36D0E72FA881A4BE5852067D92323387C994FD4714EA92"
+    },
+    {
+      "file": "binding-source-review.json",
+      "original_path": "build-ci/20261105-formation-bound-source-r2-independent-review.json",
+      "original_sha256": "F4BDA725E6EE4BD2126D6D196B891AD7D614F135250049451A5A40CF2D761A6B",
+      "bytes": 1062,
+      "sha256": "F4BDA725E6EE4BD2126D6D196B891AD7D614F135250049451A5A40CF2D761A6B"
+    },
+    {
+      "file": "numeric-census-review.json",
+      "original_path": "build-ci/20261105-formation-r4-census-r2-independent-review.json",
+      "original_sha256": "2B906CB112F60BDA382630EC6475A167C617EA2BEB1FF574FC57C6CD2DF7F7C7",
+      "bytes": 1457,
+      "sha256": "2B906CB112F60BDA382630EC6475A167C617EA2BEB1FF574FC57C6CD2DF7F7C7"
+    },
+    {
+      "file": "mutant-captured-project-id-stderr.txt",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/captured-project-id.log",
+      "original_sha256": "C245BB909358C23BB19B5FEC1D772B3E858654D5DF18AC2BB76963252A4DC98D",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "RkFJTCB2YWxpZCBmdWxsIG1hcCBsaW5lIDc5MTogYWN0dWFsLm1ldGFkYXRhLnByb2plY3RJZCA9PSBleHBlY3RlZFByb2plY3QNCkZBSUwgZm9ybWF0aW9uIHdob2xlIHByb29mOiBzdG9wcGVkIGJlZm9yZSBkZXBlbmRlbnQgd29yazsgbm8gY29tcGxldGUgbGlmZXRpbWUvaW52ZW50b3J5IGNyZWRpdA0K",
+      "bytes": 172,
+      "sha256": "5398AE4A07A685797732CF6E6DE5C1CD58A06DD280859988C6077AF12BCCD720"
+    },
+    {
+      "file": "mutant-copied-map-bpm-stderr.txt",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/copied-map-bpm.log",
+      "original_sha256": "6DCB60B16B957A9EB7EDF0A634155C086FF403357F10F0274B81F8165BA6D078",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "RkFJTCB2YWxpZCBmdWxsIG1hcCBsaW5lIDgwMzogQWNjZXNzOjptYXBSb3cgKGFwcCwgc2xvdCwgaSkgPT0gcm93c1tpXQ0KRkFJTCBmb3JtYXRpb24gd2hvbGUgcHJvb2Y6IHN0b3BwZWQgYmVmb3JlIGRlcGVuZGVudCB3b3JrOyBubyBjb21wbGV0ZSBsaWZldGltZS9pbnZlbnRvcnkgY3JlZGl0DQo=",
+      "bytes": 168,
+      "sha256": "0FE33345E1427E1E0CD9EB44465CF6D03A7193EEE7EDCC3EE5727E53A8AA71AC"
+    },
+    {
+      "file": "mutant-search-diagnostic-stderr.txt",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/search-diagnostic.log",
+      "original_sha256": "8A65A18DA765D62202E9EE6CFEB317C3F293E61EC48CAB3C86A84D20863163A5",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "RkFJTCB2YWxpZCBmdWxsIG1hcCBsaW5lIDMwOTogcmF3LnNlYXJjaFJvd3MgPT0gc2VhcmNoZXMNCkZBSUwgZm9ybWF0aW9uIHdob2xlIHByb29mOiBzdG9wcGVkIGJlZm9yZSBkZXBlbmRlbnQgd29yazsgbm8gY29tcGxldGUgbGlmZXRpbWUvaW52ZW50b3J5IGNyZWRpdA0K",
+      "bytes": 154,
+      "sha256": "C2920C8C0145CB6DF264ED7B08968B32681338C2AA790B4E48D1EEE8C955B437"
+    },
+    {
+      "file": "mutant-direct-caller-site-stderr.txt",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/direct-caller-site.log",
+      "original_sha256": "62B1F5A4CAF9A7FA8743C9B6212BD7925532271D67528B87EAB2EBFC233B25B6",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "U2l0ZSA5NCBleHBlY3RlZCAwIGdvdCAxDQpGQUlMIG5vcm1hbCBXb3JrZXIgdGhlbiByZWFsIGRpcmVjdCBhY3F1aXJlIGxpbmUgMjc3OiByYXcuc2l0ZXNbaV0gPT0gc2l0ZXNbaV0NCkZBSUwgZm9ybWF0aW9uIHdob2xlIHByb29mOiBzdG9wcGVkIGJlZm9yZSBkZXBlbmRlbnQgd29yazsgbm8gY29tcGxldGUgbGlmZXRpbWUvaW52ZW50b3J5IGNyZWRpdA0K",
+      "bytes": 201,
+      "sha256": "23AB9C2A62DE6C27D8E2690BE45FDF822E304A7078302B3B7C680C3E1FE229FF"
+    },
+    {
+      "file": "mutant-snapshot-total-stderr.txt",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/snapshot-total.log",
+      "original_sha256": "859F574FF4078A704D9A979A6A2869D2956BEB8FD3098CDF22527AD390D4B253",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "RkFJTCB2YWxpZCBmdWxsIG1hcCBsaW5lIDIyMzogcmVjZWlwdC5vcmlnaW4udG90YWwgPT0gYWN0dWFsVG90YWwgKyByZXNlcnZlZFRvdGFsDQpGQUlMIGZvcm1hdGlvbiB3aG9sZSBwcm9vZjogc3RvcHBlZCBiZWZvcmUgZGVwZW5kZW50IHdvcms7IG5vIGNvbXBsZXRlIGxpZmV0aW1lL2ludmVudG9yeSBjcmVkaXQNCg==",
+      "bytes": 179,
+      "sha256": "FCF3D5EB2FB208CB809320D6BB77DF3DA4A6F56707515368DE17547C4674AE70"
+    },
+    {
+      "file": "mutant-terminal-load-diagnostic-stderr.txt",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/terminal-load-diagnostic.log",
+      "original_sha256": "86D30B1BF6EEBF921B188734EE8A9E0B668DAA2ABA5D398CF16B2D380B234C3F",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "RkFJTCBub3JtYWwgV29ya2VyIHRoZW4gcmVhbCBkaXJlY3QgYWNxdWlyZSBsaW5lIDMyNTogcmF3LnRlcm1pbmFsTG9hZHMgPT0gbiAoU2l0ZTo6QWNxdWlyZVdvcmtlcikgKyBuIChTaXRlOjpBY3F1aXJlUmVhZGVyKQ0KRkFJTCBmb3JtYXRpb24gd2hvbGUgcHJvb2Y6IHN0b3BwZWQgYmVmb3JlIGRlcGVuZGVudCB3b3JrOyBubyBjb21wbGV0ZSBsaWZldGltZS9pbnZlbnRvcnkgY3JlZGl0DQo=",
+      "bytes": 222,
+      "sha256": "6999B8A1AE325F864795B59082022AE7A4C28484A0D012D5FF83F7F0080041E3"
+    },
+    {
+      "file": "mutant-owner-destruction-diagnostic-stderr.txt",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/owner-destruction-diagnostic.log",
+      "original_sha256": "6B99080A06D6C5113DFE08A49B31D7244C042D10AD3B2B050FED462A2936D036",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "RkFJTCBhY3R1YWwgU3RhdGUgYWxsb2NhdGlvbiBmYWlsdXJlIGxpbmUgMzIxOiByYXcub3duZXJEZXN0cnVjdGlvbnMgPT0gbiAoU2l0ZTo6Q29udHJvbERyb3BDYWxsZXIpICsgbiAoU2l0ZTo6Um9vdEZhaWxlZERlc3Ryb3kpDQpGQUlMIGZvcm1hdGlvbiB3aG9sZSBwcm9vZjogc3RvcHBlZCBiZWZvcmUgZGVwZW5kZW50IHdvcms7IG5vIGNvbXBsZXRlIGxpZmV0aW1lL2ludmVudG9yeSBjcmVkaXQNCg==",
+      "bytes": 227,
+      "sha256": "EB955A34C04C0E876B829E7383E85FE9F9F3809CCD8383ACF1B7A65074BF4D25"
+    },
+    {
+      "file": "mutant-parent-release-order-stderr.txt",
+      "original_path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/parent-release-order.log",
+      "original_sha256": "C6DC21529B7F06BA90EE843E6C31EB0B9F9352762460DCD68BC780B041A90093",
+      "archive_text_normalization": "CRLF to LF only",
+      "original_raw_base64": "RkFJTCBsYXN0IHJlYWwgcGFyZW50IG93bmVycyBzdXJ2aXZlIG1hcCByZWxlYXNlIHRoZW4gcmVhZHkvb3JpZ2luYWwvU3RhdGUgZnJlZSBsaW5lIDE0NTc6IHBhcmVudFRyYWNlc1sxXS5yZWxlYXNlZEF0IDwgcGFyZW50VHJhY2VzWzBdLnJlbGVhc2VkQXQNCkZBSUwgZm9ybWF0aW9uIHdob2xlIHByb29mOiBzdG9wcGVkIGJlZm9yZSBkZXBlbmRlbnQgd29yazsgbm8gY29tcGxldGUgbGlmZXRpbWUvaW52ZW50b3J5IGNyZWRpdA0K",
+      "bytes": 244,
+      "sha256": "9E1FA73ECDA5ACAE3160A8919FF6307089B772EACE0F6056DA85E98F01933FFC"
+    }
+  ],
+  "engine_source_pins": [
+    {
+      "path": "src/engine/Project.h",
+      "bytes": 181566,
+      "sha256": "0294E0B6592633B2601F09B45A9FC724EDD6921512A66B9AB7AD82FB8F817D97"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    {
+      "path": "src/engine/ClipSchedule.h",
+      "bytes": 6706,
+      "sha256": "681ED77653AF195480FAA63FBB57D1804C1C3CBCA813310B18F0B058B7552D1A"
+    }
+  ],
+  "original_ignored_lineage_not_relocated_or_edited": true
+}

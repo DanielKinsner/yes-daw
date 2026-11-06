@@ -1,0 +1,2 @@
+FAIL valid full map line 223: receipt.origin.total == actualTotal + reservedTotal
+FAIL formation whole proof: stopped before dependent work; no complete lifetime/inventory credit

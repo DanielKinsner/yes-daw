@@ -1,0 +1,23 @@
+{
+  "exit": 0,
+  "scope": "Formation R3 standalone whole proof, not recipe/Clock/DSP/model/Ready",
+  "stages": {
+    "environment": {
+      "raw_exit": 0,
+      "seconds": 1.123357
+    },
+    "compile": {
+      "raw_exit": 0,
+      "seconds": 2.4705876
+    },
+    "whole-proof": {
+      "raw_exit": 0,
+      "seconds": 0.0584957
+    }
+  },
+  "desktop_input": false,
+  "native_windows": false,
+  "audio_device": false,
+  "first_green": true,
+  "source_manifest": "8AFDCD5826073CDA14AFEF6E3E88B55F7D78FE071063B841367C53AD0FAB2D4E"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "FORMATION_EIGHT_MUTANTS_SOURCE_REVIEW",
+  "verdict": "ACCEPT_SOURCE_ONLY_EIGHT_FORMATION_MUTANTS",
+  "reviewer": "/root/clock_cpp_census_independent_review",
+  "preparation_sha256": "DA7E8ED90115277BE465EAE34E9813D1408CBA4470EAB2F9C4D5A32994EF9886",
+  "all8_exact_single_header_deltas_verified": true,
+  "all8_data_access_exact_baseline": true,
+  "whole_frozen_proof_sha256": "D5F041F751D7B482C6C63C251CA52B2BE30160592E7A542DDC413F2EAFFC8D85",
+  "frozen_recipe_unchanged": true,
+  "direct_caller_debit": {
+    "before": 113,
+    "after": 120,
+    "control_remaining_before_assertion": 1809
+  },
+  "safety": "All real acquire/lifetimes remain; no cap/price/reserve lowered; failfast ordinary1 beforedependentwork/unwinding; parentbothreleasedonce; all8assertions identified",
+  "optional_layout_source_sha256": "B4B51D59B9968CBF8E49CEC163F4BFE841EB315C884D680077DA3FD1B8076F07",
+  "layout_source_verdict": "ACCEPT_SOURCE_ONLY",
+  "compiler_or_program_run": false
+}

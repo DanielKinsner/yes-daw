@@ -1,0 +1,3 @@
+Site 94 expected 0 got 1
+FAIL normal Worker then real direct acquire line 277: raw.sites[i] == sites[i]
+FAIL formation whole proof: stopped before dependent work; no complete lifetime/inventory credit

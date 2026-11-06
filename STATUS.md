@@ -49,13 +49,15 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    grids, quantize and metronome/count-in. Musical MIDI defaults and explicit Fixed-time commands are implemented.
    Active: Musical audio tempo-follow. Window/channel planning and pure history foundations are pushed; audible
    tempo-follow is not enabled. The request-owner prototype now passes135,111 headless checks and eight biting
-   mutants. Its funded legacy adapter, complete recipe/resource/renderer proof and model/job integration are unfinished.
+   mutants; the source/evidence archive is `docs/research/artifacts/2026-11-05-musical-origin-formation-r4/`.
+   Its funded legacy adapter, complete recipe/resource/renderer proof and model/job integration are unfinished.
    Current CI: metronome performance repair5785a3f passes490 local pure checks, GUI3 compile-only and Clang4.
-   Its Windows tests (including the deadline), both sanitizers and package gates pass; Linux/Mac compilation
-   found one warning in the frozen regression test. The exact-source diagnostic repair now passes19 policy tests,
-   all491 local pure checks and GUI3 compile-only. Fresh cross-platform CI is required before certification.
-   Separate clock research remains unrun: corrected C++ censusR2 is in fresh review; the runner census and R8
-   capacity assertion require correction. After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
+   The exact-source diagnostic repaird3ec661 passes19 policy methods, all491 local pure checks and GUI3
+   compile-only. Fresh exact-head CI42146047209 passed ALL TEN jobs, including all three platform tests,
+   both sanitizers and package/publication gates. The metronome repair and build correction are certified.
+   Separate clock research remains unrun: corrected C++ censusR2 has conditional acceptance; R9 whole source
+   is accepted, with the complete runner operation/capacity/lifetime census active. No new execution GO.
+   After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -75,6 +77,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Close cross-platform CI and preserve the ownership proof through Git
+
+- Fresh exact-headd3ec661 CI42146047209 passed all ten jobs. GNU and AppleClang each classified exactly the pinned copy warning and passed their520 tests; Windows, both sanitizers and package/publication gates also passed. No rerun, cancellation, source-proof edit or timing threshold change.
+- Archived the tested R4 request-owner prototype and27 source/evidence files under `docs/research/artifacts/2026-11-05-musical-origin-formation-r4/`:135,111 checks,88requests,121actual-attempt assertions,117allocations and eight ordinary biting mutations. All source bytes are exact; LF log copies retain original bytes/base64/hashes in the manifest. This is standalone Windows evidence, not task/renderer/Ready integration.
+- R5's actual three-attempt source is in whole review. State-owned computed results and after-the-body local-owner destruction accounting are confirmed issues; no R5 prices, native qualification or execution. Correct ownership/cleanup in a source successor, then close the separately funded query classifier without adding a semantic tariff.
+- Clock C++ censusR2 has conditional whole numeric acceptance; R9 whole functional source is accepted after withdrawing the unsupported reader capacity. Its independent complete runner operation/capacity/lifetime census is active; no complete U, new limit, binding or target execution GO. Musical activation, linked/folder/piano and hardware evidence remain unfinished.
 
 ## 2026-11-05 - Keep frozen tests exact while repairing cross-platform compilation (local gates complete; fresh CI pending)
 

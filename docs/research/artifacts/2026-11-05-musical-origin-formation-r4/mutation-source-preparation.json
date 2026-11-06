@@ -1,0 +1,76 @@
+{
+  "schema": "FORMATION_FROZEN_PROOF_MUTATION_SOURCE_PREPARATION_V1",
+  "proof_sha256": "D5F041F751D7B482C6C63C251CA52B2BE30160592E7A542DDC413F2EAFFC8D85",
+  "baseline_header_sha256": "1673DFB9FEB370FFD8C3491E0EB2DE9AF2C006D0CCF25FA0BE7DB5CFFB391BF7",
+  "data_sha256": "50B44CEDADE31A1B9280E96CFCB308406522BE30D005B262FBAD4319A40AA35D",
+  "access_sha256": "099D46D2DDEBD03C803F3C0E95EEBC674E46A7C4B7004168099B721F20A04D60",
+  "frozen_recipe_sha256": "97B2A2ABE0BE0CDDFCE173A20E6A6264E837DB751FE204E93B4B094E8E22619C",
+  "mutants": [
+    {
+      "name": "captured-project-id",
+      "header_sha256": "C6D841AE63F64D70E0A4D3C373D851303D84D33B1C010AAC3728336BEDA7FAC7",
+      "before": "            in.project_.id, *clip, *asset, in.project_.sampleRate, in.requestId_, in.version_, in.generation_ };",
+      "after": "            clip->id, *clip, *asset, in.project_.sampleRate, in.requestId_, in.version_, in.generation_ };",
+      "replacements": 1,
+      "safety": "Already-validated selected Clip ID differs from Project ID; equality fails before any receiver."
+    },
+    {
+      "name": "copied-map-bpm",
+      "header_sha256": "DE1F387FCA1DA83DAEDC370AAC2430D52EFAAD4AC41F9687C8F83C1F2E4D120F",
+      "before": "                ::new (static_cast<void*> (s.map_ + mi)) engine::TempoChange (row);",
+      "after": "                ::new (static_cast<void*> (s.map_ + mi)) engine::TempoChange { row.tick, row.bpm + 1.0, row.curveToNext };",
+      "replacements": 1,
+      "safety": "Complete valid row, same tick/curve, positive BPM+1; exact map equality fails before arm."
+    },
+    {
+      "name": "search-diagnostic",
+      "header_sha256": "614EDC492352F94405DA5669662637542EE4307128DDEBC568A11B59BA889707",
+      "before": "s.raw_.loopBodies += 1; s.raw_.searchRows += 1;",
+      "after": "s.raw_.loopBodies += 1;",
+      "replacements": 1,
+      "safety": "Only first Clip-search diagnostic removed; real loop and funding unchanged."
+    },
+    {
+      "name": "direct-caller-site",
+      "header_sha256": "80C04171F8850B04B58F693C49ACB846B33AEBB2275F1CE2E0D3C3B78CB0C5CB",
+      "before": "Ledger::pay (s, s.roleLife_[Ledger::ix (Role::Control)], Site::AcquireCurrentCaller);",
+      "after": "Ledger::pay (s, s.roleLife_[Ledger::ix (Role::Control)], Site::DrainRetiring);",
+      "replacements": 1,
+      "safety": "Existing Control lifetime reservation covers larger alternative94; real acquire untouched; Site oracle fails."
+    },
+    {
+      "name": "snapshot-total",
+      "header_sha256": "DDF2D88EF942111F0E4E4C18FE8A6B53543BA1E4BAB6D89FBCC2398E1AE27331",
+      "before": "out.origin.total = add (out.origin.actual, out.origin.reserved);",
+      "after": "out.origin.total = add (out.origin.actual, out.origin.reserved) + 1;",
+      "replacements": 1,
+      "safety": "Readonly output aggregate only; production canonical authority unchanged; receipt sum fails."
+    },
+    {
+      "name": "terminal-load-diagnostic",
+      "header_sha256": "E16757060A8F916C77502811448AB379FB39E4681E817A58FE84A62B07F91B29",
+      "before": "        s.raw_.terminalLoads += 1;",
+      "after": "        /* omitted Worker terminal-load diagnostic */",
+      "replacements": 1,
+      "safety": "First Worker diagnostic only; real atomic acquire/context unchanged; post-acquire oracle fails."
+    },
+    {
+      "name": "owner-destruction-diagnostic",
+      "header_sha256": "87A3050CD69F34CE3C163B7667000277EA6AEC43FCB7C707A1E0A0481BD3E368",
+      "before": "            failureTail_.raw.ownerDestructions += 1;",
+      "after": "            /* omitted failed-owner destruction diagnostic */",
+      "replacements": 1,
+      "safety": "Only no-State diagnostic removed; actual owner/destructor cleanup unchanged; final byte oracle fails."
+    },
+    {
+      "name": "parent-release-order",
+      "header_sha256": "180D8C966B16FAB43279AB7E46280FF0E42FD35F25F4C58D07170605B1009DEC",
+      "before": "    const SampleOwner original, readyView;\n    Parents (const SampleOwner& source, const SampleOwner& view) noexcept : original (source), readyView (view) {}",
+      "after": "    const SampleOwner readyView, original;\n    Parents (const SampleOwner& source, const SampleOwner& view) noexcept : readyView (view), original (source) {}",
+      "replacements": 1,
+      "safety": "Both handles initialized once in declaration order and released once; actual default-deallocation order differs; no dangling access."
+    }
+  ],
+  "compiler_or_program_run": false,
+  "required_result": "Native compile0; ordinary assertion1; no compiler/crash/timeout credit. Whole frozen proof hash before/after every mutant. No fixed fund/price/cap lowered."
+}

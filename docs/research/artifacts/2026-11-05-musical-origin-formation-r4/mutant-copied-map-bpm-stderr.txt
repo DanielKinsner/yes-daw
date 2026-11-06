@@ -1,0 +1,2 @@
+FAIL valid full map line 803: Access::mapRow (app, slot, i) == rows[i]
+FAIL formation whole proof: stopped before dependent work; no complete lifetime/inventory credit

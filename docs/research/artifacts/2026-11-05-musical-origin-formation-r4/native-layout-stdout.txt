@@ -1,0 +1,1 @@
+{"raw_bytes":1200,"state_bytes":1952,"state_alignment":8,"metadata_bytes":384,"parents_bytes":32,"map_row_bytes":24,"application_bytes":5200,"control_owner_bytes":2584,"slot_bytes":2584,"size_t_bytes":8,"conversion_unit":0,"root_reservation":26271}

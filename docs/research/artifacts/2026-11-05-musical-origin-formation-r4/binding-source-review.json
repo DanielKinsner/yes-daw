@@ -1,0 +1,21 @@
+{
+  "schema": "YESDAW_FORMATION_BOUND_SOURCE_R2_REVIEW_V1",
+  "verdict": "ACCEPT_SOURCE_ONLY_BOUND_PACKAGE_R2",
+  "reviewer": "/root/formation_r4_numeric_independent_review",
+  "inputs_verified": 35,
+  "outputs_verified": 4,
+  "whole_manifest_seal": "0AB5C6C6E95C7FE50E0912A8F9C62BAF1B492963A94A767008003C32F4292128",
+  "accepted": [
+    "whole five-file package, R1 preserved",
+    "header/data byteexactR1 and all129prices/envelopes",
+    "all136R1observerlines preserved and87private additions",
+    "actualcapturedfixedmetadata+borrowedparentgetidentities, actualmaprowcopy",
+    "overflow-safe nestedApp/slot/Controlfailedrootbyteoffsets+containment/nonoverlap/trivialcopy gates",
+    "onlystill-ownedbytecaptureafterexplicitAppdestruction into LIVE RootCensus, no deadtypedaccess or callback",
+    "private readonly observations require independently proven alive/quiescent/extents and productionacquire"
+  ],
+  "root_reverified_all39pins": true,
+  "native_compiled": false,
+  "whole_proof_run": false,
+  "SDK_CPU_resources_or_legacy_integration": false
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "FORMATION_WHOLE_PROOF_R3_COMPILER_CORRECTION_REVIEW",
+  "verdict": "ACCEPT_SOURCE_ONLY_FORMATION_WHOLE_PROOF_R3_TWO_CONSTANT_GUARDS",
+  "reviewer": "/root/clock_r8_bounded_parser_source",
+  "proof_sha256": "D5F041F751D7B482C6C63C251CA52B2BE30160592E7A542DDC413F2EAFFC8D85",
+  "manifest_sha256": "8AFDCD5826073CDA14AFEF6E3E88B55F7D78FE071063B841367C53AD0FAB2D4E",
+  "independently_verified_records": 39,
+  "exact_delta": "Only two if -> if constexpr at956/960; independent reversible whole1549-line comparison to acceptedR2; no oracle or safety change",
+  "standard_basis": "const-integral overhead/searchRows initialized from constexpr B/d/rootReservation/workCap are constant expressions; both fail-fast EXPECTs unchanged",
+  "compiler_or_runtime": false,
+  "first_GREEN": false
+}

@@ -1,0 +1,84 @@
+{
+  "exit": 0,
+  "stages": {
+    "environment": {
+      "raw_exit": 0,
+      "seconds": 1.2376922
+    },
+    "baseline": {
+      "raw_exit": 0,
+      "seconds": 0.0621161
+    },
+    "captured-project-id-compile": {
+      "raw_exit": 0,
+      "seconds": 2.3925462
+    },
+    "copied-map-bpm-compile": {
+      "raw_exit": 0,
+      "seconds": 2.3118179
+    },
+    "search-diagnostic-compile": {
+      "raw_exit": 0,
+      "seconds": 2.2469691
+    },
+    "direct-caller-site-compile": {
+      "raw_exit": 0,
+      "seconds": 2.2907368
+    },
+    "snapshot-total-compile": {
+      "raw_exit": 0,
+      "seconds": 2.2727736
+    },
+    "terminal-load-diagnostic-compile": {
+      "raw_exit": 0,
+      "seconds": 2.259842
+    },
+    "owner-destruction-diagnostic-compile": {
+      "raw_exit": 0,
+      "seconds": 2.3115551
+    },
+    "parent-release-order-compile": {
+      "raw_exit": 0,
+      "seconds": 2.3186398
+    }
+  },
+  "mutants": {
+    "captured-project-id": {
+      "raw_exit": 1,
+      "ordinary_biting_assertion": true
+    },
+    "copied-map-bpm": {
+      "raw_exit": 1,
+      "ordinary_biting_assertion": true
+    },
+    "search-diagnostic": {
+      "raw_exit": 1,
+      "ordinary_biting_assertion": true
+    },
+    "direct-caller-site": {
+      "raw_exit": 1,
+      "ordinary_biting_assertion": true
+    },
+    "snapshot-total": {
+      "raw_exit": 1,
+      "ordinary_biting_assertion": true
+    },
+    "terminal-load-diagnostic": {
+      "raw_exit": 1,
+      "ordinary_biting_assertion": true
+    },
+    "owner-destruction-diagnostic": {
+      "raw_exit": 1,
+      "ordinary_biting_assertion": true
+    },
+    "parent-release-order": {
+      "raw_exit": 1,
+      "ordinary_biting_assertion": true
+    }
+  },
+  "desktop_input": false,
+  "native_windows": false,
+  "audio_device": false,
+  "proof_frozen": true,
+  "scope": "Eight bounded biting mutants against immutable whole formation proof; no Clock/recipe/DSP/Ready credit"
+}

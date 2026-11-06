@@ -1,0 +1,2 @@
+FAIL valid full map line 791: actual.metadata.projectId == expectedProject
+FAIL formation whole proof: stopped before dependent work; no complete lifetime/inventory credit

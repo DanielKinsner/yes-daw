@@ -1,0 +1,26 @@
+{
+  "created_utc": "2026-11-05T23:27:06.373919+00:00",
+  "reviewer": "/root/formation_r4_numeric_independent_review",
+  "review_received_exact_utc": null,
+  "verdict": "ACCEPT_CONDITIONAL_NUMERIC_CENSUS_R2",
+  "source_sha256": "D2DD56DA51DCAA282E4BC44A09A2169356F39A0644F15954236083B684C325C1",
+  "corrected_md_sha256": "300714170387FF05302A5B4D0429275DBA403A73A4A1674478A810A26C51D4E9",
+  "corrected_json_sha256": "F9ED34808925F8546BDD7C4ED201F438A18A5D88128F91A79BD5DAEBF0B34BB4",
+  "corrected_pins_sha256": "EC18AFBA2DDEBBC96F6DFBE2B150F36E7862469F0B76CA8F930AD405A9193A42",
+  "root_arithmetic_audit_sha256": "E1B3713A047032769EC398C9F09BD398C39F427D637D6B30A3354833E546C5DB",
+  "scope": "whole prior1279-line source/16helpers/129event-caller/lifetime review plus exact three corrections and affected bounds for bothd cases",
+  "rootEnvelope": "9*B+15471+3*d",
+  "native_B_max": 29824442,
+  "native_conditional_max": 268435452,
+  "workCap": 268435456,
+  "whole_source_numeric_lifetime_defect_remaining": false,
+  "native_qualifications_compiled": false,
+  "remaining": [
+    "binding source and private read-only ProofAccess source identity review",
+    "actual B/S/size_t/alignment/type/constinit qualification",
+    "whole independent formation proof",
+    "ADR89 actual legacy adapter and combinedR4 proof",
+    "actual integration callers and full parent/SDK/resource/renderer/runtime qualification"
+  ],
+  "binding_or_execution_authorized": false
+}

@@ -1,0 +1,2 @@
+FAIL last real parent owners survive map release then ready/original/State free line 1457: parentTraces[1].releasedAt < parentTraces[0].releasedAt
+FAIL formation whole proof: stopped before dependent work; no complete lifetime/inventory credit
