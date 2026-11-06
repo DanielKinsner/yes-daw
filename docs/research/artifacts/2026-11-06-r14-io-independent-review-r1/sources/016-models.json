@@ -1,0 +1,73 @@
+{
+  "models": [
+    {
+      "case": "continuation-cap",
+      "written": 0,
+      "unretained": 4096,
+      "expected_omitted": 4096,
+      "candidate_omitted": 0
+    },
+    {
+      "case": "continuation-cap",
+      "written": 1,
+      "unretained": 4095,
+      "expected_omitted": 4095,
+      "candidate_omitted": 0
+    },
+    {
+      "case": "continuation-cap",
+      "written": 4095,
+      "unretained": 1,
+      "expected_omitted": 1,
+      "candidate_omitted": 0
+    },
+    {
+      "case": "search-close-failure",
+      "live_owners": [
+        "H1",
+        "H2"
+      ],
+      "tracked_owner": "H2",
+      "unrepresented_owner": "H1"
+    },
+    {
+      "case": "meter-refused-valid-stage-path",
+      "base_units": 200,
+      "suffix_units": 1,
+      "joined_units": 202,
+      "semantic_extent_refused": false,
+      "meter_refused": true,
+      "candidate_extent_flag": true
+    },
+    {
+      "case": "true-zero-then-real-data",
+      "filled": 0,
+      "native_result": [
+        true,
+        0
+      ],
+      "next_peer_data_bytes": 3,
+      "candidate_logical_result": "ZeroEof",
+      "lost_future_bytes": 3
+    },
+    {
+      "case": "true-zero-then-real-data",
+      "filled": 17,
+      "native_result": [
+        true,
+        0
+      ],
+      "next_peer_data_bytes": 3,
+      "candidate_logical_result": "EofShort then synthetic ZeroEof",
+      "lost_future_bytes": 3
+    },
+    {
+      "case": "failed-pipe-output",
+      "creator_success": false,
+      "raw_word": "unknown nonnull word",
+      "candidate_promotes_owner": true,
+      "valid_owner_proved": false
+    }
+  ],
+  "qualification": "Pure finite source counterexamples; no native API, helper or fixture was invoked. They are not observed runtime events."
+}

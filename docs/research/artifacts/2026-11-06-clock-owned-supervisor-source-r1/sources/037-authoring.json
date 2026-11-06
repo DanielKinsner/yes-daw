@@ -1,0 +1,78 @@
+{
+  "candidate": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1",
+  "sources": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/run-clock.ps1",
+      "bytes": 131334,
+      "lines": 1279,
+      "sha256": "1DA6CE50CF934037318C44D843F82CA326F71719502EE2334FCBEEF799755480"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-manifest.json",
+      "bytes": 510989,
+      "lines": 12943,
+      "sha256": "B5CBED7FDF59F7CE9387117D87CD85EAFD16ABD57BBB60EEE741DDF39FF09A40"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/README.md",
+      "bytes": 4833,
+      "lines": 71,
+      "sha256": "BA73C338A4F2AB6E63AB6CBEAFB8E4B89CD0F82EB5A1C76C45237FC1886AA806"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "lines": 289,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-costs.h",
+      "bytes": 3725,
+      "lines": 72,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    }
+  ],
+  "native": [
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup.h",
+      "bytes": 10756,
+      "lines": 304,
+      "sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_codec.cpp",
+      "bytes": 28730,
+      "lines": 479,
+      "sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_core.cpp",
+      "bytes": 10805,
+      "lines": 251,
+      "sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_io.cpp",
+      "bytes": 23107,
+      "lines": 385,
+      "sha256": "6A7438CAE4FFF500EEED965EDDBA5209F45706E8023E7AB4ECC899BA6834EA3A"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_main.cpp",
+      "bytes": 21897,
+      "lines": 407,
+      "sha256": "54AE173EC37C95B2F14AAC8C2C7189F750F1D1BAE18A926A6ADE05BF193AE562"
+    }
+  ],
+  "bootstrap_nodes": 16401,
+  "bootstrap_depth_string": [
+    4,
+    435
+  ],
+  "input_count": 1230,
+  "input_bytes": 461001541,
+  "source_only": true,
+  "no_parser_compiler_program_execution": true,
+  "own_complete_checks": "EXTERNAL_CHECKS_AND_FREEZE_RECORD_REQUIRED",
+  "native_sdk_union": "EXPLICIT_UNBOUND_PENDING_PINNED_COMPILE_ONLY_INCLUDE_QUALIFICATION"
+}

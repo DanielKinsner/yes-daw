@@ -1,0 +1,331 @@
+{
+  "old_functions": 74,
+  "all_functions": 88,
+  "new_helpers": [
+    "Add-TaskSupervisorCleanup",
+    "Assert-TaskSupervisorBinding",
+    "Assert-TaskSupervisorTerminal",
+    "Get-TaskSupervisorEnvironment",
+    "Get-TaskSupervisorInteger",
+    "Get-TaskSupervisorRequestArgument",
+    "Get-TaskSupervisorRunHash",
+    "New-TaskSupervisorFailure",
+    "New-TaskSupervisorParentFailure",
+    "Read-TaskSupervisorTerminal",
+    "Set-TaskSupervisorInteger",
+    "Spend-TaskSupervisor",
+    "Test-TaskSupervisorReason",
+    "Write-TaskSupervisorRequest"
+  ],
+  "changed_old_helpers": [
+    "Add-TaskChildCleanup",
+    "Assert-TaskPins",
+    "Initialize-TaskController",
+    "Initialize-TaskPathCatalogue",
+    "Invoke-TaskChild"
+  ],
+  "unchanged_old_helpers": [
+    "Add-TaskJsonBound",
+    "Add-TaskJsonVisit",
+    "Add-TaskPathCatalogueEntry",
+    "Assert-NoLink",
+    "Assert-TaskAttempt",
+    "Assert-TaskBoundSourceInteger",
+    "Assert-TaskCodecBinding",
+    "Assert-TaskConsolePE",
+    "Assert-TaskDependencies",
+    "Assert-TaskDocumentWrite",
+    "Assert-TaskExactKeys",
+    "Assert-TaskFileSet",
+    "Assert-TaskFreshHashIdentity",
+    "Assert-TaskIdentity",
+    "Assert-TaskIntegral",
+    "Assert-TaskPollAdmission",
+    "Assert-TaskPredecessor",
+    "Assert-TaskRawJson",
+    "Assert-TaskRawJsonBytes",
+    "Assert-TaskReservation",
+    "Assert-TaskRetainedReservation",
+    "Assert-TaskSameReferences",
+    "Assert-TaskString",
+    "Close-TaskJsonReader",
+    "Close-TaskOwner",
+    "Complete-TaskOwnerClose",
+    "Convert-TaskControlOperand",
+    "Copy-TaskOwned",
+    "Encode-TaskJson",
+    "Expect-TaskGate",
+    "Get-TaskBootstrapHash",
+    "Get-TaskBuildArtifacts",
+    "Get-TaskCanonicalPath",
+    "Get-TaskCatalogueEntryPath",
+    "Get-TaskCatalogueString",
+    "Get-TaskDependencyString",
+    "Get-TaskEntries",
+    "Get-TaskEscapedStringBytes",
+    "Get-TaskHash",
+    "Get-TaskHashHex",
+    "Get-TaskIntegerDigits",
+    "Get-TaskPEHeader",
+    "Get-TaskPredecessorDescriptor",
+    "Get-TaskReferences",
+    "Get-TaskRuntimeType",
+    "Get-TaskSafePrefix",
+    "Get-TaskSecondaryCodes",
+    "Get-TaskStageBytes",
+    "Invoke-TaskFencedChild",
+    "Join-TaskBoundedNames",
+    "Measure-TaskJson",
+    "Mutate-TaskOwnedBytes",
+    "Read-TaskBoundedBytes",
+    "Read-TaskChildResult",
+    "Read-TaskDependencyJson",
+    "Read-TaskJson",
+    "Reject-TaskGate",
+    "Replace-TaskBounded",
+    "Resolve-TaskInput",
+    "Save-TaskFailureInventory",
+    "Save-TaskReceipt",
+    "Set-TaskRawExit",
+    "Set-TaskSecondary",
+    "Spend-Task",
+    "Test-TaskHashValue",
+    "Test-TaskPathCatalogueContext",
+    "Visit-TaskJsonValue",
+    "Write-TaskJson",
+    "Write-TaskJsonBytes"
+  ],
+  "bootstrap": {
+    "nodes": 16401,
+    "depth": 4,
+    "maximum_string_units": 435
+  },
+  "profile": {
+    "input_count": 1230,
+    "input_bytes": 461001541,
+    "input_hash_chunks": 7867,
+    "include_input_count": 1231,
+    "directory_namespaces_count": 32,
+    "directory_namespace_entries": 1097,
+    "directory_namespace_files": 1050,
+    "complete_current_inputs": 1236,
+    "maximum_complete_fence_identities": 1311,
+    "declared_success_run_files": 74,
+    "declared_failure_extra_files": 1,
+    "failure_inventory_max_files": 85,
+    "root_walk_entries_max": 85,
+    "root_walk_depth_max": 64,
+    "normal_fence_calls": 8,
+    "prepaid_fence_calls_upper": 9,
+    "own5_max_bytes": 1048576,
+    "R4_244_individual_paths_preserved": true,
+    "R4_256_firststage_immutable": true,
+    "R1_R2_R3_R4_source_seals_preserved": true,
+    "profile_source": "PROVISIONAL_R14_SOURCE_UNION_ONLY_NATIVE_SDK_BINARY_AND_FINAL_CANONICAL_UNION_UNBOUND",
+    "future_constinit_data_identity_included": false,
+    "future_literal_binding_profile_state": "PENDING_CANONICAL_FUNCTIONAL_SOURCE_CONTRACT_CENSUS_RESOURCE_PROOF_DATA_UNION_AND_COMPLETE_RECOMPOSITION",
+    "R14_pending_native_sdk_and_binary_inputs": true
+  },
+  "format": {
+    "request_header": 140,
+    "request_caps": [
+      41260,
+      18644,
+      18644
+    ],
+    "terminal": 308,
+    "transport": 79472,
+    "offsets": {
+      "version": 8,
+      "total": 12,
+      "index": 16,
+      "flags": 20,
+      "pid": 24,
+      "exit": 28,
+      "status": 32,
+      "primary_site": 36,
+      "primary_reason": 40,
+      "primary_error": 44,
+      "secondary_site": 48,
+      "secondary_reason": 52,
+      "secondary_error": 56,
+      "native_secondary_site": 60,
+      "native_secondary_reason": 64,
+      "native_secondary_error": 68,
+      "secondary_count": 72,
+      "prefix": 80,
+      "polls": 88,
+      "manifest": 96,
+      "run": 128,
+      "target": 160,
+      "out": 192,
+      "err": 248,
+      "cleanup": 304,
+      "EOF": 308
+    },
+    "flags": [
+      [
+        "ChildCreated",
+        "0"
+      ],
+      [
+        "TargetExitKnown",
+        "1"
+      ],
+      [
+        "StdoutSettled",
+        "2"
+      ],
+      [
+        "StderrSettled",
+        "3"
+      ],
+      [
+        "StdoutEof",
+        "4"
+      ],
+      [
+        "StderrEof",
+        "5"
+      ],
+      [
+        "JobEmptyProved",
+        "6"
+      ],
+      [
+        "StdoutStartKnown",
+        "7"
+      ],
+      [
+        "StdoutEndKnown",
+        "8"
+      ],
+      [
+        "StderrStartKnown",
+        "9"
+      ],
+      [
+        "StderrEndKnown",
+        "10"
+      ],
+      [
+        "PrefixKnown",
+        "11"
+      ],
+      [
+        "PrimaryNativeKnown",
+        "12"
+      ],
+      [
+        "HasSecondary",
+        "13"
+      ],
+      [
+        "FirstSecondaryOwnNativeKnown",
+        "14"
+      ],
+      [
+        "FirstNativeSecondaryKnown",
+        "15"
+      ],
+      [
+        "StdoutErrorPartialKnown",
+        "16"
+      ],
+      [
+        "StderrErrorPartialKnown",
+        "17"
+      ],
+      [
+        "BodyTimedOut",
+        "18"
+      ],
+      [
+        "BodyPollLimited",
+        "19"
+      ],
+      [
+        "RawLogCap",
+        "20"
+      ],
+      [
+        "StagePoolCap",
+        "21"
+      ],
+      [
+        "StageGuardRejected",
+        "22"
+      ],
+      [
+        "SecondaryCountSaturated",
+        "23"
+      ],
+      [
+        "StdoutFlushed",
+        "24"
+      ],
+      [
+        "StderrFlushed",
+        "25"
+      ],
+      [
+        "TargetMayHaveRun",
+        "26"
+      ],
+      [
+        "CoordinatorCountersKnown",
+        "27"
+      ]
+    ],
+    "cleanup_prefix_upper": 14,
+    "cleanup_late_upper": 15
+  },
+  "native_prefix_families": [
+    "Entry",
+    "Profile",
+    "RawCommand",
+    "CommandCell",
+    "Decode",
+    "DecodeCell",
+    "StringGuard",
+    "StringCell",
+    "Identity",
+    "HashFile",
+    "HashChunk",
+    "HashByte",
+    "HashBlock",
+    "HashRound",
+    "PathGuard",
+    "PathCell",
+    "StageScan",
+    "StageEntry",
+    "Encode",
+    "EncodeCell",
+    "TargetQuote",
+    "QuoteCell",
+    "Environment",
+    "EnvironmentCell",
+    "Owner",
+    "WorkerStart",
+    "WorkerRead",
+    "WorkerPublish",
+    "Coordinator",
+    "Poll",
+    "Consume",
+    "WriteChunk",
+    "WriteCall",
+    "TerminalValidation"
+  ],
+  "protocol": "IMMUTABLE_V1_PLUS_ACCEPTED_EXACT_V2_DELTA",
+  "scope": "OWN_SOURCE_CONSISTENCY_ONLY_INDEPENDENT_WHOLE_CRITIC_AND_ALL_FRESH_PROOF_GATES_PENDING",
+  "unqualified": [
+    "Actual native SDK/header/import/binary association",
+    "Field/stack/owner ABI and all controlled joined phases",
+    "Same-origin positive controller/helper/target prices, full schedules and prepaid tail",
+    "Creation-time job/nested/creator-death/reference and current empty-query semantics",
+    "Synchronous I/O/cancellation/native call/ExitProcess settlement and time",
+    "Trusted fresh null/noninteractive/error-dialog controller/helper launch profile and external N",
+    "General CRT/CLR/native bookkeeping and exception/fault graphs under the accepted boundary",
+    "Final canonical input union, immutable actual Data storage and separate root execution GO"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "disposition": "REVISE",
+  "scope": "COMPLETE_FROZEN_R14_FUNCTIONAL_SOURCE_REVIEW_NOT_RUNTIME_PROOF",
+  "candidate_pins_sha256": "88BA2BDA5D1DEB4DC378D82431EAD036A51174D7C9AC11D2B4D03DC621E626A5",
+  "candidate_freeze_sha256": "E825D9CA77CB3A93284EFB99DD7D4D15918F713CA3432371A451664046E4258E",
+  "io_review_pins_sha256": "6EECF95CCC2026EB8FE19A6E1C8B8ADA423029CD6899F9EEAE9BE1F7F906ECF5",
+  "io_review_freeze_sha256": "15842D3727BF40FA56C39A8544E29CCA3FAE6F99EBD9CDE28C9F8ABE2711E3E3",
+  "findings": [
+    {"id": "F1", "file": "native/sup_main.cpp", "line": 36, "title": "Published ready generation mutated before acknowledgement", "required": "Keep published fields immutable and separately acquire exit-failure provenance"},
+    {"id": "F2", "file": "native/sup_main.cpp", "line": 21, "title": "Completed logical read erased by publication or meter failure", "required": "Retain successful logical result through ready or worker-exit acquisition and account once from prepaid tail"},
+    {"id": "F3", "file": "native/sup_main.cpp", "line": 253, "other_line": 303, "title": "Native wait failures silently discarded", "required": "Immediately capture each actual WAIT_FAILED result and preserve diagnostic order and unknown settlement"},
+    {"id": "F4", "io_id": "IO4", "file": "native/sup_main.cpp", "line": 136, "title": "Successful zero-count pipe read falsely called EOF", "required": "Distinguish documented pipe outcomes without domain narrowing or unbounded unpriced retry"},
+    {"id": "F5", "io_id": "IO1", "file": "native/sup_io.cpp", "line": 163, "title": "Previously retained search owner overwritten", "required": "Never reuse an occupied owner slot after failed close; retain and quarantine safely"},
+    {"id": "F6", "io_id": "IO2", "file": "native/sup_io.cpp", "line": 318, "title": "Continuation-stage cap refusal omits no bytes", "required": "Account exactly refused length-at once, preserving confirmed prefix and non-cap distinction"},
+    {"id": "F7", "io_id": "IO3", "file": "native/sup_io.cpp", "line": 158, "other_line": 176, "title": "Debit refusal manufactured as stage extent rejection", "required": "Propagate real cause through all analogous helper/caller seams and preserve source-cut ordering"},
+    {"id": "F8", "io_id": "IO5", "file": "native/sup_io.cpp", "line": 237, "other_line": 282, "title": "Failed creator outputs promoted to trusted owners", "required": "Retain raw unknown possible partial provenance; use, flag and release only established owners with supported validity"}
+  ],
+  "examined_nonfindings": [
+    "Final environment terminator fits exactly4156 cells",
+    "Combined parent position completeness is the accepted predecessor rule",
+    "Per-child raw-log budget matches frozen R13",
+    "HeapFree permits GetLastError according to current primary docs",
+    "No supported undefined-count claim for examined broken-pipe ReadFile path",
+    "No invented failing template path for concrete selected immutable profile"
+  ],
+  "execution": {
+    "target_parser_AST_import": false,
+    "compiler": false,
+    "supervisor_or_fixture": false,
+    "Clock": false,
+    "GUI_input_audio_MIDI": false
+  },
+  "next_authority": "One complete new unrun source successor, then fresh whole critic; all further execution and proof gates remain HOLD"
+}

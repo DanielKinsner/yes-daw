@@ -53,15 +53,17 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    acceptance; actual native/resources/binding, public recipe/DSP, renderer and jobs/model remain unfinished.
    Current app code isd3ec661:491 local pure checks and GUI3 compile-only passed; exact-code CI42146047209
    passed all ten jobs. Later evidence/docs commits use the separate docs-only CI path, with runtime jobs skipped.
-   Research runner R13 passed1,491 source checks, but a source follow-up found its bootstrap static-field
-   receiver wrong. R14 must fix it; R13 functionality remains HOLD. Its whole operation-budget review
-   returned REVISE; no new scalar price is accepted. All Clock execution guards remain false.
+   Research runner R13's bootstrap receiver is wrong and its operation-budget proposal remains REVISE.
+   R14 corrects that receiver, but its whole functional source review found eight failure-path issues;
+   the frozen candidate is REVISE and R15 is being authored. No new scalar price is accepted.
+   All Clock execution guards remain false; no supervisor/Clock run has started.
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
    reader actually passed88 types/391 declared fields. A separate /c-only purpose now measured194 type/layout
    cells; this supplies selected object-size evidence, without physical-frame, whole-fit or Clock-run credit.
-   ADR-0090's complete supervisor protocol passed115 independent checks; only a new unrun source candidate
-   is authorized. R13's complete scalar successor is being rebuilt for a different fresh critic.
-   Next: finish that whole numeric review and the supervisor implementation/resource/native/binding proof
+   ADR-0090's complete supervisor protocol passed115 independent checks; its v2 diagnostic delta is Accepted.
+   The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
+   is REVISE, with no runtime credit. R13's complete scalar successor awaits a different fresh critic.
+   Next: finish the complete R15 correction and fresh whole review, the R13 numeric review, and resource/native/binding proof
    before any Clock attempt. Detailed evidence and earlier
    source revisions remain in the dated entries below; Dan is not a tester or approval gate.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
@@ -84,6 +86,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Complete supervisor review; correct failure paths before any run
+
+- R14's complete frozen source is REVISE: root found three publication/accounting/wait issues and a separate IO critic five EOF/owner/cap/refusal issues. All eight form one correction request; the original1,555-check candidate and failed author/check attempts remain exact.
+- Root's whole source/file/data checker passed2,542 assertions on its first invocation; the scoped IO checker passed55. Neither ran a target parser, compiler, helper, fixture or Clock. The [complete review](docs/research/artifacts/2026-11-06-r14-supervisor-functional-review-r1/sources/024-review.md) and [delivery receipt](docs/research/2026-11-06-r14-supervisor-source-review.json) preserve the exact scope and pins.
+- Root authorized a complete new unrun R15 source successor, then another whole critic. All source-price/resource/native/ABI/binding/one-attempt gates remain HOLD; the194 measured type/layout cells do not supply that missing proof. Earlier editing features remain delivered; Musical audio, linked edits/folders and piano-roll views remain unfinished.
+- Both preceding evidence commits passed docs-only CI: a6ffb155 /42225340048 and8f8ae594 /42226564862, with runtime/package/sanitizer jobs skipped. No user desktop input, native window or audio/MIDI startup occurred.
 
 ## 2026-11-06 - Correct explicit cast sponsorship before whole source review
 

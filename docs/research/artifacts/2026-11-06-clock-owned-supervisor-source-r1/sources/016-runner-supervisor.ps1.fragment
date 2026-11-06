@@ -1,0 +1,301 @@
+# R14 private transport. This fragment is source-authoring input only; never
+# parsed/imported/executed by author verification. Its helpers enter run-clock.
+function Spend-TaskSupervisor([string]$Family,[long]$Count=1){
+ if($Count -lt 0 -or -not $taskManifest['supervisor']['controller_prices'].Contains($Family)){throw 'UNBOUND_SUPERVISOR_CONTROLLER_PRICE'}
+ $taskPrice=$taskManifest['supervisor']['controller_prices'][$Family];Assert-TaskBoundSourceInteger ('supervisor-'+$Family) $taskPrice
+ if($Count -gt 0){$taskRemainder=0L;$taskQuotient=[Math]::DivRem([long]::MaxValue,$Count,[ref]$taskRemainder);if($taskPrice -gt $taskQuotient){throw 'SUPERVISOR_SOURCE_MULTIPLICATION'}}
+ Spend-Task ([long]$taskPrice*$Count)
+}
+function Set-TaskSupervisorInteger([byte[]]$Bytes,[int]$At,[int]$Width,[uint64]$Value){
+ if(($Width -ne 4 -and $Width -ne 8) -or $At -lt 0 -or $At -gt $Bytes.Length-$Width -or ($Width -eq 4 -and $Value -gt [uint32]::MaxValue)){throw 'SUPERVISOR_LE_STORE_DOMAIN'}
+ for($taskI=0;$taskI -lt $Width;$taskI++){$Bytes[$At+$taskI]=[byte](($Value -shr (8*$taskI))-band 255)}
+}
+function Get-TaskSupervisorInteger([byte[]]$Bytes,[int]$At,[int]$Width){
+ if(($Width -ne 4 -and $Width -ne 8) -or $At -lt 0 -or $At -gt $Bytes.Length-$Width){throw 'SUPERVISOR_LE_LOAD_DOMAIN'}
+ [uint64]$taskValue=0
+ for($taskI=0;$taskI -lt $Width;$taskI++){$taskValue=$taskValue-bor ([uint64]$Bytes[$At+$taskI] -shl (8*$taskI))}
+ return $taskValue
+}
+function Get-TaskSupervisorRunHash([byte[]]$ManifestDigest){
+ Assert-TaskString $taskRoot 512
+ if($ManifestDigest.Length -ne 32){throw 'SUPERVISOR_RUN_DIGEST_EXTENT'}
+ $taskDomain='YESDAW-CLOCK-SUPERVISOR-RUN-V1';$taskBytes=[byte[]]::new($taskDomain.Length+1+32+4+2*$taskRoot.Length)
+ for($taskI=0;$taskI -lt $taskDomain.Length;$taskI++){$taskBytes[$taskI]=[byte][int]$taskDomain[$taskI]}
+ $taskAt=$taskDomain.Length+1;[Array]::Copy($ManifestDigest,0,$taskBytes,$taskAt,32);$taskAt+=32
+ Set-TaskSupervisorInteger $taskBytes $taskAt 4 ([uint64]$taskRoot.Length);$taskAt+=4
+ for($taskI=0;$taskI -lt $taskRoot.Length;$taskI++){$taskCell=[int]$taskRoot[$taskI];$taskBytes[$taskAt++]=[byte]($taskCell-band 255);$taskBytes[$taskAt++]=[byte]($taskCell-shr 8)}
+ if($taskAt -ne $taskBytes.Length){throw 'SUPERVISOR_RUN_EXACT_EOF'}
+ return ,([Security.Cryptography.SHA256]::HashData($taskBytes))
+}
+function Get-TaskSupervisorEnvironment{
+ Assert-TaskExactKeys $taskManifest['environment'] @('SystemRoot','windir','PATH','INCLUDE','LIB','TEMP','TMP','VSLANG')
+ $taskValues=[string[]]::new(8);$taskKeys=@('SystemRoot','windir','PATH','INCLUDE','LIB','TEMP','TMP','VSLANG')
+ for($taskI=0;$taskI -lt 8;$taskI++){
+  $taskValue=$taskManifest['environment'][$taskKeys[$taskI]];Assert-TaskString $taskValue 512 $true
+  if($taskValue -ceq '<OWNED_OPAQUE_TEMP>'){$taskValue=$taskOpaqueRoot}
+  Assert-TaskString $taskValue 512 $true;$taskValues[$taskI]=$taskValue
+ }
+ return ,$taskValues
+}
+function Assert-TaskSupervisorBinding{
+ $taskS=$taskManifest['supervisor']
+ if(-not $taskS['bound'] -or -not $taskS['native_profile_accepted'] -or -not $taskS['controlled_resource_accepted'] -or -not $taskS['fresh_launcher_profile_accepted']){throw 'UNBOUND_OWNED_SUPERVISOR'}
+ if($taskS['binary']['name'] -cne 'sup.exe' -or $taskS['protocol_version'] -ne 1 -or $taskS['request_header_bytes'] -ne 140 -or $taskS['terminal_bytes'] -ne 308 -or $taskS['transport_cap'] -ne 79472){throw 'SUPERVISOR_FIXED_PROFILE'}
+ foreach($taskKey in @('bytes','maximum_bytes')){Assert-TaskIntegral $taskS['binary'][$taskKey] $true}
+ if($taskS['binary']['bytes'] -lt 1 -or $taskS['binary']['bytes'] -gt $taskS['binary']['maximum_bytes'] -or $taskS['binary']['maximum_bytes'] -gt 33554432){throw 'SUPERVISOR_BINARY_BOUND'}
+ Assert-TaskString $taskS['binary']['sha256'] 64 $true
+ if($taskS['binary']['sha256'] -cnotmatch '^[0-9A-F]{64}$'){throw 'SUPERVISOR_BINARY_DIGEST'}
+ if($taskS['helper_reservations'].Count -ne 3 -or $taskS['tail_reservations'].Count -ne 3){throw 'SUPERVISOR_RESERVATION_COUNT'}
+ for($taskI=0;$taskI -lt 3;$taskI++){
+  Assert-TaskBoundSourceInteger 'supervisor-reservation' $taskS['helper_reservations'][$taskI]
+  Assert-TaskBoundSourceInteger 'supervisor-tail' $taskS['tail_reservations'][$taskI]
+  if($taskS['tail_reservations'][$taskI] -gt $taskS['helper_reservations'][$taskI]){throw 'SUPERVISOR_TAIL_SUBSET'}
+ }
+ foreach($taskKey in @('parent_poll_limit','parent_watchdog_ms')){Assert-TaskBoundSourceInteger $taskKey $taskS[$taskKey]}
+ if($taskS['parent_poll_limit'] -gt [int]::MaxValue){throw 'SUPERVISOR_PARENT_POLL_REPRESENTATION'}
+ $taskPath=[IO.Path]::Join($taskBase,'sup.exe');Assert-NoLink $taskPath
+ $taskHash=Get-TaskHash $taskPath ([long]$taskS['binary']['maximum_bytes'])
+ Assert-TaskFreshHashIdentity $taskPath $taskS['binary']['bytes'] $taskS['binary']['sha256'] $taskHash
+ Assert-TaskConsolePE (Get-TaskPEHeader $taskPath)
+}
+function Write-TaskSupervisorRequest([int]$Index,[string]$Executable,[string[]]$Arguments,[string[]]$Environment,[byte[]]$ManifestDigest,[byte[]]$RunDigest,[byte[]]$TargetDigest){
+ if($Index -lt 0 -or $Index -gt 2 -or $Arguments.Length -ne $(if($Index -eq 0){28}else{6}) -or $Environment.Length -ne 8){throw 'SUPERVISOR_REQUEST_COUNTS'}
+ foreach($taskDigest in @($ManifestDigest,$RunDigest,$TargetDigest)){if($taskDigest.Length -ne 32){throw 'SUPERVISOR_REQUEST_DIGEST_EXTENT'}}
+ $taskStrings=[string[]]::new(12+$Arguments.Length)
+ $taskStrings[0]=$Executable;$taskStrings[1]=$taskRoot;$taskStrings[2]=$taskStageRoot;$taskStrings[3]=$taskTransportRoot
+ for($taskI=0;$taskI -lt 8;$taskI++){$taskStrings[4+$taskI]=$Environment[$taskI]}
+ for($taskI=0;$taskI -lt $Arguments.Length;$taskI++){$taskStrings[12+$taskI]=$Arguments[$taskI]}
+ $taskLength=140
+ for($taskI=0;$taskI -lt $taskStrings.Length;$taskI++){Assert-TaskString $taskStrings[$taskI] 512 ($taskI -ge 4);$taskLength+=4+2*$taskStrings[$taskI].Length}
+ $taskCap=if($Index -eq 0){41260}else{18644};if($taskLength -gt $taskCap){throw 'SUPERVISOR_REQUEST_DERIVED_CAP'}
+ Spend-TaskSupervisor 'request' $taskLength
+ $taskBytes=[byte[]]::new($taskLength);$taskMagic='YCSREQ01';for($taskI=0;$taskI -lt 8;$taskI++){$taskBytes[$taskI]=[byte][int]$taskMagic[$taskI]}
+ Set-TaskSupervisorInteger $taskBytes 8 4 1;Set-TaskSupervisorInteger $taskBytes 12 4 ([uint64]$taskLength)
+ Set-TaskSupervisorInteger $taskBytes 16 4 ([uint64]$Index);Set-TaskSupervisorInteger $taskBytes 20 4 ([uint64]$Arguments.Length);Set-TaskSupervisorInteger $taskBytes 24 4 8
+ Set-TaskSupervisorInteger $taskBytes 28 8 ([uint64]$taskManifest['supervisor']['helper_reservations'][$Index]);Set-TaskSupervisorInteger $taskBytes 36 8 ([uint64]$taskManifest['supervisor']['tail_reservations'][$Index])
+ [Array]::Copy($ManifestDigest,0,$taskBytes,44,32);[Array]::Copy($RunDigest,0,$taskBytes,76,32);[Array]::Copy($TargetDigest,0,$taskBytes,108,32)
+ $taskAt=140
+ foreach($taskString in $taskStrings){
+  Set-TaskSupervisorInteger $taskBytes $taskAt 4 ([uint64]$taskString.Length);$taskAt+=4
+  for($taskI=0;$taskI -lt $taskString.Length;$taskI++){$taskCell=[int]$taskString[$taskI];$taskBytes[$taskAt++]=[byte]($taskCell-band 255);$taskBytes[$taskAt++]=[byte]($taskCell-shr 8)}
+ }
+ if($taskAt -ne $taskBytes.Length){throw 'SUPERVISOR_REQUEST_EXACT_EOF'}
+ $taskPath=[IO.Path]::Join($taskTransportRoot,('child-'+$Index+'.request.bin'));Assert-NoLink $taskPath
+ $taskFile=$null;$taskBefore=$script:taskPrimaryRaw;$taskBody=$null
+ try{
+  $null=Get-TaskStageBytes
+  $taskFile=[IO.FileStream]::new($taskPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::Read,1,[IO.FileOptions]::SequentialScan)
+  # FileStream.Write completes this one fixed request or throws. A partial file
+  # is preserved; no retry, overwrite or additional transport name is created.
+  $null=Get-TaskStageBytes;$taskFile.Write($taskBytes,0,$taskBytes.Length);$taskFile.Flush()
+ }catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}
+ finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}
+ return $taskPath
+}
+function Get-TaskSupervisorRequestArgument([string]$Path){
+ Assert-TaskString $Path 512
+ if($Path.Length -eq 0){throw 'SUPERVISOR_REQUEST_PATH_NONEMPTY'}
+ $taskChars=[char[]]::new(12+4*$Path.Length);$taskPrefix='--request16=';$taskHex='0123456789ABCDEF'
+ for($taskI=0;$taskI -lt 12;$taskI++){$taskChars[$taskI]=$taskPrefix[$taskI]}
+ for($taskI=0;$taskI -lt $Path.Length;$taskI++){$taskValue=[int]$Path[$taskI];for($taskJ=0;$taskJ -lt 4;$taskJ++){$taskChars[12+4*$taskI+$taskJ]=$taskHex[($taskValue-shr (12-4*$taskJ))-band 15]}}
+ return [string]::new($taskChars)
+}
+function Read-TaskSupervisorTerminal([int]$Index,[byte[]]$ManifestDigest,[byte[]]$RunDigest,[byte[]]$TargetDigest){
+ $taskPath=[IO.Path]::Join($taskTransportRoot,('child-'+$Index+'.terminal.bin'));Assert-NoLink $taskPath
+ $taskBytes=[byte[]]::new(308);$taskFile=$null;$taskBefore=$script:taskPrimaryRaw;$taskBody=$null
+ try{
+  $taskFile=[IO.FileStream]::new($taskPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read,1,[IO.FileOptions]::SequentialScan)
+  if($taskFile.Length -ne 308){throw 'SUPERVISOR_TERMINAL_FIXED_LENGTH'}
+  $taskFile.ReadExactly($taskBytes,0,308);if($taskFile.ReadByte() -ne -1){throw 'SUPERVISOR_TERMINAL_EOF'}
+ }catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}
+ finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}
+ Spend-TaskSupervisor 'terminal' 308
+ $taskMagic='YCSRES01';for($taskI=0;$taskI -lt 8;$taskI++){if($taskBytes[$taskI] -ne [byte][int]$taskMagic[$taskI]){throw 'SUPERVISOR_TERMINAL_MAGIC'}}
+ $taskU=[uint32[]]::new(16);for($taskI=0;$taskI -lt 16;$taskI++){$taskU[$taskI]=[uint32](Get-TaskSupervisorInteger $taskBytes (8+4*$taskI) 4)}
+ $taskV=[uint64[]]::new(3);for($taskI=0;$taskI -lt 3;$taskI++){$taskV[$taskI]=Get-TaskSupervisorInteger $taskBytes (72+8*$taskI) 8}
+ $taskP=[uint64[]]::new(14);for($taskI=0;$taskI -lt 14;$taskI++){$taskP[$taskI]=Get-TaskSupervisorInteger $taskBytes (192+8*$taskI) 8}
+ $taskMask=[uint32](Get-TaskSupervisorInteger $taskBytes 304 4)
+ if($taskU[0] -ne 1 -or $taskU[1] -ne 308 -or $taskU[2] -ne $Index -or ($taskU[3]-band [uint32]4026531840) -ne 0 -or $taskU[6] -gt 4 -or ($taskMask-band [uint32]4294934528) -ne 0 -or (($taskMask-band 2) -ne 0 -and ($taskMask-band 4) -ne 0)){throw 'SUPERVISOR_TERMINAL_PROFILE'}
+ foreach($taskD in 0,1,2){$taskExpected=if($taskD -eq 0){$ManifestDigest}elseif($taskD -eq 1){$RunDigest}else{$TargetDigest};for($taskI=0;$taskI -lt 32;$taskI++){if($taskBytes[96+32*$taskD+$taskI] -ne $taskExpected[$taskI]){throw 'SUPERVISOR_TERMINAL_CURRENT_IDENTITY'}}}
+ $taskT=@{u=$taskU;v=$taskV;p=$taskP;mask=$taskMask;path=$taskPath;bytes=$taskBytes}
+ Assert-TaskSupervisorTerminal $taskT $Index
+ return $taskT
+}
+function Test-TaskSupervisorReason([uint32]$Site,[uint32]$Reason){
+ if($Reason -eq 0){return ($Site -eq 0)}
+ if($Reason -le 10){return ($Site -eq 1)}
+ switch($Reason){
+  {$_ -in 11,12,43,44,46}{return ($Site -eq 2)}
+  {$_ -in 13,14,42}{return ($Site -eq 3)}
+  {$_ -in 15,40,41}{return ($Site -eq 4)}
+  {$_ -ge 16 -and $_ -le 22}{return ($Site -eq 5)}
+  {$_ -in 23,24,33,34}{return ($Site -eq 6)}
+  {$_ -in 25,26}{return ($Site -eq 7)}
+  {$_ -in 27,28}{return ($Site -eq 8)}
+  {$_ -in 29,30}{return ($Site -eq 9)}
+  {$_ -in 31,32}{return ($Site -eq 10)}
+  35{return ($Site -eq 13)};36{return ($Site -eq 11)}
+  {$_ -in 37,38,47}{return ($Site -eq 12)}
+  39{return ($Site -eq 4 -or $Site -eq 6)}
+  45{return ($Site -eq 1 -or $Site -eq 5)}
+  default{return $false}
+ }
+}
+function Assert-TaskSupervisorTerminal($Terminal,[int]$Index){
+ $taskU=$Terminal['u'];$taskV=$Terminal['v'];$taskP=$Terminal['p'];$taskF=$taskU[3];$taskMask=$Terminal['mask'];$taskStatus=$taskU[6]
+ for($taskI=0;$taskI -lt 3;$taskI++){
+  $taskOffset=7+3*$taskI;$taskBit=if($taskI -eq 0){4096}elseif($taskI -eq 1){16384}else{32768}
+  if(-not (Test-TaskSupervisorReason $taskU[$taskOffset] $taskU[$taskOffset+1]) -or (($taskF-band $taskBit) -eq 0 -and $taskU[$taskOffset+2] -ne 0) -or ($taskU[$taskOffset] -eq 0 -and ($taskF-band $taskBit) -ne 0)){throw 'SUPERVISOR_TERMINAL_REASON_PAIR'}
+ }
+ if((($taskF-band 8192) -ne 0) -ne ($taskV[0] -ne 0) -or (($taskF-band 8192) -ne 0) -ne ($taskU[10] -ne 0)){throw 'SUPERVISOR_SECONDARY_PRESENCE'}
+ if(($taskF-band 8192) -ne 0 -and $taskU[7] -eq 0){throw 'SUPERVISOR_SECONDARY_REQUIRES_PRIMARY'}
+ if(($taskF-band 32768) -ne 0 -and ($taskF-band 8192) -eq 0){throw 'SUPERVISOR_NATIVE_SECONDARY_REQUIRES_SECONDARY'}
+ if(($taskF-band 8388608) -ne 0 -and ($taskV[0] -ne [uint64]::MaxValue -or ($taskF-band 8192) -eq 0)){throw 'SUPERVISOR_SECONDARY_SATURATION'}
+ if(($taskF-band 32768) -eq 0 -and ($taskU[13] -ne 0 -or $taskU[14] -ne 0 -or $taskU[15] -ne 0)){throw 'SUPERVISOR_NATIVE_SECONDARY_AVAILABILITY'}
+ if(($taskF-band 16384) -ne 0 -and (($taskF-band 32768) -eq 0 -or $taskU[10] -ne $taskU[13] -or $taskU[11] -ne $taskU[14] -or $taskU[12] -ne $taskU[15])){throw 'SUPERVISOR_FIRST_NATIVE_SECONDARY'}
+ if(($taskF-band 1) -eq 0){if($taskU[4] -ne 0 -or ($taskF-band 67108866) -ne 0){throw 'SUPERVISOR_CREATION_FLAGS'}}elseif($taskU[4] -eq 0){throw 'SUPERVISOR_TARGET_PID'}
+ if(($taskF-band 2) -eq 0 -and $taskU[5] -ne 0){throw 'SUPERVISOR_EXIT_AVAILABILITY'}
+ $taskPrefix=[uint64]$taskManifest['supervisor']['helper_reservations'][$Index]-[uint64]$taskManifest['supervisor']['tail_reservations'][$Index]
+ if(($taskF-band 2048) -ne 0){if($taskV[1] -gt $taskPrefix){throw 'SUPERVISOR_PREFIX_BOUND'}}elseif($taskV[1] -ne 0){throw 'SUPERVISOR_PREFIX_AVAILABILITY'}
+ [uint64]$taskObserved=0;[uint64]$taskPartials=0;[uint64]$taskWritten=0
+ for($taskI=0;$taskI -lt 2;$taskI++){
+  $taskAt=7*$taskI;$taskStart=if($taskI -eq 0){128}else{512};$taskEnd=if($taskI -eq 0){256}else{1024};$taskSettled=if($taskI -eq 0){4}else{8};$taskPartial=if($taskI -eq 0){65536}else{131072};$taskEof=if($taskI -eq 0){16}else{32}
+  if((($taskF-band $taskStart) -eq 0 -and $taskP[$taskAt+4] -ne 0) -or (($taskF-band $taskEnd) -eq 0 -and $taskP[$taskAt+5] -ne 0) -or (($taskF-band $taskStart) -ne 0 -and ($taskF-band $taskEnd) -ne 0 -and $taskP[$taskAt+5] -lt $taskP[$taskAt+4])){throw 'SUPERVISOR_POSITION_AVAILABILITY'}
+  if(($taskF-band $taskPartial) -eq 0){if($taskP[$taskAt+6] -ne 0){throw 'SUPERVISOR_ERROR_PARTIAL_AVAILABILITY'}}elseif($taskP[$taskAt+6] -ge 4096){throw 'SUPERVISOR_ERROR_PARTIAL_BOUND'}
+  if(($taskF-band $taskSettled) -ne 0 -and ($taskF-band $taskPartial) -eq 0){throw 'SUPERVISOR_SETTLED_PARTIAL_KNOWN'}
+  if(($taskF-band $taskEof) -ne 0 -and ($taskF-band $taskPartial) -ne 0 -and $taskP[$taskAt+6] -ne 0){throw 'SUPERVISOR_EOF_PARTIAL'}
+  # Bound each operand before additions, so an arbitrary u64 cannot promote or
+  # overflow the arithmetic used to validate the controlled progress graph.
+  for($taskJ=0;$taskJ -lt 4;$taskJ++){if($taskP[$taskAt+$taskJ] -gt 1056768){throw 'SUPERVISOR_COUNTER_OPERAND_BOUND'}}
+  if(($taskF-band 134217728) -ne 0){
+   if($taskP[$taskAt+1]+$taskP[$taskAt+3] -ne $taskP[$taskAt] -or $taskP[$taskAt+2] -gt $taskP[$taskAt+3]){throw 'SUPERVISOR_COUNTER_EQUATION'}
+   $taskObserved+=$taskP[$taskAt];$taskWritten+=$taskP[$taskAt+1]
+  }elseif($taskP[$taskAt] -ne 0 -or $taskP[$taskAt+1] -ne 0 -or $taskP[$taskAt+2] -ne 0 -or $taskP[$taskAt+3] -ne 0){throw 'SUPERVISOR_COUNTER_AVAILABILITY'}
+  if(($taskF-band $taskPartial) -ne 0){$taskPartials+=$taskP[$taskAt+6]}
+ }
+ if(($taskF-band 134217728) -ne 0){if($taskV[2] -gt 7200 -or $taskObserved+$taskPartials -gt 1056768 -or $taskWritten -gt 1048576){throw 'SUPERVISOR_PROGRESS_BOUND'}}elseif($taskV[2] -ne 0){throw 'SUPERVISOR_POLL_AVAILABILITY'}
+ $taskReasons=@($taskU[8],$taskU[11],$taskU[14])
+ foreach($taskPair in @(@(262144,25),@(524288,26),@(1048576,16),@(2097152,17))){if(($taskF-band $taskPair[0]) -ne 0 -and $taskPair[1] -notin $taskReasons){throw 'SUPERVISOR_REFUSAL_FLAG_REASON'}}
+ if((($taskF-band 262144) -ne 0 -and ($taskF-band 524288) -ne 0) -or (($taskF-band 1048576) -ne 0 -and ($taskF-band 2097152) -ne 0)){throw 'SUPERVISOR_EXCLUSIVE_REFUSALS'}
+ if(($taskF-band 4194304) -ne 0 -and -not (@($taskReasons|Where-Object {$_ -ge 18 -and $_ -le 22}).Count -gt 0)){throw 'SUPERVISOR_STAGE_GUARD_REASON'}
+ if($taskP[2]+$taskP[9] -gt 0 -and ($taskF-band 3145728) -eq 0){throw 'SUPERVISOR_OMITTED_ONLY_AT_CAP'}
+ $taskSettledMask=134219852
+ if($taskStatus -lt 4 -and ($taskF-band $taskSettledMask) -ne $taskSettledMask){throw 'SUPERVISOR_COMPLETED_AVAILABILITY'}
+ if($taskStatus -le 1){
+  $taskRequired=251858943;$taskForbidden=16576512
+  if(($taskF-band $taskRequired) -ne $taskRequired -or ($taskF-band $taskForbidden) -ne 0 -or $taskU[7] -ne 0 -or $taskMask -ne 0 -or (($taskStatus -eq 0) -ne ($taskU[5] -eq 0))){throw 'SUPERVISOR_COMPLETE_STATUS_MATRIX'}
+  for($taskI=0;$taskI -lt 2;$taskI++){$taskAt=7*$taskI;if($taskP[$taskAt+5]-$taskP[$taskAt+4] -ne $taskP[$taskAt+1] -or $taskP[$taskAt+1] -ne $taskP[$taskAt] -or $taskP[$taskAt+2] -ne 0 -or $taskP[$taskAt+3] -ne 0 -or $taskP[$taskAt+6] -ne 0){throw 'SUPERVISOR_COMPLETE_BYTE_EQUATION'}}
+ }elseif($taskStatus -eq 2){if(($taskF-band 67108864) -ne 0 -or $taskU[7] -eq 0){throw 'SUPERVISOR_PREEXEC_STATUS_MATRIX'}}
+ elseif($taskStatus -eq 3){
+  if(($taskF-band 67108866) -ne 67108866 -or ($taskU[7] -eq 0 -and $taskV[0] -eq 0 -and $taskMask -eq 0)){throw 'SUPERVISOR_FAILURE_STATUS_MATRIX'}
+  for($taskI=0;$taskI -lt 2;$taskI++){
+   $taskEof=if($taskI -eq 0){16}else{32};$taskPositions=if($taskI -eq 0){384}else{1536};$taskFlushed=if($taskI -eq 0){16777216}else{33554432}
+   if(($taskF-band $taskEof) -eq 0 -and $taskU[7] -eq 0 -and ($taskMask-band (1-shl (4+$taskI))) -eq 0){throw 'SUPERVISOR_FAILURE_EOF_DIAGNOSTIC'}
+   if(($taskF-band $taskPositions) -ne $taskPositions -and ($taskMask-band (1-shl (8+$taskI))) -eq 0){throw 'SUPERVISOR_FAILURE_POSITION_DIAGNOSTIC'}
+   if(($taskF-band $taskFlushed) -eq 0 -and ($taskMask-band (1-shl (6+$taskI))) -eq 0){throw 'SUPERVISOR_FAILURE_FLUSH_DIAGNOSTIC'}
+  }
+ }elseif($taskU[7] -eq 0 -and $taskV[0] -eq 0 -and ($taskMask-band 16384) -eq 0){throw 'SUPERVISOR_QUARANTINE_STATUS_MATRIX'}
+}
+function New-TaskSupervisorFailure($Terminal,[int]$Record){
+ $taskU=$Terminal['u'];$taskAt=7+3*$Record;$taskBit=if($Record -eq 0){4096}elseif($Record -eq 1){16384}else{32768}
+ $taskError=[InvalidOperationException]::new('SUPERVISOR_RECORDED_FAILURE')
+ $taskError.Data['site']=$taskU[$taskAt];$taskError.Data['reason']=$taskU[$taskAt+1];$taskError.Data['native_known']=(($taskU[3]-band $taskBit) -ne 0);$taskError.Data['native_error']=$taskU[$taskAt+2];$taskError.Data['terminal_path']=$Terminal['path']
+ return $taskError
+}
+function New-TaskSupervisorParentFailure([string]$Reason,$Terminal,[bool]$Observed,$Exit){
+ Assert-TaskString $Reason 64 $true
+ $taskError=[InvalidOperationException]::new($Reason)
+ $taskError.Data['native_known']=$false;$taskError.Data['supervisor_exit_observed']=$Observed
+ $taskError.Data['supervisor_exit']=$(if($Observed){$Exit}else{$null})
+ $taskError.Data['terminal_path']=$(if($null -ne $Terminal){$Terminal['path']}else{$null})
+ return $taskError
+}
+function Add-TaskSupervisorCleanup([Collections.Generic.List[string]]$Rows,[uint32]$Mask){
+ $taskCodes=@('read_cancel','own_child_reap_failure','own_child_exit_not_observed_2000ms','read_settlement_diagnostic','settled_read_cancel_or_fault','settled_read_cancel_or_fault','retained_prefix_flush','retained_prefix_flush','retained_position_refusal','retained_position_refusal','settled_owner_dispose','settled_owner_dispose','settled_owner_dispose','settled_owner_dispose','one_rooted_unsettled_owner_no_more_children')
+ for($taskI=0;$taskI -lt 15;$taskI++){if(($Mask-band (1-shl $taskI)) -ne 0){if($Rows.Count -ge 15){throw 'FINITE_SUPERVISOR_CLEANUP_SCHEDULE'};$Rows.Add($taskCodes[$taskI])}}
+}
+function Invoke-TaskChild([string]$Name,[string]$Executable,[string[]]$Arguments){
+ if($Name -cnotin @('one-opaque-compile','oracle-produce','independent-full-verify')){throw 'Exact finite child name profile'}
+ $taskChildIndex=if($Name -ceq 'one-opaque-compile'){0}elseif($Name -ceq 'oracle-produce'){1}else{2}
+ if($Arguments.Length -ne $(if($taskChildIndex -eq 0){28}else{6})){throw 'EXACT_CHILD_ARGUMENT_EXTENT'}
+ foreach($taskArgument in $Arguments){Assert-TaskString $taskArgument 512 $true}
+ if($null -ne $script:taskQuarantine){throw 'Unsettled prior child owns storage; no next child'}
+ $taskProcess=$null;$taskHelperStarted=$false;$taskHelperExit=$null;$taskHelperObserved=$false;$taskPrefix=$null;$taskPrimary=$null;$taskFooter=$null;$taskHostAbort=$false;$taskParentSettled=$true;$taskCommitted=$false
+ $taskCleanup=[Collections.Generic.List[string]]::new(15);$taskFailure=$null;$taskRequestPath=$null;$taskManifestDigest=$null;$taskRunDigest=$null;$taskTargetDigest=$null
+ try{
+  Assert-TaskSupervisorBinding;Spend-TaskSupervisor 'invoke';Spend-Task ([long]$taskManifest['supervisor']['helper_reservations'][$taskChildIndex])
+  $taskManifestDigest=[Convert]::FromHexString($taskExpectedManifest);$taskRunDigest=Get-TaskSupervisorRunHash $taskManifestDigest
+  $taskTargetHash=Get-TaskHash $Executable 33554432;$taskTargetDigest=[byte[]]$taskTargetHash.Item2
+  $taskEnvironment=Get-TaskSupervisorEnvironment
+  $taskRequestPath=Write-TaskSupervisorRequest $taskChildIndex $Executable $Arguments $taskEnvironment $taskManifestDigest $taskRunDigest $taskTargetDigest
+  $taskRequestArgument=Get-TaskSupervisorRequestArgument $taskRequestPath
+  $taskInfo=[Diagnostics.ProcessStartInfo]::new();$taskInfo.FileName=[IO.Path]::Join($taskBase,'sup.exe');$taskInfo.WorkingDirectory=$taskRoot;$taskInfo.UseShellExecute=$false;$taskInfo.CreateNoWindow=$true
+  $taskInfo.RedirectStandardInput=$false;$taskInfo.RedirectStandardOutput=$false;$taskInfo.RedirectStandardError=$false
+  $taskInfo.Environment.Clear();$taskKeys=@('SystemRoot','windir','PATH','INCLUDE','LIB','TEMP','TMP','VSLANG');for($taskI=0;$taskI -lt 8;$taskI++){$taskInfo.Environment[$taskKeys[$taskI]]=$taskEnvironment[$taskI]}
+  $taskInfo.ArgumentList.Add($taskRequestArgument)
+  # The separately accepted fresh launcher establishes null/noninteractive
+  # helper stdin and error-dialog policy. This script never reads helper stdin.
+  $taskProcess=[Diagnostics.Process]::Start($taskInfo);$taskHelperStarted=$true;$taskWatch=[Diagnostics.Stopwatch]::StartNew();$taskParentPolls=0L
+  while(-not $taskProcess.HasExited){
+   if($taskParentPolls -ge $taskManifest['supervisor']['parent_poll_limit'] -or $taskWatch.ElapsedMilliseconds -gt $taskManifest['supervisor']['parent_watchdog_ms']){$taskHostAbort=$true;throw 'SUPERVISOR_HOST_BUDGET_ABORT'}
+   Spend-TaskSupervisor 'parent_poll';$taskParentPolls++;[Threading.Thread]::Sleep(250)
+  }
+  $taskHelperExit=$taskProcess.ExitCode;$taskHelperObserved=$true
+ }catch{$taskPrimary=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}}
+ finally{
+  try{
+   if($taskHelperStarted -and -not $taskHelperObserved){
+    try{if(-not $taskProcess.HasExited){$taskProcess.Kill();$null=$taskProcess.WaitForExit(2000)};if($taskProcess.HasExited){$taskHelperExit=$taskProcess.ExitCode;$taskHelperObserved=$true}else{$taskParentSettled=$false}}catch{$taskParentSettled=$false;if($null -eq $taskPrimary){$taskPrimary=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}}else{Set-TaskSecondary (5+$taskChildIndex) $_}}
+   }
+   if($taskHelperStarted){
+    try{$taskPrefix=Read-TaskSupervisorTerminal $taskChildIndex $taskManifestDigest $taskRunDigest $taskTargetDigest}catch{if($null -eq $taskPrimary){$taskPrimary=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}}else{Set-TaskSecondary (5+$taskChildIndex) $_}}
+   }
+   if($null -ne $taskPrefix){
+    $taskU=$taskPrefix['u'];$taskV=$taskPrefix['v'];$taskP=$taskPrefix['p'];$taskFlags=$taskU[3]
+    Add-TaskSupervisorCleanup $taskCleanup $taskPrefix['mask']
+    if($taskU[7] -ne 0){$taskRaw=New-TaskSupervisorFailure $taskPrefix 0;if($null -eq $taskPrimary){$taskPrimary=$taskRaw};if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$taskRaw}else{Set-TaskSecondary (5+$taskChildIndex) $taskRaw}}
+    if(($taskFlags-band 8192) -ne 0){$taskRaw=New-TaskSupervisorFailure $taskPrefix 1;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$taskRaw}else{Set-TaskSecondary (5+$taskChildIndex) $taskRaw}}
+    # The dedicated first native secondary remains in the immutable terminal
+    # provenance even if the existing controller secondary slot is occupied.
+    $taskCommitted=$taskHelperObserved -and $taskHelperExit -eq 0 -and $taskParentSettled -and -not $taskHostAbort -and $taskU[6] -le 1
+    if(-not $taskHelperObserved -or $taskHelperExit -ne 0 -or $taskHostAbort){
+     $taskCleanup.Add('supervisor_tail_failed');$taskRaw=New-TaskSupervisorParentFailure 'SUPERVISOR_TAIL_FAILED' $taskPrefix $taskHelperObserved $taskHelperExit
+     if($null -eq $taskPrimary){$taskPrimary=$taskRaw};if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$taskRaw}else{Set-TaskSecondary (5+$taskChildIndex) $taskRaw}
+    }
+    $taskQuarantined=($taskU[6] -eq 4 -or -not $taskHelperObserved -or $taskHelperExit -ne 0 -or -not $taskParentSettled -or $taskHostAbort)
+    if($taskQuarantined -and 'one_rooted_unsettled_owner_no_more_children' -cnotin $taskCleanup){$taskCleanup.Add('one_rooted_unsettled_owner_no_more_children')}
+    $taskStarted=(($taskFlags-band 1) -ne 0);$taskExitObserved=(($taskFlags-band 2) -ne 0);$taskExit=$null
+    if($taskExitObserved){[long]$taskSigned=[long]$taskU[5];if($taskSigned -ge 2147483648L){$taskSigned-=4294967296L};$taskExit=[int]$taskSigned}
+    $taskTimedOut=(($taskFlags-band 262144) -ne 0);$taskPollLimited=(($taskFlags-band 524288) -ne 0);$taskCap=(($taskFlags-band 3145728) -ne 0)
+    $taskPositions=(($taskFlags-band 1920) -eq 1920);$taskBothEof=(($taskFlags-band 48) -eq 48);$taskSettled=(($taskFlags-band 12) -eq 12)
+    $taskBeforeA=if(($taskFlags-band 128) -ne 0){$taskP[4]}else{$null};$taskBeforeB=if(($taskFlags-band 512) -ne 0){$taskP[11]}else{$null}
+    $taskRawA=if($taskPositions){$taskP[5]-$taskP[4]}else{$null};$taskRawB=if($taskPositions){$taskP[12]-$taskP[11]}else{$null}
+    $taskKnown=(($taskFlags-band 134217728) -ne 0);$taskPolls=if($taskKnown){$taskV[2]}else{$null};$taskWritten=if($taskKnown){$taskP[1]+$taskP[8]}else{$null};$taskObserved=if($taskKnown){$taskP[0]+$taskP[7]}else{$null};$taskUnretained=if($taskKnown){$taskP[3]+$taskP[10]}else{$null};$taskOmitted=if($taskKnown){$taskP[2]+$taskP[9]}else{$null}
+    if($taskKnown){$script:taskRawLogBytes+=[long]$taskWritten}
+    if($taskPollLimited){$taskFailure='CHILD_POLL_LIMIT'}elseif($taskU[7] -ne 0 -or -not $taskCommitted){$taskFailure=if($taskU[8] -in 27,28,29,30,31,32,33,34,35,40){'Bounded cleanup refusal'}else{'CHILD_BODY_FAILURE_RAW_RETAINED'}}elseif($taskCleanup.Count -gt 0){$taskFailure='Bounded cleanup refusal'}
+   }else{
+    $taskCleanup.Add($(if($taskHostAbort){'supervisor_host_budget_abort'}else{'supervisor_terminal_unavailable'}));$taskCleanup.Add('one_rooted_unsettled_owner_no_more_children')
+    $taskQuarantined=$true;$taskStarted=$null;$taskExitObserved=$null;$taskExit=$null;$taskTimedOut=$null;$taskPollLimited=$null;$taskPolls=$null;$taskCap=$null;$taskBeforeA=$null;$taskBeforeB=$null;$taskRawA=$null;$taskRawB=$null;$taskPositions=$null;$taskWritten=$null;$taskObserved=$null;$taskUnretained=$null;$taskOmitted=$null;$taskBothEof=$null;$taskSettled=$null;$taskFailure='CHILD_BODY_FAILURE_RAW_RETAINED'
+   }
+   if($taskCleanup.Count -gt 15){throw 'FINITE_SUPERVISOR_CLEANUP_SCHEDULE'}
+   if($taskCleanup.Count -gt 0 -and $null -eq $taskFailure){$taskFailure='Bounded cleanup refusal'}
+   if($taskQuarantined){$script:taskQuarantine=@{process=$taskProcess;terminal=$taskPrefix;request_path=$taskRequestPath;supervisor_exit=$taskHelperExit;supervisor_exit_observed=$taskHelperObserved;all_reservations_retained=$true}}
+   elseif($null -ne $taskProcess){try{$taskProcess.Dispose()}catch{$taskCleanup.Add('settled_owner_dispose');if('one_rooted_unsettled_owner_no_more_children' -cnotin $taskCleanup){$taskCleanup.Add('one_rooted_unsettled_owner_no_more_children')};$taskQuarantined=$true;$script:taskQuarantine=@{process=$taskProcess;terminal=$taskPrefix;all_reservations_retained=$true};if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}else{Set-TaskSecondary (5+$taskChildIndex) $_};if($null -eq $taskPrimary){$taskPrimary=$_}}}
+   if($taskCleanup.Count -gt 15){throw 'FINITE_SUPERVISOR_CLEANUP_SCHEDULE'}
+   if($taskCleanup.Count -gt 0 -and $null -eq $taskFailure){$taskFailure='Bounded cleanup refusal'}
+   $taskRow=[ordered]@{name=$Name;started=$taskStarted;raw_exit_observed=$taskExitObserved;raw_exit=$taskExit;timed_out=$taskTimedOut;poll_limited=$taskPollLimited;polls=$taskPolls;poll_limit=$script:taskChildPollMaximum;log_cap=$taskCap;stdout_start=$taskBeforeA;stderr_start=$taskBeforeB;raw_stdout_bytes=$taskRawA;raw_stderr_bytes=$taskRawB;position_record_complete=$taskPositions;raw_bytes_retained=$taskWritten;raw_bytes_observed=$taskObserved;observed_not_confirmed_retained=$taskUnretained;omitted_at_cap=$taskOmitted;unknown_undrained=$(if($null -eq $taskPrefix){$true}else{$taskStarted -and -not $taskBothEof});both_eof=$taskBothEof;reads_settled=$taskSettled;owned_storage_quarantined=$taskQuarantined;cleanup=$taskCleanup.ToArray();failure=$taskFailure}
+   $script:taskReceipt['children'].Add($taskRow);Set-TaskRawExit $Name ($taskExitObserved -eq $true) $taskExit
+   if($taskHelperStarted){try{Assert-TaskSupervisorBinding}catch{
+    if($null -eq $taskPrimary){$taskPrimary=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}}else{Set-TaskSecondary (5+$taskChildIndex) $_}
+    $script:taskQuarantine=@{process=$taskProcess;terminal=$taskPrefix;request_path=$taskRequestPath;after_helper_identity_refused=$true;all_reservations_retained=$true}
+    if('one_rooted_unsettled_owner_no_more_children' -cnotin $taskCleanup){$taskCleanup.Add('one_rooted_unsettled_owner_no_more_children')}
+    if($taskCleanup.Count -gt 15){throw 'FINITE_SUPERVISOR_CLEANUP_SCHEDULE'}
+    $taskRow['owned_storage_quarantined']=$true;$taskRow['cleanup']=$taskCleanup.ToArray();if($null -eq $taskRow['failure']){$taskRow['failure']='Bounded cleanup refusal'}
+   }}
+  }catch{$taskFooter=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}else{Set-TaskSecondary (5+$taskChildIndex) $_};if($null -eq $script:taskQuarantine){$script:taskQuarantine=@{process=$taskProcess;terminal=$taskPrefix;request_path=$taskRequestPath;footer_refused=$true;all_reservations_retained=$true}};Set-TaskRawExit $Name ($taskExitObserved -eq $true) $taskExit}
+ }
+ if($null -ne $taskPrimary){throw $taskPrimary};if($null -ne $taskFooter){throw $taskFooter}
+ if($null -ne $taskFailure -or -not $taskCommitted){throw 'CHILD_SUPERVISOR_REFUSED'}
+ if($taskExit -ne 0){throw 'ACTUAL_CHILD_RAW_EXIT_FAILURE'}
+ return $taskRow
+}

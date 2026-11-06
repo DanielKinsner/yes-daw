@@ -1,0 +1,228 @@
+{
+  "passed": 55,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "exact frozen candidate pin file",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_codec.cpp",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_core.cpp",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_io.cpp",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_main.cpp",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/20261106-clock-owned-supervisor-source-r1/native/sup.h",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/run-clock.ps1",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-manifest.json",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/README.md",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-costs.h",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/20261106-clock-owned-supervisor-source-r1/runner-supervisor.ps1.fragment",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/20261106-clock-owned-supervisor-source-r1/author.py",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/20261106-clock-owned-supervisor-source-r1/proposal.md",
+      "pass": true
+    },
+    {
+      "name": "candidate subject build-ci/20261106-clock-owned-supervisor-source-r1/check.py",
+      "pass": true
+    },
+    {
+      "name": "accepted immutable docs/adr/0090-clock-research-owned-process-supervisor.md",
+      "pass": true
+    },
+    {
+      "name": "accepted immutable docs/plans/2026-11-06-clock-supervisor-source-plan.md",
+      "pass": true
+    },
+    {
+      "name": "accepted immutable docs/research/clock-supervisor-protocol-v1.md",
+      "pass": true
+    },
+    {
+      "name": "accepted immutable docs/adr/0091-clock-supervisor-job-termination-diagnostic.md",
+      "pass": true
+    },
+    {
+      "name": "accepted immutable docs/research/clock-supervisor-protocol-v2.md",
+      "pass": true
+    },
+    {
+      "name": "all16 I/O functions inventoried",
+      "pass": true
+    },
+    {
+      "name": "IO1 owner overwritten on new enumeration",
+      "pass": true
+    },
+    {
+      "name": "IO1 failed close retains old owner",
+      "pass": true
+    },
+    {
+      "name": "IO1 publication rescans after prefreeze cleanup",
+      "pass": true
+    },
+    {
+      "name": "IO1 one source-owned search slot",
+      "pass": true
+    },
+    {
+      "name": "IO2 first cap adds omitted",
+      "pass": true
+    },
+    {
+      "name": "IO2 continuation cap returns without omitted",
+      "pass": true
+    },
+    {
+      "name": "IO2 cap contract",
+      "pass": true
+    },
+    {
+      "name": "IO3 join source refusal",
+      "pass": true
+    },
+    {
+      "name": "IO3 pattern conversion",
+      "pass": true
+    },
+    {
+      "name": "IO3 child conversion",
+      "pass": true
+    },
+    {
+      "name": "IO4 successful zero classified EOF",
+      "pass": true
+    },
+    {
+      "name": "IO4 native broken pipe separately identified",
+      "pass": true
+    },
+    {
+      "name": "IO5 failed-pipe outputs copied before success check",
+      "pass": true
+    },
+    {
+      "name": "IO5 never-started worker still closes pipe",
+      "pass": true
+    },
+    {
+      "name": "IO5 process ChildCreated before success check",
+      "pass": true
+    },
+    {
+      "name": "no invalid HeapAlloc native-code claim",
+      "pass": true
+    },
+    {
+      "name": "all native execution gates false",
+      "pass": true
+    },
+    {
+      "name": "immutable publication byte cut",
+      "pass": true
+    },
+    {
+      "name": "terminal no-overwrite",
+      "pass": true
+    },
+    {
+      "name": "exact8-key target environment still normative",
+      "pass": true
+    },
+    {
+      "name": "IO2 bounded counterexample at0",
+      "pass": true
+    },
+    {
+      "name": "IO2 bounded counterexample at1",
+      "pass": true
+    },
+    {
+      "name": "IO2 bounded counterexample at4095",
+      "pass": true
+    },
+    {
+      "name": "IO1 two live origins cannot fit overwritten one slot",
+      "pass": true
+    },
+    {
+      "name": "IO3 valid extent not real refusal",
+      "pass": true
+    },
+    {
+      "name": "IO4 zero-read no closed-writer proof 0",
+      "pass": true
+    },
+    {
+      "name": "IO4 zero-read no closed-writer proof 17",
+      "pass": true
+    },
+    {
+      "name": "IO5 numeric nonnull does not prove ownership",
+      "pass": true
+    },
+    {
+      "name": "selected SDK declaration fileapi.h",
+      "pass": true
+    },
+    {
+      "name": "selected SDK declaration namedpipeapi.h",
+      "pass": true
+    },
+    {
+      "name": "selected SDK declaration processthreadsapi.h",
+      "pass": true
+    },
+    {
+      "name": "review contains all5 source findings",
+      "pass": true
+    },
+    {
+      "name": "byte-identical repository instructions",
+      "pass": true
+    },
+    {
+      "name": "protected unrun recipe test unchanged",
+      "pass": true
+    }
+  ],
+  "candidate_disposition": "REVISE",
+  "execution_performed": false
+}

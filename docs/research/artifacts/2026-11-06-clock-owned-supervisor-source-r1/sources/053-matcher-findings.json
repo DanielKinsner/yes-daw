@@ -1,0 +1,15 @@
+{
+  "source_changed": false,
+  "target_execution": false,
+  "findings": [
+    {
+      "check": "ready-ack-stop-protocol",
+      "cause": "Matcher expected &worker.stop while the actual owner loop correctly names &state.workers[i].stop. Correct exact owner spelling."
+    },
+    {
+      "check": "native-read-no-async-graph",
+      "cause": "Matcher matched a descriptive predecessor ReadAtLeastAsync comment. Restrict forbidden markers to call/type spellings, preserving the same no-async-operation requirement."
+    }
+  ],
+  "raw_checker_exit": 1
+}

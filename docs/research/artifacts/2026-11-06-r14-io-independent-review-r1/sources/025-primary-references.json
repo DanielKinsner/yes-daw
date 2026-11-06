@@ -1,0 +1,51 @@
+{
+  "retrieval_date": "2026-11-06",
+  "mechanism": "web primary documentation read; paraphrases/inferences only, not archived page bodies",
+  "references": [
+    {
+      "title": "ReadFile",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile",
+      "review_use": "The synchronous count is initialized to zero before work. Anonymous closed-writer reads return false with broken-pipe error. A true zero-count pipe read may reflect a peer zero-byte write."
+    },
+    {
+      "title": "CreatePipe",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-createpipe",
+      "review_use": "Failed-call output parameters are indeterminate; callers may not assume their contents. Zero buffer size requests the system default, not a fixed kernel allocation."
+    },
+    {
+      "title": "Anonymous Pipe Operations",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/ipc/anonymous-pipe-operations",
+      "review_use": "Anonymous pipes use a uniquely named pipe implementation; synchronous reads can return after peer writes and after all writers close."
+    },
+    {
+      "title": "WriteFile",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefile",
+      "review_use": "Zero requested bytes is a null write whose behavior depends on the underlying communications technology."
+    },
+    {
+      "title": "CreateProcessW",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw",
+      "review_use": "Nonzero return signals success. PROCESS_INFORMATION receives new-process identification; this page does not promise valid ownership fields on a false return."
+    },
+    {
+      "title": "PROCESS_INFORMATION",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_information",
+      "review_use": "The structure identifies a newly created process/thread; the documented handle-close obligation is explicitly described for successful creation."
+    },
+    {
+      "title": "CloseHandle",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle",
+      "review_use": "The input is a valid open-object handle. A numeric nonnull word is not such a proof."
+    },
+    {
+      "title": "HeapFree",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapfree",
+      "review_use": "Current documentation permits GetLastError after zero failure; no stale-native-error finding applies merely because candidate queries it."
+    },
+    {
+      "title": "HeapAlloc",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc",
+      "review_use": "Failure does not set the last error. Candidate correctly records allocation failure without a native code."
+    }
+  ]
+}

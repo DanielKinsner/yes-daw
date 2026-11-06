@@ -1,0 +1,37 @@
+{
+  "first_passing_invocation": "attempt-01",
+  "disposition": "REVISE",
+  "files": [
+    {
+      "path": "build-ci/20261106-r14-supervisor-functional-review-r1/check_review.py",
+      "bytes": 11615,
+      "sha256": "13B9C55710FDFFD43159D2C86A930754A9212D98824E8021BBB91001979CBDFD"
+    },
+    {
+      "path": "build-ci/20261106-r14-supervisor-functional-review-r1/review.md",
+      "bytes": 8638,
+      "sha256": "2664F8B7EEB72E0E53E4E12D0B4B5D9B0B1011E0E382644B2B29BF4A900DB2C6"
+    },
+    {
+      "path": "build-ci/20261106-r14-supervisor-functional-review-r1/findings.json",
+      "bytes": 3293,
+      "sha256": "D851493C444AACD1AABBA747B24D0B4D2466666C98943C10F20F06B2669A4483"
+    },
+    {
+      "path": "build-ci/20261106-r14-supervisor-functional-review-r1/WORKING.md",
+      "bytes": 2674,
+      "sha256": "F74ABE8B714170102A3DB00746DF5EF06E7E335FA03B4DCB91DDCE74D8E00145"
+    },
+    {
+      "path": "build-ci/20261106-r14-supervisor-functional-review-r1/checks.json",
+      "bytes": 508404,
+      "sha256": "26141A67A37CD65F87CC92FDC291399640B18AEB8A8B16EEB0BA1B9F89A434E8"
+    },
+    {
+      "path": "build-ci/20261106-r14-supervisor-functional-review-r1/source-pins.json",
+      "bytes": 5655,
+      "sha256": "B01F381BC5B28A56DBDFFEDC38BC4C1E47BEA8AA06F8515AB24BAB5EEF2D4389"
+    }
+  ],
+  "target_execution": false
+}

@@ -1,0 +1,31 @@
+{
+  "status": "UNSEALED_AUTHORING_FINDING_PROTOCOL_EXTENSION_PENDING",
+  "finding": "TerminateJobObject failure currently mapped to reason32 JobQueryFailure; root rejected this conflation and is preparing independently reviewed distinct JobTerminationFailure in protocol v2. QueryInformationJobObject stays reason32. No source seal or execution authority.",
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup.h",
+      "sha256": "77955BBE3D9965483767F2105D56B76771819BF58370E1D08A57C52A67AC4FE9",
+      "bytes": 10974
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_main.cpp",
+      "sha256": "D47DEC8F1FEE0F6762D77B69D843D585A554151F6AB5B550D8AC324CCBB1C407",
+      "bytes": 21738
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_codec.cpp",
+      "sha256": "953E1E6D9371401ED52ABB28656F89FCADD4B03B0B9CCC6EDA22FEF379E4B237",
+      "bytes": 28394
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_io.cpp",
+      "sha256": "A16CD39C251F34A41A47E108B60CB474395AB39B23C1D58FE07DE20C3618C093",
+      "bytes": 22981
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_core.cpp",
+      "sha256": "FD4FC7083E54861F99B054F0F75CF7229448A29798AE62D6E5EC6ACA9DA890A2",
+      "bytes": 10835
+    }
+  ]
+}

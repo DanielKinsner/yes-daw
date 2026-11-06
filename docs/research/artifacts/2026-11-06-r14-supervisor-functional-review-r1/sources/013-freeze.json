@@ -1,0 +1,78 @@
+{
+  "first_green": true,
+  "files": [
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/check-attempts/attempt-01/check.py",
+      "bytes": 11870,
+      "sha256": "65C54FE6B619F48FC31221BDBD9FB7447692855092C9A8D6178F127AE33AC932"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/check-attempts/attempt-01/checks.json",
+      "bytes": 6012,
+      "sha256": "700B42AA35419E6A3B7C1DB2DC9C99EEE52155202C8BDDBDF02F5D2C9CD245B9"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/check-attempts/attempt-01/inventory.json",
+      "bytes": 1137,
+      "sha256": "D51D97F61C6F3C8AF1841BAA58E18A9AFEA99AE9555837601D0A6B43617F7050"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/check-attempts/attempt-01/models.json",
+      "bytes": 1738,
+      "sha256": "1CE9B68219791D7446769BBE2AB08AEAC1476A18CDAA7AF4DC17036FEFBB047C"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/check-attempts/attempt-01/primary-references.json",
+      "bytes": 2928,
+      "sha256": "CDBFFD611512AF2FDE6FEDEBEFECB4D9F9A5858E7B93A3563412D65D1A049164"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/check-attempts/attempt-01/review.md",
+      "bytes": 6756,
+      "sha256": "49DE6C9B25E3FC33F551F17DFBC436E08BBE1394CADD68302A37B640D9DE8A9E"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/check-attempts/attempt-01/source-pins.json",
+      "bytes": 5742,
+      "sha256": "6EECF95CCC2026EB8FE19A6E1C8B8ADA423029CD6899F9EEAE9BE1F7F906ECF5"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/check.py",
+      "bytes": 11870,
+      "sha256": "65C54FE6B619F48FC31221BDBD9FB7447692855092C9A8D6178F127AE33AC932"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/checks.json",
+      "bytes": 6012,
+      "sha256": "700B42AA35419E6A3B7C1DB2DC9C99EEE52155202C8BDDBDF02F5D2C9CD245B9"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/inventory.json",
+      "bytes": 1137,
+      "sha256": "D51D97F61C6F3C8AF1841BAA58E18A9AFEA99AE9555837601D0A6B43617F7050"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/models.json",
+      "bytes": 1738,
+      "sha256": "1CE9B68219791D7446769BBE2AB08AEAC1476A18CDAA7AF4DC17036FEFBB047C"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/primary-references.json",
+      "bytes": 2928,
+      "sha256": "CDBFFD611512AF2FDE6FEDEBEFECB4D9F9A5858E7B93A3563412D65D1A049164"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/review.md",
+      "bytes": 6756,
+      "sha256": "49DE6C9B25E3FC33F551F17DFBC436E08BBE1394CADD68302A37B640D9DE8A9E"
+    },
+    {
+      "path": "build-ci/20261106-r14-io-independent-review-r1/source-pins.json",
+      "bytes": 5742,
+      "sha256": "6EECF95CCC2026EB8FE19A6E1C8B8ADA423029CD6899F9EEAE9BE1F7F906ECF5"
+    }
+  ],
+  "candidate_disposition": "REVISE",
+  "no_post_green_edits": true,
+  "target_execution_performed": false
+}

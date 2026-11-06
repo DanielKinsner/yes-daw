@@ -1,0 +1,829 @@
+{
+  "schema": "PINNED_SOURCE_PACKET_LOSSLESS_DELIVERY_V1",
+  "original_pins_sha256": "88BA2BDA5D1DEB4DC378D82431EAD036A51174D7C9AC11D2B4D03DC621E626A5",
+  "original_verdict": "SEE_ORIGINAL_SOURCE_PACKET",
+  "scope": "Preservation of the named packet only. No new independent source/numeric/resource acceptance, fit, NOFIT, native binding, target execution or feature completion follows.",
+  "files": [
+    {
+      "file": "sources/001-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-01/author.py",
+      "original_bytes": 18004,
+      "original_sha256": "9F94B248E4A5B0E03EE48D95CA18EB64FD2A57EBCF948D1684E24A09E33A8ADC",
+      "bytes": 18004,
+      "sha256": "9F94B248E4A5B0E03EE48D95CA18EB64FD2A57EBCF948D1684E24A09E33A8ADC",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-runner-supervisor.ps1.fragment",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-01/runner-supervisor.ps1.fragment",
+      "original_bytes": 29022,
+      "original_sha256": "C00AA620635B6C9EC2DB30AFA1FA3966DFE869AC4969C805263DB8DB9019BF89",
+      "bytes": 29022,
+      "sha256": "C00AA620635B6C9EC2DB30AFA1FA3966DFE869AC4969C805263DB8DB9019BF89",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-01/sup.h",
+      "original_bytes": 10733,
+      "original_sha256": "57A8994D0CA54815687144244DB6EC9400AF65771D045FC785AA877CDB678902",
+      "bytes": 10733,
+      "sha256": "57A8994D0CA54815687144244DB6EC9400AF65771D045FC785AA877CDB678902",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-01/sup_codec.cpp",
+      "original_bytes": 27519,
+      "original_sha256": "5834352BAE9FC25CAFE1B91053CF065CA3F2F5D40A126D6CA5A4BA05E88966E0",
+      "bytes": 27519,
+      "sha256": "5834352BAE9FC25CAFE1B91053CF065CA3F2F5D40A126D6CA5A4BA05E88966E0",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-01/sup_core.cpp",
+      "original_bytes": 10268,
+      "original_sha256": "EAF9234D48F099B8D10691C764CF1D79BF1A1B722F6227CAFEF752759E68E43B",
+      "bytes": 10268,
+      "sha256": "EAF9234D48F099B8D10691C764CF1D79BF1A1B722F6227CAFEF752759E68E43B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-01/sup_io.cpp",
+      "original_bytes": 22649,
+      "original_sha256": "1B8035D1B01939DE9E8FA49177A49AFAA3EAB84315B750F9420FBBE9838EB873",
+      "bytes": 22649,
+      "sha256": "1B8035D1B01939DE9E8FA49177A49AFAA3EAB84315B750F9420FBBE9838EB873",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/007-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-01/sup_main.cpp",
+      "original_bytes": 20945,
+      "original_sha256": "28473CD9912E3EEB53266AC6A0311A1BB97EF6053B7C50C28044FE65CB3BA7E5",
+      "bytes": 20945,
+      "sha256": "28473CD9912E3EEB53266AC6A0311A1BB97EF6053B7C50C28044FE65CB3BA7E5",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/008-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-02/author.py",
+      "original_bytes": 18829,
+      "original_sha256": "DC6032AE40DE35DD0DFB56275A1870DB3DA7439FEC2657B155B4F913BB7F6961",
+      "bytes": 18829,
+      "sha256": "DC6032AE40DE35DD0DFB56275A1870DB3DA7439FEC2657B155B4F913BB7F6961",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/009-runner-supervisor.ps1.fragment",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-02/runner-supervisor.ps1.fragment",
+      "original_bytes": 29022,
+      "original_sha256": "C00AA620635B6C9EC2DB30AFA1FA3966DFE869AC4969C805263DB8DB9019BF89",
+      "bytes": 29022,
+      "sha256": "C00AA620635B6C9EC2DB30AFA1FA3966DFE869AC4969C805263DB8DB9019BF89",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/010-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-02/sup.h",
+      "original_bytes": 10933,
+      "original_sha256": "A7611288B66139A7D699FDAEFD05B87A5E8C39AC545A210DE5DFE641AFA00071",
+      "bytes": 10933,
+      "sha256": "A7611288B66139A7D699FDAEFD05B87A5E8C39AC545A210DE5DFE641AFA00071",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/011-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-02/sup_codec.cpp",
+      "original_bytes": 28267,
+      "original_sha256": "97CBFDEAF6F43E2992CEFF85A8B524CA9D07E2F828C81A3C4A38DC468560904C",
+      "bytes": 28267,
+      "sha256": "97CBFDEAF6F43E2992CEFF85A8B524CA9D07E2F828C81A3C4A38DC468560904C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/012-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-02/sup_core.cpp",
+      "original_bytes": 10835,
+      "original_sha256": "FD4FC7083E54861F99B054F0F75CF7229448A29798AE62D6E5EC6ACA9DA890A2",
+      "bytes": 10835,
+      "sha256": "FD4FC7083E54861F99B054F0F75CF7229448A29798AE62D6E5EC6ACA9DA890A2",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/013-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-02/sup_io.cpp",
+      "original_bytes": 22702,
+      "original_sha256": "10C6ADF3087EE722B441333E52C1DD0A05BE939B4801ED9E86428D3ECE407B7D",
+      "bytes": 22702,
+      "sha256": "10C6ADF3087EE722B441333E52C1DD0A05BE939B4801ED9E86428D3ECE407B7D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/014-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-02/sup_main.cpp",
+      "original_bytes": 21672,
+      "original_sha256": "403A5AB428035642FED513794F54E00E3F932748AFA7E5EC0937E9BE6717E582",
+      "bytes": 21672,
+      "sha256": "403A5AB428035642FED513794F54E00E3F932748AFA7E5EC0937E9BE6717E582",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/015-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-03/author.py",
+      "original_bytes": 19942,
+      "original_sha256": "CC72D08891627A5EC98D8DB5E6AA16EF8F3710C09754941F3A41855E710D07E1",
+      "bytes": 19942,
+      "sha256": "CC72D08891627A5EC98D8DB5E6AA16EF8F3710C09754941F3A41855E710D07E1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/016-runner-supervisor.ps1.fragment",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-03/runner-supervisor.ps1.fragment",
+      "original_bytes": 30766,
+      "original_sha256": "D61AE6F8FBD3093E774F125EFA2EC6E4CB579651B19523E205DCFAC1FE54F421",
+      "bytes": 30766,
+      "sha256": "D61AE6F8FBD3093E774F125EFA2EC6E4CB579651B19523E205DCFAC1FE54F421",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/017-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-03/sup.h",
+      "original_bytes": 10733,
+      "original_sha256": "AA7F9C1B2641116719C079C4E24728841661E2411677057BD06CE4DCC04662C0",
+      "bytes": 10733,
+      "sha256": "AA7F9C1B2641116719C079C4E24728841661E2411677057BD06CE4DCC04662C0",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/018-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-03/sup_codec.cpp",
+      "original_bytes": 28394,
+      "original_sha256": "953E1E6D9371401ED52ABB28656F89FCADD4B03B0B9CCC6EDA22FEF379E4B237",
+      "bytes": 28394,
+      "sha256": "953E1E6D9371401ED52ABB28656F89FCADD4B03B0B9CCC6EDA22FEF379E4B237",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/019-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-03/sup_core.cpp",
+      "original_bytes": 10805,
+      "original_sha256": "E0BA41191C09A5665182C22FD06F7B2CFA05DD5BCEA61F12E60C640BF15F6964",
+      "bytes": 10805,
+      "sha256": "E0BA41191C09A5665182C22FD06F7B2CFA05DD5BCEA61F12E60C640BF15F6964",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/020-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-03/sup_io.cpp",
+      "original_bytes": 22945,
+      "original_sha256": "6BDD3EC6342904E693CB61D80632066519F56783D4FB05E64441C5F137056AA3",
+      "bytes": 22945,
+      "sha256": "6BDD3EC6342904E693CB61D80632066519F56783D4FB05E64441C5F137056AA3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/021-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-03/sup_main.cpp",
+      "original_bytes": 21679,
+      "original_sha256": "2E36602878BBF2B2589F655FB701926515660B0085A52B7E1B1F3ABFBE45553D",
+      "bytes": 21679,
+      "sha256": "2E36602878BBF2B2589F655FB701926515660B0085A52B7E1B1F3ABFBE45553D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/022-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-04/author.py",
+      "original_bytes": 20902,
+      "original_sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "bytes": 20902,
+      "sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/023-runner-supervisor.ps1.fragment",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-04/runner-supervisor.ps1.fragment",
+      "original_bytes": 30955,
+      "original_sha256": "BA148FA0F3108FE3F7136006C0D3E704A4FD5321F5D41C9E0D854B369C1A101C",
+      "bytes": 30955,
+      "sha256": "BA148FA0F3108FE3F7136006C0D3E704A4FD5321F5D41C9E0D854B369C1A101C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/024-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-04/sup.h",
+      "original_bytes": 10756,
+      "original_sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "bytes": 10756,
+      "sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/025-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-04/sup_codec.cpp",
+      "original_bytes": 28730,
+      "original_sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "bytes": 28730,
+      "sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/026-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-04/sup_core.cpp",
+      "original_bytes": 10805,
+      "original_sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "bytes": 10805,
+      "sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/027-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-04/sup_io.cpp",
+      "original_bytes": 22945,
+      "original_sha256": "6BDD3EC6342904E693CB61D80632066519F56783D4FB05E64441C5F137056AA3",
+      "bytes": 22945,
+      "sha256": "6BDD3EC6342904E693CB61D80632066519F56783D4FB05E64441C5F137056AA3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/028-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-04/sup_main.cpp",
+      "original_bytes": 21849,
+      "original_sha256": "E9F8E6503A58F3CC5A95A49F0B47711AA51D9C7E41836BBC38524733142F4A61",
+      "bytes": 21849,
+      "sha256": "E9F8E6503A58F3CC5A95A49F0B47711AA51D9C7E41836BBC38524733142F4A61",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/029-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-05/author.py",
+      "original_bytes": 20902,
+      "original_sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "bytes": 20902,
+      "sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/030-runner-supervisor.ps1.fragment",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-05/runner-supervisor.ps1.fragment",
+      "original_bytes": 31044,
+      "original_sha256": "72A9315D419EB0B4403A7295A1FFEB7AB153DE2B8FBF094FB172F3D7AC38A70D",
+      "bytes": 31044,
+      "sha256": "72A9315D419EB0B4403A7295A1FFEB7AB153DE2B8FBF094FB172F3D7AC38A70D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/031-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-05/sup.h",
+      "original_bytes": 10756,
+      "original_sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "bytes": 10756,
+      "sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/032-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-05/sup_codec.cpp",
+      "original_bytes": 28730,
+      "original_sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "bytes": 28730,
+      "sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/033-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-05/sup_core.cpp",
+      "original_bytes": 10805,
+      "original_sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "bytes": 10805,
+      "sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/034-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-05/sup_io.cpp",
+      "original_bytes": 23107,
+      "original_sha256": "6A7438CAE4FFF500EEED965EDDBA5209F45706E8023E7AB4ECC899BA6834EA3A",
+      "bytes": 23107,
+      "sha256": "6A7438CAE4FFF500EEED965EDDBA5209F45706E8023E7AB4ECC899BA6834EA3A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/035-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author-attempts/attempt-05/sup_main.cpp",
+      "original_bytes": 21897,
+      "original_sha256": "54AE173EC37C95B2F14AAC8C2C7189F750F1D1BAE18A926A6ADE05BF193AE562",
+      "bytes": 21897,
+      "sha256": "54AE173EC37C95B2F14AAC8C2C7189F750F1D1BAE18A926A6ADE05BF193AE562",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/036-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author.py",
+      "original_bytes": 20902,
+      "original_sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "bytes": 20902,
+      "sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/037-authoring.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/authoring.json",
+      "original_bytes": 3097,
+      "original_sha256": "CC4D59D6B482B9299F08276AD5A1C3138EF1A3FE54C9A064937A72F2EB038C66",
+      "bytes": 3097,
+      "sha256": "CC4D59D6B482B9299F08276AD5A1C3138EF1A3FE54C9A064937A72F2EB038C66",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/038-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/20261106-clock-owned-supervisor-source-r1/author.py",
+      "original_bytes": 20902,
+      "original_sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "bytes": 20902,
+      "sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/039-check.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/20261106-clock-owned-supervisor-source-r1/check.py",
+      "original_bytes": 31760,
+      "original_sha256": "E6155F3BBEE5093AE9B31F215ED0BE41545743951E596F2E9915356CA379A544",
+      "bytes": 31760,
+      "sha256": "E6155F3BBEE5093AE9B31F215ED0BE41545743951E596F2E9915356CA379A544",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/040-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/20261106-clock-owned-supervisor-source-r1/native/sup.h",
+      "original_bytes": 10756,
+      "original_sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "bytes": 10756,
+      "sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/041-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_codec.cpp",
+      "original_bytes": 28730,
+      "original_sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "bytes": 28730,
+      "sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/042-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_core.cpp",
+      "original_bytes": 10805,
+      "original_sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "bytes": 10805,
+      "sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/043-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_io.cpp",
+      "original_bytes": 23107,
+      "original_sha256": "6A7438CAE4FFF500EEED965EDDBA5209F45706E8023E7AB4ECC899BA6834EA3A",
+      "bytes": 23107,
+      "sha256": "6A7438CAE4FFF500EEED965EDDBA5209F45706E8023E7AB4ECC899BA6834EA3A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/044-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_main.cpp",
+      "original_bytes": 21897,
+      "original_sha256": "54AE173EC37C95B2F14AAC8C2C7189F750F1D1BAE18A926A6ADE05BF193AE562",
+      "bytes": 21897,
+      "sha256": "54AE173EC37C95B2F14AAC8C2C7189F750F1D1BAE18A926A6ADE05BF193AE562",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/045-proposal.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/20261106-clock-owned-supervisor-source-r1/proposal.md",
+      "original_bytes": 8521,
+      "original_sha256": "725E301EB99A2F6210186363C66B1CDEBB014733399F375551DDF57662399387",
+      "bytes": 8521,
+      "sha256": "725E301EB99A2F6210186363C66B1CDEBB014733399F375551DDF57662399387",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/046-runner-supervisor.ps1.fragment",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/20261106-clock-owned-supervisor-source-r1/runner-supervisor.ps1.fragment",
+      "original_bytes": 31044,
+      "original_sha256": "72A9315D419EB0B4403A7295A1FFEB7AB153DE2B8FBF094FB172F3D7AC38A70D",
+      "bytes": 31044,
+      "sha256": "72A9315D419EB0B4403A7295A1FFEB7AB153DE2B8FBF094FB172F3D7AC38A70D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/047-clock_stage.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/048-README.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/README.md",
+      "original_bytes": 4833,
+      "original_sha256": "BA73C338A4F2AB6E63AB6CBEAFB8E4B89CD0F82EB5A1C76C45237FC1886AA806",
+      "bytes": 4833,
+      "sha256": "BA73C338A4F2AB6E63AB6CBEAFB8E4B89CD0F82EB5A1C76C45237FC1886AA806",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/049-run-clock.ps1",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/run-clock.ps1",
+      "original_bytes": 131334,
+      "original_sha256": "1DA6CE50CF934037318C44D843F82CA326F71719502EE2334FCBEEF799755480",
+      "bytes": 131334,
+      "sha256": "1DA6CE50CF934037318C44D843F82CA326F71719502EE2334FCBEEF799755480",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/050-source-costs.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/051-source-manifest.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-manifest.json",
+      "original_bytes": 510989,
+      "original_sha256": "B5CBED7FDF59F7CE9387117D87CD85EAFD16ABD57BBB60EEE741DDF39FF09A40",
+      "bytes": 510989,
+      "sha256": "B5CBED7FDF59F7CE9387117D87CD85EAFD16ABD57BBB60EEE741DDF39FF09A40",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/052-checks.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/checks.json",
+      "original_bytes": 274055,
+      "original_sha256": "87F9C2BE42637C18349984E0304183855F0DF6E6AE3160545C6779CC52159A7E",
+      "bytes": 274055,
+      "sha256": "87F9C2BE42637C18349984E0304183855F0DF6E6AE3160545C6779CC52159A7E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/053-matcher-findings.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-01/matcher-findings.json",
+      "original_bytes": 565,
+      "original_sha256": "A7595FD80B816D72B0478B257E5396CE0E8048C3CFB07010056A8538F25048B3",
+      "bytes": 550,
+      "sha256": "017B0AF9A7B3A70824D03A502CAF06C60256BB9875A596B5F97424AFE0626FD6",
+      "transformation": "LF_DISPLAY_TRAILING_SPACE_SINGLE_EOF_LF_RAW_BASE64_PRESERVED",
+      "original_raw_base64": "ew0KICAic291cmNlX2NoYW5nZWQiOiBmYWxzZSwNCiAgInRhcmdldF9leGVjdXRpb24iOiBmYWxzZSwNCiAgImZpbmRpbmdzIjogWw0KICAgIHsNCiAgICAgICJjaGVjayI6ICJyZWFkeS1hY2stc3RvcC1wcm90b2NvbCIsDQogICAgICAiY2F1c2UiOiAiTWF0Y2hlciBleHBlY3RlZCAmd29ya2VyLnN0b3Agd2hpbGUgdGhlIGFjdHVhbCBvd25lciBsb29wIGNvcnJlY3RseSBuYW1lcyAmc3RhdGUud29ya2Vyc1tpXS5zdG9wLiBDb3JyZWN0IGV4YWN0IG93bmVyIHNwZWxsaW5nLiINCiAgICB9LA0KICAgIHsNCiAgICAgICJjaGVjayI6ICJuYXRpdmUtcmVhZC1uby1hc3luYy1ncmFwaCIsDQogICAgICAiY2F1c2UiOiAiTWF0Y2hlciBtYXRjaGVkIGEgZGVzY3JpcHRpdmUgcHJlZGVjZXNzb3IgUmVhZEF0TGVhc3RBc3luYyBjb21tZW50LiBSZXN0cmljdCBmb3JiaWRkZW4gbWFya2VycyB0byBjYWxsL3R5cGUgc3BlbGxpbmdzLCBwcmVzZXJ2aW5nIHRoZSBzYW1lIG5vLWFzeW5jLW9wZXJhdGlvbiByZXF1aXJlbWVudC4iDQogICAgfQ0KICBdLA0KICAicmF3X2NoZWNrZXJfZXhpdCI6IDENCn0NCg=="
+    },
+    {
+      "file": "sources/054-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/20261106-clock-owned-supervisor-source-r1/author.py",
+      "original_bytes": 20902,
+      "original_sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "bytes": 20902,
+      "sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/055-check.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/20261106-clock-owned-supervisor-source-r1/check.py",
+      "original_bytes": 31773,
+      "original_sha256": "6788156174933547121C6BDFFCB64590C559967776B1FC5DC75AC4204053C561",
+      "bytes": 31773,
+      "sha256": "6788156174933547121C6BDFFCB64590C559967776B1FC5DC75AC4204053C561",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/056-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/20261106-clock-owned-supervisor-source-r1/native/sup.h",
+      "original_bytes": 10756,
+      "original_sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "bytes": 10756,
+      "sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/057-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_codec.cpp",
+      "original_bytes": 28730,
+      "original_sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "bytes": 28730,
+      "sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/058-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_core.cpp",
+      "original_bytes": 10805,
+      "original_sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "bytes": 10805,
+      "sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/059-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_io.cpp",
+      "original_bytes": 23107,
+      "original_sha256": "6A7438CAE4FFF500EEED965EDDBA5209F45706E8023E7AB4ECC899BA6834EA3A",
+      "bytes": 23107,
+      "sha256": "6A7438CAE4FFF500EEED965EDDBA5209F45706E8023E7AB4ECC899BA6834EA3A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/060-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_main.cpp",
+      "original_bytes": 21897,
+      "original_sha256": "54AE173EC37C95B2F14AAC8C2C7189F750F1D1BAE18A926A6ADE05BF193AE562",
+      "bytes": 21897,
+      "sha256": "54AE173EC37C95B2F14AAC8C2C7189F750F1D1BAE18A926A6ADE05BF193AE562",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/061-proposal.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/20261106-clock-owned-supervisor-source-r1/proposal.md",
+      "original_bytes": 8521,
+      "original_sha256": "725E301EB99A2F6210186363C66B1CDEBB014733399F375551DDF57662399387",
+      "bytes": 8521,
+      "sha256": "725E301EB99A2F6210186363C66B1CDEBB014733399F375551DDF57662399387",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/062-runner-supervisor.ps1.fragment",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/20261106-clock-owned-supervisor-source-r1/runner-supervisor.ps1.fragment",
+      "original_bytes": 31044,
+      "original_sha256": "72A9315D419EB0B4403A7295A1FFEB7AB153DE2B8FBF094FB172F3D7AC38A70D",
+      "bytes": 31044,
+      "sha256": "72A9315D419EB0B4403A7295A1FFEB7AB153DE2B8FBF094FB172F3D7AC38A70D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/063-clock_stage.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/064-README.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/README.md",
+      "original_bytes": 4833,
+      "original_sha256": "BA73C338A4F2AB6E63AB6CBEAFB8E4B89CD0F82EB5A1C76C45237FC1886AA806",
+      "bytes": 4833,
+      "sha256": "BA73C338A4F2AB6E63AB6CBEAFB8E4B89CD0F82EB5A1C76C45237FC1886AA806",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/065-run-clock.ps1",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/run-clock.ps1",
+      "original_bytes": 131334,
+      "original_sha256": "1DA6CE50CF934037318C44D843F82CA326F71719502EE2334FCBEEF799755480",
+      "bytes": 131334,
+      "sha256": "1DA6CE50CF934037318C44D843F82CA326F71719502EE2334FCBEEF799755480",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/066-source-costs.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/067-source-manifest.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-manifest.json",
+      "original_bytes": 510989,
+      "original_sha256": "B5CBED7FDF59F7CE9387117D87CD85EAFD16ABD57BBB60EEE741DDF39FF09A40",
+      "bytes": 510989,
+      "sha256": "B5CBED7FDF59F7CE9387117D87CD85EAFD16ABD57BBB60EEE741DDF39FF09A40",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/068-checks.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check-attempts/attempt-02/checks.json",
+      "original_bytes": 274053,
+      "original_sha256": "C4753D6E140EA26EBFC6EC8CBCDDA520E551CBDF10AEE28A28DFEE956FDC17C4",
+      "bytes": 274053,
+      "sha256": "C4753D6E140EA26EBFC6EC8CBCDDA520E551CBDF10AEE28A28DFEE956FDC17C4",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/069-check.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check.py",
+      "original_bytes": 31773,
+      "original_sha256": "6788156174933547121C6BDFFCB64590C559967776B1FC5DC75AC4204053C561",
+      "bytes": 31773,
+      "sha256": "6788156174933547121C6BDFFCB64590C559967776B1FC5DC75AC4204053C561",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/070-checks.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/checks.json",
+      "original_bytes": 274053,
+      "original_sha256": "C4753D6E140EA26EBFC6EC8CBCDDA520E551CBDF10AEE28A28DFEE956FDC17C4",
+      "bytes": 274053,
+      "sha256": "C4753D6E140EA26EBFC6EC8CBCDDA520E551CBDF10AEE28A28DFEE956FDC17C4",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/071-correspondence.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/correspondence.json",
+      "original_bytes": 7877,
+      "original_sha256": "616232AF9D6EE0A13ED148C7BFDE3F06135FF1A8D1BF5D3362645C85BB39C8E7",
+      "bytes": 7877,
+      "sha256": "616232AF9D6EE0A13ED148C7BFDE3F06135FF1A8D1BF5D3362645C85BB39C8E7",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/072-diagnostic-gap-r1.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/diagnostic-gap-r1.json",
+      "original_bytes": 1429,
+      "original_sha256": "3415BC3337DCFD48BCAB867A486992A60D25A33A736352A82512BF12022DB6A7",
+      "bytes": 1398,
+      "sha256": "0FEB34CB82B37963D957148E70C5853E15F6F9D247ADC808D2DF48B3EB62071F",
+      "transformation": "LF_DISPLAY_TRAILING_SPACE_SINGLE_EOF_LF_RAW_BASE64_PRESERVED",
+      "original_raw_base64": "ew0KICAic3RhdHVzIjogIlVOU0VBTEVEX0FVVEhPUklOR19GSU5ESU5HX1BST1RPQ09MX0VYVEVOU0lPTl9QRU5ESU5HIiwNCiAgImZpbmRpbmciOiAiVGVybWluYXRlSm9iT2JqZWN0IGZhaWx1cmUgY3VycmVudGx5IG1hcHBlZCB0byByZWFzb24zMiBKb2JRdWVyeUZhaWx1cmU7IHJvb3QgcmVqZWN0ZWQgdGhpcyBjb25mbGF0aW9uIGFuZCBpcyBwcmVwYXJpbmcgaW5kZXBlbmRlbnRseSByZXZpZXdlZCBkaXN0aW5jdCBKb2JUZXJtaW5hdGlvbkZhaWx1cmUgaW4gcHJvdG9jb2wgdjIuIFF1ZXJ5SW5mb3JtYXRpb25Kb2JPYmplY3Qgc3RheXMgcmVhc29uMzIuIE5vIHNvdXJjZSBzZWFsIG9yIGV4ZWN1dGlvbiBhdXRob3JpdHkuIiwNCiAgImZpbGVzIjogWw0KICAgIHsNCiAgICAgICJwYXRoIjogImJ1aWxkLWNpLzIwMjYxMTA2LWNsb2NrLW93bmVkLXN1cGVydmlzb3Itc291cmNlLXIxL25hdGl2ZS9zdXAuaCIsDQogICAgICAic2hhMjU2IjogIjc3OTU1QkJFM0Q5OTY1NDgzNzY3RjIxMDVENTZCNzY3NzE4MTlCRjU4MzcwRTFEMDhBNTdDNTJBNjdBQzRGRTkiLA0KICAgICAgImJ5dGVzIjogMTA5NzQNCiAgICB9LA0KICAgIHsNCiAgICAgICJwYXRoIjogImJ1aWxkLWNpLzIwMjYxMTA2LWNsb2NrLW93bmVkLXN1cGVydmlzb3Itc291cmNlLXIxL25hdGl2ZS9zdXBfbWFpbi5jcHAiLA0KICAgICAgInNoYTI1NiI6ICJENDdERUM4RjFGRUUwRjY3NjJENzdCNjlEODQzRDU4NUE1NTQxNTFGNkFCNUI1NTBEOEFDMzI0Q0NCQjFDNDA3IiwNCiAgICAgICJieXRlcyI6IDIxNzM4DQogICAgfSwNCiAgICB7DQogICAgICAicGF0aCI6ICJidWlsZC1jaS8yMDI2MTEwNi1jbG9jay1vd25lZC1zdXBlcnZpc29yLXNvdXJjZS1yMS9uYXRpdmUvc3VwX2NvZGVjLmNwcCIsDQogICAgICAic2hhMjU2IjogIjk1M0UxRTZEOTM3MTQwMUVENTJBQkIyODY1NkY4OUZDQURENEIwM0IwQjlDQ0M2RURBMjJGRUYzNzlFNEIyMzciLA0KICAgICAgImJ5dGVzIjogMjgzOTQNCiAgICB9LA0KICAgIHsNCiAgICAgICJwYXRoIjogImJ1aWxkLWNpLzIwMjYxMTA2LWNsb2NrLW93bmVkLXN1cGVydmlzb3Itc291cmNlLXIxL25hdGl2ZS9zdXBfaW8uY3BwIiwNCiAgICAgICJzaGEyNTYiOiAiQTE2Q0QzOUMyNTFGMzRBNDFBNDdFMTA4QjYwQ0I0NzQzOTVBQjM5QjIzQzFENThGRTA3REUyMEMzNjE4QzA5MyIsDQogICAgICAiYnl0ZXMiOiAyMjk4MQ0KICAgIH0sDQogICAgew0KICAgICAgInBhdGgiOiAiYnVpbGQtY2kvMjAyNjExMDYtY2xvY2stb3duZWQtc3VwZXJ2aXNvci1zb3VyY2UtcjEvbmF0aXZlL3N1cF9jb3JlLmNwcCIsDQogICAgICAic2hhMjU2IjogIkZENEZDNzA4M0U1NDg2MUY5OUIwNTRGMEY3NUNGNzIyOTQ0OEEyOTc5OEFFNjJENkU1RUM2QUNBOURBODkwQTIiLA0KICAgICAgImJ5dGVzIjogMTA4MzUNCiAgICB9DQogIF0NCn0NCg=="
+    },
+    {
+      "file": "sources/073-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/diagnostic-gap-snapshot-r1/sup.h",
+      "original_bytes": 10974,
+      "original_sha256": "77955BBE3D9965483767F2105D56B76771819BF58370E1D08A57C52A67AC4FE9",
+      "bytes": 10974,
+      "sha256": "77955BBE3D9965483767F2105D56B76771819BF58370E1D08A57C52A67AC4FE9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/074-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/diagnostic-gap-snapshot-r1/sup_codec.cpp",
+      "original_bytes": 28394,
+      "original_sha256": "953E1E6D9371401ED52ABB28656F89FCADD4B03B0B9CCC6EDA22FEF379E4B237",
+      "bytes": 28394,
+      "sha256": "953E1E6D9371401ED52ABB28656F89FCADD4B03B0B9CCC6EDA22FEF379E4B237",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/075-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/diagnostic-gap-snapshot-r1/sup_core.cpp",
+      "original_bytes": 10835,
+      "original_sha256": "FD4FC7083E54861F99B054F0F75CF7229448A29798AE62D6E5EC6ACA9DA890A2",
+      "bytes": 10835,
+      "sha256": "FD4FC7083E54861F99B054F0F75CF7229448A29798AE62D6E5EC6ACA9DA890A2",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/076-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/diagnostic-gap-snapshot-r1/sup_io.cpp",
+      "original_bytes": 22981,
+      "original_sha256": "A16CD39C251F34A41A47E108B60CB474395AB39B23C1D58FE07DE20C3618C093",
+      "bytes": 22981,
+      "sha256": "A16CD39C251F34A41A47E108B60CB474395AB39B23C1D58FE07DE20C3618C093",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/077-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/diagnostic-gap-snapshot-r1/sup_main.cpp",
+      "original_bytes": 21738,
+      "original_sha256": "D47DEC8F1FEE0F6762D77B69D843D585A554151F6AB5B550D8AC324CCBB1C407",
+      "bytes": 21738,
+      "sha256": "D47DEC8F1FEE0F6762D77B69D843D585A554151F6AB5B550D8AC324CCBB1C407",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/078-freeze.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/freeze.json",
+      "original_bytes": 4250,
+      "original_sha256": "E825D9CA77CB3A93284EFB99DD7D4D15918F713CA3432371A451664046E4258E",
+      "bytes": 4250,
+      "sha256": "E825D9CA77CB3A93284EFB99DD7D4D15918F713CA3432371A451664046E4258E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/079-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup.h",
+      "original_bytes": 10756,
+      "original_sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "bytes": 10756,
+      "sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/080-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_codec.cpp",
+      "original_bytes": 28730,
+      "original_sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "bytes": 28730,
+      "sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/081-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_core.cpp",
+      "original_bytes": 10805,
+      "original_sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "bytes": 10805,
+      "sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/082-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_io.cpp",
+      "original_bytes": 23107,
+      "original_sha256": "6A7438CAE4FFF500EEED965EDDBA5209F45706E8023E7AB4ECC899BA6834EA3A",
+      "bytes": 23107,
+      "sha256": "6A7438CAE4FFF500EEED965EDDBA5209F45706E8023E7AB4ECC899BA6834EA3A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/083-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_main.cpp",
+      "original_bytes": 21897,
+      "original_sha256": "54AE173EC37C95B2F14AAC8C2C7189F750F1D1BAE18A926A6ADE05BF193AE562",
+      "bytes": 21897,
+      "sha256": "54AE173EC37C95B2F14AAC8C2C7189F750F1D1BAE18A926A6ADE05BF193AE562",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/084-proposal.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/proposal.md",
+      "original_bytes": 8521,
+      "original_sha256": "725E301EB99A2F6210186363C66B1CDEBB014733399F375551DDF57662399387",
+      "bytes": 8521,
+      "sha256": "725E301EB99A2F6210186363C66B1CDEBB014733399F375551DDF57662399387",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/085-runner-supervisor.ps1.fragment",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/runner-supervisor.ps1.fragment",
+      "original_bytes": 31044,
+      "original_sha256": "72A9315D419EB0B4403A7295A1FFEB7AB153DE2B8FBF094FB172F3D7AC38A70D",
+      "bytes": 31044,
+      "sha256": "72A9315D419EB0B4403A7295A1FFEB7AB153DE2B8FBF094FB172F3D7AC38A70D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/086-source-pins.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/source-pins.json",
+      "original_bytes": 4722,
+      "original_sha256": "88BA2BDA5D1DEB4DC378D82431EAD036A51174D7C9AC11D2B4D03DC621E626A5",
+      "bytes": 4722,
+      "sha256": "88BA2BDA5D1DEB4DC378D82431EAD036A51174D7C9AC11D2B4D03DC621E626A5",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/087-clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/088-README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/README.md",
+      "original_bytes": 4833,
+      "original_sha256": "BA73C338A4F2AB6E63AB6CBEAFB8E4B89CD0F82EB5A1C76C45237FC1886AA806",
+      "bytes": 4833,
+      "sha256": "BA73C338A4F2AB6E63AB6CBEAFB8E4B89CD0F82EB5A1C76C45237FC1886AA806",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/089-run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/run-clock.ps1",
+      "original_bytes": 131334,
+      "original_sha256": "1DA6CE50CF934037318C44D843F82CA326F71719502EE2334FCBEEF799755480",
+      "bytes": 131334,
+      "sha256": "1DA6CE50CF934037318C44D843F82CA326F71719502EE2334FCBEEF799755480",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/090-source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/091-source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-manifest.json",
+      "original_bytes": 510989,
+      "original_sha256": "B5CBED7FDF59F7CE9387117D87CD85EAFD16ABD57BBB60EEE741DDF39FF09A40",
+      "bytes": 510989,
+      "sha256": "B5CBED7FDF59F7CE9387117D87CD85EAFD16ABD57BBB60EEE741DDF39FF09A40",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

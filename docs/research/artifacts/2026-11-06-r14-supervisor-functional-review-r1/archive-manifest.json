@@ -1,0 +1,287 @@
+{
+  "schema": "PINNED_SOURCE_PACKET_LOSSLESS_DELIVERY_V1",
+  "original_pins_sha256": "B01F381BC5B28A56DBDFFEDC38BC4C1E47BEA8AA06F8515AB24BAB5EEF2D4389",
+  "original_verdict": "SEE_ORIGINAL_SOURCE_PACKET",
+  "scope": "Preservation of the named packet only. No new independent source/numeric/resource acceptance, fit, NOFIT, native binding, target execution or feature completion follows.",
+  "files": [
+    {
+      "file": "sources/001-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/author.py",
+      "original_bytes": 20902,
+      "original_sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "bytes": 20902,
+      "sha256": "0E5CBF2CD7A2BBAF0E731856E5CABBDBBF70EA45993098C813262A020E2C0982",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-check.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/check.py",
+      "original_bytes": 31773,
+      "original_sha256": "6788156174933547121C6BDFFCB64590C559967776B1FC5DC75AC4204053C561",
+      "bytes": 31773,
+      "sha256": "6788156174933547121C6BDFFCB64590C559967776B1FC5DC75AC4204053C561",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-correspondence.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/correspondence.json",
+      "original_bytes": 7877,
+      "original_sha256": "616232AF9D6EE0A13ED148C7BFDE3F06135FF1A8D1BF5D3362645C85BB39C8E7",
+      "bytes": 7877,
+      "sha256": "616232AF9D6EE0A13ED148C7BFDE3F06135FF1A8D1BF5D3362645C85BB39C8E7",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-freeze.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/freeze.json",
+      "original_bytes": 4250,
+      "original_sha256": "E825D9CA77CB3A93284EFB99DD7D4D15918F713CA3432371A451664046E4258E",
+      "bytes": 4250,
+      "sha256": "E825D9CA77CB3A93284EFB99DD7D4D15918F713CA3432371A451664046E4258E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup.h",
+      "original_bytes": 10756,
+      "original_sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "bytes": 10756,
+      "sha256": "3B7C37E1A909F1216C7B10F3B33F9BD77850059372E36C3C392A1A50A7E4B312",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_codec.cpp",
+      "original_bytes": 28730,
+      "original_sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "bytes": 28730,
+      "sha256": "3131BDDBF77A48CF935FCBDB47AC194D5EC7D038A5EA22B6039CF03A8164EF1D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/007-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_core.cpp",
+      "original_bytes": 10805,
+      "original_sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "bytes": 10805,
+      "sha256": "52DB03C9FCA4E8F8D3285CFE896F4786A592539BE4F92FAFAC5B528A71EEAC5F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/008-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_io.cpp",
+      "original_bytes": 23107,
+      "original_sha256": "6A7438CAE4FFF500EEED965EDDBA5209F45706E8023E7AB4ECC899BA6834EA3A",
+      "bytes": 23107,
+      "sha256": "6A7438CAE4FFF500EEED965EDDBA5209F45706E8023E7AB4ECC899BA6834EA3A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/009-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/native/sup_main.cpp",
+      "original_bytes": 21897,
+      "original_sha256": "54AE173EC37C95B2F14AAC8C2C7189F750F1D1BAE18A926A6ADE05BF193AE562",
+      "bytes": 21897,
+      "sha256": "54AE173EC37C95B2F14AAC8C2C7189F750F1D1BAE18A926A6ADE05BF193AE562",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/010-proposal.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/proposal.md",
+      "original_bytes": 8521,
+      "original_sha256": "725E301EB99A2F6210186363C66B1CDEBB014733399F375551DDF57662399387",
+      "bytes": 8521,
+      "sha256": "725E301EB99A2F6210186363C66B1CDEBB014733399F375551DDF57662399387",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/011-runner-supervisor.ps1.fragment",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/runner-supervisor.ps1.fragment",
+      "original_bytes": 31044,
+      "original_sha256": "72A9315D419EB0B4403A7295A1FFEB7AB153DE2B8FBF094FB172F3D7AC38A70D",
+      "bytes": 31044,
+      "sha256": "72A9315D419EB0B4403A7295A1FFEB7AB153DE2B8FBF094FB172F3D7AC38A70D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/012-source-pins.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r1/source-pins.json",
+      "original_bytes": 4722,
+      "original_sha256": "88BA2BDA5D1DEB4DC378D82431EAD036A51174D7C9AC11D2B4D03DC621E626A5",
+      "bytes": 4722,
+      "sha256": "88BA2BDA5D1DEB4DC378D82431EAD036A51174D7C9AC11D2B4D03DC621E626A5",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/013-freeze.json",
+      "original_path": "build-ci/20261106-r14-io-independent-review-r1/freeze.json",
+      "original_bytes": 3066,
+      "original_sha256": "15842D3727BF40FA56C39A8544E29CCA3FAE6F99EBD9CDE28C9F8ABE2711E3E3",
+      "bytes": 3066,
+      "sha256": "15842D3727BF40FA56C39A8544E29CCA3FAE6F99EBD9CDE28C9F8ABE2711E3E3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/014-source-pins.json",
+      "original_path": "build-ci/20261106-r14-io-independent-review-r1/source-pins.json",
+      "original_bytes": 5742,
+      "original_sha256": "6EECF95CCC2026EB8FE19A6E1C8B8ADA423029CD6899F9EEAE9BE1F7F906ECF5",
+      "bytes": 5742,
+      "sha256": "6EECF95CCC2026EB8FE19A6E1C8B8ADA423029CD6899F9EEAE9BE1F7F906ECF5",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/015-check_review.py",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/attempts/attempt-01/check_review.py",
+      "original_bytes": 11615,
+      "original_sha256": "13B9C55710FDFFD43159D2C86A930754A9212D98824E8021BBB91001979CBDFD",
+      "bytes": 11615,
+      "sha256": "13B9C55710FDFFD43159D2C86A930754A9212D98824E8021BBB91001979CBDFD",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/016-checks.json",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/attempts/attempt-01/checks.json",
+      "original_bytes": 508404,
+      "original_sha256": "26141A67A37CD65F87CC92FDC291399640B18AEB8A8B16EEB0BA1B9F89A434E8",
+      "bytes": 508404,
+      "sha256": "26141A67A37CD65F87CC92FDC291399640B18AEB8A8B16EEB0BA1B9F89A434E8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/017-findings.json",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/attempts/attempt-01/findings.json",
+      "original_bytes": 3293,
+      "original_sha256": "D851493C444AACD1AABBA747B24D0B4D2466666C98943C10F20F06B2669A4483",
+      "bytes": 3293,
+      "sha256": "D851493C444AACD1AABBA747B24D0B4D2466666C98943C10F20F06B2669A4483",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/018-review.md",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/attempts/attempt-01/review.md",
+      "original_bytes": 8638,
+      "original_sha256": "2664F8B7EEB72E0E53E4E12D0B4B5D9B0B1011E0E382644B2B29BF4A900DB2C6",
+      "bytes": 8638,
+      "sha256": "2664F8B7EEB72E0E53E4E12D0B4B5D9B0B1011E0E382644B2B29BF4A900DB2C6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/019-WORKING.md",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/attempts/attempt-01/WORKING.md",
+      "original_bytes": 2674,
+      "original_sha256": "F74ABE8B714170102A3DB00746DF5EF06E7E335FA03B4DCB91DDCE74D8E00145",
+      "bytes": 2674,
+      "sha256": "F74ABE8B714170102A3DB00746DF5EF06E7E335FA03B4DCB91DDCE74D8E00145",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/020-check_review.py",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/check_review.py",
+      "original_bytes": 11615,
+      "original_sha256": "13B9C55710FDFFD43159D2C86A930754A9212D98824E8021BBB91001979CBDFD",
+      "bytes": 11615,
+      "sha256": "13B9C55710FDFFD43159D2C86A930754A9212D98824E8021BBB91001979CBDFD",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/021-checks.json",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/checks.json",
+      "original_bytes": 508404,
+      "original_sha256": "26141A67A37CD65F87CC92FDC291399640B18AEB8A8B16EEB0BA1B9F89A434E8",
+      "bytes": 508404,
+      "sha256": "26141A67A37CD65F87CC92FDC291399640B18AEB8A8B16EEB0BA1B9F89A434E8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/022-findings.json",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/findings.json",
+      "original_bytes": 3293,
+      "original_sha256": "D851493C444AACD1AABBA747B24D0B4D2466666C98943C10F20F06B2669A4483",
+      "bytes": 3293,
+      "sha256": "D851493C444AACD1AABBA747B24D0B4D2466666C98943C10F20F06B2669A4483",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/023-freeze.json",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/freeze.json",
+      "original_bytes": 1331,
+      "original_sha256": "5CAEEC7FA4EA5FF0B80F130DC1DE4DF952EB76578B857D8150D327FE7B955080",
+      "bytes": 1331,
+      "sha256": "5CAEEC7FA4EA5FF0B80F130DC1DE4DF952EB76578B857D8150D327FE7B955080",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/024-review.md",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/review.md",
+      "original_bytes": 8638,
+      "original_sha256": "2664F8B7EEB72E0E53E4E12D0B4B5D9B0B1011E0E382644B2B29BF4A900DB2C6",
+      "bytes": 8638,
+      "sha256": "2664F8B7EEB72E0E53E4E12D0B4B5D9B0B1011E0E382644B2B29BF4A900DB2C6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/025-source-pins.json",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/source-pins.json",
+      "original_bytes": 5655,
+      "original_sha256": "B01F381BC5B28A56DBDFFEDC38BC4C1E47BEA8AA06F8515AB24BAB5EEF2D4389",
+      "bytes": 5655,
+      "sha256": "B01F381BC5B28A56DBDFFEDC38BC4C1E47BEA8AA06F8515AB24BAB5EEF2D4389",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/026-WORKING.md",
+      "original_path": "build-ci/20261106-r14-supervisor-functional-review-r1/WORKING.md",
+      "original_bytes": 2674,
+      "original_sha256": "F74ABE8B714170102A3DB00746DF5EF06E7E335FA03B4DCB91DDCE74D8E00145",
+      "bytes": 2674,
+      "sha256": "F74ABE8B714170102A3DB00746DF5EF06E7E335FA03B4DCB91DDCE74D8E00145",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/027-clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/028-README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/README.md",
+      "original_bytes": 4833,
+      "original_sha256": "BA73C338A4F2AB6E63AB6CBEAFB8E4B89CD0F82EB5A1C76C45237FC1886AA806",
+      "bytes": 4833,
+      "sha256": "BA73C338A4F2AB6E63AB6CBEAFB8E4B89CD0F82EB5A1C76C45237FC1886AA806",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/029-run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/run-clock.ps1",
+      "original_bytes": 131334,
+      "original_sha256": "1DA6CE50CF934037318C44D843F82CA326F71719502EE2334FCBEEF799755480",
+      "bytes": 131334,
+      "sha256": "1DA6CE50CF934037318C44D843F82CA326F71719502EE2334FCBEEF799755480",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/030-source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/031-source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r14-owned-supervisor-source-r1/source-manifest.json",
+      "original_bytes": 510989,
+      "original_sha256": "B5CBED7FDF59F7CE9387117D87CD85EAFD16ABD57BBB60EEE741DDF39FF09A40",
+      "bytes": 510989,
+      "sha256": "B5CBED7FDF59F7CE9387117D87CD85EAFD16ABD57BBB60EEE741DDF39FF09A40",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

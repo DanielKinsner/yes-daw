@@ -1,0 +1,41 @@
+{
+  "scope": "COMPLETE_UNRUN_SOURCE_CANDIDATE_AND_INDEPENDENT_FUNCTIONAL_REVIEW_PRESERVATION",
+  "candidate_disposition": "REVISE",
+  "candidate_own_checks": 1555,
+  "candidate_pins_sha256": "88BA2BDA5D1DEB4DC378D82431EAD036A51174D7C9AC11D2B4D03DC621E626A5",
+  "candidate_freeze_sha256": "E825D9CA77CB3A93284EFB99DD7D4D15918F713CA3432371A451664046E4258E",
+  "whole_independent_review": {
+    "checks_passed_first_invocation": 2542,
+    "checks_failed": 0,
+    "findings": 8,
+    "pins_sha256": "B01F381BC5B28A56DBDFFEDC38BC4C1E47BEA8AA06F8515AB24BAB5EEF2D4389",
+    "freeze_sha256": "5CAEEC7FA4EA5FF0B80F130DC1DE4DF952EB76578B857D8150D327FE7B955080",
+    "review_sha256": "2664F8B7EEB72E0E53E4E12D0B4B5D9B0B1011E0E382644B2B29BF4A900DB2C6"
+  },
+  "scoped_io_review": {
+    "checks_passed_first_invocation": 55,
+    "checks_failed": 0,
+    "findings": 5,
+    "pins_sha256": "6EECF95CCC2026EB8FE19A6E1C8B8ADA423029CD6899F9EEAE9BE1F7F906ECF5",
+    "freeze_sha256": "15842D3727BF40FA56C39A8544E29CCA3FAE6F99EBD9CDE28C9F8ABE2711E3E3"
+  },
+  "archives": [
+    {"path": "docs/research/artifacts/2026-11-06-clock-owned-supervisor-source-r1/archive-manifest.json", "files": 91, "sha256": "97C98111955157F43D24E9C84CE3456290E97F4E65CCF276BA3BE68A691CEB9B"},
+    {"path": "docs/research/artifacts/2026-11-06-r14-io-independent-review-r1/archive-manifest.json", "files": 37, "sha256": "0AEF41A809EFDD9CE50A37D28E10652CEC5FDB6B3E7B0F384F8D7EA4F64FD312"},
+    {"path": "docs/research/artifacts/2026-11-06-r14-supervisor-functional-review-r1/archive-manifest.json", "files": 31, "sha256": "117E80A638CC55A06E825DB6FA47ECD82D31F6C975C7636A0DA05E11FF3B1A0C"}
+  ],
+  "delivery_helper": {
+    "path": "docs/research/2026-11-06-r14-archive-source.py",
+    "original_path": "build-ci/20261106-archive-fragment-source-packet-r1.py",
+    "sha256": "F1AAE86FF8C9FA0A09EBD26FF157572ABB9BAD0D1FEE30B2C9ED25694E3A1D3A",
+    "purpose": "New lossless archive helper additionally admits textual .fragment input; old first-green utility unchanged. Three first-use delivery invocations exited0. Staged raw reconstruction is checked separately. No target execution or proof acceptance."
+  },
+  "source_only_successor_authorized": "ONE_COMPLETE_R15_CORRECTION_THEN_FRESH_WHOLE_REVIEW",
+  "target_parser_AST_import_compiler_helper_fixture_Clock_execution": false,
+  "source_prices_resources_ABI_native_binding_execution_accepted": false,
+  "app_code_unchanged": "d3ec66137088b491acec4bdd614809105bed8c8f",
+  "preceding_docs_only_CI": [
+    {"commit": "a6ffb1553ee432264300d05907196aebaf1a8483", "run": 42225340048, "conclusion": "success", "runtime_package_sanitizer_jobs": "SKIPPED_DOCS_ONLY"},
+    {"commit": "8f8ae5949554a2a77cde5b9cea8d7bc246bd1403", "run": 42226564862, "conclusion": "success", "runtime_package_sanitizer_jobs": "SKIPPED_DOCS_ONLY"}
+  ]
+}
