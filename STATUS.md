@@ -74,6 +74,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    the complete census is being rebuilt from operand ledgers before another independent review.
    R11's tuple metadata replacement passed5,331 independent functional source checks against its
    provisional input set; final union, new census/lifetime proof, binding and execution remain held.
+   The separate metadata successor also passed25 types/110 declared fields, including the discovered
+   JObject iterator and three CoreLib enumerators. Complete payload equations remain in progress.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -94,6 +96,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Close the requested iterator file-metadata inventory
+
+- Separate metadata reader R2 exited0 with empty stderr and complete validated JSON:25 selected types/110 declared instance fields. It discovered the unique JObject GetEnumerator child and found all three requested CoreLib enumerators; it reads public file metadata without invoking target constructors/methods/IL or inspecting live values/layout.
+- Fresh whole source review passed48 checks before root's new bounded hidden launcher; all target/toolhost/reference pins matched before/after. Archived22 source/evidence files under `docs/research/artifacts/2026-11-05-managed-file-metadata-r2/`; the complete subject/root launchers froze at first green. Earlier metadata source and executions remain exact.
+- Tuple source checkpoint2815bf8 passed CI42177349610. Six lifetime equations now retain actual parsed container/iterator contributions and tighter source-derived scan/reader bounds; they remain unsealed and give no32MiB-fit, numerical authority, R11 binding or execution GO.
+- Continue complete production R3 operand-ledger regeneration, native/whole proof and recipe/renderer/jobs/model, then linked/folder/piano. No clock-research target stage, GUI, desktop input or audio/MIDI device ran.
 
 ## 2026-11-05 - Preserve the reviewed tuple metadata source successor
 

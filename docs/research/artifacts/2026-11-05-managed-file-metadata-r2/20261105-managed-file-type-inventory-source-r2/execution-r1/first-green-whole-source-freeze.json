@@ -1,0 +1,31 @@
+{
+  "scope": "Whole authored file-metadata reader/source packet and both root runners; metadata only, not runtime layout or R11",
+  "manifest_sha256": "72F84E45F43CB4ED86E91B6C1CCB464A904E043E5338FAF941C47284E69DC7DC",
+  "review_sha256": "6388129EF1E04F6B2E39A2ED19458D1AAB0589AD343FB5932DA020FDCC02A675",
+  "files": [
+    {
+      "path": "reader.cs",
+      "sha256": "9215EED3EDAC196C983353ADC68D1BA95FCD0C4833ED1130FB7C8F39CCC8D348"
+    },
+    {
+      "path": "README.md",
+      "sha256": "8FAFDA0DC0E7725830FAC914FB2F6679E8679D6EBAA483691DD450771F7F4A91"
+    },
+    {
+      "path": "source-pins.json",
+      "sha256": "72F84E45F43CB4ED86E91B6C1CCB464A904E043E5338FAF941C47284E69DC7DC"
+    },
+    {
+      "path": "evidence/author-source.py",
+      "sha256": "04E1F330CC781A3C73674413C85D6D1DBF0696470E0F58BB5EA969EECB9DB66B"
+    },
+    {
+      "path": "run-reader.ps1",
+      "sha256": "DD0B90DD83F9EF5C620BE822A3FCA15003E1AF50CB9A970B863A3A2315E540AF"
+    },
+    {
+      "path": "run-reader.py",
+      "sha256": "77F2099FACC621757023856083BFF7E733F9EC1F83450F3E4B0803005B600089"
+    }
+  ]
+}

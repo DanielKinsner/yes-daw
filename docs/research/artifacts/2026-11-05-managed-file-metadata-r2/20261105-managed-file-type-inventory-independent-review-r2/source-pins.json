@@ -1,0 +1,184 @@
+{
+  "schema": "MANAGED_FILE_METADATA_R2_INDEPENDENT_SOURCE_REVIEW_PINS",
+  "verdict": "ACCEPT_SOURCE_ONLY_PUBLIC_FILE_METADATA_R2_NOT_EXECUTION_OR_LAYOUT_QUALIFICATION",
+  "subject_manifest_sha256": "72F84E45F43CB4ED86E91B6C1CCB464A904E043E5338FAF941C47284E69DC7DC",
+  "subject": [
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r2/source-pins.json",
+      "bytes": 8712,
+      "sha256": "72F84E45F43CB4ED86E91B6C1CCB464A904E043E5338FAF941C47284E69DC7DC"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Newtonsoft.Json.dll",
+      "bytes": 1824600,
+      "sha256": "9AF3870D53662BA1C8E9B19EC8AD0020E815FFE9E916A1F3204AC6E206447F60"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Management.Automation.dll",
+      "bytes": 19646264,
+      "sha256": "2D8AF026E589C5603629BFC3E7C57265B4167B12ECA3AE549C6A6C3CA7E4967B"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Collections.Specialized.dll",
+      "bytes": 104232,
+      "sha256": "61702E1173C49F32E7B1804667A249F8709680F01859D46CF30E74197FEDC1C5"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Private.CoreLib.dll",
+      "bytes": 16033616,
+      "sha256": "ED80A1A5DD066C0407AD59686F9AF90A4F3E55DBF3E4C973B53CC8C9D0706F82"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Reflection.Metadata.dll",
+      "bytes": 1156904,
+      "sha256": "97152D5C07E1E5D7F080F871EFF211CCDBECB2496E4EB1B086005CBD3656D431"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Collections.Immutable.dll",
+      "bytes": 976680,
+      "sha256": "623AD5FA5AC38C460DF0073F37FBB649E219AC486C926B822F77EBF02676D56C"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Text.Json.dll",
+      "bytes": 1890088,
+      "sha256": "ED5F0F3773C89948471E3691F31963EA00D3577E17296AC4DFB97772E78B6FA3"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Text.Encodings.Web.dll",
+      "bytes": 124712,
+      "sha256": "2C459F175331339B8580DEC1842879B3F0532100FA426B97A1B74E1B5DEE95D7"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Runtime.dll",
+      "bytes": 44840,
+      "sha256": "EF6D37D9334FCDF7C7E4B9590B730EB5BA623192D47F0CBE4EC478962625E586"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Console.dll",
+      "bytes": 169768,
+      "sha256": "A50D6F54E509342C49B6B7C8D72684F68701FC97FADE19956D4618A4A30E84FA"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Collections.dll",
+      "bytes": 296744,
+      "sha256": "5AEA9C285F011D1E83F05834E12632EE5EBF65DA1D546E696F525AF47101A3B0"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Security.Cryptography.dll",
+      "bytes": 2549584,
+      "sha256": "BEE61E6BDEFF9FB0C4F3CBF9D48E9D1D97D12A8BB85D1EEAB9178E818B582EEE"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Runtime.Extensions.dll",
+      "bytes": 17744,
+      "sha256": "633F210388E326F0A2FBA3148312FB2900A9E0BA32F08015BB606ABC44A3D634"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.IO.dll",
+      "bytes": 15656,
+      "sha256": "7A820716EE9AB010EA624B9448EA1ACB4C78B0F79DFC9D98DB01B7F99C610B6A"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Memory.dll",
+      "bytes": 161576,
+      "sha256": "58A4DC8A9EFAC1FE0EE67138B0DDA35B2B812ADDC14C5D8251CC222B278A5C2D"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Buffers.dll",
+      "bytes": 15144,
+      "sha256": "7EFC8DFEF9548771EC328610DE7B8E5C4308A8EA6B1CA73021F336FC00653176"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-runtime-metadata-r1/runtime.json",
+      "bytes": 4431,
+      "sha256": "45817E116A4E6F6F9C9AA5089D1773F3F8978442A369D1DAFFDCF6A03CFBB8D0"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/source-pins.json",
+      "bytes": 8306,
+      "sha256": "82F9E7B92837974001616B1D686B551D7778187383E7A4AF9EE3D5C81E9BD431"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/source-manifest.json",
+      "bytes": 497616,
+      "sha256": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r1/reader.cs",
+      "bytes": 18034,
+      "sha256": "E9B1CC2AC4D5B1B3C8D1DE955A30A938E95EADB1FA92C8757350DB07BADACC74"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r1/source-pins.json",
+      "bytes": 7291,
+      "sha256": "8DB54EA7407FA296E658221580644825B532959387EDA287AC75311A5834318C"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r1/execution-r2/inventory.json",
+      "bytes": 35291,
+      "sha256": "B50DB68E7E10D67E12D3380FCD5D528C02F80F83155F3593E8C88392227C37FD"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r2/reader.cs",
+      "bytes": 22475,
+      "sha256": "9215EED3EDAC196C983353ADC68D1BA95FCD0C4833ED1130FB7C8F39CCC8D348"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r2/README.md",
+      "bytes": 3765,
+      "sha256": "8FAFDA0DC0E7725830FAC914FB2F6679E8679D6EBAA483691DD450771F7F4A91"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r2/evidence/author-source.py",
+      "bytes": 12198,
+      "sha256": "04E1F330CC781A3C73674413C85D6D1DBF0696470E0F58BB5EA969EECB9DB66B"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r2/evidence/reader.diff",
+      "bytes": 6758,
+      "sha256": "1F5B293C584721CFA1153DE28BFC36DCC8A5BD81102EDE19195FE92B9AE21F24"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-independent-review-r2/evidence-first-unsealed/mechanical-evidence.json",
+      "bytes": 19906,
+      "sha256": "4606B634A7E12A67754C550757869DF474CA456BEE67BE81507C9302DC19D07A"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-independent-review-r2/evidence-first-unsealed/verify.py",
+      "bytes": 6015,
+      "sha256": "3772C1ACA1CE8480999921D1E3AE84D0C4D7B4569A9079AA73932991EC9F58A0"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-independent-review-r2/mechanical-evidence.json",
+      "bytes": 19796,
+      "sha256": "4A672314EB742387BA3C9AFB019445933529096ACCF391A9983128D520A91963"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-independent-review-r2/reader-independent.diff",
+      "bytes": 6752,
+      "sha256": "786A4FA2B42803B3196907C058896F2E8087B887ADF5DBA7A8EE82533AA66F2B"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-independent-review-r2/review.json",
+      "bytes": 8431,
+      "sha256": "6388129EF1E04F6B2E39A2ED19458D1AAB0589AD343FB5932DA020FDCC02A675"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-independent-review-r2/review.md",
+      "bytes": 4179,
+      "sha256": "F1A8AF3EC77F0DB57AC361B69A262A5334E644BC76EB6F93F76F4AC6B438A373"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-independent-review-r2/seal.py",
+      "bytes": 3111,
+      "sha256": "EE2C62B7F703D32BA2B4A04CD7C823DD16BFE1E2515313C383C7B6E54C25C911"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-independent-review-r2/verify.py",
+      "bytes": 6032,
+      "sha256": "69EE0E0458A7E8D19B46AEF07A18976603A73406681A103A46EAAB4DBC82141C"
+    }
+  ]
+}

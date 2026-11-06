@@ -1,0 +1,7 @@
+# Public enumerator metadata: actual bounded check
+
+The separately reviewed metadata reader successor exited0 with empty stderr and complete validated JSON:25 selected types/110 declared instance fields. All four DLL and toolhost/reference pins matched before and after. It discovered the unique JObject GetEnumerator generated type from directly declared nested names, then inspected that type and three present CoreLib enumerators through the same public PE metadata reader. The original21 required types remain included.
+
+Independent whole source review passed48 file/hash/text checks before root prepared a fresh hidden, timeout-bounded console launcher. The reader, author packet and successful root launchers froze at first green. All22 source/evidence files, original diffs and earlier checker-only failure are preserved here; archive-manifest.json maps every raw source byte/hash. The unchanged167-file compiler-reference profile is preserved in the prior metadata archive and remains explicitly pinned by the launcher.
+
+This supplies declared base/field/signature facts only. It supplies no runtime object sizes, offsets, live values, allocation or peak measurements, reclamation,32MiB fit, source prices, typed binding or R11 execution GO. No target assembly was explicitly loaded for inspection and no target constructors/methods/IL were invoked. No YES DAW window, desktop input or audio/MIDI device was used. The complete controlled-payload lifetime equations and Musical audio delivery remain unfinished.

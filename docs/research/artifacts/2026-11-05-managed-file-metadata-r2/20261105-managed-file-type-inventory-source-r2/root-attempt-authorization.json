@@ -1,0 +1,26 @@
+{
+  "scope": "One separate bounded hidden public-file metadata attempt after full independent source acceptance and root whole reader/launcher review. No R11 target or allocation/size proof.",
+  "independent_review_sha256": "6388129EF1E04F6B2E39A2ED19458D1AAB0589AD343FB5932DA020FDCC02A675",
+  "subject_manifest_sha256": "72F84E45F43CB4ED86E91B6C1CCB464A904E043E5338FAF941C47284E69DC7DC",
+  "reader_sha256": "9215EED3EDAC196C983353ADC68D1BA95FCD0C4833ED1130FB7C8F39CCC8D348",
+  "compiler_reference_profile_sha256": "229900F0D91E29589B2DBE9584CDDC9812BFDB99625ED8924494BA093658C3F3",
+  "compile_options": [
+    "/optimize+",
+    "/warnaserror+",
+    "/unsafe-",
+    "/checked+"
+  ],
+  "launcher_sha256": "77F2099FACC621757023856083BFF7E733F9EC1F83450F3E4B0803005B600089",
+  "powershell_wrapper_sha256": "DD0B90DD83F9EF5C620BE822A3FCA15003E1AF50CB9A970B863A3A2315E540AF",
+  "source_scope": "Original21 types plus one discovered JObject iterator and three optional fixed CoreLib enumerators; no target code execution.",
+  "constraints": {
+    "console_pe": true,
+    "hidden": true,
+    "no_stdin": true,
+    "redirected_output": true,
+    "timeout_seconds": 60,
+    "exact_exit_and_complete_json_required": true,
+    "no_GUI_or_devices": true
+  },
+  "first_green_freezes_whole_source_and_launchers": true
+}
