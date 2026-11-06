@@ -1,0 +1,83 @@
+{
+  "status": "AUTHORING_CANDIDATE_STRINGS_NOT_METADATA_OR_ASSOCIATION",
+  "files": [
+    {
+      "file": "System.Private.CoreLib.dll",
+      "bytes": 16033616,
+      "sha256": "ED80A1A5DD066C0407AD59686F9AF90A4F3E55DBF3E4C973B53CC8C9D0706F82",
+      "raw_string_candidates_only": [
+        "<InvokeAsync>d__7`1",
+        "<InvokeAsync>d__8`2",
+        "<ReadAtLeastAsyncCore>d__49",
+        "<ReadFromNonSeekableAsync>d__36",
+        "AsyncOverSyncWithIoCancellation",
+        "BufferedFileStreamStrategy",
+        "CallbackNode",
+        "DecoderNLS",
+        "OSFileStreamStrategy",
+        "SafeFileHandle",
+        "SafeThreadHandle",
+        "SyncAsyncWorkItemRegistration",
+        "SyncWindowsFileStreamStrategy",
+        "TaskNode",
+        "ValueTaskSourceAsTask"
+      ]
+    },
+    {
+      "file": "System.Diagnostics.Process.dll",
+      "bytes": 329512,
+      "sha256": "2B4871E02B366113C6CCF3B1436FADDE5E69FC0A3E3AC421E2FA0F7AF8C2BC3B",
+      "raw_string_candidates_only": [
+        "Process",
+        "SafeProcessHandle",
+        "SafeThreadHandle",
+        "StringDictionaryWrapper"
+      ]
+    },
+    {
+      "file": "System.Security.Cryptography.dll",
+      "bytes": 2549584,
+      "sha256": "BEE61E6BDEFF9FB0C4F3CBF9D48E9D1D97D12A8BB85D1EEAB9178E818B582EEE",
+      "raw_string_candidates_only": [
+        "HashProviderCng",
+        "IncrementalHash",
+        "SafeBCryptAlgorithmHandle",
+        "SafeBCryptHashHandle"
+      ]
+    },
+    {
+      "file": "System.Console.dll",
+      "bytes": 169768,
+      "sha256": "A50D6F54E509342C49B6B7C8D72684F68701FC97FADE19956D4618A4A30E84FA",
+      "raw_string_candidates_only": [
+        "DecoderDBCS",
+        "OSEncoding"
+      ]
+    },
+    {
+      "file": "System.Text.Encoding.CodePages.dll",
+      "bytes": 862032,
+      "sha256": "56582910B3C0D17F10DC2EAFC8E5746C6F23B57AF56D7F0D4CD208F06ECE1E28",
+      "raw_string_candidates_only": [
+        "BaseCodePageEncoding",
+        "DBCSCodePageEncoding",
+        "DecoderNLS",
+        "EncodingNLS",
+        "SBCSCodePageEncoding"
+      ]
+    }
+  ],
+  "official_directory": {
+    "url": "https://api.github.com/repos/dotnet/dotnet/contents/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Collections/Specialized?ref=e2f47b0110ed922f21a1522da67279133ce28f32",
+    "entries": [
+      {
+        "name": "DictionaryWrapper.cs",
+        "download_url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Collections/Specialized/DictionaryWrapper.cs"
+      },
+      {
+        "name": "StringDictionaryWrapper.cs",
+        "download_url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Collections/Specialized/StringDictionaryWrapper.cs"
+      }
+    ]
+  }
+}

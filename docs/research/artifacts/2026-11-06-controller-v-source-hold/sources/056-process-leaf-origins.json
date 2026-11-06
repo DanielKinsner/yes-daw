@@ -1,0 +1,32 @@
+[
+  {
+    "file": "Process.Win32.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/Process.Win32.cs",
+    "bytes": 17595,
+    "sha256": "4E3317E2B262CB5E777F93B7A48AEC62B542A2FDA08D4FE1609DCEC98CA40ECE"
+  },
+  {
+    "file": "ProcessManager.Windows.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/ProcessManager.Windows.cs",
+    "bytes": 32742,
+    "sha256": "C0AD6D02F5A89D4C8C504838AFD23C263C35097C90344158230C84ED73A82E7C"
+  },
+  {
+    "file": "ProcessManager.Win32.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/ProcessManager.Win32.cs",
+    "bytes": 19296,
+    "sha256": "7DE5864A6A39EA84DDC268D9BB61472E8A9C27CD5ECF1A3A1389E418BC8AE942"
+  },
+  {
+    "file": "BCryptAlgorithmCache.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/Interop/Windows/BCrypt/BCryptAlgorithmCache.cs",
+    "bytes": 3582,
+    "sha256": "EBE10475386D74165615A99DD6CC6804FE1D70B2A424EE8388D2C228BB516FB6"
+  },
+  {
+    "file": "ManualResetEventSlim.cs",
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/ManualResetEventSlim.cs",
+    "bytes": 35972,
+    "sha256": "1D6794D99A54F0820500A7CEFA1B82256C35097E26887A2803A8520A990D2E86"
+  }
+]

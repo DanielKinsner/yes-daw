@@ -1,0 +1,122 @@
+{
+  "commit": "e2f47b0110ed922f21a1522da67279133ce28f32",
+  "files": [
+    {
+      "file": "PoolingAsyncValueTaskMethodBuilderT.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 24280,
+      "sha256": "7690CA71F0A5DF488690363B51F2979C9CDD0F1ED501D937E0CBF99E442C331B"
+    },
+    {
+      "file": "AsyncValueTaskMethodBuilderT.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/AsyncValueTaskMethodBuilderT.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 7009,
+      "sha256": "ED6D3CFCE28A908E4704AF54C42B83E78339F233DF99419DD2CCE16AA8C2D7A0"
+    },
+    {
+      "file": "AsyncTaskMethodBuilderT.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/AsyncTaskMethodBuilderT.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 31845,
+      "sha256": "E5ACE92664429B8B34B68B587316FB211811B58AEB53422B43CECCA2AD2BDAF3"
+    },
+    {
+      "file": "ValueTask.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/Tasks/ValueTask.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 39388,
+      "sha256": "C6AF16CDE689EE7920C565B9C5DF245662D24471BF8EEF27A08B99542F4188F3"
+    },
+    {
+      "file": "CancellationTokenSource.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/CancellationTokenSource.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 64308,
+      "sha256": "4A00A64DB628014B35FA85E5EF490265C47F3C3284175BA8F0B6405BDAEE7D30"
+    },
+    {
+      "file": "CancellationToken.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/CancellationToken.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 23104,
+      "sha256": "3C32B6774A69464667352A9E2602BC924C57674F811C382E29ABE8DBE3639F4C"
+    },
+    {
+      "file": "CancellationTokenRegistration.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/CancellationTokenRegistration.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 9879,
+      "sha256": "2ACD2F509646EAB07CDAB33350BDC4D9100B2200872F3E651DB539F0E0DF776D"
+    },
+    {
+      "file": "SemaphoreSlim.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/SemaphoreSlim.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 47409,
+      "sha256": "46B31AC7080AE49BC6965372D71B9A282A2D06E8DB1B65A842AAAB9435CCB620"
+    },
+    {
+      "file": "DictionaryWrapper.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/DictionaryWrapper.cs",
+      "status": "EXACT_CANDIDATE_404_NOT_EVIDENCE"
+    },
+    {
+      "file": "StringDictionary.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Collections.Specialized/src/System/Collections/Specialized/StringDictionary.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 5858,
+      "sha256": "DCB02653CC302B9313200DCB94267325979A96AE274BF95D01B9D502AD5CB7EF"
+    },
+    {
+      "file": "ConsoleEncoding.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/System/Text/ConsoleEncoding.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 5251,
+      "sha256": "AA3171E40E550DDF1D8DB1A2B611CF8B7C812C540C1D861F7FB811C3008878B9"
+    },
+    {
+      "file": "OSEncoding.Windows.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/System/Text/OSEncoding.Windows.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 8901,
+      "sha256": "D2F06645845DA71C374E1084E7E3BF8BA0352D1A1DE2035038053D006D6DAC2E"
+    },
+    {
+      "file": "HashProviderDispenser.Windows.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Security.Cryptography/src/System/Security/Cryptography/HashProviderDispenser.Windows.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 14161,
+      "sha256": "A5C8C81A7873596A70D5EF0C1C1E499C33A156F4A0F85CACDB0BE3A73E5BC03C"
+    },
+    {
+      "file": "HashProviderCng.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Security.Cryptography/src/System/Security/Cryptography/HashProviderCng.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 7487,
+      "sha256": "45F7B87FC05B05E883CB3F4E32710894506DE4AFE6B1BE716A1BA9BDC5C68D28"
+    },
+    {
+      "file": "LiteHash.Windows.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Security.Cryptography/src/System/Security/Cryptography/LiteHash.Windows.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 15026,
+      "sha256": "612A71D29C676C1E88CD3E26C621B041C126328E8667246CE736D1C6DD6D1531"
+    },
+    {
+      "file": "SafeBCryptHashHandle.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/Microsoft/Win32/SafeHandles/SafeBCryptHashHandle.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 639,
+      "sha256": "2055E8CC927F4D6071A0B3FDF5E0F5E5D5D2D9ED1EDF4113BE8137F5EC45C7E6"
+    },
+    {
+      "file": "Process.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/Process.cs",
+      "status": "FETCHED_PINNED_SOURCE",
+      "bytes": 62289,
+      "sha256": "458239074E7A2167A2D01B44459552E2F13DB5DA9BCF7C581933028BC8A093AE"
+    }
+  ]
+}

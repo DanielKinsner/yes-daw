@@ -114,6 +114,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-06 - Freeze the complete scoped process and stream source baseline
+
+- Archived70 source/helper/primary/declaration records after681 author checks. The complete scoped V report stays HOLD with typed coefficients and precise residuals, rather than claiming a numeric whole resource upper.
+- Corrected outer reads259, separate inner-read proposal1,056,772 and14 fixed buffered streams. Host-wide Kill(true) process census and bootstrap MainModule enumeration remain unbounded by the accepted child/log caps; pool/cold/native/ABI terms stay explicit.
+- Continue fresh R13 whole scalar critique and bounded path closure, then judge a concrete owned-process correction before code. Resource baseline5b813f3 passed docs-only CI42204687427; target execution and tempo-follow remain held, with no GUI/input/devices.
+
 ## 2026-11-06 - Freeze the resource baseline and host-cleanup gap
 
 - Archived83 complete baseline/helper/input/addendum records. All13 family dispositions are explicit;146 author consistency checks and recorded phase sums/pins pass. This is an authored HOLD, not an independently accepted complete numeric upper.

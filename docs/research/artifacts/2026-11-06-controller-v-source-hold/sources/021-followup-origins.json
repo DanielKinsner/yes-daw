@@ -1,0 +1,67 @@
+{
+  "origins": [
+    {
+      "file": "Task.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/Tasks/Task.cs",
+      "bytes": 389364,
+      "sha256": "5B0D6892267269233DCF5C6191F357B0BA6C4257D1E757CA4D2FE93272B29D9B"
+    },
+    {
+      "file": "FileStream.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/IO/FileStream.cs",
+      "bytes": 27745,
+      "sha256": "50A6636B1F2DE8FF0BAF1F861B8098DC9C9B893AB85ABEB80C76A923BF4C9A69"
+    },
+    {
+      "file": "SemaphoreSlim.Lock.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/Lock.cs",
+      "bytes": 58281,
+      "sha256": "EA355146614DC261BCF9323EE4C1EA03FFDB8A13F58DB2B4816A675A9110DC26"
+    },
+    {
+      "file": "SafeBCryptHandle.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/Microsoft/Win32/SafeHandles/SafeBCryptHandle.cs",
+      "bytes": 671,
+      "sha256": "04C0DED9BD14CFD455ABD6417229BCEB772A2D397D073B13BFBD843ECA65C236"
+    },
+    {
+      "file": "SafeBCryptAlgorithmHandle.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/Microsoft/Win32/SafeHandles/SafeBCryptAlgorithmHandle.cs",
+      "bytes": 663,
+      "sha256": "DE325BDC53066E527B86A3F50247A77B262D9A2CD609408460434ACE715862EA"
+    },
+    {
+      "file": "Interop.BCryptAlgorithmCache.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/Interop/Windows/BCrypt/Interop.BCryptAlgorithmCache.cs",
+      "status": "EXACT_CANDIDATE_404_NOT_EVIDENCE"
+    },
+    {
+      "file": "ProcessWaitHandle.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/Interop/Windows/Kernel32/Interop.ProcessWaitHandle.cs",
+      "bytes": 1200,
+      "sha256": "5E803C7F500F22343261F04B95030EB55DA316F41BC8DE0823E423B273FC9958"
+    },
+    {
+      "file": "Process.Windows.Kill.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/Process.Windows.Kill.cs",
+      "status": "EXACT_CANDIDATE_404_NOT_EVIDENCE"
+    }
+  ],
+  "official_directory": {
+    "url": "https://api.github.com/repos/dotnet/dotnet/contents/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics?ref=e2f47b0110ed922f21a1522da67279133ce28f32",
+    "candidate_names": [
+      "Process.Windows.cs",
+      "ProcessManager.BSD.cs",
+      "ProcessManager.FreeBSD.cs",
+      "ProcessManager.Linux.cs",
+      "ProcessManager.OSX.cs",
+      "ProcessManager.Unix.cs",
+      "ProcessManager.Win32.cs",
+      "ProcessManager.Windows.cs",
+      "ProcessManager.cs",
+      "ProcessManager.iOS.cs",
+      "ProcessStartInfo.Windows.cs",
+      "ProcessThread.Windows.cs"
+    ]
+  }
+}

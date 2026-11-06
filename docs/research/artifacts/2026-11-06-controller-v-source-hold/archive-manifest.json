@@ -1,0 +1,637 @@
+{
+  "schema": "CONTROLLER_V_AUTHORED_SOURCE_HOLD_ARCHIVE_R1",
+  "scope": "Frozen scoped source/declaration baseline, not independently accepted numeric V/whole U/fit/NOFIT or execution authority",
+  "subject_pins_sha256": "7A9C4E971FE3340ED28342CE60836DBC46A3B8FE0AE9E9E1388B011113F11C45",
+  "files": [
+    {
+      "file": "sources/001-Process.Windows.cs",
+      "original_path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Process.Windows.cs",
+      "original_bytes": 41903,
+      "original_sha256": "49620FB20FEFFB84E36D587A381C0CF161E3EC8C114F6FF1E7FA2D7672B518CF",
+      "bytes": 41903,
+      "sha256": "49620FB20FEFFB84E36D587A381C0CF161E3EC8C114F6FF1E7FA2D7672B518CF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-StreamReader.cs",
+      "original_path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/StreamReader.cs",
+      "original_bytes": 61606,
+      "original_sha256": "9E570DB6C4CA8CBDF8065BACB8212ECE0CB5A4216738217EB99C3E8018E488B9",
+      "bytes": 61606,
+      "sha256": "9E570DB6C4CA8CBDF8065BACB8212ECE0CB5A4216738217EB99C3E8018E488B9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-AutomationEngine.cs",
+      "original_path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/AutomationEngine.cs",
+      "original_bytes": 5177,
+      "original_sha256": "A62D04BE6C48012AAA1BF45D560C8F12E20E6F7562C93F3209311DD46B8442DD",
+      "bytes": 5177,
+      "sha256": "A62D04BE6C48012AAA1BF45D560C8F12E20E6F7562C93F3209311DD46B8442DD",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-File.cs",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/File.cs",
+      "original_bytes": 91892,
+      "original_sha256": "D89DB8BA0139AB64C219597718F9496BC9238FBBB16B05BD2E907F3226202BBE",
+      "bytes": 91892,
+      "sha256": "D89DB8BA0139AB64C219597718F9496BC9238FBBB16B05BD2E907F3226202BBE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-Strategies_FileStreamHelpers.cs",
+      "original_path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/evidence/primary/Strategies_FileStreamHelpers.cs",
+      "original_bytes": 6661,
+      "original_sha256": "D62B716DC9969D9CB96D6B97875312E953FC9D3DAA0D99DB33D0F18A12551446",
+      "bytes": 6661,
+      "sha256": "D62B716DC9969D9CB96D6B97875312E953FC9D3DAA0D99DB33D0F18A12551446",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-AsyncOverSyncWithIoCancellation.cs",
+      "original_path": "build-ci/20261106-controller-stream-source-r1/AsyncOverSyncWithIoCancellation.cs",
+      "original_bytes": 17350,
+      "original_sha256": "C20AB5DCF09B3F7999F0E0A845B78FAAF29F7C6E68DDC49873AB8445BD2FBA39",
+      "bytes": 17350,
+      "sha256": "C20AB5DCF09B3F7999F0E0A845B78FAAF29F7C6E68DDC49873AB8445BD2FBA39",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/007-BufferedFileStreamStrategy.cs",
+      "original_path": "build-ci/20261106-controller-stream-source-r1/BufferedFileStreamStrategy.cs",
+      "original_bytes": 43679,
+      "original_sha256": "8882B37601E63FD68F4D6F01A330530D888FA6CA384C436D0214D520360260AE",
+      "bytes": 43679,
+      "sha256": "8882B37601E63FD68F4D6F01A330530D888FA6CA384C436D0214D520360260AE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/008-EncodingHelper.Windows.cs",
+      "original_path": "build-ci/20261106-controller-stream-source-r1/EncodingHelper.Windows.cs",
+      "original_bytes": 2321,
+      "original_sha256": "2DCB677C9EAF2BCCB8B9166E674A9F28D80A2B462A13B50CD63BF54B0E780888",
+      "bytes": 2321,
+      "sha256": "2DCB677C9EAF2BCCB8B9166E674A9F28D80A2B462A13B50CD63BF54B0E780888",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/009-RandomAccess.Windows.cs",
+      "original_path": "build-ci/20261106-controller-stream-source-r1/RandomAccess.Windows.cs",
+      "original_bytes": 39131,
+      "original_sha256": "B573A4701A790BA7E856311512BA158CDAAAE12591F5A392A06D7863066B81FF",
+      "bytes": 39131,
+      "sha256": "B573A4701A790BA7E856311512BA158CDAAAE12591F5A392A06D7863066B81FF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/010-Stream.cs",
+      "original_path": "build-ci/20261106-controller-stream-source-r1/Stream.cs",
+      "original_bytes": 59502,
+      "original_sha256": "3933AE2E5D23B3479A2870EAD734EBE6E73892C9EB711057D99DE100CBF11E8D",
+      "bytes": 59502,
+      "sha256": "3933AE2E5D23B3479A2870EAD734EBE6E73892C9EB711057D99DE100CBF11E8D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/011-author-metadata-r4.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/author-metadata-r4.py",
+      "original_bytes": 12152,
+      "original_sha256": "D9AD67C30618F2E30D6941DDB88F23A282B7E49B3386D141CE7D0B99EE07AE3F",
+      "bytes": 12152,
+      "sha256": "D9AD67C30618F2E30D6941DDB88F23A282B7E49B3386D141CE7D0B99EE07AE3F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/012-candidate-name-hits.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/candidate-name-hits.json",
+      "original_bytes": 2887,
+      "original_sha256": "4C9910768F5EBC1701A875ECF8D7C19E1A9B488159C976BB0FA1633E19AD5142",
+      "bytes": 2887,
+      "sha256": "4C9910768F5EBC1701A875ECF8D7C19E1A9B488159C976BB0FA1633E19AD5142",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/013-checks.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/checks.json",
+      "original_bytes": 89414,
+      "original_sha256": "5D0605C244DD33BBAB3C2FA0462D8625609200E5374875E1013ED112B9F1399F",
+      "bytes": 89414,
+      "sha256": "5D0605C244DD33BBAB3C2FA0462D8625609200E5374875E1013ED112B9F1399F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/014-closure.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.json",
+      "original_bytes": 30471,
+      "original_sha256": "01B4289C2F8E521093987C259D15C5DD4BBF2388EFD9E594A90319C9B0BB5EE6",
+      "bytes": 30471,
+      "sha256": "01B4289C2F8E521093987C259D15C5DD4BBF2388EFD9E594A90319C9B0BB5EE6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/015-closure.md",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/closure.md",
+      "original_bytes": 5004,
+      "original_sha256": "88BF877323D23848518271245A34061F0301993BE3489A9320BEED5ADD92A434",
+      "bytes": 5004,
+      "sha256": "88BF877323D23848518271245A34061F0301993BE3489A9320BEED5ADD92A434",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/016-declaration-evidence.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/declaration-evidence.json",
+      "original_bytes": 195210,
+      "original_sha256": "2EA9695E666E3C40021263231AB071E6FE685B39B617821E5CE62C7A250347F9",
+      "bytes": 195210,
+      "sha256": "2EA9695E666E3C40021263231AB071E6FE685B39B617821E5CE62C7A250347F9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/017-fetch-followup.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/fetch-followup.py",
+      "original_bytes": 2179,
+      "original_sha256": "567EEB9E3200B6A9AA2D77C2F482965EEEE8DE138A4885B3C90B4151907250CA",
+      "bytes": 2179,
+      "sha256": "567EEB9E3200B6A9AA2D77C2F482965EEEE8DE138A4885B3C90B4151907250CA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/018-fetch-primary.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/fetch-primary.py",
+      "original_bytes": 3149,
+      "original_sha256": "9E42BF0656043E21C67A559C5E5F85E8959F44DA5A2B18EDF394DE521BFA2C0E",
+      "bytes": 3149,
+      "sha256": "9E42BF0656043E21C67A559C5E5F85E8959F44DA5A2B18EDF394DE521BFA2C0E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/019-fetch-process-leaves.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/fetch-process-leaves.py",
+      "original_bytes": 1417,
+      "original_sha256": "6972F653FA51E08B118187FA2306CB020B872D62E08D0317DFA1FDE110F6FCD2",
+      "bytes": 1417,
+      "sha256": "6972F653FA51E08B118187FA2306CB020B872D62E08D0317DFA1FDE110F6FCD2",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/020-fixed-marker-hits.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/fixed-marker-hits.json",
+      "original_bytes": 7484,
+      "original_sha256": "B40FBE317448329B7D3FDA2221AFCC1F1FEACDF9C1F66576E3B5499A4887A6BA",
+      "bytes": 7484,
+      "sha256": "B40FBE317448329B7D3FDA2221AFCC1F1FEACDF9C1F66576E3B5499A4887A6BA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/021-followup-origins.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/followup-origins.json",
+      "original_bytes": 3336,
+      "original_sha256": "099BAD367F7E62FDB9091592A749794B0F846ABFFDB90437BAB364713FB1F4EF",
+      "bytes": 3336,
+      "sha256": "099BAD367F7E62FDB9091592A749794B0F846ABFFDB90437BAB364713FB1F4EF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/022-inspect-candidate-names.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/inspect-candidate-names.py",
+      "original_bytes": 2628,
+      "original_sha256": "8CBD5284D464ADCE4A404B0FA5D414AD822BF5C858457368081DB8D9DC974437",
+      "bytes": 2628,
+      "sha256": "8CBD5284D464ADCE4A404B0FA5D414AD822BF5C858457368081DB8D9DC974437",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/023-inspect-fixed-markers.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/inspect-fixed-markers.py",
+      "original_bytes": 2232,
+      "original_sha256": "A723E467AB2F562E3EAF317E53F8E01034000C07FF69AE995E8F4396C0A1BBBE",
+      "bytes": 2232,
+      "sha256": "A723E467AB2F562E3EAF317E53F8E01034000C07FF69AE995E8F4396C0A1BBBE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/024-inspect-genuine-declarations.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/inspect-genuine-declarations.py",
+      "original_bytes": 1101,
+      "original_sha256": "9C734B1053C5F3A5DD926E03AD8CAD592E719AB230D001464F934668EF56283B",
+      "bytes": 1101,
+      "sha256": "9C734B1053C5F3A5DD926E03AD8CAD592E719AB230D001464F934668EF56283B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/025-metadata-r4-fixed-type-plan.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/metadata-r4-fixed-type-plan.json",
+      "original_bytes": 14408,
+      "original_sha256": "B74F42AA44CC32355CE27D92202AB9A0708854654C9CB1FA0A19321106819132",
+      "bytes": 14408,
+      "sha256": "B74F42AA44CC32355CE27D92202AB9A0708854654C9CB1FA0A19321106819132",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/026-plan-metadata-r4.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/plan-metadata-r4.py",
+      "original_bytes": 4039,
+      "original_sha256": "FFF707BC5A7C6F96AAC0A22DE3B6F40FAE7805CE8605BAF3B01FC25DCE45F2E0",
+      "bytes": 4039,
+      "sha256": "FFF707BC5A7C6F96AAC0A22DE3B6F40FAE7805CE8605BAF3B01FC25DCE45F2E0",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/027-AsyncTaskMethodBuilderT.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/AsyncTaskMethodBuilderT.cs",
+      "original_bytes": 31845,
+      "original_sha256": "E5ACE92664429B8B34B68B587316FB211811B58AEB53422B43CECCA2AD2BDAF3",
+      "bytes": 31845,
+      "sha256": "E5ACE92664429B8B34B68B587316FB211811B58AEB53422B43CECCA2AD2BDAF3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/028-AsyncValueTaskMethodBuilderT.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/AsyncValueTaskMethodBuilderT.cs",
+      "original_bytes": 7009,
+      "original_sha256": "ED6D3CFCE28A908E4704AF54C42B83E78339F233DF99419DD2CCE16AA8C2D7A0",
+      "bytes": 7009,
+      "sha256": "ED6D3CFCE28A908E4704AF54C42B83E78339F233DF99419DD2CCE16AA8C2D7A0",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/029-BCryptAlgorithmCache.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/BCryptAlgorithmCache.cs",
+      "original_bytes": 3582,
+      "original_sha256": "EBE10475386D74165615A99DD6CC6804FE1D70B2A424EE8388D2C228BB516FB6",
+      "bytes": 3582,
+      "sha256": "EBE10475386D74165615A99DD6CC6804FE1D70B2A424EE8388D2C228BB516FB6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/030-CancellationToken.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/CancellationToken.cs",
+      "original_bytes": 23104,
+      "original_sha256": "3C32B6774A69464667352A9E2602BC924C57674F811C382E29ABE8DBE3639F4C",
+      "bytes": 23104,
+      "sha256": "3C32B6774A69464667352A9E2602BC924C57674F811C382E29ABE8DBE3639F4C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/031-CancellationTokenRegistration.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/CancellationTokenRegistration.cs",
+      "original_bytes": 9879,
+      "original_sha256": "2ACD2F509646EAB07CDAB33350BDC4D9100B2200872F3E651DB539F0E0DF776D",
+      "bytes": 9879,
+      "sha256": "2ACD2F509646EAB07CDAB33350BDC4D9100B2200872F3E651DB539F0E0DF776D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/032-CancellationTokenSource.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/CancellationTokenSource.cs",
+      "original_bytes": 64308,
+      "original_sha256": "4A00A64DB628014B35FA85E5EF490265C47F3C3284175BA8F0B6405BDAEE7D30",
+      "bytes": 64308,
+      "sha256": "4A00A64DB628014B35FA85E5EF490265C47F3C3284175BA8F0B6405BDAEE7D30",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/033-ConsoleEncoding.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/ConsoleEncoding.cs",
+      "original_bytes": 5251,
+      "original_sha256": "AA3171E40E550DDF1D8DB1A2B611CF8B7C812C540C1D861F7FB811C3008878B9",
+      "bytes": 5251,
+      "sha256": "AA3171E40E550DDF1D8DB1A2B611CF8B7C812C540C1D861F7FB811C3008878B9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/034-DictionaryWrapper.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/DictionaryWrapper.cs",
+      "original_bytes": 3096,
+      "original_sha256": "B8E2B5381CF374C615F64C044DF2B5BB1E17FC3A44500331EFC4F7D53955CEEB",
+      "bytes": 3096,
+      "sha256": "B8E2B5381CF374C615F64C044DF2B5BB1E17FC3A44500331EFC4F7D53955CEEB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/035-FileStream.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/FileStream.cs",
+      "original_bytes": 27745,
+      "original_sha256": "50A6636B1F2DE8FF0BAF1F861B8098DC9C9B893AB85ABEB80C76A923BF4C9A69",
+      "bytes": 27745,
+      "sha256": "50A6636B1F2DE8FF0BAF1F861B8098DC9C9B893AB85ABEB80C76A923BF4C9A69",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/036-HashProviderCng.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/HashProviderCng.cs",
+      "original_bytes": 7487,
+      "original_sha256": "45F7B87FC05B05E883CB3F4E32710894506DE4AFE6B1BE716A1BA9BDC5C68D28",
+      "bytes": 7487,
+      "sha256": "45F7B87FC05B05E883CB3F4E32710894506DE4AFE6B1BE716A1BA9BDC5C68D28",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/037-HashProviderDispenser.Windows.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/HashProviderDispenser.Windows.cs",
+      "original_bytes": 14161,
+      "original_sha256": "A5C8C81A7873596A70D5EF0C1C1E499C33A156F4A0F85CACDB0BE3A73E5BC03C",
+      "bytes": 14161,
+      "sha256": "A5C8C81A7873596A70D5EF0C1C1E499C33A156F4A0F85CACDB0BE3A73E5BC03C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/038-LiteHash.Windows.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/LiteHash.Windows.cs",
+      "original_bytes": 15026,
+      "original_sha256": "612A71D29C676C1E88CD3E26C621B041C126328E8667246CE736D1C6DD6D1531",
+      "bytes": 15026,
+      "sha256": "612A71D29C676C1E88CD3E26C621B041C126328E8667246CE736D1C6DD6D1531",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/039-ManualResetEventSlim.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/ManualResetEventSlim.cs",
+      "original_bytes": 35972,
+      "original_sha256": "1D6794D99A54F0820500A7CEFA1B82256C35097E26887A2803A8520A990D2E86",
+      "bytes": 35972,
+      "sha256": "1D6794D99A54F0820500A7CEFA1B82256C35097E26887A2803A8520A990D2E86",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/040-OSEncoding.Windows.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/OSEncoding.Windows.cs",
+      "original_bytes": 8901,
+      "original_sha256": "D2F06645845DA71C374E1084E7E3BF8BA0352D1A1DE2035038053D006D6DAC2E",
+      "bytes": 8901,
+      "sha256": "D2F06645845DA71C374E1084E7E3BF8BA0352D1A1DE2035038053D006D6DAC2E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/041-PoolingAsyncValueTaskMethodBuilderT.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/PoolingAsyncValueTaskMethodBuilderT.cs",
+      "original_bytes": 24280,
+      "original_sha256": "7690CA71F0A5DF488690363B51F2979C9CDD0F1ED501D937E0CBF99E442C331B",
+      "bytes": 24280,
+      "sha256": "7690CA71F0A5DF488690363B51F2979C9CDD0F1ED501D937E0CBF99E442C331B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/042-Process.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/Process.cs",
+      "original_bytes": 62289,
+      "original_sha256": "458239074E7A2167A2D01B44459552E2F13DB5DA9BCF7C581933028BC8A093AE",
+      "bytes": 62289,
+      "sha256": "458239074E7A2167A2D01B44459552E2F13DB5DA9BCF7C581933028BC8A093AE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/043-Process.Win32.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/Process.Win32.cs",
+      "original_bytes": 17595,
+      "original_sha256": "4E3317E2B262CB5E777F93B7A48AEC62B542A2FDA08D4FE1609DCEC98CA40ECE",
+      "bytes": 17595,
+      "sha256": "4E3317E2B262CB5E777F93B7A48AEC62B542A2FDA08D4FE1609DCEC98CA40ECE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/044-ProcessManager.Win32.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/ProcessManager.Win32.cs",
+      "original_bytes": 19296,
+      "original_sha256": "7DE5864A6A39EA84DDC268D9BB61472E8A9C27CD5ECF1A3A1389E418BC8AE942",
+      "bytes": 19296,
+      "sha256": "7DE5864A6A39EA84DDC268D9BB61472E8A9C27CD5ECF1A3A1389E418BC8AE942",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/045-ProcessManager.Windows.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/ProcessManager.Windows.cs",
+      "original_bytes": 32742,
+      "original_sha256": "C0AD6D02F5A89D4C8C504838AFD23C263C35097C90344158230C84ED73A82E7C",
+      "bytes": 32742,
+      "sha256": "C0AD6D02F5A89D4C8C504838AFD23C263C35097C90344158230C84ED73A82E7C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/046-ProcessWaitHandle.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/ProcessWaitHandle.cs",
+      "original_bytes": 1200,
+      "original_sha256": "5E803C7F500F22343261F04B95030EB55DA316F41BC8DE0823E423B273FC9958",
+      "bytes": 1200,
+      "sha256": "5E803C7F500F22343261F04B95030EB55DA316F41BC8DE0823E423B273FC9958",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/047-SafeBCryptAlgorithmHandle.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/SafeBCryptAlgorithmHandle.cs",
+      "original_bytes": 663,
+      "original_sha256": "DE325BDC53066E527B86A3F50247A77B262D9A2CD609408460434ACE715862EA",
+      "bytes": 663,
+      "sha256": "DE325BDC53066E527B86A3F50247A77B262D9A2CD609408460434ACE715862EA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/048-SafeBCryptHandle.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/SafeBCryptHandle.cs",
+      "original_bytes": 671,
+      "original_sha256": "04C0DED9BD14CFD455ABD6417229BCEB772A2D397D073B13BFBD843ECA65C236",
+      "bytes": 671,
+      "sha256": "04C0DED9BD14CFD455ABD6417229BCEB772A2D397D073B13BFBD843ECA65C236",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/049-SafeBCryptHashHandle.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/SafeBCryptHashHandle.cs",
+      "original_bytes": 639,
+      "original_sha256": "2055E8CC927F4D6071A0B3FDF5E0F5E5D5D2D9ED1EDF4113BE8137F5EC45C7E6",
+      "bytes": 639,
+      "sha256": "2055E8CC927F4D6071A0B3FDF5E0F5E5D5D2D9ED1EDF4113BE8137F5EC45C7E6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/050-SemaphoreSlim.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/SemaphoreSlim.cs",
+      "original_bytes": 47409,
+      "original_sha256": "46B31AC7080AE49BC6965372D71B9A282A2D06E8DB1B65A842AAAB9435CCB620",
+      "bytes": 47409,
+      "sha256": "46B31AC7080AE49BC6965372D71B9A282A2D06E8DB1B65A842AAAB9435CCB620",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/051-SemaphoreSlim.Lock.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/SemaphoreSlim.Lock.cs",
+      "original_bytes": 58281,
+      "original_sha256": "EA355146614DC261BCF9323EE4C1EA03FFDB8A13F58DB2B4816A675A9110DC26",
+      "bytes": 58281,
+      "sha256": "EA355146614DC261BCF9323EE4C1EA03FFDB8A13F58DB2B4816A675A9110DC26",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/052-StringDictionary.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/StringDictionary.cs",
+      "original_bytes": 5858,
+      "original_sha256": "DCB02653CC302B9313200DCB94267325979A96AE274BF95D01B9D502AD5CB7EF",
+      "bytes": 5858,
+      "sha256": "DCB02653CC302B9313200DCB94267325979A96AE274BF95D01B9D502AD5CB7EF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/053-Task.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/Task.cs",
+      "original_bytes": 389364,
+      "original_sha256": "5B0D6892267269233DCF5C6191F357B0BA6C4257D1E757CA4D2FE93272B29D9B",
+      "bytes": 389364,
+      "sha256": "5B0D6892267269233DCF5C6191F357B0BA6C4257D1E757CA4D2FE93272B29D9B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/054-ValueTask.cs",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/ValueTask.cs",
+      "original_bytes": 39388,
+      "original_sha256": "C6AF16CDE689EE7920C565B9C5DF245662D24471BF8EEF27A08B99542F4188F3",
+      "bytes": 39388,
+      "sha256": "C6AF16CDE689EE7920C565B9C5DF245662D24471BF8EEF27A08B99542F4188F3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/055-primary-origins.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary-origins.json",
+      "original_bytes": 6828,
+      "original_sha256": "6024B8CC166EF609387EE81917A1694B473E0D6D10DC0DB29ECFF756A6FB396F",
+      "bytes": 6828,
+      "sha256": "6024B8CC166EF609387EE81917A1694B473E0D6D10DC0DB29ECFF756A6FB396F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/056-process-leaf-origins.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/process-leaf-origins.json",
+      "original_bytes": 1730,
+      "original_sha256": "0256DCF9F775E277A78DD3096E358B7757F9207ED97ADA21C466C4572C1F848C",
+      "bytes": 1730,
+      "sha256": "0256DCF9F775E277A78DD3096E358B7757F9207ED97ADA21C466C4572C1F848C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/057-review-root-launcher-r4.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/review-root-launcher-r4.py",
+      "original_bytes": 14911,
+      "original_sha256": "810B4A10032FA2AA585E506FD7529BD4216D3F07F31143F15AF99BC2DECC184F",
+      "bytes": 14911,
+      "sha256": "810B4A10032FA2AA585E506FD7529BD4216D3F07F31143F15AF99BC2DECC184F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/058-seal-v-source-closure.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/seal-v-source-closure.py",
+      "original_bytes": 40593,
+      "original_sha256": "401B2FF55F0A1953B9DE200221C447040CEAA66943A1DC19FB75DD7E75B57346",
+      "bytes": 40593,
+      "sha256": "401B2FF55F0A1953B9DE200221C447040CEAA66943A1DC19FB75DD7E75B57346",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/059-source-pins.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/source-pins.json",
+      "original_bytes": 16001,
+      "original_sha256": "7A9C4E971FE3340ED28342CE60836DBC46A3B8FE0AE9E9E1388B011113F11C45",
+      "bytes": 16001,
+      "sha256": "7A9C4E971FE3340ED28342CE60836DBC46A3B8FE0AE9E9E1388B011113F11C45",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/060-inventory.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/execution-r1/inventory.json",
+      "original_bytes": 146324,
+      "original_sha256": "7C23E7BF82F9D293962C06BBD450BC4D9F7BBD74FF9E5344C8E4C88686B04D6D",
+      "bytes": 146324,
+      "sha256": "7C23E7BF82F9D293962C06BBD450BC4D9F7BBD74FF9E5344C8E4C88686B04D6D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/061-receipt.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/execution-r1/receipt.json",
+      "original_bytes": 1735,
+      "original_sha256": "518D3BAA5C6679611A04B8F3F55B1711F9E3083E562E26528AB9ECB9C4D967FE",
+      "bytes": 1735,
+      "sha256": "518D3BAA5C6679611A04B8F3F55B1711F9E3083E562E26528AB9ECB9C4D967FE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/062-source-pins.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/source-pins.json",
+      "original_bytes": 15489,
+      "original_sha256": "10E3854D27239A9BDD1BDF0F798C57578B6D629B4EA9DD7F52A30A8861A11E89",
+      "bytes": 15489,
+      "sha256": "10E3854D27239A9BDD1BDF0F798C57578B6D629B4EA9DD7F52A30A8861A11E89",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/063-ConsoleEncoding.cs",
+      "original_path": "build-ci/20261106-os-encoding-source-r1/ConsoleEncoding.cs",
+      "original_bytes": 5251,
+      "original_sha256": "AA3171E40E550DDF1D8DB1A2B611CF8B7C812C540C1D861F7FB811C3008878B9",
+      "bytes": 5251,
+      "sha256": "AA3171E40E550DDF1D8DB1A2B611CF8B7C812C540C1D861F7FB811C3008878B9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/064-DBCSDecoder.cs",
+      "original_path": "build-ci/20261106-os-encoding-source-r1/DBCSDecoder.cs",
+      "original_bytes": 10257,
+      "original_sha256": "AFECD21430DDC04CD051E4A136C938D9A503C561122198B5F5EED83EC8E9F1DE",
+      "bytes": 10257,
+      "sha256": "AFECD21430DDC04CD051E4A136C938D9A503C561122198B5F5EED83EC8E9F1DE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/065-OSEncoding.Windows.cs",
+      "original_path": "build-ci/20261106-os-encoding-source-r1/OSEncoding.Windows.cs",
+      "original_bytes": 8901,
+      "original_sha256": "D2F06645845DA71C374E1084E7E3BF8BA0352D1A1DE2035038053D006D6DAC2E",
+      "bytes": 8901,
+      "sha256": "D2F06645845DA71C374E1084E7E3BF8BA0352D1A1DE2035038053D006D6DAC2E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/066-clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/067-README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/README.md",
+      "original_bytes": 20285,
+      "original_sha256": "DC39905A4833FB580FAA55BE562E15EAB923F3B9D1006371D88CBE928C386D90",
+      "bytes": 20285,
+      "sha256": "DC39905A4833FB580FAA55BE562E15EAB923F3B9D1006371D88CBE928C386D90",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/068-run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "original_bytes": 105903,
+      "original_sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/069-source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/070-source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-manifest.json",
+      "original_bytes": 501180,
+      "original_sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557",
+      "bytes": 501180,
+      "sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

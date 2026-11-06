@@ -1,0 +1,2761 @@
+{
+  "schema": "OWN_SOURCE_DATA_INTEGER_CHECKS_V1",
+  "count": 681,
+  "checks": [
+    {
+      "id": "R12_FIVE_FILES",
+      "pass": true
+    },
+    {
+      "id": "R12_SOURCE_SEAL_clock_stage.cpp",
+      "pass": true
+    },
+    {
+      "id": "R12_SOURCE_SEAL_README.md",
+      "pass": true
+    },
+    {
+      "id": "R12_SOURCE_SEAL_run-clock.ps1",
+      "pass": true
+    },
+    {
+      "id": "R12_SOURCE_SEAL_source-costs.h",
+      "pass": true
+    },
+    {
+      "id": "R12_SOURCE_SEAL_source-manifest.json",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_run-clock.ps1_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_run-clock.ps1_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_run-clock.ps1_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_run-clock.ps1_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_run-clock.ps1_4",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_run-clock.ps1_5",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_run-clock.ps1_6",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_run-clock.ps1_7",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_run-clock.ps1_8",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_run-clock.ps1_9",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_run-clock.ps1_10",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Stream.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Stream.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Stream.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Stream.cs_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Stream.cs_4",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Stream.cs_5",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_BufferedFileStreamStrategy.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_BufferedFileStreamStrategy.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_BufferedFileStreamStrategy.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_BufferedFileStreamStrategy.cs_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_RandomAccess.Windows.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_RandomAccess.Windows.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_AsyncOverSyncWithIoCancellation.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_AsyncOverSyncWithIoCancellation.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_AsyncOverSyncWithIoCancellation.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_AsyncOverSyncWithIoCancellation.cs_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_AsyncOverSyncWithIoCancellation.cs_4",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_AsyncOverSyncWithIoCancellation.cs_5",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_CancellationTokenSource.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_CancellationTokenSource.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_CancellationTokenSource.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_CancellationTokenSource.cs_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_CancellationTokenSource.cs_4",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_SemaphoreSlim.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_SemaphoreSlim.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_SemaphoreSlim.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_SemaphoreSlim.cs_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_PoolingAsyncValueTaskMethodBuilderT.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_PoolingAsyncValueTaskMethodBuilderT.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_PoolingAsyncValueTaskMethodBuilderT.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_PoolingAsyncValueTaskMethodBuilderT.cs_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_AsyncTaskMethodBuilderT.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_AsyncTaskMethodBuilderT.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_AsyncTaskMethodBuilderT.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_ValueTask.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_ValueTask.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_ValueTask.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Task.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Task.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Task.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Task.cs_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Process.Windows.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Process.Windows.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Process.Windows.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Process.Windows.cs_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Process.Win32.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Process.Win32.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Process.Win32.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Process.Win32.cs_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_ProcessManager.Windows.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_ProcessManager.Win32.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_ProcessManager.Win32.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_ProcessWaitHandle.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_ProcessWaitHandle.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_DictionaryWrapper.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_DictionaryWrapper.cs_1",
+      "pass": true
+    },
+    {
+      "id": "DW_NO_STRINGDICTIONARY_BASE",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_StreamReader.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_StreamReader.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_StreamReader.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_StreamReader.cs_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_OSEncoding.Windows.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_OSEncoding.Windows.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_DBCSDecoder.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_ConsoleEncoding.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_ConsoleEncoding.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_EncodingHelper.Windows.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_EncodingHelper.Windows.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_AutomationEngine.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_HashProviderCng.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_HashProviderCng.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_HashProviderCng.cs_2",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_HashProviderCng.cs_3",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_BCryptAlgorithmCache.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_BCryptAlgorithmCache.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_File.cs_0",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_File.cs_1",
+      "pass": true
+    },
+    {
+      "id": "SOURCE_ANCHOR_Strategies_FileStreamHelpers.cs_0",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_R4_INVENTORY_SEAL",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_88_TYPES",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_391_DECLARED_FIELDS",
+      "pass": true
+    },
+    {
+      "id": "ALL_88_FILE_TYPE_IDENTITIES_UNIQUE",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JToken",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JContainer",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JObject",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JArray",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JProperty",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JProperty+JPropertyList",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JValue",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JPropertyKeyedCollection",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JTokenWriter",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.JsonPosition",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.Utilities.StringBuffer",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_Newtonsoft.Json.dll_Newtonsoft.Json.Utilities.StringReference",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Management.Automation.dll_System.Management.Automation.OrderedHashtable",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Collections.Specialized.dll_System.Collections.Specialized.OrderedDictionary",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Tuple`5",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Collections.ArrayList",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Collections.DictionaryEntry",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Tuple`2",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.IO.Stream",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.IO.FileStream",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.IO.StreamReader",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.IO.Strategies.FileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.IO.Strategies.OSFileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.IO.Strategies.SyncWindowsFileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+SyncAsyncWorkItemRegistration",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+Registrations",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+CallbackNode",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.CancellationTokenRegistration",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.CancellationToken",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim+TaskNode",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.Tasks.Task",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.Tasks.Task`1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1+ValueTaskSourceAsTask",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox`1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1+AsyncStateMachineBox`1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncValueTaskMethodBuilder`1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Runtime.InteropServices.SafeHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeFileHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeThreadHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Memory`1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.ValueTuple`3",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Text.Encoding",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Text.Decoder",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Text.DecoderNLS",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.Diagnostics.Stopwatch",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Private.CoreLib.dll_System.MarshalByRefObject",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Diagnostics.Process.dll_System.Diagnostics.Process",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Diagnostics.Process.dll_System.Collections.Specialized.DictionaryWrapper",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Diagnostics.Process.dll_Microsoft.Win32.SafeHandles.SafeProcessHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Diagnostics.Process.dll_Microsoft.Win32.SafeHandles.SafeThreadHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Diagnostics.Process.dll_System.Text.ConsoleEncoding",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Diagnostics.Process.dll_System.Text.OSEncoding",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Diagnostics.Process.dll_System.Text.DecoderDBCS",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Security.Cryptography.dll_System.Security.Cryptography.IncrementalHash",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Security.Cryptography.dll_System.Security.Cryptography.HashProvider",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Security.Cryptography.dll_System.Security.Cryptography.HashProviderCng",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Security.Cryptography.dll_System.Security.Cryptography.ConcurrencyBlock",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Security.Cryptography.dll_Microsoft.Win32.SafeHandles.SafeBCryptHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Security.Cryptography.dll_Microsoft.Win32.SafeHandles.SafeBCryptHashHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Security.Cryptography.dll_Microsoft.Win32.SafeHandles.SafeBCryptAlgorithmHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Text.Encoding.CodePages.dll_System.Text.EncodingNLS",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Text.Encoding.CodePages.dll_System.Text.BaseCodePageEncoding",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Text.Encoding.CodePages.dll_System.Text.SBCSCodePageEncoding",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Text.Encoding.CodePages.dll_System.Text.DBCSCodePageEncoding",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.Text.Encoding.CodePages.dll_System.Text.DecoderNLS",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_REQUIRED_METADATA_System.ComponentModel.Primitives.dll_System.ComponentModel.Component",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JToken",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JToken__parent",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JToken__previous",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JToken__next",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JToken__annotations",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JContainer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JContainer__listChanged",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JContainer__addingNew",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JContainer__collectionChanged",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JContainer__syncRoot",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JContainer__busy",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JObject",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JObject__properties",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JObject_PropertyChanged",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JObject_PropertyChanging",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JArray",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JArray__values",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JProperty",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JProperty__content",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JProperty__name",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JProperty+JPropertyList",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JProperty+JPropertyList__token",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JValue",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JValue__valueType",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JValue__value",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JPropertyKeyedCollection",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JPropertyKeyedCollection__dictionary",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JTokenWriter",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JTokenWriter__token",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JTokenWriter__parent",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JTokenWriter__value",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JTokenWriter__current",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__tokenType",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__value",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__quoteChar",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__currentState",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__currentPosition",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__culture",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__dateTimeZoneHandling",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__maxDepth",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__hasExceededMaxDepth",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__dateParseHandling",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__floatParseHandling",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__dateFormatString",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader__stack",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader_<CloseInput>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader_<SupportMultipleContent>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader__safeAsync",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader__reader",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader__chars",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader__charsUsed",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader__charPos",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader__lineStartPos",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader__lineNumber",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader__isEndOfFile",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader__stringBuffer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader__stringReference",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader__arrayPool",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader_<PropertyNameTable>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter__stack",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter__currentPosition",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter__currentState",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter__formatting",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter_<CloseOutput>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter_<AutoCompleteOnClose>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter__dateFormatHandling",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter__dateTimeZoneHandling",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter__stringEscapeHandling",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter__floatFormatHandling",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter__dateFormatString",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter__culture",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter__safeAsync",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter__writer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter__base64Encoder",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter__indentChar",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter__indentation",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter__quoteChar",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter__quoteName",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter__charEscapeFlags",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter__writeBuffer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter__arrayPool",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter__indentChars",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.JsonPosition",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonPosition_Type",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonPosition_Position",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonPosition_PropertyName",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.JsonPosition_HasIndex",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Utilities.StringBuffer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Utilities.StringBuffer__buffer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Utilities.StringBuffer__position",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Utilities.StringReference",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Utilities.StringReference__chars",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Utilities.StringReference__startIndex",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Utilities.StringReference__length",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JObject+<GetEnumerator>d__64",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JObject+<GetEnumerator>d__64_<>1__state",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JObject+<GetEnumerator>d__64_<>2__current",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JObject+<GetEnumerator>d__64_<>4__this",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JObject+<GetEnumerator>d__64_<>7__wrap1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Management.Automation.dll_System.Management.Automation.OrderedHashtable",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Management.Automation.dll_System.Management.Automation.OrderedHashtable__orderedDictionary",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Collections.Specialized.dll_System.Collections.Specialized.OrderedDictionary",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Collections.Specialized.dll_System.Collections.Specialized.OrderedDictionary__objectsArray",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Collections.Specialized.dll_System.Collections.Specialized.OrderedDictionary__objectsTable",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Collections.Specialized.dll_System.Collections.Specialized.OrderedDictionary__initialCapacity",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Collections.Specialized.dll_System.Collections.Specialized.OrderedDictionary__comparer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Collections.Specialized.dll_System.Collections.Specialized.OrderedDictionary__readOnly",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Collections.Specialized.dll_System.Collections.Specialized.OrderedDictionary__siInfo",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Tuple`5",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Tuple`5_m_Item1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Tuple`5_m_Item2",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Tuple`5_m_Item3",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Tuple`5_m_Item4",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Tuple`5_m_Item5",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Collections.ArrayList",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Collections.ArrayList__items",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Collections.ArrayList__size",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Collections.ArrayList__version",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Collections.DictionaryEntry",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Collections.DictionaryEntry__key",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Collections.DictionaryEntry__value",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Tuple`2",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Tuple`2_m_Item1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Tuple`2_m_Item2",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.IO.Stream",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Stream__asyncActiveSemaphore",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.IO.FileStream",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.FileStream__strategy",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.IO.StreamReader",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__stream",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__encoding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__decoder",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__byteBuffer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__charBuffer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__charPos",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__charLen",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__byteLen",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__bytePos",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__maxCharsPerBuffer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__disposed",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__detectEncoding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__checkPreamble",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__isBlocked",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__closable",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.StreamReader__asyncReadTask",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.IO.Strategies.FileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.FileStreamStrategy_<IsDerived>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.IO.Strategies.OSFileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.OSFileStreamStrategy__fileHandle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.OSFileStreamStrategy__access",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.OSFileStreamStrategy__filePosition",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.OSFileStreamStrategy__appendStart",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.IO.Strategies.SyncWindowsFileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy__strategy",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy__bufferSize",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy__buffer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy__writePos",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy__readPos",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy__readLen",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy__lastSyncCompletedReadTask",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49_<>1__state",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49_<>t__builder",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49_<>4__this",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49_buffer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49_cancellationToken",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49_throwOnEndOfStream",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49_minimumBytes",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49_<totalRead>5__2",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49_<>u__1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36_<>1__state",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36_<>t__builder",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36_<>4__this",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36_cancellationToken",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36_destination",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36_<>u__1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36_<>u__2",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation__threadHandle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation__finishedCancellationRegistration",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation__continueTryingToCancel",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation__callbackCompleted",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+SyncAsyncWorkItemRegistration",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+SyncAsyncWorkItemRegistration_WorkItem",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+SyncAsyncWorkItemRegistration_CancellationRegistration",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2_<>1__state",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2_<>t__builder",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2_cancellationToken",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2_func",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2_state",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2_<>u__1",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource__state",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource__disposed",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource__timer",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource__kernelEvent",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource__registrations",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+Registrations",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+Registrations_Source",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+Registrations_Callbacks",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+Registrations_FreeNodeList",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+Registrations_NextAvailableId",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+Registrations_ExecutingCallbackId",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+Registrations_ThreadIDExecutingCallbacks",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+Registrations__locked",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+CallbackNode",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+CallbackNode_Registrations",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+CallbackNode_Prev",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+CallbackNode_Next",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+CallbackNode_Id",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+CallbackNode_Callback",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+CallbackNode_CallbackState",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+CallbackNode_ExecutionContext",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+CallbackNode_SynchronizationContext",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.CancellationTokenRegistration",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenRegistration__id",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationTokenRegistration__node",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.CancellationToken",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.CancellationToken__source",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim_m_currentCount",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim_m_maxCount",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim_m_waitCount",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim_m_countOfWaitersPulsedToWake",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim_m_lockObjAndDisposed",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim_m_waitHandle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim_m_asyncHead",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim_m_asyncTail",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim+TaskNode",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim+TaskNode_Prev",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim+TaskNode_Next",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.Tasks.Task",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Task_m_taskId",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Task_m_action",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Task_m_stateObject",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Task_m_taskScheduler",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Task_m_stateFlags",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Task_m_continuationObject",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Task_m_contingentProperties",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.Tasks.Task`1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Task`1_m_result",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1__obj",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1__result",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1__token",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1__continueOnCapturedContext",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1+ValueTaskSourceAsTask",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1+ValueTaskSourceAsTask__source",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1+ValueTaskSourceAsTask__token",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1_m_task",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1__result",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox__moveNextAction",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox_Context",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox__valueTaskSource",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox`1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox`1_StateMachine",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1_m_task",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1+AsyncStateMachineBox`1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1+AsyncStateMachineBox`1_StateMachine",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncValueTaskMethodBuilder`1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncValueTaskMethodBuilder`1_m_task",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncValueTaskMethodBuilder`1__result",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1__continuation",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1__continuationState",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1__capturedContext",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1__error",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1__result",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1__version",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1__completed",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1__runContinuationsAsynchronously",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Runtime.InteropServices.SafeHandle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.InteropServices.SafeHandle_handle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.InteropServices.SafeHandle__state",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.InteropServices.SafeHandle__ownsHandle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Runtime.InteropServices.SafeHandle__fullyInitialized",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeFileHandle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeFileHandle__path",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeFileHandle__length",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeFileHandle__lengthCanBeCached",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeFileHandle__fileOptions",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeFileHandle__fileType",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeFileHandle_<ThreadPoolBinding>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeFileHandle__reusableOverlappedValueTaskSource",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeThreadHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Memory`1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Memory`1__object",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Memory`1__index",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Memory`1__length",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.ValueTuple`3",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.ValueTuple`3_Item1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.ValueTuple`3_Item2",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.ValueTuple`3_Item3",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Text.Encoding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.Encoding__codePage",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.Encoding__dataItem",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.Encoding__isReadOnly",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.Encoding_encoderFallback",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.Encoding_decoderFallback",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Text.Decoder",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.Decoder__fallback",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.Decoder__fallbackBuffer",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Text.DecoderNLS",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.DecoderNLS__encoding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.DecoderNLS__mustFlush",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.DecoderNLS__throwOnOverflow",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.DecoderNLS__bytesUsed",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.DecoderNLS__leftoverBytes",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Text.DecoderNLS__leftoverByteCount",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Diagnostics.Stopwatch",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Diagnostics.Stopwatch__elapsed",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Diagnostics.Stopwatch__startTimeStamp",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Diagnostics.Stopwatch__isRunning",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.MarshalByRefObject",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.Collections.Generic.List`1+Enumerator",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Collections.Generic.List`1+Enumerator__list",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Collections.Generic.List`1+Enumerator__version",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Collections.Generic.List`1+Enumerator__index",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.Collections.Generic.List`1+Enumerator__current",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.ArrayEnumerator",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.ArrayEnumerator__array",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.ArrayEnumerator__index",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Private.CoreLib.dll_System.SZGenericArrayEnumerator`1",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Private.CoreLib.dll_System.SZGenericArrayEnumerator`1__array",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Diagnostics.Process.dll_System.Diagnostics.Process",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__haveProcessId",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__processId",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__haveProcessHandle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__processHandle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__isRemoteMachine",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__machineName",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__processInfo",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__threads",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__modules",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__haveWorkingSetLimits",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__minWorkingSet",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__maxWorkingSet",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__haveProcessorAffinity",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__processorAffinity",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__havePriorityClass",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__priorityClass",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__startInfo",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__watchForExit",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__watchingForExit",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__onExited",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__exited",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__exitCode",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__startTime",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__exitTime",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__haveExitTime",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__priorityBoostEnabled",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__havePriorityBoostEnabled",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__raisedOnExited",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__registeredWaitHandle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__waitHandle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__standardOutput",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__standardInput",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__standardError",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__disposed",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__standardInputAccessed",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__outputStreamReadMode",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__errorStreamReadMode",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process_OutputDataReceived",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process_ErrorDataReceived",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__output",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__error",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__pendingOutputRead",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__pendingErrorRead",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process_<SynchronizingObject>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__processName",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__signaled",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__haveMainWindow",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__mainWindowHandle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__mainWindowTitle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__haveResponding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.Process__responding",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo__fileName",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo__arguments",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo__directory",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo__userName",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo__verb",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo__argumentList",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo__windowStyle",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo__environmentVariables",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<CreateNoWindow>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<RedirectStandardInput>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<RedirectStandardOutput>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<RedirectStandardError>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<StandardInputEncoding>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<StandardErrorEncoding>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<StandardOutputEncoding>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<ErrorDialog>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<ErrorDialogParentHandle>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo__domain",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<PasswordInClearText>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<LoadUserProfile>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<UseCredentialsForNetworkingOnly>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<Password>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<CreateNewProcessGroup>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo_<UseShellExecute>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Diagnostics.Process.dll_System.Collections.Specialized.DictionaryWrapper",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Collections.Specialized.DictionaryWrapper__contents",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Diagnostics.Process.dll_Microsoft.Win32.SafeHandles.SafeProcessHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Diagnostics.Process.dll_Microsoft.Win32.SafeHandles.SafeThreadHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Diagnostics.Process.dll_System.Text.ConsoleEncoding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Text.ConsoleEncoding__encoding",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Diagnostics.Process.dll_System.Text.OSEncoding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Text.OSEncoding__codePage",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Text.OSEncoding__encodingName",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Diagnostics.Process.dll_System.Text.DecoderDBCS",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Text.DecoderDBCS__encoding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Text.DecoderDBCS__leadByteRanges",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Text.DecoderDBCS__rangesCount",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Diagnostics.Process.dll_System.Text.DecoderDBCS__leftOverLeadByte",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Security.Cryptography.dll_System.Security.Cryptography.IncrementalHash",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.IncrementalHash__algorithmName",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.IncrementalHash__hash",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.IncrementalHash__hmac",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.IncrementalHash__disposed",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.IncrementalHash_<HashLengthInBytes>k__BackingField",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Security.Cryptography.dll_System.Security.Cryptography.HashProvider",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Security.Cryptography.dll_System.Security.Cryptography.HashProviderCng",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.HashProviderCng__hAlgorithm",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.HashProviderCng__hHash",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.HashProviderCng__key",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.HashProviderCng__reusable",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.HashProviderCng__hashSize",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.HashProviderCng__running",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.HashProviderCng__block",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Security.Cryptography.dll_System.Security.Cryptography.ConcurrencyBlock",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Security.Cryptography.dll_System.Security.Cryptography.ConcurrencyBlock__count",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Security.Cryptography.dll_Microsoft.Win32.SafeHandles.SafeBCryptHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Security.Cryptography.dll_Microsoft.Win32.SafeHandles.SafeBCryptHashHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Security.Cryptography.dll_Microsoft.Win32.SafeHandles.SafeBCryptAlgorithmHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Text.Encoding.CodePages.dll_System.Text.EncodingNLS",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.EncodingNLS__encodingName",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.EncodingNLS__webName",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Text.Encoding.CodePages.dll_System.Text.BaseCodePageEncoding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.BaseCodePageEncoding_dataTableCodePage",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.BaseCodePageEncoding_iExtraBytes",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.BaseCodePageEncoding_arrayUnicodeBestFit",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.BaseCodePageEncoding_arrayBytesBestFit",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.BaseCodePageEncoding_m_codePageHeader",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.BaseCodePageEncoding_m_firstDataWordOffset",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.BaseCodePageEncoding_m_dataSize",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.BaseCodePageEncoding_safeNativeMemoryHandle",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Text.Encoding.CodePages.dll_System.Text.SBCSCodePageEncoding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.SBCSCodePageEncoding__mapBytesToUnicode",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.SBCSCodePageEncoding__mapUnicodeToBytes",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.SBCSCodePageEncoding__byteUnknown",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.SBCSCodePageEncoding__charUnknown",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Text.Encoding.CodePages.dll_System.Text.DBCSCodePageEncoding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.DBCSCodePageEncoding_mapBytesToUnicode",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.DBCSCodePageEncoding_mapUnicodeToBytes",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.DBCSCodePageEncoding__bytesUnknown",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.DBCSCodePageEncoding__byteCountUnknown",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.DBCSCodePageEncoding_charUnknown",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.Text.Encoding.CodePages.dll_System.Text.DecoderNLS",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.DecoderNLS_m_encoding",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.DecoderNLS_m_mustFlush",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.DecoderNLS_m_throwOnOverflow",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.DecoderNLS_m_bytesUsed",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.DecoderNLS_m_fallback",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.Text.Encoding.CodePages.dll_System.Text.DecoderNLS_m_fallbackBuffer",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_FIELD_COUNT_System.ComponentModel.Primitives.dll_System.ComponentModel.Component",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.ComponentModel.Primitives.dll_System.ComponentModel.Component__site",
+      "pass": true
+    },
+    {
+      "id": "FIELD_SIGNATURE_System.ComponentModel.Primitives.dll_System.ComponentModel.Component__events",
+      "pass": true
+    },
+    {
+      "id": "GENUINE_DECLARED_FIELD_COUNT_System.IO.Stream+<ReadAtLeastAsyncCore>d__49",
+      "pass": true
+    },
+    {
+      "id": "GENUINE_DECLARED_FIELD_COUNT_System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36",
+      "pass": true
+    },
+    {
+      "id": "GENUINE_DECLARED_FIELD_COUNT_System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2",
+      "pass": true
+    },
+    {
+      "id": "GENUINE_DECLARED_FIELD_COUNT_System.Threading.Tasks.ValueTask`1+ValueTaskSourceAsTask",
+      "pass": true
+    },
+    {
+      "id": "GENUINE_DECLARED_FIELD_COUNT_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox",
+      "pass": true
+    },
+    {
+      "id": "GENUINE_DECLARED_FIELD_COUNT_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox`1",
+      "pass": true
+    },
+    {
+      "id": "GENUINE_DECLARED_FIELD_COUNT_System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1+AsyncStateMachineBox`1",
+      "pass": true
+    },
+    {
+      "id": "GENUINE_DW_BASE_OBJECT",
+      "pass": true
+    },
+    {
+      "id": "GENUINE_DW_ONE_DICT_REFERENCE",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_RECEIPT_SEAL",
+      "pass": true
+    },
+    {
+      "id": "ACTUAL_PURPOSE_RAW0_STDERR0",
+      "pass": true
+    },
+    {
+      "id": "OUTER_SUPPORTED_UPPER_259",
+      "pass": true
+    },
+    {
+      "id": "OUTER_258_COUNTEREXAMPLE_WITHIN_CAP",
+      "pass": true
+    },
+    {
+      "id": "INNER_SUPPORTED_UPPER_1056772",
+      "pass": true
+    },
+    {
+      "id": "OS_ENCODING_4096_MAX_CHARS_16384",
+      "pass": true
+    },
+    {
+      "id": "FIXED_NONCHILD_BUFFERED_SITES_14",
+      "pass": true
+    },
+    {
+      "id": "DOCUMENT_WRITE_SOURCE_CALLS_MAX6",
+      "pass": true
+    },
+    {
+      "id": "HAS_EXITED_DIRECT_SOURCE_MAX7203",
+      "pass": true
+    },
+    {
+      "id": "PHASE_CHILD_COUNTS",
+      "pass": true
+    }
+  ],
+  "integer_outer_cases": [
+    {
+      "EOF_short_positive_pipes": 0,
+      "max_retained_full_chunks": 256,
+      "max_retained_positive_outer_results": 256,
+      "outer_invocations_with_initial_two": 258
+    },
+    {
+      "EOF_short_positive_pipes": 1,
+      "max_retained_full_chunks": 255,
+      "max_retained_positive_outer_results": 256,
+      "outer_invocations_with_initial_two": 258
+    },
+    {
+      "EOF_short_positive_pipes": 2,
+      "max_retained_full_chunks": 255,
+      "max_retained_positive_outer_results": 257,
+      "outer_invocations_with_initial_two": 259
+    }
+  ],
+  "counterexample": {
+    "retained_full_chunks": 255,
+    "retained_short_bytes": [
+      1,
+      1
+    ],
+    "retained_bytes": 1044482,
+    "final_zero_results": 2,
+    "outer_calls": 259
+  },
+  "inner_upper": 1056772
+}
