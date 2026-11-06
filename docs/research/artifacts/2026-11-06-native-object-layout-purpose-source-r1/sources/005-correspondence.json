@@ -1,0 +1,162 @@
+{
+  "scope": "Reviewed layout equivalence hypotheses only; no actual compiler values yet",
+  "replicas": [
+    {
+      "name": "Rejection",
+      "original_definition": "struct Rejection:std::exception {\n const char* reason;std::array<std::uint64_t,6> values{};\n Rejection(const char* r,std::array<std::uint64_t,6> v):reason(r),values(v){}\n const char* what()const noexcept override{return reason;}\n};\n",
+      "original_definition_sha256": "06A1EF5B7B5D958F67485B915E916ACBF8AC81B4AC483336B472F193EE6F38C5",
+      "storage_declarations": [
+        "const char* reason;std::array<std::uint64_t,6> values{};"
+      ],
+      "base_access_special_member_correspondence": "std::exception; identical ctor/virtual what override bodies retained",
+      "nominal_scope_change": "clock_stage -> layout_purpose; not the same C++ nominal type",
+      "method_body_change": "Only listed bodies omitted; no member instantiated/invoked. Nonvirtual body text is not storage; Rejection full body retained.",
+      "source_whole_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "name": "CleanupCloseState",
+      "original_definition": "struct CleanupCloseState{std::uint64_t failures=0;int firstReturn=0,firstErrno=0;const char* firstSite=\"none\";};\n",
+      "original_definition_sha256": "4A5301BE738691D71529EE23BA501F0EDAA505D553FC987F16F1EF7957D2A12B",
+      "storage_declarations": [
+        "std::uint64_t failures=0;int firstReturn=0,firstErrno=0;const char* firstSite=\"none\";"
+      ],
+      "base_access_special_member_correspondence": "No base; same defaults",
+      "nominal_scope_change": "clock_stage -> layout_purpose; not the same C++ nominal type",
+      "method_body_change": "Only listed bodies omitted; no member instantiated/invoked. Nonvirtual body text is not storage; Rejection full body retained.",
+      "source_whole_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "name": "Cost",
+      "original_definition": "struct Cost {\n static const source_costs::Catalogue& catalogue(){return source_costs::immutableCatalogue();}\n static std::uint64_t price(Family id){return catalogue().family(id).upperUnits;}\n static void validate(){\n  const auto& book=catalogue();\n  for(std::size_t i=0;i<source_costs::familyCount;++i)(void)book.family(static_cast<Family>(i));\n  const auto& whole=book.whole();\n  gate(whole.runnerUpper>0&&whole.runnerUpper<=domainMax&&whole.producerUpper>0&&whole.producerUpper<=domainMax&&whole.verifierUpper>0&&whole.verifierUpper<=domainMax&&whole.totalUpper>0&&whole.totalUpper<=domainMax,\"UNBOUND_OR_INVALID_WHOLE_CATALOGUE\");\n }\n static std::uint64_t plus(std::uint64_t a,std::uint64_t b){gate(a<=domainMax&&b<=domainMax-a,\"SOURCE_QUOTE_SUM\");return a+b;}\n static std::uint64_t times(std::uint64_t count,std::uint64_t value){gate(value>0&&value<=domainMax&&count<=domainMax/value,\"SOURCE_QUOTE_PRODUCT\");return count*value;}\n static std::uint64_t units(Family id,std::uint64_t count){return times(count,price(id));}\n static std::uint64_t wordUnits(bool verify,std::uint64_t words){\n  gate(words>0&&words<=std::numeric_limits<std::uint64_t>::max()-8191,\"SOURCE_WORD_QUOTE_DOMAIN\");\n  const auto chunks=(words+8191)/8192;\n  const auto fallback=verify?chunks:chunks-1;\n  const auto dispatch=units(verify?Family::WordReadDispatch:Family::WordWriteDispatch,words);\n  const auto fast=units(verify?Family::WordReadFast:Family::WordWriteFast,words-fallback);\n  const auto slow=units(verify?Family::WordReadFallback:Family::WordWriteFallback,fallback);\n  return plus(dispatch,plus(fast,slow));\n }\n static std::uint64_t inverseUnits(bool verify,std::uint64_t records){\n  gate(records>0&&records<=inverseUpper,\"SOURCE_INVERSE_QUOTE_DOMAIN\");\n  const auto api=verify?plus(price(Family::ProductionInverseNative),price(Family::ProductionForwardInverse)):\n   plus(price(Family::QcInverseNative),price(Family::QcForwardNative));\n  const auto outer=price(verify?Family::InverseVerifyOuter:Family::InverseProduceOuter);\n  return plus(times(records,plus(api,outer)),wordUnits(verify,2*records));\n }\n static std::uint64_t fixtureUnits(bool verify,std::uint64_t N,std::uint64_t g,int map){\n  const auto queries=N+11,zeros=g+7;gate(queries>=zeros,\"SOURCE_FIXTURE_QUOTE_DOMAIN\");\n  const bool ramp=map==5||map==6;\n  const auto fractional=price(verify?(ramp?Family::ProductionForwardRamp:Family::ProductionForwardConstant):\n   (ramp?Family::PortFractionRamp:Family::PortFractionConstant));\n  const auto zero=price(verify?(ramp?Family::ProductionForwardZeroRamp:Family::ProductionForwardZeroConstant):Family::PortZero);\n  const auto cut=price(Family::RationalCut);\n  const auto fractionalQueries=times(queries-zeros,plus(cut,times(2,fractional)));\n  const auto zeroQueries=times(zeros,plus(cut,times(2,zero)));\n  const auto records=plus(units(Family::DenseOuter,N+1),wordUnits(verify,N+1));\n  return plus(plus(fractionalQueries,zeroQueries),records);\n }\n static std::uint64_t childUpper(bool verify){\n  auto total=price(verify?Family::ChildFixedVerify:Family::ChildFixedProduce);\n  if(!verify)total=plus(total,units(Family::PortCacheRefill,27*153611));\n  for(const std::uint64_t R:{44100ull,48000ull,96000ull}){\n   const auto g=R==44100?600ull:R==48000?19200ull:38400ull;\n   for(int map=0;map<9;++map)total=plus(total,fixtureUnits(verify,10*R,g,map));\n  }\n  return plus(total,inverseUnits(verify,inverseUpper));\n }\n};\n",
+      "original_definition_sha256": "3983284FAB0EA16DD23A2A2B0B24DD2F17495CC474BD2F20DEE3B1540A40D960",
+      "storage_declarations": [],
+      "base_access_special_member_correspondence": "No nonstatic fields/bases/virtuals; all ten static signatures retained, body definitions omitted",
+      "nominal_scope_change": "clock_stage -> layout_purpose; not the same C++ nominal type",
+      "method_body_change": "Only listed bodies omitted; no member instantiated/invoked. Nonvirtual body text is not storage; Rejection full body retained.",
+      "source_whole_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "name": "Meter",
+      "original_definition": "struct Meter {\n std::uint64_t used=0,reserved,prior;\n Meter(std::uint64_t p,std::uint64_t r):reserved(r),prior(p){}\n void add(std::uint64_t n){gate(n<=reserved-used,\"CHILD_SOURCE_WORK\",{used,n,reserved});used+=n;}\n};\n",
+      "original_definition_sha256": "3DA7648696177828DA99FD3AA7E9BE7E949BC8318326E382C0E2E94EEFF9372E",
+      "storage_declarations": [
+        "std::uint64_t used=0,reserved,prior;"
+      ],
+      "base_access_special_member_correspondence": "No base/virtual; constructor/add signatures retained without bodies",
+      "nominal_scope_change": "clock_stage -> layout_purpose; not the same C++ nominal type",
+      "method_body_change": "Only listed bodies omitted; no member instantiated/invoked. Nonvirtual body text is not storage; Rejection full body retained.",
+      "source_whole_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "name": "Text",
+      "original_definition": "struct Text {\n std::array<char,65536> data{};std::size_t size=0;\n void add(const char* s){while(*s){gate(size<data.size(),\"METADATA_CAP\");data[size++]=*s++;}}\n void u(std::uint64_t x){char digits[20];unsigned n=0;do{digits[n++]=char('0'+x%10);x/=10;}while(x);while(n){gate(size<data.size(),\"METADATA_CAP\");data[size++]=digits[--n];}}\n void i(std::int64_t x){gate(x>=0,\"NEGATIVE_FIXTURE_METADATA\");u(std::uint64_t(x));}\n void boolean(bool x){add(x?\"true\":\"false\");}\n void quoted(const std::string& s){add(\"\\\"\");for(char c:s){gate(c>=32&&c<127&&c!='\"'&&c!='\\\\',\"SAFE_FIXED_STRING\");char q[2]{c,0};add(q);}add(\"\\\"\");}\n};\n",
+      "original_definition_sha256": "DB5F70E4F800DB92BF7E4C4BA5E51E890E352C696C7419898B974646C483FEEA",
+      "storage_declarations": [
+        "std::array<char,65536> data{};std::size_t size=0;"
+      ],
+      "base_access_special_member_correspondence": "No base/virtual; all five method signatures retained without bodies",
+      "nominal_scope_change": "clock_stage -> layout_purpose; not the same C++ nominal type",
+      "method_body_change": "Only listed bodies omitted; no member instantiated/invoked. Nonvirtual body text is not storage; Rejection full body retained.",
+      "source_whole_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "name": "Stream",
+      "original_definition": "struct Stream {\n FILE* file=nullptr;std::array<unsigned char,65536> buffer{};std::size_t at=0,size=0;\n std::uint64_t bytes=0,maximum;bool write;\n Stream(const std::string& name,bool w,std::uint64_t m):maximum(m),write(w){\n  if(w){int descriptor=-1;const auto e=_sopen_s(&descriptor,name.c_str(),_O_CREAT|_O_EXCL|_O_WRONLY|_O_BINARY,_SH_DENYRW,_S_IREAD|_S_IWRITE);gate(e==0,\"NEW_OUTPUT_OPEN\",{std::uint64_t(e)});file=_fdopen(descriptor,\"wb\");if(!file)cleanupDescriptorClose(descriptor);}\n  else file=_fsopen(name.c_str(),\"rb\",_SH_DENYWR);\n  gate(file!=nullptr,\"STREAM_OPEN\");if(std::setvbuf(file,nullptr,_IONBF,0)!=0){FILE* owner=file;file=nullptr;cleanupFileClose(owner,\"setvbuf-refusal\");gate(false,\"STREAM_BUFFER_MODE\");}\n }\n ~Stream()noexcept{FILE* owner=file;file=nullptr;cleanupFileClose(owner,\"Stream-destructor\");}\n Stream(const Stream&)=delete;Stream& operator=(const Stream&)=delete;\n void flush(){if(at){const auto written=std::fwrite(buffer.data(),1,at,file);const int error=errno;gate(written==at,\"STREAM_WRITE\",{bytes,at,written,std::uint64_t(error)});at=0;}}\n void put(const unsigned char* p,std::size_t n){gate(write&&n<=maximum-bytes,\"OUTPUT_BEFORE_WRITE_CAP\",{bytes,n,maximum});bytes+=n;while(n){const auto k=(std::min)(n,buffer.size()-at);std::memcpy(buffer.data()+at,p,k);at+=k;p+=k;n-=k;if(at==buffer.size())flush();}}\n void word(std::uint64_t x){\n  if(write&&(at&7u)==0&&(bytes&7u)==0&&bytes<=maximum&&8<=maximum-bytes&&at<=buffer.size()&&8<=buffer.size()-at){std::memcpy(buffer.data()+at,&x,8);at+=8;bytes+=8;return;}\n  unsigned char a[8];std::memcpy(a,&x,8);put(a,8);\n }\n void exact(unsigned char* p,std::size_t n){gate(!write&&n<=maximum-bytes,\"INPUT_RECORD_CAP\",{bytes,n,maximum});while(n){if(at==size){size=std::fread(buffer.data(),1,buffer.size(),file);at=0;gate(size>0&&!std::ferror(file),\"EXACT_RECORD_LENGTH_AND_EOF\",{bytes,n,size});}const auto k=(std::min)(n,size-at);std::memcpy(p,buffer.data()+at,k);at+=k;p+=k;n-=k;bytes+=k;}}\n std::uint64_t word(){\n  std::uint64_t x=0;\n  if(!write&&(at&7u)==0&&(bytes&7u)==0&&bytes<=maximum&&8<=maximum-bytes&&size<=buffer.size()&&at<=size&&8<=size-at){std::memcpy(&x,buffer.data()+at,8);at+=8;bytes+=8;return x;}\n  exact(reinterpret_cast<unsigned char*>(&x),8);return x;\n }\n void finish(std::uint64_t expected){gate(bytes==expected,\"EXACT_FILE_BYTES\",{bytes,expected});if(write){flush();const int result=std::fflush(file);const int error=errno;gate(result==0,\"STREAM_FLUSH\",{std::uint64_t(std::int64_t(result)),std::uint64_t(error),bytes});}else{gate(at==size&&std::fgetc(file)==EOF&&!std::ferror(file),\"EXACT_RECORD_LENGTH_AND_EOF\",{bytes,at,size});}FILE* owner=file;file=nullptr;const int result=std::fclose(owner);const int error=errno;gate(result==0,\"STREAM_CLOSE\",{std::uint64_t(std::int64_t(result)),std::uint64_t(error),bytes});}\n};\n",
+      "original_definition_sha256": "F26103949B814C4B1E23B64AEE6886A627B83FCE7179C363C589D5A4D262349E",
+      "storage_declarations": [
+        "FILE* file=nullptr;std::array<unsigned char,65536> buffer{};std::size_t at=0,size=0;",
+        "std::uint64_t bytes=0,maximum;bool write;",
+        "Stream(const Stream&)=delete;Stream& operator=(const Stream&)=delete;"
+      ],
+      "base_access_special_member_correspondence": "No base/virtual; ctor/user-provided noexcept destructor, deleted copy and six method overload signatures retained; bodies omitted",
+      "nominal_scope_change": "clock_stage -> layout_purpose; not the same C++ nominal type",
+      "method_body_change": "Only listed bodies omitted; no member instantiated/invoked. Nonvirtual body text is not storage; Rejection full body retained.",
+      "source_whole_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "name": "Pair128",
+      "original_definition": "struct Pair128{std::uint64_t high,low;};\n",
+      "original_definition_sha256": "FB5E891BD3C17D307B8F8B937244FD9151563A85B96ACF2E0DAD88BE0449A49D",
+      "storage_declarations": [
+        "std::uint64_t high,low;"
+      ],
+      "base_access_special_member_correspondence": "Exact one-line type except namespace",
+      "nominal_scope_change": "clock_stage -> layout_purpose; not the same C++ nominal type",
+      "method_body_change": "Only listed bodies omitted; no member instantiated/invoked. Nonvirtual body text is not storage; Rejection full body retained.",
+      "source_whole_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "name": "FractionCache",
+      "original_definition": "struct FractionCache {\n std::array<std::pair<double,double>,735> rows{};std::uint64_t N,g,count;\n FractionCache(std::uint64_t n,bool independent):N(n),g(n==441000?600:n==480000?19200:n==960000?38400:0),count(g?n/g:0){\n  gate(g&&count<=rows.size(),\"FRACTION_PROFILE\",{N,g,count});\n  for(std::uint64_t r=0;r<count;++r){const auto original=qc::fractionBounds(r*g,N);rows[std::size_t(r)]=independent?independentFraction(r*g,N):original;gate(bits(rows[std::size_t(r)].first)==bits(original.first)&&bits(rows[std::size_t(r)].second)==bits(original.second),\"ORIGINAL_CACHE_BITS\",{r,bits(rows[std::size_t(r)].first),bits(original.first),bits(rows[std::size_t(r)].second),bits(original.second)});}\n }\n};\n",
+      "original_definition_sha256": "A56469F9D1A97C59F63821B400BAF13DFAD416678C0DDBA46EC8180825685C98",
+      "storage_declarations": [
+        "std::array<std::pair<double,double>,735> rows{};std::uint64_t N,g,count;"
+      ],
+      "base_access_special_member_correspondence": "No base/virtual; same constructor signature without body",
+      "nominal_scope_change": "clock_stage -> layout_purpose; not the same C++ nominal type",
+      "method_body_change": "Only listed bodies omitted; no member instantiated/invoked. Nonvirtual body text is not storage; Rejection full body retained.",
+      "source_whole_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "name": "CachedPort",
+      "original_definition": "struct CachedPort {\nprivate:\n std::size_t segmentIndex_=0;unsigned cursorAdvances_=0;\npublic:\n std::vector<qc::Change> changes;qc::NumericAClock base;double rate;\n qc::Tick saved=-1;double wholeFrame=0,k=0,bpm=0,slope=0;Meter& meter;std::uint64_t misses=0;\n CachedPort(double r,int map,Meter& m):changes(qc::fixtureMap(map)),base(r,changes),rate(r),meter(m){if(changes.size()<3||changes.size()>4)throw Rejection(\"PORT_CURSOR_MAP_PROFILE\",{});}\n double frame(qc::Native t){\n  qc::require(t.whole>=0&&t.frac>=0&&t.frac<1,\"CLOCK_NATIVE_DOMAIN\");\n  if(saved!=t.whole){meter.add(Cost::price(Family::PortCacheRefill));gate(++misses<=153611,\"PORT_CACHE_MISS_PROFILE\");\n   // Query order is begin,end,then the complete increasing dense grid. A\n   // backward query resets this owned cursor. At most6 successful advances\n   // across the <=4 pinned rows are admitted for one map, including rewind.\n   if(t.whole<saved)segmentIndex_=0;\n   if(segmentIndex_>=changes.size())throw Rejection(\"PORT_CURSOR_INDEX_PROFILE\",{});\n   while(segmentIndex_+1<changes.size()&&changes[segmentIndex_+1].tick<=t.whole){if(++cursorAdvances_>6)throw Rejection(\"PORT_CURSOR_ADVANCE_PROFILE\",{});++segmentIndex_;}\n   if(changes[segmentIndex_].tick>t.whole)throw Rejection(\"PORT_CURSOR_LOWER_BOUND\",{});const auto i=segmentIndex_;\n   saved=t.whole;wholeFrame=base.frame({t.whole,0});k=60.0*rate/double(qc::ppq);\n   bpm=changes[i].bpm;slope=0;if(i+1<changes.size()&&changes[i].ramp&&changes[i+1].bpm!=bpm){const qc::Tick length=changes[i+1].tick-changes[i].tick,local=t.whole-changes[i].tick;slope=(changes[i+1].bpm-bpm)/double(length);qc::require(slope!=0&&std::isfinite(slope),\"CLOCK_LOCAL_SLOPE\");bpm=local<=length/2?bpm+slope*double(local):changes[i+1].bpm-slope*double(length-local);}}\n  if(t.frac==0)return wholeFrame;\n  qc::require(std::isfinite(bpm)&&bpm>0,\"CLOCK_LOCAL_BPM\");double extra=0;\n  if(slope==0)qc::require(qc::scaled(t.frac,k,bpm,extra),\"CLOCK_LOCAL_RATIO\");else{double relative=0;qc::require(qc::scaled(slope,t.frac,bpm,relative)&&relative>-1,\"CLOCK_LOCAL_LOG_DOMAIN\");qc::require(qc::scaled(k,std::log1p(relative),slope,extra),\"CLOCK_LOCAL_LOG_RATIO\");}\n  qc::require(extra<0x1p63-wholeFrame,\"CLOCK_FRAME_OVERFLOW\");const double result=wholeFrame+extra;qc::checkFrame(result);return result;\n }\n};\n",
+      "original_definition_sha256": "9F66AF5401B25D6644E2D0FE19E6F65091AD749ADE4C039C8A70A2704BB741EB",
+      "storage_declarations": [
+        "std::size_t segmentIndex_=0;unsigned cursorAdvances_=0;",
+        "std::vector<qc::Change> changes;qc::NumericAClock base;double rate;",
+        "qc::Tick saved=-1;double wholeFrame=0,k=0,bpm=0,slope=0;Meter& meter;std::uint64_t misses=0;"
+      ],
+      "base_access_special_member_correspondence": "Private then public access groups retained; Meter& refers to corresponding replica; same ctor/frame signatures without bodies; no offsetof on this nonstandard/reference-bearing type",
+      "nominal_scope_change": "clock_stage -> layout_purpose; not the same C++ nominal type",
+      "method_body_change": "Only listed bodies omitted; no member instantiated/invoked. Nonvirtual body text is not storage; Rejection full body retained.",
+      "source_whole_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "name": "Picks",
+      "original_definition": "struct Picks {\n struct Item{std::uint64_t index;unsigned slot;};std::array<Item,10> items{};std::array<std::int64_t,10> values{};unsigned next=0;\n Picks(std::uint64_t R,std::uint64_t N,std::uint64_t W){items[0]={W,0};items[1]={N-W,1};for(unsigned k=0;k<4;++k){const auto source=2*R*(k+1);items[2+2*k]={source,2+2*k};items[3+2*k]={N-1-source,3+2*k};}for(unsigned a=1;a<10;++a){auto x=items[a];unsigned z=a;while(z&&x.index<items[z-1].index){items[z]=items[z-1];--z;}items[z]=x;}}\n void see(std::uint64_t i,std::int64_t q){while(next<10&&items[next].index==i){values[items[next].slot]=q;++next;}}\n};\n",
+      "original_definition_sha256": "3B7057941DB02B9A1372CB67566E9836FAD3A27DB019CF68552317E2DF08E7CD",
+      "storage_declarations": [
+        "struct Item{std::uint64_t index;unsigned slot;};std::array<Item,10> items{};std::array<std::int64_t,10> values{};unsigned next=0;"
+      ],
+      "base_access_special_member_correspondence": "Nested Item retained exactly; same ctor/see signatures without bodies",
+      "nominal_scope_change": "clock_stage -> layout_purpose; not the same C++ nominal type",
+      "method_body_change": "Only listed bodies omitted; no member instantiated/invoked. Nonvirtual body text is not storage; Rejection full body retained.",
+      "source_whole_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "name": "Bounds",
+      "original_definition": "struct Bounds{std::uint64_t R,N,W;int map;qc::Cut begin,end;std::int64_t D;};\n",
+      "original_definition_sha256": "D55D35F70C7EDAF705390A4955754412729A47D6444F3B0D4B2CC4AD7E3690CD",
+      "storage_declarations": [
+        "std::uint64_t R,N,W;int map;qc::Cut begin,end;std::int64_t D;"
+      ],
+      "base_access_special_member_correspondence": "Exact one-line type except namespace",
+      "nominal_scope_change": "clock_stage -> layout_purpose; not the same C++ nominal type",
+      "method_body_change": "Only listed bodies omitted; no member instantiated/invoked. Nonvirtual body text is not storage; Rejection full body retained.",
+      "source_whole_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    }
+  ],
+  "actual_types": [
+    "qc::Change",
+    "qc::Native",
+    "qc::Cut",
+    "qc::NumericAClock",
+    "yesdaw::engine::TempoChange",
+    "yesdaw::engine::MusicalTime",
+    "yesdaw::engine::SampleRate",
+    "yesdaw::engine::CompiledTempoMap",
+    "clock_stage::source_costs::FamilyBound",
+    "clock_stage::source_costs::WholeBound",
+    "clock_stage::source_costs::Catalogue",
+    "Selected std::pair/vector/string/exception/array types"
+  ],
+  "packing": "No new pack directive; same original includes and default compiler profile; _CRT_PACKING8 and x64 scalar profile asserted. Object padding is included in sizeof.",
+  "not_covered": [
+    "Private/nonstandard offsets",
+    "Actual Clock function closure layouts",
+    "Lifetime/multiplicity or complete automatic-object sum",
+    "Machine frames/spills/shadow space/RSS",
+    "CRT allocation/startup/TLS/exception message or FILE internals",
+    "Resource fit/prices/Data/target or supervisor behavior"
+  ]
+}

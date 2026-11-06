@@ -1,0 +1,98 @@
+{
+  "schema": "PINNED_SOURCE_PACKET_LOSSLESS_DELIVERY_V1",
+  "original_pins_sha256": "80BDCCFA73D44C3532897B29FFB85D26DFB9CA4C103F0C1728774514CC009F45",
+  "original_verdict": "SEE_ORIGINAL_SOURCE_PACKET",
+  "scope": "Preservation of the named packet only. No new independent source/numeric/resource acceptance, fit, NOFIT, native binding, target execution or feature completion follows.",
+  "files": [
+    {
+      "file": "sources/001-check.py",
+      "original_path": "build-ci/20261106-native-layout-caller-review-r1/check.py",
+      "original_bytes": 4520,
+      "original_sha256": "6016D590CCF0D981E83A082AB4C7743B1E096458AFAEF9C2755E2B9B150E757D",
+      "bytes": 4520,
+      "sha256": "6016D590CCF0D981E83A082AB4C7743B1E096458AFAEF9C2755E2B9B150E757D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-first-green-freeze.json",
+      "original_path": "build-ci/20261106-native-layout-caller-review-r1/first-green-freeze.json",
+      "original_bytes": 965,
+      "original_sha256": "B749580D50E9E73D841D30D09752604CF0458451A0CBEF9ED557ABB41A7016D6",
+      "bytes": 965,
+      "sha256": "B749580D50E9E73D841D30D09752604CF0458451A0CBEF9ED557ABB41A7016D6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-own-check-receipt.json",
+      "original_path": "build-ci/20261106-native-layout-caller-review-r1/own-check-receipt.json",
+      "original_bytes": 281,
+      "original_sha256": "3DC856021E5B35DA7E8731E91F4AA64B7E4B19E054CBD10080B7D906CA61F57C",
+      "bytes": 281,
+      "sha256": "3DC856021E5B35DA7E8731E91F4AA64B7E4B19E054CBD10080B7D906CA61F57C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-review.json",
+      "original_path": "build-ci/20261106-native-layout-caller-review-r1/review.json",
+      "original_bytes": 5501,
+      "original_sha256": "4BA032819A6E7F24851DD1F309AAB890CF544646A5E0E5C23883B3FA5DD9D2D5",
+      "bytes": 5501,
+      "sha256": "4BA032819A6E7F24851DD1F309AAB890CF544646A5E0E5C23883B3FA5DD9D2D5",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-review.md",
+      "original_path": "build-ci/20261106-native-layout-caller-review-r1/review.md",
+      "original_bytes": 3303,
+      "original_sha256": "16FF8443E1A1ECE93440E858A00E836CF29A639C1ABE4EFAF2D109AD10B85BFA",
+      "bytes": 3303,
+      "sha256": "16FF8443E1A1ECE93440E858A00E836CF29A639C1ABE4EFAF2D109AD10B85BFA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-source-pins.json",
+      "original_path": "build-ci/20261106-native-layout-caller-review-r1/source-pins.json",
+      "original_bytes": 2346,
+      "original_sha256": "80BDCCFA73D44C3532897B29FFB85D26DFB9CA4C103F0C1728774514CC009F45",
+      "bytes": 2346,
+      "sha256": "80BDCCFA73D44C3532897B29FFB85D26DFB9CA4C103F0C1728774514CC009F45",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/007-review.json",
+      "original_path": "build-ci/20261106-native-layout-purpose-independent-review-r1/review.json",
+      "original_bytes": 50215,
+      "original_sha256": "EC89EF36D2C4085AC8EAEF5242428E2D2D6E8A20FA496EC23060961067E0D237",
+      "bytes": 50215,
+      "sha256": "EC89EF36D2C4085AC8EAEF5242428E2D2D6E8A20FA496EC23060961067E0D237",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/008-20261106-native-layout-root-launch-r1.py",
+      "original_path": "build-ci/20261106-native-layout-root-launch-r1.py",
+      "original_bytes": 1037,
+      "original_sha256": "7E471316268BDE6A0D9816E9EFA248BDE9D50EA4F0FC0675286A584179497595",
+      "bytes": 1037,
+      "sha256": "7E471316268BDE6A0D9816E9EFA248BDE9D50EA4F0FC0675286A584179497595",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/009-launch_compile.py",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/launch_compile.py",
+      "original_bytes": 8018,
+      "original_sha256": "8E1CA919CD6478C3B42BAD48D531B7EBA02AB4EA3BC3A4263CDD5207FD164F9B",
+      "bytes": 8018,
+      "sha256": "8E1CA919CD6478C3B42BAD48D531B7EBA02AB4EA3BC3A4263CDD5207FD164F9B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/010-source-pins.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/source-pins.json",
+      "original_bytes": 134266,
+      "original_sha256": "7B8EF452D04B97D38B92D1E790FA61B355660A141FA4CB1D21A1002C4B3EA165",
+      "bytes": 134266,
+      "sha256": "7B8EF452D04B97D38B92D1E790FA61B355660A141FA4CB1D21A1002C4B3EA165",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

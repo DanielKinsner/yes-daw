@@ -1,0 +1,43 @@
+{
+  "schema": "SEPARATE_COMPILE_ONLY_LAYOUT_PURPOSE_PROFILE_R1",
+  "state": "UNRUN_NO_COMPILER_GO",
+  "compiler": {
+    "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+    "sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+    "arguments": [
+      "/nologo",
+      "/std:c++20",
+      "/EHsc",
+      "/W4",
+      "/WX",
+      "/MD",
+      "/permissive-",
+      "/fp:strict",
+      "/O2",
+      "/D_ITERATOR_DEBUG_LEVEL=0",
+      "/I<REPO>/src",
+      "/c",
+      "<SOURCE>",
+      "/Fo<OBJECT>",
+      "/sourceDependencies",
+      "<DEPS>"
+    ]
+  },
+  "environment": {
+    "SystemRoot": "C:/Windows",
+    "windir": "C:/Windows",
+    "PATH": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64;C:/Windows/System32",
+    "INCLUDE": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include;C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt",
+    "TEMP": "<NEW_PURPOSE_RUN>/compiler-temp",
+    "TMP": "<NEW_PURPOSE_RUN>/compiler-temp",
+    "VSLANG": "1033"
+  },
+  "difference_from_Clock": "Same ABI-affecting flags and original include order. Replace whole Clock TU/link with this purpose TU and /c; emit dependencies and one object; no /DNDEBUG,/Zp,/arch override,link or executable.",
+  "include_roots": [
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt"
+  ],
+  "compiler_inventory_pinned_from_old_admission": true,
+  "compiler_internal_helpers_temp_peak_heap_RSS_not_certified": true,
+  "root_separate_approval_required": true
+}

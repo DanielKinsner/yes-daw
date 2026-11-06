@@ -1,0 +1,112 @@
+{
+  "boundary": "FIRST_COMPLETE_OWN_SOURCE_CHECK_PASS_WHOLE_PURPOSE_SOURCE_PROFILE_REPLICAS_DECODER_LAUNCHER_CHECKER_DOCS_AND_FAILED_HISTORY_FROZEN",
+  "files": [
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/layout.cpp",
+      "bytes": 19827,
+      "sha256": "2ED924817964FD40F1EC48B97CBED0EEB05736149D81FFA107420436B3186911"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/layout-types.h",
+      "bytes": 2893,
+      "sha256": "2F98A7FEA610AF2A49AEBF5156489818C7D0DEA226D0F550BE25E3C640326633"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/schema.json",
+      "bytes": 27181,
+      "sha256": "B2B1189E8726C6C80C36177D74D46A8C7F3612C746502B8508F4FD9B65AD9F80"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/profile.json",
+      "bytes": 1767,
+      "sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/correspondence.json",
+      "bytes": 21108,
+      "sha256": "77D8CAAE4C20BF25A47D2DAC339BB33BD26B0195883B778F423F3C96C427FEC9"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/decode_coff.py",
+      "bytes": 4441,
+      "sha256": "71925F5197AA7D0C16498F3814C5719A2DFC2C15FCAA3F4B71FBE31EF52AFACB"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/launch_compile.py",
+      "bytes": 8018,
+      "sha256": "8E1CA919CD6478C3B42BAD48D531B7EBA02AB4EA3BC3A4263CDD5207FD164F9B"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/prepare_source.py",
+      "bytes": 16112,
+      "sha256": "34137715A102744245F15718AC83FD1A36399FA074140F5675BFCB5B2A78395A"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/README.md",
+      "bytes": 8811,
+      "sha256": "B0B9C99D2DC64C089059930F14816980B75D9765D062FB8BFA77A5F219B40930"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/own-checks.json",
+      "bytes": 232640,
+      "sha256": "8C13A4123A28C32F59C24FAE52EA5DF39FE1E039D44A153820E341D1B07DAF9E"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/own-check-receipt.json",
+      "bytes": 462,
+      "sha256": "70CA926E7CD9F2927114289D56A5ADD93AAE8B44BEB65DBD2708E3F7AF8917C0"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/failed-own-check-r1/correspondence.json",
+      "bytes": 21108,
+      "sha256": "77D8CAAE4C20BF25A47D2DAC339BB33BD26B0195883B778F423F3C96C427FEC9"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/failed-own-check-r1/decode_coff.py",
+      "bytes": 4441,
+      "sha256": "71925F5197AA7D0C16498F3814C5719A2DFC2C15FCAA3F4B71FBE31EF52AFACB"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/failed-own-check-r1/launch_compile.py",
+      "bytes": 8018,
+      "sha256": "8E1CA919CD6478C3B42BAD48D531B7EBA02AB4EA3BC3A4263CDD5207FD164F9B"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/failed-own-check-r1/layout-types.h",
+      "bytes": 2893,
+      "sha256": "2F98A7FEA610AF2A49AEBF5156489818C7D0DEA226D0F550BE25E3C640326633"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/failed-own-check-r1/layout.cpp",
+      "bytes": 19827,
+      "sha256": "2ED924817964FD40F1EC48B97CBED0EEB05736149D81FFA107420436B3186911"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/failed-own-check-r1/prepare_source.py",
+      "bytes": 16099,
+      "sha256": "568D43045095556F53386A5A221BEFF72DA66087123266EACCB965C507F55656"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/failed-own-check-r1/profile.json",
+      "bytes": 1767,
+      "sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/failed-own-check-r1/README.md",
+      "bytes": 8811,
+      "sha256": "B0B9C99D2DC64C089059930F14816980B75D9765D062FB8BFA77A5F219B40930"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/failed-own-check-r1/receipt.json",
+      "bytes": 1848,
+      "sha256": "ECFD9B552DF772E086B67608BE137CADD85254314AFDB24287D5285C28E8041E"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/failed-own-check-r1/schema.json",
+      "bytes": 27181,
+      "sha256": "B2B1189E8726C6C80C36177D74D46A8C7F3612C746502B8508F4FD9B65AD9F80"
+    }
+  ],
+  "actual_native_or_compile_layout_values": false,
+  "no_compiler_or_target_GO": true
+}

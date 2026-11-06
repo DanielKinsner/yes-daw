@@ -1,0 +1,8 @@
+{
+  "purpose": "OWN_THIN_CALLER_FILE_TEXT_HASH_INTEGER_REVIEW_ONLY",
+  "actual_exit_code": 0,
+  "tool_wall_time_seconds": 0.1403592,
+  "checks": 30,
+  "subject_launcher_compiler_decoder_executions": 0,
+  "verdict": "ACCEPT_CALLER_FOR_EXACT_ISOLATED_COMPILE_ONLY_PURPOSE_COMMAND"
+}

@@ -1,0 +1,55 @@
+{
+  "actual_exit_code": 1,
+  "tool_wall_time_seconds": 0.3354199,
+  "failure": "ValueError: scope disclosure no link",
+  "stage": "prepare_source.py line97 documentation predicate; README actual sentence No library is linked.",
+  "supported_hypothesis": "Equivalent disclosure-text mismatch; compiler /c/no-link facts were unchanged and no compiler/decoder/launcher ran. Replace only checklist substring with actual sentence.",
+  "files": [
+    {
+      "path": "layout-types.h",
+      "bytes": 2893,
+      "sha256": "2F98A7FEA610AF2A49AEBF5156489818C7D0DEA226D0F550BE25E3C640326633"
+    },
+    {
+      "path": "decode_coff.py",
+      "bytes": 4441,
+      "sha256": "71925F5197AA7D0C16498F3814C5719A2DFC2C15FCAA3F4B71FBE31EF52AFACB"
+    },
+    {
+      "path": "launch_compile.py",
+      "bytes": 8018,
+      "sha256": "8E1CA919CD6478C3B42BAD48D531B7EBA02AB4EA3BC3A4263CDD5207FD164F9B"
+    },
+    {
+      "path": "README.md",
+      "bytes": 8811,
+      "sha256": "B0B9C99D2DC64C089059930F14816980B75D9765D062FB8BFA77A5F219B40930"
+    },
+    {
+      "path": "prepare_source.py",
+      "bytes": 16099,
+      "sha256": "568D43045095556F53386A5A221BEFF72DA66087123266EACCB965C507F55656"
+    },
+    {
+      "path": "profile.json",
+      "bytes": 1767,
+      "sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399"
+    },
+    {
+      "path": "correspondence.json",
+      "bytes": 21108,
+      "sha256": "77D8CAAE4C20BF25A47D2DAC339BB33BD26B0195883B778F423F3C96C427FEC9"
+    },
+    {
+      "path": "schema.json",
+      "bytes": 27181,
+      "sha256": "B2B1189E8726C6C80C36177D74D46A8C7F3612C746502B8508F4FD9B65AD9F80"
+    },
+    {
+      "path": "layout.cpp",
+      "bytes": 19827,
+      "sha256": "2ED924817964FD40F1EC48B97CBED0EEB05736149D81FFA107420436B3186911"
+    }
+  ],
+  "no_compiler_decoder_launcher_or_target_execution": true
+}

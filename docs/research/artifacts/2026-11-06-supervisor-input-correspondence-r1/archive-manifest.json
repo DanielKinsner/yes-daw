@@ -1,0 +1,62 @@
+{
+  "schema": "PINNED_SOURCE_PACKET_LOSSLESS_DELIVERY_V1",
+  "original_pins_sha256": "26564260A0A6C1D8D5EA9F340B8DC277B5F45E1F474B66B46DC5C305AAAC15E0",
+  "original_verdict": "SEE_ORIGINAL_SOURCE_PACKET",
+  "scope": "Preservation of the named packet only. No new independent source/numeric/resource acceptance, fit, NOFIT, native binding, target execution or feature completion follows.",
+  "files": [
+    {
+      "file": "sources/001-audit.json",
+      "original_path": "build-ci/20261106-supervisor-input-correspondence-audit-r1/audit.json",
+      "original_bytes": 2524,
+      "original_sha256": "7433DF90BAAAE881DE075311CD546B2EBA8BA74B0984ACD213FCCA7F3520AA9A",
+      "bytes": 2524,
+      "sha256": "7433DF90BAAAE881DE075311CD546B2EBA8BA74B0984ACD213FCCA7F3520AA9A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-audit.py",
+      "original_path": "build-ci/20261106-supervisor-input-correspondence-audit-r1/audit.py",
+      "original_bytes": 5384,
+      "original_sha256": "AD443C2317AA0F3ADD267C8E0CFFD2640FFE131877BBD00A94510BB298A302F6",
+      "bytes": 5384,
+      "sha256": "AD443C2317AA0F3ADD267C8E0CFFD2640FFE131877BBD00A94510BB298A302F6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-source-pins.json",
+      "original_path": "build-ci/20261106-supervisor-input-correspondence-audit-r1/source-pins.json",
+      "original_bytes": 1010,
+      "original_sha256": "26564260A0A6C1D8D5EA9F340B8DC277B5F45E1F474B66B46DC5C305AAAC15E0",
+      "bytes": 1010,
+      "sha256": "26564260A0A6C1D8D5EA9F340B8DC277B5F45E1F474B66B46DC5C305AAAC15E0",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "original_bytes": 108428,
+      "original_sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788",
+      "bytes": 108428,
+      "sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+      "original_bytes": 503610,
+      "original_sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3",
+      "bytes": 503610,
+      "sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-clock-supervisor-protocol-v1.md",
+      "original_path": "docs/research/clock-supervisor-protocol-v1.md",
+      "original_bytes": 44119,
+      "original_sha256": "7A933415DFAA6B00C76F317F723E68B8E953055B7D3F41AA65CBAAAA536367C2",
+      "bytes": 44119,
+      "sha256": "7A933415DFAA6B00C76F317F723E68B8E953055B7D3F41AA65CBAAAA536367C2",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

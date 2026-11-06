@@ -1,0 +1,194 @@
+{
+  "schema": "THIN_NATIVE_LAYOUT_ROOT_CALLER_INDEPENDENT_REVIEW_R1",
+  "verdict": "ACCEPT_CALLER_FOR_EXACT_ISOLATED_COMPILE_ONLY_PURPOSE_COMMAND",
+  "subject_sha256": "7E471316268BDE6A0D9816E9EFA248BDE9D50EA4F0FC0675286A584179497595",
+  "exact_command": [
+    "C:/Users/SM - Dan/AppData/Local/Programs/Python/Python313/python.exe",
+    "-I",
+    "-S",
+    "build-ci/20261106-native-layout-root-launch-r1.py"
+  ],
+  "findings": [],
+  "conditions": [
+    "Exact fixed isolated nonoptimized command with no extra argv",
+    "Frozen approved source folder remains without import-shadow additions",
+    "Separate whole-purpose acceptance and root compile authorization are still required"
+  ],
+  "unobserved": [
+    "Actual host flags/version",
+    "Python DLL/stdlib/provider closure",
+    "Any caller/launcher/compiler/decoder execution or layout values",
+    "Physical stack/RSS/resource fit/Clock or supervisor facts"
+  ],
+  "top_level_source_namespace": [
+    "README.md",
+    "correspondence.json",
+    "decode_coff.py",
+    "failed-own-check-r1",
+    "first-source-green-freeze.json",
+    "launch_compile.py",
+    "layout-types.h",
+    "layout.cpp",
+    "own-check-receipt.json",
+    "own-checks.json",
+    "prepare_source.py",
+    "profile.json",
+    "schema.json",
+    "source-pins.json"
+  ],
+  "checks": [
+    {
+      "name": "exact thin caller",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard import sys",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard assert sys.flags.isolated and sys.flags.no_site and sys.flags.ignore_environment",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard assert not sys.flags.optimize and sys.maxsize == (1 << 63) - 1",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard assert Path(sys.executable).resolve() == host.resolve()",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard assert sys.version_info[:3] == (3, 13, 5)",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard 5341746F92483A93E44C313DE830F2FBA2956F0759094404A16B2FED06C9A2ED",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard assert len(sys.argv) == 1",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard root = Path(__file__).resolve().parents[1]",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard 8E1CA919CD6478C3B42BAD48D531B7EBA02AB4EA3BC3A4263CDD5207FD164F9B",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard sys.dont_write_bytecode = True",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard sys.path.insert(0, str(source))",
+      "passed": true
+    },
+    {
+      "name": "ordered caller guard runpy.run_path(str(launcher), run_name='__main__')",
+      "passed": true
+    },
+    {
+      "name": "only one added search path",
+      "passed": true
+    },
+    {
+      "name": "no subprocess in thin caller",
+      "passed": true
+    },
+    {
+      "name": "exact fixed host file",
+      "passed": true
+    },
+    {
+      "name": "host DOS header",
+      "passed": true
+    },
+    {
+      "name": "host PE bounds",
+      "passed": true
+    },
+    {
+      "name": "host AMD64 PE",
+      "passed": true
+    },
+    {
+      "name": "pinned launcher",
+      "passed": true
+    },
+    {
+      "name": "pinned purpose manifest",
+      "passed": true
+    },
+    {
+      "name": "exact existing top-level Python sources",
+      "passed": true
+    },
+    {
+      "name": "no top-level import packages",
+      "passed": true
+    },
+    {
+      "name": "root separate whole review identity",
+      "passed": true
+    },
+    {
+      "name": "scope disclosure exact nonoptimized command",
+      "passed": true
+    },
+    {
+      "name": "scope disclosure earlier standard-library imports",
+      "passed": true
+    },
+    {
+      "name": "scope disclosure entire host runtime",
+      "passed": true
+    },
+    {
+      "name": "scope disclosure pending authorization",
+      "passed": true
+    },
+    {
+      "name": "scope disclosure No caller, launcher, compiler or decoder was run",
+      "passed": true
+    },
+    {
+      "name": "scope disclosure no functional findings",
+      "passed": true
+    }
+  ],
+  "input_pins": [
+    {
+      "path": "build-ci/20261106-native-layout-root-launch-r1.py",
+      "bytes": 1037,
+      "sha256": "7E471316268BDE6A0D9816E9EFA248BDE9D50EA4F0FC0675286A584179497595"
+    },
+    {
+      "path": "C:/Users/SM - Dan/AppData/Local/Programs/Python/Python313/python.exe",
+      "bytes": 105816,
+      "sha256": "5341746F92483A93E44C313DE830F2FBA2956F0759094404A16B2FED06C9A2ED"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/launch_compile.py",
+      "bytes": 8018,
+      "sha256": "8E1CA919CD6478C3B42BAD48D531B7EBA02AB4EA3BC3A4263CDD5207FD164F9B"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/source-pins.json",
+      "bytes": 134266,
+      "sha256": "7B8EF452D04B97D38B92D1E790FA61B355660A141FA4CB1D21A1002C4B3EA165"
+    },
+    {
+      "path": "build-ci/20261106-native-layout-purpose-independent-review-r1/review.json",
+      "bytes": 50215,
+      "sha256": "EC89EF36D2C4085AC8EAEF5242428E2D2D6E8A20FA496EC23060961067E0D237"
+    },
+    {
+      "path": "build-ci/20261106-native-layout-caller-review-r1/review.md",
+      "bytes": 3303,
+      "sha256": "16FF8443E1A1ECE93440E858A00E836CF29A639C1ABE4EFAF2D109AD10B85BFA"
+    }
+  ],
+  "no_compiler_or_Clock_authority": true
+}

@@ -1,0 +1,39 @@
+{
+  "schema": "R13_BOOTSTRAP_STATIC_FIELD_SOURCE_FINDING_R1",
+  "scope": "source-level correspondence defect; no runtime failure observed",
+  "inputs": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "bytes": 108428,
+      "sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/runtime/Binding/Binders.cs",
+      "bytes": 389899,
+      "sha256": "CCA6BC97C2CDC16FDC1EB612FABCCCEA919629BC4C04F952C00A458FF7C9F6AC"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/MshObject.cs",
+      "bytes": 106246,
+      "sha256": "E8553EE8EC58BD3E50DEAE8EACBC43E2E4C73B6A9E52EE01FC3DABDA7795E40B"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/CoreAdapter.cs",
+      "bytes": 264454,
+      "sha256": "59C929C3F7E8D7F053E46FBACB2FAD1105ABF62D1FB292414486D8EC1326023C"
+    },
+    {
+      "path": "build-ci/20261106-r13-bootstrap-static-field-finding-r1/finding.md",
+      "bytes": 2655,
+      "sha256": "6EAC701B39A9EDE03C0DEBB57291CFD2E8AC703729C8A4F1EF75B3233CBA322C"
+    },
+    {
+      "path": "build-ci/20261106-r13-bootstrap-static-field-finding-r1/preserve.py",
+      "bytes": 2049,
+      "sha256": "1F4C0C34044D9504DA65CF41F7714FCBA84A3BD96AD6EC7C7F1DC8D291F3C3A5"
+    }
+  ],
+  "R14_correction_required": "[Type]::EmptyTypes",
+  "runtime_tested": false,
+  "target_execution": false
+}

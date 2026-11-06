@@ -1,0 +1,65 @@
+{
+  "schema": "FOCUSED_R13_SUPERVISOR_INPUT_CORRESPONDENCE_R1",
+  "verdict": "NO_ADMITTED_EXPANDED_ENV_512_MISMATCH_UNDER_SELECTED_PATH_RECIPE",
+  "bounds": {
+    "raw_NewRunRoot": 464,
+    "effective_canonical_root_before_every_child": 479,
+    "working_directory_including_possible_single_trailing_separator": 480,
+    "expanded_opaque_temp": 491,
+    "stage": 485,
+    "transport": 489,
+    "new_request_path": 509,
+    "new_terminal_path": 510,
+    "independent_compiler_replacement_effective_root": 481
+  },
+  "source_lines": {
+    "initial_paths_and_seven_suffixes": [
+      20,
+      32
+    ],
+    "per_child_final_args_and_environment": [
+      186,
+      204
+    ],
+    "replacement_guard": [
+      283,
+      291
+    ],
+    "AssertNoLink_input_guard": [
+      141,
+      144
+    ],
+    "copy_AssertNoLink": [
+      500,
+      503
+    ],
+    "canonical_root_and_prelaunch_sequence": [
+      959,
+      993
+    ],
+    "native_six_arguments": [
+      998,
+      1006
+    ]
+  },
+  "reasoning": [
+    "Raw suffix guard bounds raw NewRunRoot464; it is not blindly transferred through GetFullPath/8.3 expansion.",
+    "Before any child, predecessor Copy-TaskOwned checks its destination via Assert-NoLink input512. Under the selected stock filesystem Join-Path correspondence, effective canonical root plus33<=512; a possible single trailing separator adds at most one to working-directory representation.",
+    "Therefore expanded opaque-temp is<=491, stage<=485, transport<=489 and fixed new request/terminal paths<=509/510. Later native children are dominated by the same completed precompiler prefix.",
+    "The actual compiler source-dependencies argument independently requires build-root/source-dependencies.json<=512 through checked Replace-TaskBounded and final Invoke-TaskChild guard.",
+    "All target arguments still receive the final ASCII512 guard, with counts28/6/6. Non-placeholder environment values receive ASCII512 before assignment; actual TEMP/TMP placeholders expand to the already bounded opaque root.",
+    "This is current-source correspondence, not target execution, universal filesystem/provider behavior, whole payload/fit, native binding or GO credit. Earlier conditional path/SDK/profile premises remain explicit."
+  ],
+  "actual_manifest_environment_value_lengths_before_expansion": {
+    "SystemRoot": 10,
+    "windir": 10,
+    "PATH": 124,
+    "INCLUDE": 161,
+    "LIB": 224,
+    "TEMP": 19,
+    "TMP": 19,
+    "VSLANG": 4
+  },
+  "target_execution": false,
+  "subjects_preserved": true
+}

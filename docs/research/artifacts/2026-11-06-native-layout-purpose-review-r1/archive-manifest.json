@@ -1,0 +1,143 @@
+{
+  "schema": "PINNED_SOURCE_PACKET_LOSSLESS_DELIVERY_V1",
+  "original_pins_sha256": "C21D5A7C450890613F67E1D681F78DB25390A09CC83574AC22319CC3BA1304C7",
+  "original_verdict": "SEE_ORIGINAL_SOURCE_PACKET",
+  "scope": "Preservation of the named packet only. No new independent source/numeric/resource acceptance, fit, NOFIT, native binding, target execution or feature completion follows.",
+  "files": [
+    {
+      "file": "sources/001-check.py",
+      "original_path": "build-ci/20261106-native-layout-purpose-independent-review-r1/check.py",
+      "original_bytes": 7343,
+      "original_sha256": "6E0AF0FF55972351B03401C769CA1B8CB77B6C68B971D382DF9CBE580814D801",
+      "bytes": 7343,
+      "sha256": "6E0AF0FF55972351B03401C769CA1B8CB77B6C68B971D382DF9CBE580814D801",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-review.json",
+      "original_path": "build-ci/20261106-native-layout-purpose-independent-review-r1/review.json",
+      "original_bytes": 50215,
+      "original_sha256": "EC89EF36D2C4085AC8EAEF5242428E2D2D6E8A20FA496EC23060961067E0D237",
+      "bytes": 50215,
+      "sha256": "EC89EF36D2C4085AC8EAEF5242428E2D2D6E8A20FA496EC23060961067E0D237",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-review.md",
+      "original_path": "build-ci/20261106-native-layout-purpose-independent-review-r1/review.md",
+      "original_bytes": 4795,
+      "original_sha256": "A51E8120EA65A0A794F2A5A329C5D4336FF2200BE0D8F47899861676E4EDC67B",
+      "bytes": 4795,
+      "sha256": "A51E8120EA65A0A794F2A5A329C5D4336FF2200BE0D8F47899861676E4EDC67B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-source-pins.json",
+      "original_path": "build-ci/20261106-native-layout-purpose-independent-review-r1/source-pins.json",
+      "original_bytes": 2539,
+      "original_sha256": "C21D5A7C450890613F67E1D681F78DB25390A09CC83574AC22319CC3BA1304C7",
+      "bytes": 2539,
+      "sha256": "C21D5A7C450890613F67E1D681F78DB25390A09CC83574AC22319CC3BA1304C7",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-20261106-native-layout-root-launch-r1.py",
+      "original_path": "build-ci/20261106-native-layout-root-launch-r1.py",
+      "original_bytes": 1037,
+      "original_sha256": "7E471316268BDE6A0D9816E9EFA248BDE9D50EA4F0FC0675286A584179497595",
+      "bytes": 1037,
+      "sha256": "7E471316268BDE6A0D9816E9EFA248BDE9D50EA4F0FC0675286A584179497595",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-correspondence.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/correspondence.json",
+      "original_bytes": 21108,
+      "original_sha256": "77D8CAAE4C20BF25A47D2DAC339BB33BD26B0195883B778F423F3C96C427FEC9",
+      "bytes": 21108,
+      "sha256": "77D8CAAE4C20BF25A47D2DAC339BB33BD26B0195883B778F423F3C96C427FEC9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/007-decode_coff.py",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/decode_coff.py",
+      "original_bytes": 4441,
+      "original_sha256": "71925F5197AA7D0C16498F3814C5719A2DFC2C15FCAA3F4B71FBE31EF52AFACB",
+      "bytes": 4441,
+      "sha256": "71925F5197AA7D0C16498F3814C5719A2DFC2C15FCAA3F4B71FBE31EF52AFACB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/008-launch_compile.py",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/launch_compile.py",
+      "original_bytes": 8018,
+      "original_sha256": "8E1CA919CD6478C3B42BAD48D531B7EBA02AB4EA3BC3A4263CDD5207FD164F9B",
+      "bytes": 8018,
+      "sha256": "8E1CA919CD6478C3B42BAD48D531B7EBA02AB4EA3BC3A4263CDD5207FD164F9B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/009-layout-types.h",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/layout-types.h",
+      "original_bytes": 2893,
+      "original_sha256": "2F98A7FEA610AF2A49AEBF5156489818C7D0DEA226D0F550BE25E3C640326633",
+      "bytes": 2893,
+      "sha256": "2F98A7FEA610AF2A49AEBF5156489818C7D0DEA226D0F550BE25E3C640326633",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/010-layout.cpp",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/layout.cpp",
+      "original_bytes": 19827,
+      "original_sha256": "2ED924817964FD40F1EC48B97CBED0EEB05736149D81FFA107420436B3186911",
+      "bytes": 19827,
+      "sha256": "2ED924817964FD40F1EC48B97CBED0EEB05736149D81FFA107420436B3186911",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/011-prepare_source.py",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/prepare_source.py",
+      "original_bytes": 16112,
+      "original_sha256": "34137715A102744245F15718AC83FD1A36399FA074140F5675BFCB5B2A78395A",
+      "bytes": 16112,
+      "sha256": "34137715A102744245F15718AC83FD1A36399FA074140F5675BFCB5B2A78395A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/012-profile.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/profile.json",
+      "original_bytes": 1767,
+      "original_sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399",
+      "bytes": 1767,
+      "sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/013-README.md",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/README.md",
+      "original_bytes": 8811,
+      "original_sha256": "B0B9C99D2DC64C089059930F14816980B75D9765D062FB8BFA77A5F219B40930",
+      "bytes": 8811,
+      "sha256": "B0B9C99D2DC64C089059930F14816980B75D9765D062FB8BFA77A5F219B40930",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/014-schema.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/schema.json",
+      "original_bytes": 27181,
+      "original_sha256": "B2B1189E8726C6C80C36177D74D46A8C7F3612C746502B8508F4FD9B65AD9F80",
+      "bytes": 27181,
+      "sha256": "B2B1189E8726C6C80C36177D74D46A8C7F3612C746502B8508F4FD9B65AD9F80",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/015-source-pins.json",
+      "original_path": "build-ci/20261106-native-object-layout-purpose-source-r1/source-pins.json",
+      "original_bytes": 134266,
+      "original_sha256": "7B8EF452D04B97D38B92D1E790FA61B355660A141FA4CB1D21A1002C4B3EA165",
+      "bytes": 134266,
+      "sha256": "7B8EF452D04B97D38B92D1E790FA61B355660A141FA4CB1D21A1002C4B3EA165",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

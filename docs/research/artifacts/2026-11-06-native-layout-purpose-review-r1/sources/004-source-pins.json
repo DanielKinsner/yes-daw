@@ -1,0 +1,65 @@
+{
+  "schema": "INDEPENDENT_NATIVE_LAYOUT_PURPOSE_REVIEW_PINS_R1",
+  "inputs": [
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/source-pins.json",
+      "bytes": 134266,
+      "sha256": "7B8EF452D04B97D38B92D1E790FA61B355660A141FA4CB1D21A1002C4B3EA165"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/layout.cpp",
+      "bytes": 19827,
+      "sha256": "2ED924817964FD40F1EC48B97CBED0EEB05736149D81FFA107420436B3186911"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/layout-types.h",
+      "bytes": 2893,
+      "sha256": "2F98A7FEA610AF2A49AEBF5156489818C7D0DEA226D0F550BE25E3C640326633"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/schema.json",
+      "bytes": 27181,
+      "sha256": "B2B1189E8726C6C80C36177D74D46A8C7F3612C746502B8508F4FD9B65AD9F80"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/correspondence.json",
+      "bytes": 21108,
+      "sha256": "77D8CAAE4C20BF25A47D2DAC339BB33BD26B0195883B778F423F3C96C427FEC9"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/profile.json",
+      "bytes": 1767,
+      "sha256": "04E5FC9CC4CE1EF3E63A0E617BA8E4102FE5ADC315A5415FEAE130E6DF730399"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/launch_compile.py",
+      "bytes": 8018,
+      "sha256": "8E1CA919CD6478C3B42BAD48D531B7EBA02AB4EA3BC3A4263CDD5207FD164F9B"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/decode_coff.py",
+      "bytes": 4441,
+      "sha256": "71925F5197AA7D0C16498F3814C5719A2DFC2C15FCAA3F4B71FBE31EF52AFACB"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/prepare_source.py",
+      "bytes": 16112,
+      "sha256": "34137715A102744245F15718AC83FD1A36399FA074140F5675BFCB5B2A78395A"
+    },
+    {
+      "path": "build-ci/20261106-native-object-layout-purpose-source-r1/README.md",
+      "bytes": 8811,
+      "sha256": "B0B9C99D2DC64C089059930F14816980B75D9765D062FB8BFA77A5F219B40930"
+    },
+    {
+      "path": "build-ci/20261106-native-layout-root-launch-r1.py",
+      "bytes": 1037,
+      "sha256": "7E471316268BDE6A0D9816E9EFA248BDE9D50EA4F0FC0675286A584179497595"
+    },
+    {
+      "path": "build-ci/20261106-native-layout-purpose-independent-review-r1/check.py",
+      "bytes": 7343,
+      "sha256": "6E0AF0FF55972351B03401C769CA1B8CB77B6C68B971D382DF9CBE580814D801"
+    }
+  ]
+}

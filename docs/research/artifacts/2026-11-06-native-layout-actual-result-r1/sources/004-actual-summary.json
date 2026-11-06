@@ -1,0 +1,34 @@
+{
+  "status": "ACTUAL_COMPILE_ONLY_LAYOUT_QUALIFIED",
+  "compiler_raw_exit": 0,
+  "compiler_seconds": 0.5608552999910899,
+  "include_count": 111,
+  "actual_cells": 194,
+  "object_sha256": "FE84226C8D35C527BF5EBE7386887BDD4259D6421E00722A7D05D96E62C34949",
+  "actual_selected_sizes": {
+    "Text": 65544,
+    "Stream": 65584,
+    "FractionCache": 11784,
+    "Rejection": 80,
+    "CachedPort": 160,
+    "Production": 64,
+    "Catalogue": 1248,
+    "DoublePair": 16,
+    "String": 32,
+    "ChangeVector": 24
+  },
+  "actual_MSC_FULL_VER": 194435228,
+  "no_link": true,
+  "Clock_or_supervisor_execution": false,
+  "not_qualified": [
+    "whole_python_DLL_stdlib_closure",
+    "native_target_source_binary_association",
+    "automatic_lifetime_sum",
+    "physical_stack_or_RSS",
+    "generic_runtime_CRT_EH_FILE_heap",
+    "whole_resource_fit",
+    "prices",
+    "Data",
+    "Clock_or_supervisor_behavior"
+  ]
+}

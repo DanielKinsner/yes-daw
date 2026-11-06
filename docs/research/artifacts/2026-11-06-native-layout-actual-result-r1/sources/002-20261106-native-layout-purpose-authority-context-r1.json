@@ -1,0 +1,19 @@
+{
+  "scope": "Root authorizes exactly one new execution-r1 compile-only layout purpose, after independent whole-source and thin-caller reviews. No Clock/helper/fixture/native target executable, link, Data, price, whole resource fit or physical-frame claim is authorized.",
+  "source_pins_sha256": "7B8EF452D04B97D38B92D1E790FA61B355660A141FA4CB1D21A1002C4B3EA165",
+  "purpose_review_sha256": "EC89EF36D2C4085AC8EAEF5242428E2D2D6E8A20FA496EC23060961067E0D237",
+  "purpose_review_checks": 726,
+  "caller_review_sha256": "4BA032819A6E7F24851DD1F309AAB890CF544646A5E0E5C23883B3FA5DD9D2D5",
+  "caller_review_checks": 30,
+  "caller_sha256": "7E471316268BDE6A0D9816E9EFA248BDE9D50EA4F0FC0675286A584179497595",
+  "exact_command": [
+    "C:/Users/SM - Dan/AppData/Local/Programs/Python/Python313/python.exe",
+    "-I",
+    "-S",
+    "build-ci/20261106-native-layout-root-launch-r1.py"
+  ],
+  "host_profile": "Exact Python3.13.5 AMD64 exe, isolated/no-site/no-environment/nonoptimized/no arguments; frozen no-shadow purpose source folder. Exe hash is not whole Python DLL/stdlib/provider closure.",
+  "compiler_scope": "Pinned AMD64 console cl.exe, /c only, null stdin, hidden/no-shell, fixed fresh environment, suppressed error dialogs, owned file output and direct-child settlement;120s refusal observation is not a hard end-to-end wall-clock or compiler helper/heap/RSS/temp-disk certificate.",
+  "heavy_lane": "Root sole heavy lane; subagents remain source/file/integer only.",
+  "attempt_policy": "Preserve all raw results and any failure. No overwrite/retry is authorized by this record."
+}

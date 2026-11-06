@@ -53,10 +53,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    acceptance; actual native/resources/binding, public recipe/DSP, renderer and jobs/model remain unfinished.
    Current app code isd3ec661:491 local pure checks and GUI3 compile-only passed; exact-code CI42146047209
    passed all ten jobs. Later evidence/docs commits use the separate docs-only CI path, with runtime jobs skipped.
-   The latest research runner R13 passed1,491 functional source checks. Its whole operation-budget review
-   returned REVISE; no new scalar price is accepted. All target execution guards remain false.
+   Research runner R13 passed1,491 source checks, but a source follow-up found its bootstrap static-field
+   receiver wrong. R14 must fix it; R13 functionality remains HOLD. Its whole operation-budget review
+   returned REVISE; no new scalar price is accepted. All Clock execution guards remain false.
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
-   reader actually passed88 types/391 declared fields; this supplies no live object-size or whole-fit result.
+   reader actually passed88 types/391 declared fields. A separate /c-only purpose now measured194 type/layout
+   cells; this supplies selected object-size evidence, without physical-frame, whole-fit or Clock-run credit.
    ADR-0090's complete supervisor protocol passed115 independent checks; only a new unrun source candidate
    is authorized. R13's complete scalar successor is being rebuilt for a different fresh critic.
    Next: finish that whole numeric review and the supervisor implementation/resource/native/binding proof
@@ -82,6 +84,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Measure native type layouts without running a target
+
+- A separately reviewed purpose passed726 root source checks and30 independent thin-caller checks, then its one authorized /c-only compile actually exited0 in0.5608553s. The reviewed file reader decoded194 compiler cells;111 reported include paths were admitted. No target was linked or run.
+- Text/Stream/FractionCache/Rejection sizes are65,544/65,584/11,784/80 bytes under the exact public-type/replica/ABI correspondence. Raw COFF, all values, logs, dependency report, authorization and first-source failure are preserved. Object SHA FE84226C8D35C527BF5EBE7386887BDD4259D6421E00722A7D05D96E62C34949; lifetime/frame/runtime/joint-fit and Clock gates remain pending.
+- Source inspection found R13's `[Type[]]::EmptyTypes` bootstrap defect; R14 will use `[Type]::EmptyTypes` with a regression/correspondence check. R13 and prior reviews remain immutable; no runtime failure was fabricated. The expanded-path audit also confirms the new transport names fit existing prechild guards. R14 source and complete R13 scalarR2 remain in progress;8a2d3db passed docs-only CI42216834768.
 
 ## 2026-11-06 - Accept the complete supervisor design and authorize source only
 

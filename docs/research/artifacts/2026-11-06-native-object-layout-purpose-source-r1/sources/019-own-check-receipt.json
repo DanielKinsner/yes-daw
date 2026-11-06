@@ -1,0 +1,11 @@
+{
+  "purpose": "OWN_SOURCE_FILE_HASH_INTEGER_PREPARATION_ONLY",
+  "command": "python build-ci/20261106-native-object-layout-purpose-source-r1/prepare_source.py",
+  "actual_exit_code": 0,
+  "tool_wall_time_seconds": 0.3194674,
+  "checks": 596,
+  "layout_cells_observed": false,
+  "compiler_decoder_launcher_native_target_executions": 0,
+  "prior_own_check_failure_preserved": "failed-own-check-r1/receipt.json",
+  "whole_proposal_state": "UNRUN_NO_COMPILER_GO"
+}
