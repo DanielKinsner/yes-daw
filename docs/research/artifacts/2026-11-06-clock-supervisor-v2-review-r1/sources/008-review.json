@@ -1,0 +1,297 @@
+{
+  "schema": "INDEPENDENT_SUPERVISOR_V2_NARROW_EXTENSION_REVIEW_R1",
+  "verdict": "ACCEPT_PROPOSED_ADR0091_AND_EXACT_V2_DELTA_FOR_ROOT_APPLICATION",
+  "findings": [],
+  "subject_pins_sha256": "7F16DCFC23E61FFDA4B2DFEA6814CCA2398D74F29A3656755F9183FFAB79F7CD",
+  "base_ADR0090_and_v1_unchanged": true,
+  "allowed_delta": {
+    "request_magic": "YCSREQ02",
+    "terminal_magic": "YCSRES02",
+    "version": 2,
+    "run_domain": "YESDAW-CLOCK-SUPERVISOR-RUN-V2",
+    "additional_pair": [
+      10,
+      48
+    ],
+    "reason": "JobTerminationFailure"
+  },
+  "model_cases": {
+    "reason_pairs": 686,
+    "strict_magic_version": 16,
+    "mask_states": 32768,
+    "valid_masks": 24576,
+    "first_record_ordering": 36,
+    "proof_independence": 12
+  },
+  "extents": {
+    "request": 140,
+    "compiler": 41260,
+    "native": 18644,
+    "terminal": 308,
+    "transport": 79472,
+    "cleanup_prefix": 14,
+    "cleanup_late": 15
+  },
+  "scope": "Exact delta contract consistency only, not whole unchanged architecture review or dependent implementation/ABI/native/resource/census acceptance",
+  "no_prices_fit_Data_or_execution_GO": true,
+  "checks": [
+    {
+      "name": "exact complete subject seal",
+      "passed": true
+    },
+    {
+      "name": "subject/base build-ci/20261106-clock-supervisor-v2-extension-r1/0091-clock-supervisor-job-termination-diagnostic.md",
+      "passed": true
+    },
+    {
+      "name": "subject/base build-ci/20261106-clock-supervisor-v2-extension-r1/protocol-v2.md",
+      "passed": true
+    },
+    {
+      "name": "subject/base docs/research/clock-supervisor-protocol-v1.md",
+      "passed": true
+    },
+    {
+      "name": "subject/base docs/adr/0090-clock-research-owned-process-supervisor.md",
+      "passed": true
+    },
+    {
+      "name": "subject/base build-ci/20261106-clock-supervisor-v2-extension-r1/seal.py",
+      "passed": true
+    },
+    {
+      "name": "draft remains Proposed",
+      "passed": true
+    },
+    {
+      "name": "accepted base remains exact",
+      "passed": true
+    },
+    {
+      "name": "ADR0091 not yet applied",
+      "passed": true
+    },
+    {
+      "name": "ADR scope Use option1 only after",
+      "passed": true
+    },
+    {
+      "name": "ADR scope No compiler, helper, fixture or Clock execution follows.",
+      "passed": true
+    },
+    {
+      "name": "ADR scope first-primary/secondary ordering",
+      "passed": true
+    },
+    {
+      "name": "ADR scope Failed termination is an action failure",
+      "passed": true
+    },
+    {
+      "name": "ADR scope ADR-0090 and protocol v1 stay byte-exact",
+      "passed": true
+    },
+    {
+      "name": "ADR scope No source price transfers",
+      "passed": true
+    },
+    {
+      "name": "delta rule does not coerce or accept v1",
+      "passed": true
+    },
+    {
+      "name": "delta rule JobTerminationFailure",
+      "passed": true
+    },
+    {
+      "name": "delta rule allowed site10",
+      "passed": true
+    },
+    {
+      "name": "delta rule All0..47 reasons keep",
+      "passed": true
+    },
+    {
+      "name": "delta rule immediately captured documented native error",
+      "passed": true
+    },
+    {
+      "name": "delta rule reap-API-failure bit1",
+      "passed": true
+    },
+    {
+      "name": "delta rule precedence over exit-unobserved bit2",
+      "passed": true
+    },
+    {
+      "name": "delta rule first-primary/secondary/native-secondary ordering",
+      "passed": true
+    },
+    {
+      "name": "delta rule Do not overwrite an earlier failure or invent an exit/empty-job observation",
+      "passed": true
+    },
+    {
+      "name": "delta rule actual later job-query failure is a distinct32 event",
+      "passed": true
+    },
+    {
+      "name": "delta rule cleanup maximum15",
+      "passed": true
+    },
+    {
+      "name": "delta rule no price, ABI, fit or execution credit",
+      "passed": true
+    },
+    {
+      "name": "delta rule normative only after ADR-0091",
+      "passed": true
+    },
+    {
+      "name": "exact five overrides",
+      "passed": true
+    },
+    {
+      "name": "complete old reasons",
+      "passed": true
+    },
+    {
+      "name": "old32 exact query pair",
+      "passed": true
+    },
+    {
+      "name": "only one new admitted pair",
+      "passed": true
+    },
+    {
+      "name": "strict v2 admission YCSREQ02",
+      "passed": true
+    },
+    {
+      "name": "strict v2 admission YCSRES02",
+      "passed": true
+    },
+    {
+      "name": "same magic byte extents",
+      "passed": true
+    },
+    {
+      "name": "new equal-length domain label",
+      "passed": true
+    },
+    {
+      "name": "new pair fits old u32",
+      "passed": true
+    },
+    {
+      "name": "compiler request unchanged",
+      "passed": true
+    },
+    {
+      "name": "native request unchanged",
+      "passed": true
+    },
+    {
+      "name": "terminal unchanged",
+      "passed": true
+    },
+    {
+      "name": "transport unchanged",
+      "passed": true
+    },
+    {
+      "name": "cleanup prefix max14",
+      "passed": true
+    },
+    {
+      "name": "late cleanup max15",
+      "passed": true
+    },
+    {
+      "name": "no new mask category",
+      "passed": true
+    },
+    {
+      "name": "first-record models complete",
+      "passed": true
+    },
+    {
+      "name": "proof independence models complete",
+      "passed": true
+    },
+    {
+      "name": "review scope ACCEPT_PROPOSED_ADR0091_AND_EXACT_V2_DELTA_FOR_ROOT_APPLICATION",
+      "passed": true
+    },
+    {
+      "name": "review scope No functional finding",
+      "passed": true
+    },
+    {
+      "name": "review scope Status0/1 remain impossible",
+      "passed": true
+    },
+    {
+      "name": "review scope full prior predicates",
+      "passed": true
+    },
+    {
+      "name": "review scope No C++ enum layout",
+      "passed": true
+    },
+    {
+      "name": "review scope first primary is immutable",
+      "passed": true
+    },
+    {
+      "name": "review scope after record freeze",
+      "passed": true
+    },
+    {
+      "name": "review scope no compiler/helper/fixture/Clock GO",
+      "passed": true
+    },
+    {
+      "name": "review scope not implementation/runtime tests",
+      "passed": true
+    }
+  ],
+  "input_pins": [
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-extension-r1/source-pins.json",
+      "bytes": 1280,
+      "sha256": "7F16DCFC23E61FFDA4B2DFEA6814CCA2398D74F29A3656755F9183FFAB79F7CD"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-extension-r1/0091-clock-supervisor-job-termination-diagnostic.md",
+      "bytes": 2681,
+      "sha256": "4FE0904A932E43F6CED553FFBD56925A13BE31A40CBDEE4D995B6FD84166CF7E"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-extension-r1/protocol-v2.md",
+      "bytes": 2565,
+      "sha256": "72A2D899C1AA618032EFC8B0937D33A30593BC70D8C333849BFF0FDFFE5D3F83"
+    },
+    {
+      "path": "docs/research/clock-supervisor-protocol-v1.md",
+      "bytes": 44119,
+      "sha256": "7A933415DFAA6B00C76F317F723E68B8E953055B7D3F41AA65CBAAAA536367C2"
+    },
+    {
+      "path": "docs/adr/0090-clock-research-owned-process-supervisor.md",
+      "bytes": 10615,
+      "sha256": "68DC0922BF56F0B9697CF178B69639D5346684EAC0829BEE9DB55F03CB4F6565"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-extension-r1/seal.py",
+      "bytes": 2165,
+      "sha256": "C03777113D0A4D607B9CEDF3867023D8014856BA96FD26A035D2360F827FD37A"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-independent-review-r1/review.md",
+      "bytes": 4937,
+      "sha256": "0C701CF4D3D719FF79B2369EC5E9E44711C1205371E1B0532AAA6E55A92B950F"
+    }
+  ],
+  "discovery_note": "Initial guessed adr-0091.md read emitted a nonterminating missing-path error (combined command exit0); actual pinned 0091-clock-supervisor-job-termination-diagnostic.md then read completely. No subject edits or peer checker execution."
+}

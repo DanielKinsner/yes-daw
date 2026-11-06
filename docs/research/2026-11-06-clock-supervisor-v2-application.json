@@ -1,0 +1,21 @@
+{
+  "schema": "CLOCK_SUPERVISOR_V2_INITIAL_ACCEPTANCE_APPLICATION",
+  "independent_review_sha256": "5E7A5315D4B4C704888A34681A68A6F9A62C54F4EDAD65EB69EA16099AF5C768",
+  "independent_checks": 55,
+  "applied": [
+    {
+      "path": "docs/adr/0091-clock-supervisor-job-termination-diagnostic.md",
+      "reviewed_private_sha256": "4FE0904A932E43F6CED553FFBD56925A13BE31A40CBDEE4D995B6FD84166CF7E",
+      "applied_sha256": "C46B61E7839BE765956D80E9B3AA24E86CC6B39DEDBF12C96A97449C1A2CE126",
+      "edits": "initial Accepted status, source-only authorization and relocated links; exact normative delta preserved"
+    },
+    {
+      "path": "docs/research/clock-supervisor-protocol-v2.md",
+      "reviewed_private_sha256": "72A2D899C1AA618032EFC8B0937D33A30593BC70D8C333849BFF0FDFFE5D3F83",
+      "applied_sha256": "6F5FCA9F2A2831FB54B7E6CB2EB2F8A38060B6EDF2EC1CA4C590F8BB6ED9CDDC",
+      "edits": "initial Accepted status, source-only authorization and relocated links; exact normative delta preserved"
+    }
+  ],
+  "ADR0090_and_v1_unchanged": true,
+  "execution_authorized": false
+}

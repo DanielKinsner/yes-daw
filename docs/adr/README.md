@@ -97,6 +97,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0084](0084-musical-audio-channel-equivalence.md) | Musical channel equivalence: complete worker classification, one physical instance, logical stereo materialization and ready-only descriptor identity | Accepted |
 | [0085](0085-owned-musical-call-recipes.md) | Owned single-pass Musical call recipes, exact request provenance and prepaid same-origin dispatch/accounting | Accepted |
 | [0090](0090-clock-research-owned-process-supervisor.md) | Clock-research child ownership, bounded native capture and exact request/terminal transport | Accepted - architecture/protocol only; source authoring authorized |
+| [0091](0091-clock-supervisor-job-termination-diagnostic.md) | Separate job-termination diagnostic in supervisor protocol v2 | Accepted - source-only extension; no execution authority |
 
 ## Decision status (the five research forks)
 

@@ -85,6 +85,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-06 - Finish the main source ledger and separate job diagnostics
+
+- Root's complete exact-R13 bootstrap/main caller proposal passed682 own source/data checks at its first pass:127 rows/114 written main calls, upper180,658 (bootstrap/registration51,125; main129,533). It excludes own helper bodies; this unaccepted component now joins all74 freshly authored helper models for a different whole critic. Type[].EmptyTypes functionality HOLD remains.
+- Accepted new ADR-0091 after55 independent checks: protocol v2 distinguishes actual job-termination failure48 from query failure32, preserving every old Accepted byte and all layouts/caps/settlement rules. Only corresponding unrun candidate/manifest/checker changes are authorized; no source price, fit, compiler/helper/Clock GO follows.
+- R14 native capture/cleanup modules and provisional runner/manifest are drafted; whole source checks/review remain. The controlled-object worksheet is incomplete, with real closure/SDK/reference-layout leaves explicit. Measurement commit1516e3d passed docs-only CI42219767280; app code remains d3ec661.
+
 ## 2026-11-06 - Measure native type layouts without running a target
 
 - A separately reviewed purpose passed726 root source checks and30 independent thin-caller checks, then its one authorized /c-only compile actually exited0 in0.5608553s. The reviewed file reader decoded194 compiler cells;111 reported include paths were admitted. No target was linked or run.

@@ -1,0 +1,35 @@
+{
+  "scope": "complete source/data/integer proposal, not acceptance or target execution",
+  "files": [
+    {
+      "path": "caller-ledger.json",
+      "bytes": 143917,
+      "sha256": "0966C8A47AC17FE2283E99094E6315FD01F64FD041DF53DDE808F4F4C521928E"
+    },
+    {
+      "path": "source-pins.json",
+      "bytes": 3727,
+      "sha256": "36ED7E259CD9BD8233200808A3EDB0E116C4769A074DFC97CF7E668966E4DA00"
+    },
+    {
+      "path": "main_ledger.py",
+      "bytes": 33066,
+      "sha256": "EEEA9AAF64B29764D77EB704A0E709F18B3865C08DCA59AC45B8C5BD6F512CA9"
+    },
+    {
+      "path": "check_main.py",
+      "bytes": 8244,
+      "sha256": "A791EE27249127058846B791F407431E52B5644BCE9E2B4CEC4994AFF889D8C5"
+    },
+    {
+      "path": "argument.md",
+      "bytes": 6041,
+      "sha256": "5044BB88CE96B9BFF1C0656873F3E1A96089ABBE0531E5E2391965B0425B9314"
+    },
+    {
+      "path": "WORKING.md",
+      "bytes": 2362,
+      "sha256": "F6061076F2B89C28ABEEB2E77A4E792B0113BDDA6E39AEE04BCEF624F6DF0475"
+    }
+  ]
+}

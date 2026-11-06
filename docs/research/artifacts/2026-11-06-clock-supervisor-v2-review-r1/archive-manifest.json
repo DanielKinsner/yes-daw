@@ -1,0 +1,116 @@
+{
+  "schema": "PINNED_SOURCE_PACKET_LOSSLESS_DELIVERY_V1",
+  "original_pins_sha256": "848C7CFE2523797B65B0E4A49E5139A86D599AAB7F94ED2647C537E7D23DA4B6",
+  "original_verdict": "SEE_ORIGINAL_SOURCE_PACKET",
+  "scope": "Preservation of the named packet only. No new independent source/numeric/resource acceptance, fit, NOFIT, native binding, target execution or feature completion follows.",
+  "files": [
+    {
+      "file": "sources/001-0091-clock-supervisor-job-termination-diagnostic.md",
+      "original_path": "build-ci/20261106-clock-supervisor-v2-extension-r1/0091-clock-supervisor-job-termination-diagnostic.md",
+      "original_bytes": 2681,
+      "original_sha256": "4FE0904A932E43F6CED553FFBD56925A13BE31A40CBDEE4D995B6FD84166CF7E",
+      "bytes": 2681,
+      "sha256": "4FE0904A932E43F6CED553FFBD56925A13BE31A40CBDEE4D995B6FD84166CF7E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-protocol-v2.md",
+      "original_path": "build-ci/20261106-clock-supervisor-v2-extension-r1/protocol-v2.md",
+      "original_bytes": 2565,
+      "original_sha256": "72A2D899C1AA618032EFC8B0937D33A30593BC70D8C333849BFF0FDFFE5D3F83",
+      "bytes": 2565,
+      "sha256": "72A2D899C1AA618032EFC8B0937D33A30593BC70D8C333849BFF0FDFFE5D3F83",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-seal.py",
+      "original_path": "build-ci/20261106-clock-supervisor-v2-extension-r1/seal.py",
+      "original_bytes": 2165,
+      "original_sha256": "C03777113D0A4D607B9CEDF3867023D8014856BA96FD26A035D2360F827FD37A",
+      "bytes": 2165,
+      "sha256": "C03777113D0A4D607B9CEDF3867023D8014856BA96FD26A035D2360F827FD37A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-source-pins.json",
+      "original_path": "build-ci/20261106-clock-supervisor-v2-extension-r1/source-pins.json",
+      "original_bytes": 1280,
+      "original_sha256": "7F16DCFC23E61FFDA4B2DFEA6814CCA2398D74F29A3656755F9183FFAB79F7CD",
+      "bytes": 1280,
+      "sha256": "7F16DCFC23E61FFDA4B2DFEA6814CCA2398D74F29A3656755F9183FFAB79F7CD",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-check.py",
+      "original_path": "build-ci/20261106-clock-supervisor-v2-independent-review-r1/check.py",
+      "original_bytes": 8317,
+      "original_sha256": "224277089C852C670D0A538816B132B41A4C46A77F96240FF0737276AFF50787",
+      "bytes": 8317,
+      "sha256": "224277089C852C670D0A538816B132B41A4C46A77F96240FF0737276AFF50787",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-first-green-freeze.json",
+      "original_path": "build-ci/20261106-clock-supervisor-v2-independent-review-r1/first-green-freeze.json",
+      "original_bytes": 1038,
+      "original_sha256": "D0DCFA34AD85C1529ECC1377D6A32478775FA44C2914D29F864DFC684C6A6782",
+      "bytes": 1038,
+      "sha256": "D0DCFA34AD85C1529ECC1377D6A32478775FA44C2914D29F864DFC684C6A6782",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/007-own-check-receipt.json",
+      "original_path": "build-ci/20261106-clock-supervisor-v2-independent-review-r1/own-check-receipt.json",
+      "original_bytes": 496,
+      "original_sha256": "2A21E9C3E2CFAD749151E4D043E86038C3E55101B6DE41EA16B2638FBEF19146",
+      "bytes": 496,
+      "sha256": "2A21E9C3E2CFAD749151E4D043E86038C3E55101B6DE41EA16B2638FBEF19146",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/008-review.json",
+      "original_path": "build-ci/20261106-clock-supervisor-v2-independent-review-r1/review.json",
+      "original_bytes": 7855,
+      "original_sha256": "5E7A5315D4B4C704888A34681A68A6F9A62C54F4EDAD65EB69EA16099AF5C768",
+      "bytes": 7855,
+      "sha256": "5E7A5315D4B4C704888A34681A68A6F9A62C54F4EDAD65EB69EA16099AF5C768",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/009-review.md",
+      "original_path": "build-ci/20261106-clock-supervisor-v2-independent-review-r1/review.md",
+      "original_bytes": 4937,
+      "original_sha256": "0C701CF4D3D719FF79B2369EC5E9E44711C1205371E1B0532AAA6E55A92B950F",
+      "bytes": 4937,
+      "sha256": "0C701CF4D3D719FF79B2369EC5E9E44711C1205371E1B0532AAA6E55A92B950F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/010-source-pins.json",
+      "original_path": "build-ci/20261106-clock-supervisor-v2-independent-review-r1/source-pins.json",
+      "original_bytes": 2639,
+      "original_sha256": "848C7CFE2523797B65B0E4A49E5139A86D599AAB7F94ED2647C537E7D23DA4B6",
+      "bytes": 2639,
+      "sha256": "848C7CFE2523797B65B0E4A49E5139A86D599AAB7F94ED2647C537E7D23DA4B6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/011-0090-clock-research-owned-process-supervisor.md",
+      "original_path": "docs/adr/0090-clock-research-owned-process-supervisor.md",
+      "original_bytes": 10615,
+      "original_sha256": "68DC0922BF56F0B9697CF178B69639D5346684EAC0829BEE9DB55F03CB4F6565",
+      "bytes": 10615,
+      "sha256": "68DC0922BF56F0B9697CF178B69639D5346684EAC0829BEE9DB55F03CB4F6565",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/012-clock-supervisor-protocol-v1.md",
+      "original_path": "docs/research/clock-supervisor-protocol-v1.md",
+      "original_bytes": 44119,
+      "original_sha256": "7A933415DFAA6B00C76F317F723E68B8E953055B7D3F41AA65CBAAAA536367C2",
+      "bytes": 44119,
+      "sha256": "7A933415DFAA6B00C76F317F723E68B8E953055B7D3F41AA65CBAAAA536367C2",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

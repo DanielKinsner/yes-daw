@@ -1,0 +1,16 @@
+{
+  "purpose": "OWN_NARROW_SOURCE_TEXT_HASH_INTEGER_STATE_MODEL_REVIEW_ONLY",
+  "actual_exit_code": 0,
+  "tool_wall_time_seconds": 0.1468934,
+  "checks": 55,
+  "model_cases": {
+    "reason_pairs": 686,
+    "strict_magic_version": 16,
+    "mask_states": 32768,
+    "valid_masks": 24576,
+    "first_record_ordering": 36,
+    "proof_independence": 12
+  },
+  "no_target_compiler_peer_helper_or_native_execution": true,
+  "verdict": "ACCEPT_PROPOSED_ADR0091_AND_EXACT_V2_DELTA_FOR_ROOT_APPLICATION"
+}

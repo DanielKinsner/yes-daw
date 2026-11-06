@@ -1,0 +1,26 @@
+{
+  "boundary": "FIRST_COMPLETE_OWN_NARROW_REVIEW_PASS_WHOLE_SOURCE_AND_OUTPUT_FROZEN",
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-independent-review-r1/review.md",
+      "bytes": 4937,
+      "sha256": "0C701CF4D3D719FF79B2369EC5E9E44711C1205371E1B0532AAA6E55A92B950F"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-independent-review-r1/review.json",
+      "bytes": 7855,
+      "sha256": "5E7A5315D4B4C704888A34681A68A6F9A62C54F4EDAD65EB69EA16099AF5C768"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-independent-review-r1/check.py",
+      "bytes": 8317,
+      "sha256": "224277089C852C670D0A538816B132B41A4C46A77F96240FF0737276AFF50787"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-independent-review-r1/own-check-receipt.json",
+      "bytes": 496,
+      "sha256": "2A21E9C3E2CFAD749151E4D043E86038C3E55101B6DE41EA16B2638FBEF19146"
+    }
+  ],
+  "scope": "Exact ADR0091/protocol-v2 delta only; no dependent source/prices/fit/execution authority"
+}

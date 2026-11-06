@@ -1,0 +1,33 @@
+{
+  "schema": "SOURCE_ONLY_SUPERVISOR_V2_DELTA_PINS_R1",
+  "status": "PROPOSED_UNIMPLEMENTED_UNRUN_REQUIRES_FRESH_CRITIC",
+  "inputs": [
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-extension-r1/0091-clock-supervisor-job-termination-diagnostic.md",
+      "bytes": 2681,
+      "sha256": "4FE0904A932E43F6CED553FFBD56925A13BE31A40CBDEE4D995B6FD84166CF7E"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-extension-r1/protocol-v2.md",
+      "bytes": 2565,
+      "sha256": "72A2D899C1AA618032EFC8B0937D33A30593BC70D8C333849BFF0FDFFE5D3F83"
+    },
+    {
+      "path": "docs/research/clock-supervisor-protocol-v1.md",
+      "bytes": 44119,
+      "sha256": "7A933415DFAA6B00C76F317F723E68B8E953055B7D3F41AA65CBAAAA536367C2"
+    },
+    {
+      "path": "docs/adr/0090-clock-research-owned-process-supervisor.md",
+      "bytes": 10615,
+      "sha256": "68DC0922BF56F0B9697CF178B69639D5346684EAC0829BEE9DB55F03CB4F6565"
+    },
+    {
+      "path": "build-ci/20261106-clock-supervisor-v2-extension-r1/seal.py",
+      "bytes": 2165,
+      "sha256": "C03777113D0A4D607B9CEDF3867023D8014856BA96FD26A035D2360F827FD37A"
+    }
+  ],
+  "checks_scope": "exact documents/unchanged accepted base/available ADR number/byte arithmetic only",
+  "execution_authority": false
+}
