@@ -1,0 +1,337 @@
+{
+  "schema": "R12_SERIALIZATION_BUFFER_AND_SELECTED_WRITER_SOURCE_COMPONENT_R1",
+  "status": "WORKING_SOURCE_COMPONENT_NOT_COMPLETE_B_COLD_OR_GLOBAL_FIT",
+  "runner_sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F",
+  "documents": {
+    "marker": {
+      "encoded_byte_upper": 319,
+      "ASCII_text_units_upper": 318,
+      "escape_growth_count_upper": 9,
+      "escape_all_distinct_array_requests": 280720,
+      "escape_output_coupled_array_requests": 1110,
+      "escape_selected_array_requests": 1110,
+      "StringBuilder_chunk_count_upper": 2,
+      "StringBuilder_all_chunk_capacity_upper": 635,
+      "StringBuilder_all_chunk_array_requests": 1330,
+      "StringBuilder_all_chunk_object_requests": 96,
+      "ToString_request": 664,
+      "LF_concat_request": 664,
+      "UTF8_byte_array_request": 344,
+      "fixed_objects_and_position_stack": {
+        "StringWriter_field_slot_upper": 64,
+        "JsonTextWriter_including_base_field_slot_upper": 224,
+        "JsonPosition_List_field_slot_upper": 40,
+        "JsonPosition_all_old_backings_stride_upper32": 2016,
+        "UTF8Encoding_field_slot_upper": 72,
+        "overwritten_replacement_fallback_objects": 48
+      },
+      "selected_B_request_upper": 6672
+    },
+    "receipt": {
+      "encoded_byte_upper": 23635,
+      "ASCII_text_units_upper": 23634,
+      "escape_growth_count_upper": 189,
+      "escape_all_distinct_array_requests": 280720,
+      "escape_output_coupled_array_requests": 55302,
+      "escape_selected_array_requests": 55302,
+      "StringBuilder_chunk_count_upper": 8,
+      "StringBuilder_all_chunk_capacity_upper": 31633,
+      "StringBuilder_all_chunk_array_requests": 63506,
+      "StringBuilder_all_chunk_object_requests": 384,
+      "ToString_request": 47296,
+      "LF_concat_request": 47296,
+      "UTF8_byte_array_request": 23664,
+      "fixed_objects_and_position_stack": {
+        "StringWriter_field_slot_upper": 64,
+        "JsonTextWriter_including_base_field_slot_upper": 224,
+        "JsonPosition_List_field_slot_upper": 40,
+        "JsonPosition_all_old_backings_stride_upper32": 2016,
+        "UTF8Encoding_field_slot_upper": 72,
+        "overwritten_replacement_fallback_objects": 48
+      },
+      "selected_B_request_upper": 239912
+    },
+    "failure": {
+      "encoded_byte_upper": 262760,
+      "ASCII_text_units_upper": 262759,
+      "escape_growth_count_upper": 483,
+      "escape_all_distinct_array_requests": 280720,
+      "escape_output_coupled_array_requests": 545900,
+      "escape_selected_array_requests": 280720,
+      "StringBuilder_chunk_count_upper": 38,
+      "StringBuilder_all_chunk_capacity_upper": 270758,
+      "StringBuilder_all_chunk_array_requests": 542656,
+      "StringBuilder_all_chunk_object_requests": 1824,
+      "ToString_request": 525544,
+      "LF_concat_request": 525544,
+      "UTF8_byte_array_request": 262784,
+      "fixed_objects_and_position_stack": {
+        "StringWriter_field_slot_upper": 64,
+        "JsonTextWriter_including_base_field_slot_upper": 224,
+        "JsonPosition_List_field_slot_upper": 40,
+        "JsonPosition_all_old_backings_stride_upper32": 2016,
+        "UTF8Encoding_field_slot_upper": 72,
+        "overwritten_replacement_fallback_objects": 48
+      },
+      "selected_B_request_upper": 2141536
+    },
+    "bundle": {
+      "encoded_byte_upper": 1048576,
+      "ASCII_text_units_upper": 1048575,
+      "escape_growth_count_upper": 483,
+      "escape_all_distinct_array_requests": 280720,
+      "escape_output_coupled_array_requests": 2117532,
+      "escape_selected_array_requests": 280720,
+      "StringBuilder_chunk_count_upper": 137,
+      "StringBuilder_all_chunk_capacity_upper": 1056574,
+      "StringBuilder_all_chunk_array_requests": 2117258,
+      "StringBuilder_all_chunk_object_requests": 6576,
+      "ToString_request": 2097176,
+      "LF_concat_request": 2097176,
+      "UTF8_byte_array_request": 1048600,
+      "fixed_objects_and_position_stack": {
+        "StringWriter_field_slot_upper": 64,
+        "JsonTextWriter_including_base_field_slot_upper": 224,
+        "JsonPosition_List_field_slot_upper": 40,
+        "JsonPosition_all_old_backings_stride_upper32": 2016,
+        "UTF8Encoding_field_slot_upper": 72,
+        "overwritten_replacement_fallback_objects": 48
+      },
+      "selected_B_request_upper": 7649970
+    }
+  },
+  "phases": [
+    {
+      "id": "P0",
+      "encode_vector": {
+        "marker": 0,
+        "receipt": 0,
+        "failure": 0,
+        "bundle": 0
+      },
+      "encode_count": 0,
+      "selected_B_request_upper": 0
+    },
+    {
+      "id": "P1",
+      "encode_vector": {
+        "marker": 1,
+        "receipt": 2,
+        "failure": 1,
+        "bundle": 0
+      },
+      "encode_count": 4,
+      "selected_B_request_upper": 2628032
+    },
+    {
+      "id": "P2",
+      "encode_vector": {
+        "marker": 1,
+        "receipt": 2,
+        "failure": 1,
+        "bundle": 0
+      },
+      "encode_count": 4,
+      "selected_B_request_upper": 2628032
+    },
+    {
+      "id": "P3",
+      "encode_vector": {
+        "marker": 1,
+        "receipt": 3,
+        "failure": 1,
+        "bundle": 0
+      },
+      "encode_count": 5,
+      "selected_B_request_upper": 2867944
+    },
+    {
+      "id": "P4",
+      "encode_vector": {
+        "marker": 1,
+        "receipt": 4,
+        "failure": 1,
+        "bundle": 0
+      },
+      "encode_count": 6,
+      "selected_B_request_upper": 3107856
+    },
+    {
+      "id": "P5",
+      "encode_vector": {
+        "marker": 1,
+        "receipt": 4,
+        "failure": 1,
+        "bundle": 1
+      },
+      "encode_count": 7,
+      "selected_B_request_upper": 10757826
+    }
+  ],
+  "known_once_F_Bcold_subtotal": 2904,
+  "known_once_F_Bcold": {
+    "JavaScriptUtils_three_bool128_arrays": 456,
+    "JavaScriptUtils_List_char_object_field_slot_upper": 40,
+    "JavaScriptUtils_List_char_all_old_arrays": 368,
+    "JavaScriptUtils_union_second_input_arrays": 104,
+    "JsonWriter_template_outer8": 88,
+    "JsonWriter_template_eight_state10_arrays": 512,
+    "JsonWriter_allStates_List_field_slot_upper": 40,
+    "JsonWriter_allStates_old_reference_arrays": 520,
+    "JsonWriter_final_state_outer18": 168,
+    "EnumInfo_source_field_slot_upper": 48,
+    "EnumInfo_three_array18": 504,
+    "TextWriter_shared_CRLF_array": 32,
+    "JsonPosition_List_shared_empty_array": 24
+  },
+  "remaining": [
+    "JavaScriptUtils actual LINQ Union iterator/enumerator/HashSet bodies and backings; DefaultInternalSetCapacity must be pinned",
+    "EnumUtils ThreadSafeStore/ConcurrentDictionary/CamelCaseNamingStrategy and controlled reflection/attribute outputs; runtime metadata/cache internals remain separately qualified",
+    "Shared Encoding/UTF8 fallback/default static initialization and TextWriter.Null object; not per-encode",
+    "JsonSerializerSettings/JsonSerializer/InternalWriter, serialization traversal enumerators/serialize-stack and reflection-contract cache owners; allocate to B/K/F exactly once in whole join"
+  ],
+  "exclusions": "O original graphs and K preprocessing clone containers are outside this B component and must be included by the whole phase owner. No free GC/Dispose/pool-return/scope credit. ABI field-slot numbers are selected source representation uppers, not measured actual object sizes. First-refusal may reduce a body, never increases encoded document/content caps under the admitted immutable graph/codec premise.",
+  "operations": "Own Python/file/hash/integer only. No target PowerShell parse/AST/import/codec/compiler/native/program/stage or GUI/device execution.",
+  "inputs": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/newtonsoft-JavaScriptUtils.cs",
+      "bytes": 25775,
+      "sha256": "93131CB6065F06AC6DA30CC15C77F7E2A96EF2D3DC171FEC34C227590D930A1A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/newtonsoft-JsonConvert.cs",
+      "bytes": 55576,
+      "sha256": "DAEB3FEF0BCDE2E756CB0CBCAA92FB8A7782727CDB4ADDBA7B8C66E94B5A6205"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-json-primary-sources/powershell-JsonObject.cs",
+      "bytes": 37049,
+      "sha256": "B0673F6376217F1104293297F0B2E3C7C9F928045F8435CD93865EF024E287B0"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/JsonTextWriter.cs",
+      "bytes": 30240,
+      "sha256": "CBEEB4F5A322E3772910CEC13788938AE6598B03C396B1187B9EC170127469D2"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/StringBuilder.cs",
+      "bytes": 144081,
+      "sha256": "4852F4B57D749BBFB9D5B865E0784974EE5F056DE4427C6E584FB4ECD193C751"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/primary-sources/UTF8Encoding.cs",
+      "bytes": 40321,
+      "sha256": "47F5E4C98751367A86329AB1E0A76D86B39FD076A5B019284694F39D40FD9011"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r3/execution-r1/inventory.json",
+      "bytes": 42678,
+      "sha256": "B015613B9A2EA1B844547C0135106C0977D8A99A4C4E4E52B22B0FBFE7EAEC9D"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "bytes": 143375,
+      "sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderExceptionFallback.cs",
+      "bytes": 3795,
+      "sha256": "EFBC47C51BA51B6955F7ED0EAEDC941FA1A3ADA19293ECE3CA7C30F54D1109BA"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderFallback.cs",
+      "bytes": 12242,
+      "sha256": "118661AA450CB05C5780194C2A2DC2BBC0CBCCBAF1E6D3647967F547EDF8AA43"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/DecoderReplacementFallback.cs",
+      "bytes": 6097,
+      "sha256": "B0B653C5B53A2786AD47FDEF7DF1BBB919C2B285C88A3787B3772F9B075FD235"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderExceptionFallback.cs",
+      "bytes": 5088,
+      "sha256": "A36E5C20E99367CF7310FCB63103AC92E90E2CADD733A37657189B72CFEE3208"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderFallback.cs",
+      "bytes": 14038,
+      "sha256": "FECAA8E71992F9D568254202327662E6DE473B3D73AD5B6FA83A79417CC98715"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EncoderReplacementFallback.cs",
+      "bytes": 7237,
+      "sha256": "735C5015DDD6FB9D5BE7E20FC85703DE97A1DD40DB2843AA79EEB5271ED1FBA1"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Encoding.cs",
+      "bytes": 67311,
+      "sha256": "44B11DDB443BD71B1C7A4406A8749D234C0E0B135D9A36DC53C4F0887B197DB4"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EnumInfo.cs",
+      "bytes": 1645,
+      "sha256": "38C3713EAE6D221B3317C636B9D05FC0E82B3931C004314D70F33931F6AA3A59"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/EnumUtils.cs",
+      "bytes": 16457,
+      "sha256": "E459B42E61CA5B60CF177D4F73BE1A1E526ACE021EF4425E150800DF2F2C5EA0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/HashHelpers.cs",
+      "bytes": 5167,
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/HashSet.cs",
+      "bytes": 78650,
+      "sha256": "2F3C12B3EE6D7E109E1F6CD019BE8BB91DA55784E00E115D8C752B17BD4446A0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Iterator.cs",
+      "bytes": 4926,
+      "sha256": "8644D8A8BDA66AB24C04D9B3FCBDF625CD0C48739EC4956E118A7589FF83454B"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/JsonToken.cs",
+      "bytes": 3175,
+      "sha256": "83199FBFDC09B8FAD2256186107BBF73A79875644A0073DF367CC0C857FB16C0"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/JsonWriter.cs",
+      "bytes": 63246,
+      "sha256": "75B69B3EBED4305947ADEED867EA8780AB2B03F0F3CBE6FFAA391EF56CDB4C73"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/List.cs",
+      "bytes": 43437,
+      "sha256": "1346574BE64B5708F97AAA196AD474A63FF52F6D977D7AE18C366A600766F036"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/StringWriter.cs",
+      "bytes": 9989,
+      "sha256": "3E765E60738CCBC6729E74BF45AA7780B52B18E70DD8BD058E8BAF66BBCFA3D8"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/TextWriter.cs",
+      "bytes": 44096,
+      "sha256": "F889A621F85FEDBB54D19D84372E822C303CF64AD5DCB1877C12D5A3906F48EF"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Union.cs",
+      "bytes": 13431,
+      "sha256": "CA689F2B0505A86B4FADC3E150069CF915C38C6B6050229AA86F1F2AC5794C17"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/Union.SpeedOpt.cs",
+      "bytes": 2572,
+      "sha256": "F1C98769C0000A8D5C70F1278FDE605D3FD6C645263535C613B21627CFC59751"
+    }
+  ]
+}

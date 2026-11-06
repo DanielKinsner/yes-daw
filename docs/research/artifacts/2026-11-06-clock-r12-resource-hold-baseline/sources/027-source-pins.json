@@ -1,0 +1,30 @@
+{
+  "scope": "Conditional source N theorem with precise unqualified native/build/profile obligation; no current environment or target execution",
+  "files": [
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/source-origins.json",
+      "bytes": 276057,
+      "sha256": "5314810ED0AF072A0103248367FAF8A42E51D3C1835242D2D40309771D06DA68"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/writer-closure.json",
+      "bytes": 5875,
+      "sha256": "F43C234BF32F929BFF0076813BF1D4A51704E9626010B1E740433E2AA8191F87"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/argument.md",
+      "bytes": 8357,
+      "sha256": "58D5C384DB8E1239CE1F7EDB462C58A877533906BB6F4AF2B4B3E922765C2356"
+    },
+    {
+      "path": "build-ci/20261105-fetch-powershell-environment-sources.py",
+      "bytes": 2138,
+      "sha256": "FFCB2A5F73360E3A85BF57BA641ADDE1AF9C55210D4979C2A17BC78C73CCFA7B"
+    },
+    {
+      "path": "build-ci/20261105-derive-controller-environment-closure-r2.py",
+      "bytes": 7576,
+      "sha256": "D2B7A82D261810C7C7E12AA0C0474B00E7717DA64CC0A21D1BC2CD99DDA1254F"
+    }
+  ]
+}

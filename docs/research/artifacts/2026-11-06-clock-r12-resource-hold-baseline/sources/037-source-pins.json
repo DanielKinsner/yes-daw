@@ -1,0 +1,39 @@
+{
+  "schema": "R12_HOST_CENSUS_ADDENDUM_PINS_R1",
+  "verdict": "HOLD_NONZERO_V_HOST_PROCESS_CENSUS_DESCENDANT_TERM",
+  "authored_files": [
+    {
+      "path": "build-ci/20261106-clock-r12-host-census-addendum-r1/addendum.md",
+      "bytes": 2053,
+      "sha256": "527C82C34055980916C2D328B4D646D9324991201A0D644B0C5D581691AA0B7E"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-host-census-addendum-r1/addendum.json",
+      "bytes": 2537,
+      "sha256": "9FA481CB274F573C560E835BA1C4609D272A4F251B7B2071FCC81A250AE0CCA6"
+    }
+  ],
+  "input_pins": [
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/Process.Win32.cs",
+      "bytes": 17595,
+      "sha256": "4E3317E2B262CB5E777F93B7A48AEC62B542A2FDA08D4FE1609DCEC98CA40ECE"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/baseline.md",
+      "bytes": 10443,
+      "sha256": "2BE5DD192D422AE360D35DBC6C5EA65EFBD83B4F5CD5DD2AD45880DF45EFF83D"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/baseline.json",
+      "bytes": 17712,
+      "sha256": "0B7093605D65D8F0E7C4BA5EBCADCE1843D2FE54FED601FE1E0DB72BE7095D49"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/source-pins.json",
+      "bytes": 18206,
+      "sha256": "1D00D1B07C7C5D82F13482F48E05DD23054A95B7E5388C21957C09C271D98F2D"
+    }
+  ],
+  "scope": "Source only; frozenR1 untouched; no host process enumeration or target execution"
+}

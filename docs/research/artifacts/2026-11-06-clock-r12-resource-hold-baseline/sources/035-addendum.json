@@ -1,0 +1,39 @@
+{
+  "schema": "R12_HOST_WIDE_KILLTREE_SOURCE_RESIDUAL_ADDENDUM_R1",
+  "verdict": "HOLD_NONZERO_V_HOST_PROCESS_CENSUS_DESCENDANT_TERM",
+  "baseline_preserved": {
+    "folder": "build-ci/20261106-clock-r12-payload-evaluation-r1",
+    "baseline_md_sha256": "2BE5DD192D422AE360D35DBC6C5EA65EFBD83B4F5CD5DD2AD45880DF45EFF83D",
+    "baseline_json_sha256": "0B7093605D65D8F0E7C4BA5EBCADCE1843D2FE54FED601FE1E0DB72BE7095D49",
+    "source_pins_sha256": "1D00D1B07C7C5D82F13482F48E05DD23054A95B7E5388C21957C09C271D98F2D"
+  },
+  "source": {
+    "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/Process.Win32.cs",
+    "bytes": 17595,
+    "sha256": "4E3317E2B262CB5E777F93B7A48AEC62B542A2FDA08D4FE1609DCEC98CA40ECE",
+    "KillTree_lines": [372, 425],
+    "GetProcessHandlePairs_lines": [428, 466],
+    "own_runner_call_line": 233
+  },
+  "residual_id": "V_host_process_census",
+  "equation": "sum over actual KillTree visits j of Census(H_j,T_j,bufferCapacity_j,handleAttempts_j) + child-list/handle/predicate/call-stack controlled owners + source failure projections",
+  "symbols": {
+    "H_j": "All host processes captured by selected GetProcesses for visitj, before filtering",
+    "T_j": "Source-required process/thread/info extent for that host-wide capture",
+    "j": "Actual recursive KillTree visits; not bounded by three top-level controller children",
+    "handleAttempts_j": "Each host Process may acquire a query handle before parent filtering"
+  },
+  "source_facts": [
+    "KillTree holds a parent handle, attempts Kill(), catches Win32Exception and continues.",
+    "GetProcessHandlePairs makes a List and foreaches GetProcesses() before invoking the parent predicate.",
+    "Matching children recurse; finally disposes selected child Process and SafeProcessHandle owners.",
+    "Source explicit release and unqualified native/SDK/exception behavior retain their original separate meanings; no managed GC or physical-free credit follows automatically.",
+    "Own WaitForExit(2000) follows Kill(true) and cannot bound work before Kill returns."
+  ],
+  "selected_numeric_partials_changed": false,
+  "new_source_or_cap_or_domain_or_GO": false,
+  "host_process_enumeration_performed": false,
+  "target_or_native_or_GUI_execution": false,
+  "evidence_scope": "Ordinary public source/file/hash read only; no process census values, private fields or runtime size claims.",
+  "no_claim": "No complete V bound, whole numeric U, fit, source-proven coexisting NOFIT, native/runtime qualification or execution authority."
+}

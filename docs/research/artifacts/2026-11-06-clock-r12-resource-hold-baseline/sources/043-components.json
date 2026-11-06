@@ -1,0 +1,265 @@
+{
+  "schema": "R12_J_K_W_SOURCE_COMPONENTS_WORKING_R1",
+  "status": "EVALUATED_PARTIAL_WITH_PRECISE_B20_AND_OTHER_OWNER_GAPS_NOT_WHOLE_U",
+  "predecessor_evaluation_sha256": "872E24B3B7A11476AAE4949E6B0D43B54D6DD19B266FF0FA52D66A26691E5C4F",
+  "B_R2_sha256": "25C4167F94C8DE538861F391F2DF940D345ABD4139CD219E2ACA25DE97A047A5",
+  "fixed_collision_tightening": 421288,
+  "fixed_collision_proof": "Every pinned bootstrap/predecessor JObject has fewer than101 raw/retained properties; Dictionary requires collisionCount>100, so its randomized string comparer replacement cannot occur. This removes the deliberately conservative optional arrays from only those fixed graphs.",
+  "report": {
+    "node_cap": 2698,
+    "key_cap": 1348,
+    "map_fixed_upper": 616,
+    "array_fixed_upper": 200,
+    "scalar_upper_excluding_unclosed_BigInteger20": 1112,
+    "list_arrays_per_element": 56,
+    "dict_arrays_per_key": 174,
+    "parsed_map_arrays_per_key": 256,
+    "ratio_witnesses": {
+      "list": [
+        "56",
+        1
+      ],
+      "dictionary": [
+        "17176/99",
+        198
+      ],
+      "parsed_map": [
+        "256",
+        1
+      ]
+    },
+    "property_key_cost": 1662,
+    "array_edge_cost": 64,
+    "selected_graph_upper_excluding_BigInteger20": 3741640,
+    "equation": "scalar*(N-K)+keyCost*K+arrayEdge*(N-2K-1), K=floor((N-1)/2) when its coefficient is positive",
+    "BigInteger20": "b20 controlled parser payload remains explicit. If 64+b20<=scalar, the string scalar envelope subsumes it; otherwise add at most N*(64+b20-scalar). Not assigned0."
+  },
+  "child_graphs": {
+    "control_N13_depth2": 8008,
+    "summary_N25_depth1": 12344,
+    "producer": 36368,
+    "verifier": 100432,
+    "full_control_DP": [
+      null,
+      520,
+      784,
+      1992,
+      2080,
+      3288,
+      3136,
+      4256,
+      4432,
+      5552,
+      5728,
+      6712,
+      6872,
+      8008
+    ],
+    "full_summary_DP": [
+      null,
+      520,
+      608,
+      1816,
+      1312,
+      2608,
+      2104,
+      3592,
+      2808,
+      4632,
+      3664,
+      5512,
+      4368,
+      6496,
+      5072,
+      7288,
+      5776,
+      9184,
+      6760,
+      10088,
+      7464,
+      10840,
+      8168,
+      11592,
+      8872,
+      12344
+    ],
+    "BigInteger20": "String scalar envelope344 covers all scalar branches only if root proves64+b20<=344; otherwise retain the positive excess per node."
+  },
+  "K_clones": {
+    "marker": {
+      "terms": {
+        "dictionary_instances": 80,
+        "dictionary_backings": 248,
+        "original_dictionary_enumerators": 80,
+        "original_DictionaryEntry_boxed_copies": 192,
+        "enumerable_List_instances": 0,
+        "enumerable_List_backings": 0,
+        "original_array_or_List_enumerators": 0
+      },
+      "upper": 600,
+      "dictionary_prime_capacity_sum": 7
+    },
+    "receipt": {
+      "terms": {
+        "dictionary_instances": 4640,
+        "dictionary_backings": 13152,
+        "original_dictionary_enumerators": 4640,
+        "original_DictionaryEntry_boxed_copies": 9600,
+        "enumerable_List_instances": 920,
+        "enumerable_List_backings": 3960,
+        "original_array_or_List_enumerators": 1104
+      },
+      "upper": 38016,
+      "dictionary_prime_capacity_sum": 362
+    },
+    "failure": {
+      "terms": {
+        "dictionary_instances": 6320,
+        "dictionary_backings": 19592,
+        "original_dictionary_enumerators": 6320,
+        "original_DictionaryEntry_boxed_copies": 12704,
+        "enumerable_List_instances": 40,
+        "enumerable_List_backings": 2160,
+        "original_array_or_List_enumerators": 48
+      },
+      "upper": 47184,
+      "dictionary_prime_capacity_sum": 553
+    },
+    "bundle": {
+      "terms": {
+        "dictionary_instances": 103520,
+        "dictionary_backings": 321360,
+        "original_dictionary_enumerators": 103520,
+        "original_DictionaryEntry_boxed_copies": 168032,
+        "enumerable_List_instances": 80,
+        "enumerable_List_backings": 35136,
+        "original_array_or_List_enumerators": 96
+      },
+      "upper": 731744,
+      "dictionary_prime_capacity_sum": 9074
+    }
+  },
+  "W_namespace_all_old_backings_per_fence": 55200,
+  "phases": [
+    {
+      "id": "P0",
+      "new_selected_terms": {
+        "prior_selected_partial": 8550000,
+        "remove_impossible_fixed_collision_arrays": -421288,
+        "replace_B_R1_with_B_R2": 0,
+        "replace_known_cold_13256_with_13344": 88,
+        "W_List_Queue_ToArray_backings": 55424,
+        "K_preprocessing_clones": 0,
+        "J_generic_child_graph_and_instances": 3024
+      },
+      "selected_partial": 8187248,
+      "J_SDK_call_upper": 2,
+      "J_reader_writer_instance_base": 2256,
+      "J_position_stacks": 768,
+      "unresolved_b20_nodes_upper": 0
+    },
+    {
+      "id": "P1",
+      "new_selected_terms": {
+        "prior_selected_partial": 11215328,
+        "remove_impossible_fixed_collision_arrays": -421288,
+        "replace_B_R1_with_B_R2": 30728,
+        "replace_known_cold_13256_with_13344": 88,
+        "W_List_Queue_ToArray_backings": 62960,
+        "K_preprocessing_clones": 123816,
+        "J_generic_child_graph_and_instances": 3024
+      },
+      "selected_partial": 11014656,
+      "J_SDK_call_upper": 2,
+      "J_reader_writer_instance_base": 2256,
+      "J_position_stacks": 768,
+      "unresolved_b20_nodes_upper": 0
+    },
+    {
+      "id": "P2",
+      "new_selected_terms": {
+        "prior_selected_partial": 26679848,
+        "remove_impossible_fixed_collision_arrays": -421288,
+        "replace_B_R1_with_B_R2": 30728,
+        "replace_known_cold_13256_with_13344": 88,
+        "W_List_Queue_ToArray_backings": 264072,
+        "K_preprocessing_clones": 123816,
+        "J_generic_child_graph_and_instances": 3749904
+      },
+      "selected_partial": 30427168,
+      "J_SDK_call_upper": 3,
+      "J_reader_writer_instance_base": 3384,
+      "J_position_stacks": 4880,
+      "unresolved_b20_nodes_upper": 2698
+    },
+    {
+      "id": "P3",
+      "new_selected_terms": {
+        "prior_selected_partial": 29652668,
+        "remove_impossible_fixed_collision_arrays": -421288,
+        "replace_B_R1_with_B_R2": 34548,
+        "replace_known_cold_13256_with_13344": 88,
+        "W_List_Queue_ToArray_backings": 468448,
+        "K_preprocessing_clones": 161832,
+        "J_generic_child_graph_and_instances": 3792320
+      },
+      "selected_partial": 33688616,
+      "J_SDK_call_upper": 7,
+      "J_reader_writer_instance_base": 7896,
+      "J_position_stacks": 6416,
+      "unresolved_b20_nodes_upper": 2762
+    },
+    {
+      "id": "P4",
+      "new_selected_terms": {
+        "prior_selected_partial": 33101552,
+        "remove_impossible_fixed_collision_arrays": -421288,
+        "replace_B_R1_with_B_R2": 38368,
+        "replace_known_cold_13256_with_13344": 88,
+        "W_List_Queue_ToArray_backings": 733320,
+        "K_preprocessing_clones": 199848,
+        "J_generic_child_graph_and_instances": 3910896
+      },
+      "selected_partial": 37562784,
+      "J_SDK_call_upper": 19,
+      "J_reader_writer_instance_base": 21432,
+      "J_position_stacks": 11024,
+      "unresolved_b20_nodes_upper": 2930
+    },
+    {
+      "id": "P5",
+      "new_selected_terms": {
+        "prior_selected_partial": 40755626,
+        "remove_impossible_fixed_collision_arrays": -421288,
+        "replace_B_R1_with_B_R2": -4055242,
+        "replace_known_cold_13256_with_13344": 88,
+        "W_List_Queue_ToArray_backings": 734024,
+        "K_preprocessing_clones": 931592,
+        "J_generic_child_graph_and_instances": 3910896
+      },
+      "selected_partial": 41855696,
+      "J_SDK_call_upper": 19,
+      "J_reader_writer_instance_base": 21432,
+      "J_position_stacks": 11024,
+      "unresolved_b20_nodes_upper": 2930
+    }
+  ],
+  "source_conditions": [
+    "Generic source field-slot bounds, selected x64 array/string/dictionary representations, no current-private-field inspection.",
+    "Hashtable insertion-only occupancy cannot trigger cleanup before load-size expansion; no remove calls, no hash-randomization branch in selected Hashtable source.",
+    "JObject Dictionary may have at most one NonRandomizedStringEqualityComparer replacement; its maximum final backing is charged for generic maps over100 fields.",
+    "No Dispose/null/scope/GC/pool-return physical reclamation credit. Every old managed backing remains charged.",
+    "K DictionaryEntry Current copies and original collection enumerators are separate from B serializer traversal enumerators.",
+    "All first evaluation bytes are preserved; this file explicitly records its tightening and B successor, and is not final accepted evidence."
+  ],
+  "remaining": [
+    "O original DTOs and private states",
+    "A explicit typed/literal/pipeline source transfers not already selected",
+    "F fixed script/bootstrap/literal owners and selected SDK cold profile",
+    "P canonical geometry, fresh path/normalization/iterator strings and native buffers (root-owned)",
+    "N conditional environment clone/block profile (root-owned; ordinary selected SDK noninterference qualification remains)",
+    "V source-associated wrapper/stream/encoding/process and authored native-child live payload",
+    "E bounded source-controlled error/refusal projections and copies",
+    "b20 selected BigInteger parse owners (root-closing); B R2 has independent whole-review corrections pending"
+  ]
+}

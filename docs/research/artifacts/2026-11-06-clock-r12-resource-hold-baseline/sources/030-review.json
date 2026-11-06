@@ -1,0 +1,271 @@
+{
+  "schema": "MANAGED_PAYLOAD_ABI_PROBE_INDEPENDENT_WHOLE_SOURCE_REVIEW_R2",
+  "reviewer": "/root/clock_r9_numeric_review; not R2 author",
+  "verdict": "ACCEPT_FOR_ONE_SEPARATE_ROOT_OWNED_BOUNDED_HEADLESS_ABI_ATTEMPT",
+  "subject_manifest_sha256": "82F9E7B92837974001616B1D686B551D7778187383E7A4AF9EE3D5C81E9BD431",
+  "whole_subject_files": 4,
+  "source_only_unrun": true,
+  "verified_files": [
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/probe.cs",
+      "bytes": 15934,
+      "sha256": "FE0232CE0507AA55435CCD3B880E28F0D9ED05F79C1ECE4DAABD05F454AA2F5E"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/run-probe.ps1",
+      "bytes": 7627,
+      "sha256": "B1F85467BCBD392A58B1EBA9E3663C2A0316B2D6925DC144DEFD657B7D4323F8"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/README.md",
+      "bytes": 11813,
+      "sha256": "9283F6FA83B75EFB7802EC098B7D0DDD8A3BC7706BA12597CD5C7C083E6D08FF"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/source-pins.json",
+      "bytes": 8306,
+      "sha256": "82F9E7B92837974001616B1D686B551D7778187383E7A4AF9EE3D5C81E9BD431"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-runtime-metadata-r1/runtime.json",
+      "bytes": 4431,
+      "sha256": "45817E116A4E6F6F9C9AA5089D1773F3F8978442A369D1DAFFDCF6A03CFBB8D0"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/run-clock.ps1",
+      "bytes": 104099,
+      "sha256": "BF117EAEA5AABCD40FFE30C785B75C875BAF92A9DA995B181B37DBB5FB75FEDB"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/source-manifest.json",
+      "bytes": 497616,
+      "sha256": "91529AC11BB131BAE1B9083D95CE343877C5AF62AC50AF23628B63E1C1331B23"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "bytes": 93117,
+      "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Hashtable.cs",
+      "bytes": 63165,
+      "sha256": "BC06B72D387FAE36844C63ADA61D0AB5BC447E9710AA3891906EE4E923DE674C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "bytes": 5167,
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "bytes": 301368,
+      "sha256": "362A356CE7F0940EC74F73A8FC2C990A2CC24A38A11C90BBD8ECA947110AD139"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.dll",
+      "bytes": 157496,
+      "sha256": "3046ED02928F5D8F78BB3106A861984498D4DC5F80E69A1D5BC7EEB911F0FA90"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\coreclr.dll",
+      "bytes": 4614440,
+      "sha256": "C98C3078A4F2495DD7D3CED967C7A6981545194ED163454703580B740F435521"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\clrjit.dll",
+      "bytes": 2092328,
+      "sha256": "E7BF743E7BF9A01C8C2BCDC0D828212FD8DFC285BE9D4EC21962BECF456DF648"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Private.CoreLib.dll",
+      "bytes": 16033616,
+      "sha256": "ED80A1A5DD066C0407AD59686F9AF90A4F3E55DBF3E4C973B53CC8C9D0706F82"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.runtimeconfig.json",
+      "bytes": 790,
+      "sha256": "BE41756D6ECCAC092DA616818C83F811C377ADDE6B3696864DD32220770B4D93"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Management.Automation.dll",
+      "bytes": 19646264,
+      "sha256": "2D8AF026E589C5603629BFC3E7C57265B4167B12ECA3AE549C6A6C3CA7E4967B"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\Microsoft.PowerShell.Commands.Utility.dll",
+      "bytes": 1652504,
+      "sha256": "2F6201BB3CAF4C08158BE733E786DD85B11537694F7E6AB40356FC0727A3596F"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\Microsoft.PowerShell.Commands.Management.dll",
+      "bytes": 1124152,
+      "sha256": "40818818DD94A5FA1F53043E33D31D8312ADAD24EF61B06481DFAE4C45D6E677"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\Newtonsoft.Json.dll",
+      "bytes": 1824600,
+      "sha256": "9AF3870D53662BA1C8E9B19EC8AD0020E815FFE9E916A1F3204AC6E206447F60"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\Modules\\Microsoft.PowerShell.Management\\Microsoft.PowerShell.Management.psd1",
+      "bytes": 16076,
+      "sha256": "A73617CBA10DF0D2641DF909C6B8BD7981769B3FC78845976290093DF2941941"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\Modules\\Microsoft.PowerShell.Utility\\Microsoft.PowerShell.Utility.psd1",
+      "bytes": 16826,
+      "sha256": "D103110AAE93CA1061FAB8ADD8F00EA6110740AC94B236654D0EFB0B08654AAA"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\Microsoft.CodeAnalysis.CSharp.dll",
+      "bytes": 18536312,
+      "sha256": "A1CBB3E005E5F91CBED130EF7EEAA79204E6BB10E05C54CE4C384A81A7646627"
+    },
+    {
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\Microsoft.CodeAnalysis.dll",
+      "bytes": 8128376,
+      "sha256": "A11461236D71889C0D7E440E9B08CB2E381F59A16A845648C3809855B6305DCD"
+    }
+  ],
+  "historical_evidence": [
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r1/source-pins.json",
+      "bytes": 7692,
+      "sha256": "A4DD60EDA30DB2F63566AC33015557F18BAA23BB6962F220E08659DC8A1EAD95"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r1/probe.cs",
+      "bytes": 15934,
+      "sha256": "FE0232CE0507AA55435CCD3B880E28F0D9ED05F79C1ECE4DAABD05F454AA2F5E"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r1/run-probe.ps1",
+      "bytes": 7218,
+      "sha256": "48EC02FCFF04E4F37D76E333CFE2B10A06BC05C668ACFFC3850B0B6B54218C90"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r1/README.md",
+      "bytes": 11335,
+      "sha256": "CD9AE8967F5D65493D9CCE67211DCC0C30362F1F0FE40EC90233C108F2B87B8A"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r1/run-abi.py",
+      "bytes": 7015,
+      "sha256": "879AA98349E917922F966D5EFF295ED3E97CD683884C9CE65B0360FD5320A49E"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r1/execution-r1/receipt.json",
+      "bytes": 1642,
+      "sha256": "0778CFC1D7B33D21C3400394E5AC7CC613625FEA329972154B6100ACCF6B6F90"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r1/execution-r1/stdout.jsonl",
+      "bytes": 108,
+      "sha256": "3EAC6276835B6EDF4CC7CE67823A5AFA74D30E7C90B17C7AB6CCEE9A94B40AB2"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r1/execution-r1/stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-independent-review-r1/review.json",
+      "bytes": 7703,
+      "sha256": "5A91E3EED83085AC1CD7C040C61C5B25AE2F3E0902A8E8A87DA842B6FD449051"
+    }
+  ],
+  "R1_evidence_boundary": {
+    "raw_exit": 2,
+    "timeout": false,
+    "stdout_bytes": 108,
+    "stderr_bytes": 0,
+    "measurement_rows": 0,
+    "first_green": false,
+    "stdout_receipt_hash_verified": true,
+    "stderr_receipt_hash_verified": true,
+    "cause": "Raw R1 line is a generic runner exception without stage, so it alone does not identify the failed guard or confer compile credit. Source comparison and root public Path.Join/ProcessPath evidence support the separator mismatch hypothesis. R2 normalizes before every exact runtime/module comparison and adds fixed stage diagnostics, preserving measurement code."
+  },
+  "R2_delta": {
+    "CSharp_byte_identical_to_R1": "FE0232CE0507AA55435CCD3B880E28F0D9ED05F79C1ECE4DAABD05F454AA2F5E",
+    "runner": "GetFullPath fixed runtime once; ten fixed source-selected stage strings and stage in bounded generic catch row; no other measurement/API/cap changes. Full diff retained.",
+    "README_manifest": "Update source revision/pins and state exact ordinary R1 failure without claiming measurement; all four files treated as one whole source."
+  },
+  "mechanical_review": {
+    "file_formula_checks": 37,
+    "failures": [],
+    "actual_console_PE_file_verified": true,
+    "pwsh_machine": "AMD64/0x8664",
+    "optional_header": "PE32+/0x20b",
+    "subsystem": "console3",
+    "pin_count": 14,
+    "fixed_cases_per_pass": 52,
+    "warmups": 2,
+    "recorded_repeats": 3,
+    "recorded_measurements": 156,
+    "derived_rows": 21,
+    "success_lines": 178,
+    "completed_max_lines_with_final_budget_failure": 179,
+    "checks_in_success_summary": 574,
+    "source_predicted_perpass_requests": 152856,
+    "source_predicted_allfive_requests": 764280,
+    "scope": "Only ordinary file/hash/JSON and Python integer/float32 arithmetic; these are source predictions, not probe measurements."
+  },
+  "whole_CSharp_review": [
+    "All289lines read. No dynamic static initializer graph, unsafe code, privatefield reflection, thread/process/device/UI creation, GC.Collect, intentional OOM/abort/FailFast/trap/crash.",
+    "Measure is NoInlining. Counter interval contains fixed familyswitch and new positive array/string/dictionary/Hashtable; only dictionaries additionally call public EnsureCapacity(0). Requested values fixed/max1931. No formatting/delegate/boxing/result-buffer write inside interval. Fresh value escapes to static sink and KeepAlive after closing counter; this establishes observation intent, no survival/reclaim credit.",
+    "Positive array/string cases1,7,17,64,435,512; independent bucket arrays3,7,17,37,197,1931; both reference-valued dictionary generic types; Hashtable inputs2,3,5,10.52cases, no rows written on warmups,3recordedpasses fill Row[156] exactly.",
+    "All156records check monotonic before/after, exact finite sourceprediction and public-capacity provenance. Repeats each agree with samepredictions. Array slopes64=>512 avoid rounding ambiguity; all6sizes check Align8 model. String finite Align8(22+2n) agreement is not a universal ABI or empty/interned-string result.",
+    "Dictionary residual subtracts independently measured intbucket request at same publiccapacity; slope3=>7 derives24, sixcapacities checkfixed80 after measured common arrayheader24. This relies on source two-array/common-header model, not observation of private entryarrays/offsets. Hashtable sourcepredicted3/7/7/17 notpubliccapacity; slope/fixed72 likewise conditional source decomposition.",
+    "Run includes runtimeidentity/reflection/fixtures/warmup/measurement/results/output in its current-thread8MiBrequest budget.574pre-summarychecks independently re-derived. Final actual sample AFTER summary formatting/writing gates rawexit: an excess emits bounded failure and returns1. Summary alone cannot establish completedbudget; no source allocation after successful finalgate.",
+    "Unsupported runtime/setup and caught exceptions return ordinary2. Numerical mismatches return1 withoutcrash; allknown fixture counts/Align8/long operations bounded far below overflow. Exception reports only bounded typename; source closed types/fixed stage strings do not expose messages/stack/environment/contents."
+  ],
+  "runner_review": [
+    "All109lines read. StrictMode/ErrorActionStop/ModuleAutoLoadingNone; fixed absolute cached runtime normalized once; exact WindowsX64 pointer8 version10.0.11 workstationGC, apphost/argument/assembly guards.",
+    "Fourteen file lengths/hashes match current files and R10/runtime evidence. Source reads R10 only as pin authority in review; actual runner contains literal copied runtimepins and never imports/parses/executes target R10. Public Process.Modules only associates selected coreclr/clrjit paths/count1, no emitted inventory or image equivalence from hashes.",
+    "Actual Add-Type implementingtype/assembly checked after authentic absolute Utility import; CSharp15934bytes/hash pinned before strict UTF8 decode and in-memory compile with optimize/warnaserror/unsafe-/checked+. Fresh clean host premise prevents preceding startuphook/profile/code injection. No retrospective cleanliness theorem.",
+    "Fixed stage catch provides bounded reason/typename/stage, no rawmessages/envvalues/keys/paths. Runclass remainsR1 name intentionally because code byte-identical and process mustbefresh."
+  ],
+  "launcher_review": {
+    "reviewed_R1_launcher_sha256": "879AA98349E917922F966D5EFF295ED3E97CD683884C9CE65B0360FD5320A49E",
+    "scope": "Whole R1 Python launcher source read, not executed; root will independently mechanically check final R2 identity transformation before actualattempt. No new targetR10 authority.",
+    "allowed_R2_changes": [
+      "reviewfolder/reviewhash to this sealedreview",
+      "manifesthash to exact R2sourcepins",
+      "receipt/path schema R2; SOURCE/RUN location derives from __file__ as reviewed",
+      "optional explicit fail-closed debug guard before all assertions: if not __debug__: raise RuntimeError(\"UNOPTIMIZED_PYTHON_REQUIRED\")"
+    ],
+    "approved_debug_guard": "The exact constant two-line guard above adds no subprocess/env/data access and is approved before firstGREEN. Root must also invoke python -E without-O; -E ignores PYTHONOPTIMIZE injection. Assertions are critical safety gates, so __debug__ mustbetrue before execution.",
+    "safety": "Root-owned explicit executable/argument list,no shell; exact pins before/after and fresh execution folder; consolePE verified; fresh allowlisted ordinary directory environment, no inherited CLR startup/profiler/GC/JIT/stress variables; values notpersisted. CREATE_NO_WINDOW/SW_HIDE/stdinnull/redirectedstdoutstderr/60sec timeout; inherited no-errorbox mode perhelper with restoration. No desktopinput/nativewindows/device action.",
+    "acceptance": "Require rawexit0/no timeout/no stderr,stdout<=262144/exact178JSONlines,uniquecomplete156expected family-size-repeat tuples/deltas,12array+6dictionary+3Hashtable derivedrows,summary574checks0failures/expectedcounts/budget/finalrawexit contract; then freeze allfourwholeprobe files plus exactlauncher. Preserve every failedreceipt/rawlog. No rerun/source change can be silently called same attempt."
+  },
+  "execution_requirements": {
+    "fresh_clean_allowlisted_environment": true,
+    "console_PE_verified": true,
+    "create_no_window": true,
+    "hidden_window_style": true,
+    "redirected_output": true,
+    "stdin_null": true,
+    "timeout_seconds": 60,
+    "inherited_no_error_box_mode": true,
+    "all_24_subject_runtime_input_hashes_pre_post": true,
+    "python_assertions_enabled": true,
+    "python_ignore_environment_options": true,
+    "root_check_exact_R2_launcher_transform_before_execution": true,
+    "preserve_failure_receipt": true,
+    "freeze_all_four_whole_files_plus_launcher_at_first_green": true
+  },
+  "limitations": [
+    "No compile/run/measurement credit from this source review",
+    "Allocation requests/currentthread profile only: no native/otherthread/peak/inuse/survival/GC-reclaim/old-free/RSS credit",
+    "Source-associated finite decomposition, not universalCLRABI/privatefield observation",
+    "No R10wholepayload/path/error/phase closure, NativeBinding/tariff/limit/cap/production/hardware/device/GUI claim"
+  ],
+  "primary_API_documentation": [
+    "https://learn.microsoft.com/en-us/dotnet/api/system.gc.getallocatedbytesforcurrentthread?view=net-10.0",
+    "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.dictionary-2.ensurecapacity?view=net-10.0"
+  ],
+  "findings": [],
+  "R10_execution_authorized": false,
+  "production_binding_authorized": false,
+  "reviewer_executed_target_or_probe": false
+}

@@ -1,0 +1,2428 @@
+{
+  "schema": "R12_ORIGINAL_DTO_PREFLIGHT_AND_FIXED_ARRAY_WORKING_R1",
+  "status": "SOURCE_SELECTED_PARTIAL_NOT_WHOLE_UPPER",
+  "inputs": [
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/evaluation.json",
+      "sha256": "872E24B3B7A11476AAE4949E6B0D43B54D6DD19B266FF0FA52D66A26691E5C4F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/components.json",
+      "sha256": "A3E4468CFD09272851CB9D4E67FCF0E530B2149259D1EDA1B3F3B76BC68BF2DC"
+    }
+  ],
+  "literal_and_fixed_array_profile": {
+    "initial_three_arg_reference_array": 48,
+    "suffix_array7": 80,
+    "own_source_names4": 56,
+    "secondary_sites11": 112,
+    "secondary_raw11": 112,
+    "secondary_long_counts11": 112,
+    "signed_thresholds_typed18": 168,
+    "signed_thresholds_original_literal18": 600,
+    "unsigned_thresholds_typed19": 176,
+    "unsigned_thresholds_original_literal19": 632,
+    "summary_fields12": 120,
+    "initial_receipt_empty_arrays2": 48,
+    "hash_buffer65536": 65560,
+    "bootstrap_pin_nested_arrays": 584,
+    "bootstrap_hook_names7": 80,
+    "bootstrap_codec_pair": 40,
+    "expected_controller_argv14": 136,
+    "fixed_bootstrap_digest_hex7": 1456,
+    "capture_digest_hex2": 416
+  },
+  "preflight_per_document": {
+    "marker": {
+      "values": 7,
+      "nodes": 13,
+      "AddJsonBound_calls": 19,
+      "stored_numeric_counter_boxes": 768,
+      "source_Map_enumerators_and_DictionaryEntry_returns": 272,
+      "state_and_result_maps": 528,
+      "one_cap_scalar_referent": 24
+    },
+    "receipt": {
+      "values": 465,
+      "nodes": 765,
+      "AddJsonBound_calls": 1149,
+      "stored_numeric_counter_boxes": 45936,
+      "source_Map_enumerators_and_DictionaryEntry_returns": 14240,
+      "state_and_result_maps": 528,
+      "one_cap_scalar_referent": 24
+    },
+    "failure": {
+      "values": 476,
+      "nodes": 873,
+      "AddJsonBound_calls": 1269,
+      "stored_numeric_counter_boxes": 51408,
+      "source_Map_enumerators_and_DictionaryEntry_returns": 19024,
+      "state_and_result_maps": 528,
+      "one_cap_scalar_referent": 24
+    },
+    "bundle": {
+      "values": 6544,
+      "nodes": 11795,
+      "AddJsonBound_calls": 17043,
+      "stored_numeric_counter_boxes": 692112,
+      "source_Map_enumerators_and_DictionaryEntry_returns": 271552,
+      "state_and_result_maps": 528,
+      "one_cap_scalar_referent": 24
+    }
+  },
+  "phases": [
+    {
+      "id": "P0",
+      "original_rows": [
+        {
+          "owner": "receipt_initial_ordered_map",
+          "count": 1,
+          "unit_upper": 2552,
+          "requests": 2552,
+          "source_lines": [
+            56
+          ],
+          "reason": "One initial ordered root; every initial boxed DictionaryEntry included."
+        },
+        {
+          "owner": "accepted_predecessor_descriptor_map",
+          "count": 1,
+          "unit_upper": 360,
+          "requests": 360,
+          "source_lines": [
+            769,
+            917
+          ],
+          "reason": "One source projection before created root; the final bundle borrows the same descriptor."
+        },
+        {
+          "owner": "receipt_children_List",
+          "count": 1,
+          "unit_upper": 40,
+          "requests": 40,
+          "source_lines": [
+            56,
+            249
+          ],
+          "reason": "One rooted List, source-sized old backings."
+        },
+        {
+          "owner": "receipt_replaced_DictionaryEntry_objects",
+          "count": 0,
+          "unit_upper": 32,
+          "requests": 0,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Every source setter replaces an ordered DictionaryEntry; retained old entries are charged."
+        },
+        {
+          "owner": "receipt_possible_new_scalar_referents",
+          "count": 0,
+          "unit_upper": 24,
+          "requests": 0,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Conservative one newly promoted builtin scalar per setter; reference/string writes can only reduce this upper. No descriptor/H/J boxes counted by this row."
+        },
+        {
+          "owner": "child_ordered_rows",
+          "count": 0,
+          "unit_upper": 2072,
+          "requests": 0,
+          "source_lines": [
+            248
+          ],
+          "reason": "One actual 24-field row per reached child including every DictionaryEntry."
+        },
+        {
+          "owner": "child_stored_scalar_field_upper",
+          "count": 0,
+          "unit_upper": 504,
+          "requests": 0,
+          "source_lines": [
+            248
+          ],
+          "reason": "24 fields minus name/failure/cleanup; at most21 newly controlled builtin scalar referents."
+        },
+        {
+          "owner": "child_cleanup_List_and_ToArray",
+          "count": 0,
+          "unit_upper": 296,
+          "requests": 0,
+          "source_lines": [
+            194,
+            248
+          ],
+          "reason": "The thirteen-obligation List is exact-capacity, then one source ToArray."
+        },
+        {
+          "owner": "one_quarantine_map",
+          "count": 0,
+          "unit_upper": 1008,
+          "requests": 0,
+          "source_lines": [
+            245,
+            253
+          ],
+          "reason": "Only one rooted quarantine can form; no next child after it. Maximize both8/11-field constructor schedules:8 can grow while11 does not. Source-cleared arrays are still retained."
+        },
+        {
+          "owner": "marker_map",
+          "count": 0,
+          "unit_upper": 432,
+          "requests": 0,
+          "source_lines": [
+            933
+          ],
+          "reason": "Six literal fields; at most3 newly controlled numeric referents."
+        },
+        {
+          "owner": "reference_family_original_containers",
+          "count": 0,
+          "unit_upper": 18792,
+          "requests": 0,
+          "source_lines": [
+            805,
+            807
+          ],
+          "reason": "Per GetReferences:56 rows, row/name Lists, row array, two name arrays,3-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "build_family_original_containers",
+          "count": 0,
+          "unit_upper": 1272,
+          "requests": 0,
+          "source_lines": [
+            866,
+            868
+          ],
+          "reason": "Per GetBuildArtifacts:3 rows, rows/seen Lists and arrays,2-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "PE_header_sevenfield_maps_and_stored_numeric_results",
+          "count": 0,
+          "unit_upper": 504,
+          "requests": 0,
+          "source_lines": [
+            811
+          ],
+          "reason": "Each returned PE map has7 fields/six fresh numeric results; captured byte arrays belong to A and path strings to P."
+        },
+        {
+          "owner": "reference_comparison_old_Hashtable",
+          "count": 0,
+          "unit_upper": 3864,
+          "requests": 0,
+          "source_lines": [
+            809
+          ],
+          "reason": "Empty literal then56 actual writes; all old Hashtable backings retained."
+        },
+        {
+          "owner": "dependency_projected_threefield_map",
+          "count": 0,
+          "unit_upper": 336,
+          "requests": 0,
+          "source_lines": [
+            885
+          ],
+          "reason": "Only3 admitted fields survive; conservative scalar referent bound3."
+        },
+        {
+          "owner": "secondary_codes_per_receipt",
+          "count": 0,
+          "unit_upper": 3432,
+          "requests": 0,
+          "source_lines": [
+            407,
+            408,
+            409,
+            738
+          ],
+          "reason": "Each footer projects at most11 first-secondary maps and count referents; every replacement retained."
+        },
+        {
+          "owner": "failure_original_rows_and_root",
+          "count": 0,
+          "unit_upper": 25768,
+          "requests": 0,
+          "source_lines": [
+            888,
+            890,
+            892
+          ],
+          "reason": "78 output-file rows, List/array/root; bytes/reparse borrow W,opaque_temporary and root scalar stores have finite upper82."
+        }
+      ],
+      "preflight_measure_schedule": {
+        "marker": 0,
+        "receipt": 0,
+        "failure": 0,
+        "bundle": 0
+      },
+      "preflight_requests": 0,
+      "selected_explicit_arrays": {
+        "fixed_definition_arrays": 70536,
+        "raw_grammar_state_arrays": 64,
+        "raw_byte_control_encoded_arrays": 0,
+        "owned_copy_buffers": 0,
+        "PE_captured_arrays": 0,
+        "task_read_reference_concat_conversion_arrays": 0,
+        "child_sink_and_owner_literal_arrays": 0,
+        "mutation_before_replacement_arrays_and_hex": 0,
+        "compiler_and_native_argument_arrays": 0,
+        "BigInteger_cold_static_bits32": 0,
+        "dependency_captured_digest_and_hex": 0,
+        "SDK_BigInteger_controlled_stack_peak": 0
+      },
+      "selected_terms": {
+        "previous_component_selected": 8187248,
+        "O_original_DTOs": 2952,
+        "O_preflight_private_state_boxes_maps_and_iterator_returns": 0,
+        "F_A_explicit_arrays_and_bytes_selected": 70600
+      },
+      "selected_partial": 8260800
+    },
+    {
+      "id": "P1",
+      "original_rows": [
+        {
+          "owner": "receipt_initial_ordered_map",
+          "count": 1,
+          "unit_upper": 2552,
+          "requests": 2552,
+          "source_lines": [
+            56
+          ],
+          "reason": "One initial ordered root; every initial boxed DictionaryEntry included."
+        },
+        {
+          "owner": "accepted_predecessor_descriptor_map",
+          "count": 1,
+          "unit_upper": 360,
+          "requests": 360,
+          "source_lines": [
+            769,
+            917
+          ],
+          "reason": "One source projection before created root; the final bundle borrows the same descriptor."
+        },
+        {
+          "owner": "receipt_children_List",
+          "count": 1,
+          "unit_upper": 40,
+          "requests": 40,
+          "source_lines": [
+            56,
+            249
+          ],
+          "reason": "One rooted List, source-sized old backings."
+        },
+        {
+          "owner": "receipt_replaced_DictionaryEntry_objects",
+          "count": 12,
+          "unit_upper": 32,
+          "requests": 384,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Every source setter replaces an ordered DictionaryEntry; retained old entries are charged."
+        },
+        {
+          "owner": "receipt_possible_new_scalar_referents",
+          "count": 12,
+          "unit_upper": 24,
+          "requests": 288,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Conservative one newly promoted builtin scalar per setter; reference/string writes can only reduce this upper. No descriptor/H/J boxes counted by this row."
+        },
+        {
+          "owner": "child_ordered_rows",
+          "count": 0,
+          "unit_upper": 2072,
+          "requests": 0,
+          "source_lines": [
+            248
+          ],
+          "reason": "One actual 24-field row per reached child including every DictionaryEntry."
+        },
+        {
+          "owner": "child_stored_scalar_field_upper",
+          "count": 0,
+          "unit_upper": 504,
+          "requests": 0,
+          "source_lines": [
+            248
+          ],
+          "reason": "24 fields minus name/failure/cleanup; at most21 newly controlled builtin scalar referents."
+        },
+        {
+          "owner": "child_cleanup_List_and_ToArray",
+          "count": 0,
+          "unit_upper": 296,
+          "requests": 0,
+          "source_lines": [
+            194,
+            248
+          ],
+          "reason": "The thirteen-obligation List is exact-capacity, then one source ToArray."
+        },
+        {
+          "owner": "one_quarantine_map",
+          "count": 0,
+          "unit_upper": 1008,
+          "requests": 0,
+          "source_lines": [
+            245,
+            253
+          ],
+          "reason": "Only one rooted quarantine can form; no next child after it. Maximize both8/11-field constructor schedules:8 can grow while11 does not. Source-cleared arrays are still retained."
+        },
+        {
+          "owner": "marker_map",
+          "count": 1,
+          "unit_upper": 432,
+          "requests": 432,
+          "source_lines": [
+            933
+          ],
+          "reason": "Six literal fields; at most3 newly controlled numeric referents."
+        },
+        {
+          "owner": "runner_actual_control_maps",
+          "count": 6,
+          "unit_upper": 264,
+          "requests": 1584,
+          "source_lines": [
+            300,
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "Actual Expect result maps initially have3 fields."
+        },
+        {
+          "owner": "runner_actual_witness_maps",
+          "count": 1,
+          "unit_upper": 1392,
+          "requests": 1392,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "One actual caught rejection witness per reached control."
+        },
+        {
+          "owner": "runner_expected_witness_maps",
+          "count": 1,
+          "unit_upper": 1392,
+          "requests": 1392,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "Independent expected-witness literal passed to each control, even when references agree."
+        },
+        {
+          "owner": "runner_witness_new_numeric_expression_upper",
+          "count": 1,
+          "unit_upper": 384,
+          "requests": 384,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            966,
+            967,
+            968
+          ],
+          "reason": "Relaxed primitive-store upper; exclude known predecessor H and GUI PE map aliases."
+        },
+        {
+          "owner": "runner_control_grown_Hashtable_backings",
+          "count": 0,
+          "unit_upper": 432,
+          "requests": 0,
+          "source_lines": [
+            951,
+            962
+          ],
+          "reason": "Predecessor3->5 needs no extra backing; GUI3->6 crosses loadsize and grows once."
+        },
+        {
+          "owner": "runner_controls_List",
+          "count": 1,
+          "unit_upper": 144,
+          "requests": 144,
+          "source_lines": [
+            935
+          ],
+          "reason": "Explicit source capacity10, no growth."
+        },
+        {
+          "owner": "runner_controls_ToArray6",
+          "count": 1,
+          "unit_upper": 72,
+          "requests": 72,
+          "source_lines": [
+            952
+          ],
+          "reason": "Initial six real controls."
+        },
+        {
+          "owner": "runner_controls_ToArray10",
+          "count": 0,
+          "unit_upper": 104,
+          "requests": 0,
+          "source_lines": [
+            980
+          ],
+          "reason": "Final ten real controls."
+        },
+        {
+          "owner": "mutation_fourfield_maps",
+          "count": 1,
+          "unit_upper": 288,
+          "requests": 288,
+          "source_lines": [
+            508
+          ],
+          "reason": "Each source offset can become one newly controlled numeric reference; path aliases P."
+        },
+        {
+          "owner": "reference_family_original_containers",
+          "count": 0,
+          "unit_upper": 18792,
+          "requests": 0,
+          "source_lines": [
+            805,
+            807
+          ],
+          "reason": "Per GetReferences:56 rows, row/name Lists, row array, two name arrays,3-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "build_family_original_containers",
+          "count": 0,
+          "unit_upper": 1272,
+          "requests": 0,
+          "source_lines": [
+            866,
+            868
+          ],
+          "reason": "Per GetBuildArtifacts:3 rows, rows/seen Lists and arrays,2-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "PE_header_sevenfield_maps_and_stored_numeric_results",
+          "count": 1,
+          "unit_upper": 504,
+          "requests": 504,
+          "source_lines": [
+            811
+          ],
+          "reason": "Each returned PE map has7 fields/six fresh numeric results; captured byte arrays belong to A and path strings to P."
+        },
+        {
+          "owner": "reference_comparison_old_Hashtable",
+          "count": 0,
+          "unit_upper": 3864,
+          "requests": 0,
+          "source_lines": [
+            809
+          ],
+          "reason": "Empty literal then56 actual writes; all old Hashtable backings retained."
+        },
+        {
+          "owner": "dependency_projected_threefield_map",
+          "count": 0,
+          "unit_upper": 336,
+          "requests": 0,
+          "source_lines": [
+            885
+          ],
+          "reason": "Only3 admitted fields survive; conservative scalar referent bound3."
+        },
+        {
+          "owner": "secondary_codes_per_receipt",
+          "count": 2,
+          "unit_upper": 3432,
+          "requests": 6864,
+          "source_lines": [
+            407,
+            408,
+            409,
+            738
+          ],
+          "reason": "Each footer projects at most11 first-secondary maps and count referents; every replacement retained."
+        },
+        {
+          "owner": "failure_original_rows_and_root",
+          "count": 1,
+          "unit_upper": 25768,
+          "requests": 25768,
+          "source_lines": [
+            888,
+            890,
+            892
+          ],
+          "reason": "78 output-file rows, List/array/root; bytes/reparse borrow W,opaque_temporary and root scalar stores have finite upper82."
+        }
+      ],
+      "preflight_measure_schedule": {
+        "marker": 1,
+        "receipt": 2,
+        "failure": 1,
+        "bundle": 0
+      },
+      "preflight_requests": 194032,
+      "selected_explicit_arrays": {
+        "fixed_definition_arrays": 70536,
+        "raw_grammar_state_arrays": 160,
+        "raw_byte_control_encoded_arrays": 144,
+        "owned_copy_buffers": 65560,
+        "PE_captured_arrays": 4256,
+        "task_read_reference_concat_conversion_arrays": 0,
+        "child_sink_and_owner_literal_arrays": 0,
+        "mutation_before_replacement_arrays_and_hex": 184,
+        "compiler_and_native_argument_arrays": 0,
+        "BigInteger_cold_static_bits32": 0,
+        "dependency_captured_digest_and_hex": 0,
+        "SDK_BigInteger_controlled_stack_peak": 0
+      },
+      "selected_terms": {
+        "previous_component_selected": 11014656,
+        "O_original_DTOs": 42448,
+        "O_preflight_private_state_boxes_maps_and_iterator_returns": 194032,
+        "F_A_explicit_arrays_and_bytes_selected": 140840
+      },
+      "selected_partial": 11391976
+    },
+    {
+      "id": "P2",
+      "original_rows": [
+        {
+          "owner": "receipt_initial_ordered_map",
+          "count": 1,
+          "unit_upper": 2552,
+          "requests": 2552,
+          "source_lines": [
+            56
+          ],
+          "reason": "One initial ordered root; every initial boxed DictionaryEntry included."
+        },
+        {
+          "owner": "accepted_predecessor_descriptor_map",
+          "count": 1,
+          "unit_upper": 360,
+          "requests": 360,
+          "source_lines": [
+            769,
+            917
+          ],
+          "reason": "One source projection before created root; the final bundle borrows the same descriptor."
+        },
+        {
+          "owner": "receipt_children_List",
+          "count": 1,
+          "unit_upper": 96,
+          "requests": 96,
+          "source_lines": [
+            56,
+            249
+          ],
+          "reason": "One rooted List, source-sized old backings."
+        },
+        {
+          "owner": "receipt_replaced_DictionaryEntry_objects",
+          "count": 16,
+          "unit_upper": 32,
+          "requests": 512,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Every source setter replaces an ordered DictionaryEntry; retained old entries are charged."
+        },
+        {
+          "owner": "receipt_possible_new_scalar_referents",
+          "count": 16,
+          "unit_upper": 24,
+          "requests": 384,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Conservative one newly promoted builtin scalar per setter; reference/string writes can only reduce this upper. No descriptor/H/J boxes counted by this row."
+        },
+        {
+          "owner": "child_ordered_rows",
+          "count": 1,
+          "unit_upper": 2072,
+          "requests": 2072,
+          "source_lines": [
+            248
+          ],
+          "reason": "One actual 24-field row per reached child including every DictionaryEntry."
+        },
+        {
+          "owner": "child_stored_scalar_field_upper",
+          "count": 1,
+          "unit_upper": 504,
+          "requests": 504,
+          "source_lines": [
+            248
+          ],
+          "reason": "24 fields minus name/failure/cleanup; at most21 newly controlled builtin scalar referents."
+        },
+        {
+          "owner": "child_cleanup_List_and_ToArray",
+          "count": 1,
+          "unit_upper": 296,
+          "requests": 296,
+          "source_lines": [
+            194,
+            248
+          ],
+          "reason": "The thirteen-obligation List is exact-capacity, then one source ToArray."
+        },
+        {
+          "owner": "one_quarantine_map",
+          "count": 1,
+          "unit_upper": 1008,
+          "requests": 1008,
+          "source_lines": [
+            245,
+            253
+          ],
+          "reason": "Only one rooted quarantine can form; no next child after it. Maximize both8/11-field constructor schedules:8 can grow while11 does not. Source-cleared arrays are still retained."
+        },
+        {
+          "owner": "marker_map",
+          "count": 1,
+          "unit_upper": 432,
+          "requests": 432,
+          "source_lines": [
+            933
+          ],
+          "reason": "Six literal fields; at most3 newly controlled numeric referents."
+        },
+        {
+          "owner": "runner_actual_control_maps",
+          "count": 7,
+          "unit_upper": 264,
+          "requests": 1848,
+          "source_lines": [
+            300,
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "Actual Expect result maps initially have3 fields."
+        },
+        {
+          "owner": "runner_actual_witness_maps",
+          "count": 1,
+          "unit_upper": 1656,
+          "requests": 1656,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "One actual caught rejection witness per reached control."
+        },
+        {
+          "owner": "runner_expected_witness_maps",
+          "count": 1,
+          "unit_upper": 1656,
+          "requests": 1656,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "Independent expected-witness literal passed to each control, even when references agree."
+        },
+        {
+          "owner": "runner_witness_new_numeric_expression_upper",
+          "count": 1,
+          "unit_upper": 384,
+          "requests": 384,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            966,
+            967,
+            968
+          ],
+          "reason": "Relaxed primitive-store upper; exclude known predecessor H and GUI PE map aliases."
+        },
+        {
+          "owner": "runner_control_grown_Hashtable_backings",
+          "count": 1,
+          "unit_upper": 432,
+          "requests": 432,
+          "source_lines": [
+            951,
+            962
+          ],
+          "reason": "Predecessor3->5 needs no extra backing; GUI3->6 crosses loadsize and grows once."
+        },
+        {
+          "owner": "runner_controls_List",
+          "count": 1,
+          "unit_upper": 144,
+          "requests": 144,
+          "source_lines": [
+            935
+          ],
+          "reason": "Explicit source capacity10, no growth."
+        },
+        {
+          "owner": "runner_controls_ToArray6",
+          "count": 1,
+          "unit_upper": 72,
+          "requests": 72,
+          "source_lines": [
+            952
+          ],
+          "reason": "Initial six real controls."
+        },
+        {
+          "owner": "runner_controls_ToArray10",
+          "count": 0,
+          "unit_upper": 104,
+          "requests": 0,
+          "source_lines": [
+            980
+          ],
+          "reason": "Final ten real controls."
+        },
+        {
+          "owner": "mutation_fourfield_maps",
+          "count": 2,
+          "unit_upper": 288,
+          "requests": 576,
+          "source_lines": [
+            508
+          ],
+          "reason": "Each source offset can become one newly controlled numeric reference; path aliases P."
+        },
+        {
+          "owner": "reference_family_original_containers",
+          "count": 0,
+          "unit_upper": 18792,
+          "requests": 0,
+          "source_lines": [
+            805,
+            807
+          ],
+          "reason": "Per GetReferences:56 rows, row/name Lists, row array, two name arrays,3-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "build_family_original_containers",
+          "count": 1,
+          "unit_upper": 1272,
+          "requests": 1272,
+          "source_lines": [
+            866,
+            868
+          ],
+          "reason": "Per GetBuildArtifacts:3 rows, rows/seen Lists and arrays,2-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "PE_header_sevenfield_maps_and_stored_numeric_results",
+          "count": 4,
+          "unit_upper": 504,
+          "requests": 2016,
+          "source_lines": [
+            811
+          ],
+          "reason": "Each returned PE map has7 fields/six fresh numeric results; captured byte arrays belong to A and path strings to P."
+        },
+        {
+          "owner": "reference_comparison_old_Hashtable",
+          "count": 0,
+          "unit_upper": 3864,
+          "requests": 0,
+          "source_lines": [
+            809
+          ],
+          "reason": "Empty literal then56 actual writes; all old Hashtable backings retained."
+        },
+        {
+          "owner": "dependency_projected_threefield_map",
+          "count": 1,
+          "unit_upper": 336,
+          "requests": 336,
+          "source_lines": [
+            885
+          ],
+          "reason": "Only3 admitted fields survive; conservative scalar referent bound3."
+        },
+        {
+          "owner": "secondary_codes_per_receipt",
+          "count": 2,
+          "unit_upper": 3432,
+          "requests": 6864,
+          "source_lines": [
+            407,
+            408,
+            409,
+            738
+          ],
+          "reason": "Each footer projects at most11 first-secondary maps and count referents; every replacement retained."
+        },
+        {
+          "owner": "failure_original_rows_and_root",
+          "count": 1,
+          "unit_upper": 25768,
+          "requests": 25768,
+          "source_lines": [
+            888,
+            890,
+            892
+          ],
+          "reason": "78 output-file rows, List/array/root; bytes/reparse borrow W,opaque_temporary and root scalar stores have finite upper82."
+        }
+      ],
+      "preflight_measure_schedule": {
+        "marker": 1,
+        "receipt": 2,
+        "failure": 1,
+        "bundle": 0
+      },
+      "preflight_requests": 194032,
+      "selected_explicit_arrays": {
+        "fixed_definition_arrays": 70536,
+        "raw_grammar_state_arrays": 216,
+        "raw_byte_control_encoded_arrays": 144,
+        "owned_copy_buffers": 131120,
+        "PE_captured_arrays": 17024,
+        "task_read_reference_concat_conversion_arrays": 256,
+        "child_sink_and_owner_literal_arrays": 96,
+        "mutation_before_replacement_arrays_and_hex": 312,
+        "compiler_and_native_argument_arrays": 248,
+        "BigInteger_cold_static_bits32": 32,
+        "dependency_captured_digest_and_hex": 208,
+        "SDK_BigInteger_controlled_stack_peak": 534
+      },
+      "selected_terms": {
+        "previous_component_selected": 30427168,
+        "O_original_DTOs": 51240,
+        "O_preflight_private_state_boxes_maps_and_iterator_returns": 194032,
+        "F_A_explicit_arrays_and_bytes_selected": 220726
+      },
+      "selected_partial": 30893166
+    },
+    {
+      "id": "P3",
+      "original_rows": [
+        {
+          "owner": "receipt_initial_ordered_map",
+          "count": 1,
+          "unit_upper": 2552,
+          "requests": 2552,
+          "source_lines": [
+            56
+          ],
+          "reason": "One initial ordered root; every initial boxed DictionaryEntry included."
+        },
+        {
+          "owner": "accepted_predecessor_descriptor_map",
+          "count": 1,
+          "unit_upper": 360,
+          "requests": 360,
+          "source_lines": [
+            769,
+            917
+          ],
+          "reason": "One source projection before created root; the final bundle borrows the same descriptor."
+        },
+        {
+          "owner": "receipt_children_List",
+          "count": 1,
+          "unit_upper": 96,
+          "requests": 96,
+          "source_lines": [
+            56,
+            249
+          ],
+          "reason": "One rooted List, source-sized old backings."
+        },
+        {
+          "owner": "receipt_replaced_DictionaryEntry_objects",
+          "count": 21,
+          "unit_upper": 32,
+          "requests": 672,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Every source setter replaces an ordered DictionaryEntry; retained old entries are charged."
+        },
+        {
+          "owner": "receipt_possible_new_scalar_referents",
+          "count": 21,
+          "unit_upper": 24,
+          "requests": 504,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Conservative one newly promoted builtin scalar per setter; reference/string writes can only reduce this upper. No descriptor/H/J boxes counted by this row."
+        },
+        {
+          "owner": "child_ordered_rows",
+          "count": 2,
+          "unit_upper": 2072,
+          "requests": 4144,
+          "source_lines": [
+            248
+          ],
+          "reason": "One actual 24-field row per reached child including every DictionaryEntry."
+        },
+        {
+          "owner": "child_stored_scalar_field_upper",
+          "count": 2,
+          "unit_upper": 504,
+          "requests": 1008,
+          "source_lines": [
+            248
+          ],
+          "reason": "24 fields minus name/failure/cleanup; at most21 newly controlled builtin scalar referents."
+        },
+        {
+          "owner": "child_cleanup_List_and_ToArray",
+          "count": 2,
+          "unit_upper": 296,
+          "requests": 592,
+          "source_lines": [
+            194,
+            248
+          ],
+          "reason": "The thirteen-obligation List is exact-capacity, then one source ToArray."
+        },
+        {
+          "owner": "one_quarantine_map",
+          "count": 1,
+          "unit_upper": 1008,
+          "requests": 1008,
+          "source_lines": [
+            245,
+            253
+          ],
+          "reason": "Only one rooted quarantine can form; no next child after it. Maximize both8/11-field constructor schedules:8 can grow while11 does not. Source-cleared arrays are still retained."
+        },
+        {
+          "owner": "marker_map",
+          "count": 1,
+          "unit_upper": 432,
+          "requests": 432,
+          "source_lines": [
+            933
+          ],
+          "reason": "Six literal fields; at most3 newly controlled numeric referents."
+        },
+        {
+          "owner": "runner_actual_control_maps",
+          "count": 10,
+          "unit_upper": 264,
+          "requests": 2640,
+          "source_lines": [
+            300,
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "Actual Expect result maps initially have3 fields."
+        },
+        {
+          "owner": "runner_actual_witness_maps",
+          "count": 1,
+          "unit_upper": 2448,
+          "requests": 2448,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "One actual caught rejection witness per reached control."
+        },
+        {
+          "owner": "runner_expected_witness_maps",
+          "count": 1,
+          "unit_upper": 2448,
+          "requests": 2448,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "Independent expected-witness literal passed to each control, even when references agree."
+        },
+        {
+          "owner": "runner_witness_new_numeric_expression_upper",
+          "count": 1,
+          "unit_upper": 744,
+          "requests": 744,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            966,
+            967,
+            968
+          ],
+          "reason": "Relaxed primitive-store upper; exclude known predecessor H and GUI PE map aliases."
+        },
+        {
+          "owner": "runner_control_grown_Hashtable_backings",
+          "count": 1,
+          "unit_upper": 432,
+          "requests": 432,
+          "source_lines": [
+            951,
+            962
+          ],
+          "reason": "Predecessor3->5 needs no extra backing; GUI3->6 crosses loadsize and grows once."
+        },
+        {
+          "owner": "runner_controls_List",
+          "count": 1,
+          "unit_upper": 144,
+          "requests": 144,
+          "source_lines": [
+            935
+          ],
+          "reason": "Explicit source capacity10, no growth."
+        },
+        {
+          "owner": "runner_controls_ToArray6",
+          "count": 1,
+          "unit_upper": 72,
+          "requests": 72,
+          "source_lines": [
+            952
+          ],
+          "reason": "Initial six real controls."
+        },
+        {
+          "owner": "runner_controls_ToArray10",
+          "count": 0,
+          "unit_upper": 104,
+          "requests": 0,
+          "source_lines": [
+            980
+          ],
+          "reason": "Final ten real controls."
+        },
+        {
+          "owner": "mutation_fourfield_maps",
+          "count": 2,
+          "unit_upper": 288,
+          "requests": 576,
+          "source_lines": [
+            508
+          ],
+          "reason": "Each source offset can become one newly controlled numeric reference; path aliases P."
+        },
+        {
+          "owner": "reference_family_original_containers",
+          "count": 1,
+          "unit_upper": 18792,
+          "requests": 18792,
+          "source_lines": [
+            805,
+            807
+          ],
+          "reason": "Per GetReferences:56 rows, row/name Lists, row array, two name arrays,3-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "build_family_original_containers",
+          "count": 1,
+          "unit_upper": 1272,
+          "requests": 1272,
+          "source_lines": [
+            866,
+            868
+          ],
+          "reason": "Per GetBuildArtifacts:3 rows, rows/seen Lists and arrays,2-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "PE_header_sevenfield_maps_and_stored_numeric_results",
+          "count": 4,
+          "unit_upper": 504,
+          "requests": 2016,
+          "source_lines": [
+            811
+          ],
+          "reason": "Each returned PE map has7 fields/six fresh numeric results; captured byte arrays belong to A and path strings to P."
+        },
+        {
+          "owner": "reference_comparison_old_Hashtable",
+          "count": 0,
+          "unit_upper": 3864,
+          "requests": 0,
+          "source_lines": [
+            809
+          ],
+          "reason": "Empty literal then56 actual writes; all old Hashtable backings retained."
+        },
+        {
+          "owner": "dependency_projected_threefield_map",
+          "count": 1,
+          "unit_upper": 336,
+          "requests": 336,
+          "source_lines": [
+            885
+          ],
+          "reason": "Only3 admitted fields survive; conservative scalar referent bound3."
+        },
+        {
+          "owner": "native_control_record_maps_3",
+          "count": 3,
+          "unit_upper": 264,
+          "requests": 792,
+          "source_lines": [
+            843
+          ],
+          "reason": "Source map projects control/gate/operands; strings borrow J."
+        },
+        {
+          "owner": "native_control_operand_arrays_3",
+          "count": 3,
+          "unit_upper": 72,
+          "requests": 216,
+          "source_lines": [
+            841
+          ],
+          "reason": "One six-object normalized operand array per admitted control."
+        },
+        {
+          "owner": "native_BigInteger_normalization_3",
+          "count": 18,
+          "unit_upper": 88,
+          "requests": 1584,
+          "source_lines": [
+            382,
+            384
+          ],
+          "reason": "Per possible BigInteger operand:MaxValue constructor bits32, conservative explicit returned value box32,normalizedUInt64box24. Not J b20."
+        },
+        {
+          "owner": "native_control_records_List_3",
+          "count": 1,
+          "unit_upper": 136,
+          "requests": 136,
+          "source_lines": [
+            831,
+            860
+          ],
+          "reason": "Exact records List and one ToArray."
+        },
+        {
+          "owner": "native_summary_result_empty_then13",
+          "count": 1,
+          "unit_upper": 1704,
+          "requests": 1704,
+          "source_lines": [
+            858,
+            860
+          ],
+          "reason": "Empty Hashtable receives twelve validated fields plus controls; J scalar values are borrowed."
+        },
+        {
+          "owner": "secondary_codes_per_receipt",
+          "count": 3,
+          "unit_upper": 3432,
+          "requests": 10296,
+          "source_lines": [
+            407,
+            408,
+            409,
+            738
+          ],
+          "reason": "Each footer projects at most11 first-secondary maps and count referents; every replacement retained."
+        },
+        {
+          "owner": "failure_original_rows_and_root",
+          "count": 1,
+          "unit_upper": 25768,
+          "requests": 25768,
+          "source_lines": [
+            888,
+            890,
+            892
+          ],
+          "reason": "78 output-file rows, List/array/root; bytes/reparse borrow W,opaque_temporary and root scalar stores have finite upper82."
+        }
+      ],
+      "preflight_measure_schedule": {
+        "marker": 1,
+        "receipt": 3,
+        "failure": 1,
+        "bundle": 0
+      },
+      "preflight_requests": 254760,
+      "selected_explicit_arrays": {
+        "fixed_definition_arrays": 70536,
+        "raw_grammar_state_arrays": 344,
+        "raw_byte_control_encoded_arrays": 144,
+        "owned_copy_buffers": 131120,
+        "PE_captured_arrays": 17024,
+        "task_read_reference_concat_conversion_arrays": 512,
+        "child_sink_and_owner_literal_arrays": 192,
+        "mutation_before_replacement_arrays_and_hex": 312,
+        "compiler_and_native_argument_arrays": 320,
+        "BigInteger_cold_static_bits32": 32,
+        "dependency_captured_digest_and_hex": 208,
+        "SDK_BigInteger_controlled_stack_peak": 534
+      },
+      "selected_terms": {
+        "previous_component_selected": 33688616,
+        "O_original_DTOs": 83784,
+        "O_preflight_private_state_boxes_maps_and_iterator_returns": 254760,
+        "F_A_explicit_arrays_and_bytes_selected": 221278
+      },
+      "selected_partial": 34248438
+    },
+    {
+      "id": "P4",
+      "original_rows": [
+        {
+          "owner": "receipt_initial_ordered_map",
+          "count": 1,
+          "unit_upper": 2552,
+          "requests": 2552,
+          "source_lines": [
+            56
+          ],
+          "reason": "One initial ordered root; every initial boxed DictionaryEntry included."
+        },
+        {
+          "owner": "accepted_predecessor_descriptor_map",
+          "count": 1,
+          "unit_upper": 360,
+          "requests": 360,
+          "source_lines": [
+            769,
+            917
+          ],
+          "reason": "One source projection before created root; the final bundle borrows the same descriptor."
+        },
+        {
+          "owner": "receipt_children_List",
+          "count": 1,
+          "unit_upper": 96,
+          "requests": 96,
+          "source_lines": [
+            56,
+            249
+          ],
+          "reason": "One rooted List, source-sized old backings."
+        },
+        {
+          "owner": "receipt_replaced_DictionaryEntry_objects",
+          "count": 28,
+          "unit_upper": 32,
+          "requests": 896,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Every source setter replaces an ordered DictionaryEntry; retained old entries are charged."
+        },
+        {
+          "owner": "receipt_possible_new_scalar_referents",
+          "count": 28,
+          "unit_upper": 24,
+          "requests": 672,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Conservative one newly promoted builtin scalar per setter; reference/string writes can only reduce this upper. No descriptor/H/J boxes counted by this row."
+        },
+        {
+          "owner": "child_ordered_rows",
+          "count": 3,
+          "unit_upper": 2072,
+          "requests": 6216,
+          "source_lines": [
+            248
+          ],
+          "reason": "One actual 24-field row per reached child including every DictionaryEntry."
+        },
+        {
+          "owner": "child_stored_scalar_field_upper",
+          "count": 3,
+          "unit_upper": 504,
+          "requests": 1512,
+          "source_lines": [
+            248
+          ],
+          "reason": "24 fields minus name/failure/cleanup; at most21 newly controlled builtin scalar referents."
+        },
+        {
+          "owner": "child_cleanup_List_and_ToArray",
+          "count": 3,
+          "unit_upper": 296,
+          "requests": 888,
+          "source_lines": [
+            194,
+            248
+          ],
+          "reason": "The thirteen-obligation List is exact-capacity, then one source ToArray."
+        },
+        {
+          "owner": "one_quarantine_map",
+          "count": 1,
+          "unit_upper": 1008,
+          "requests": 1008,
+          "source_lines": [
+            245,
+            253
+          ],
+          "reason": "Only one rooted quarantine can form; no next child after it. Maximize both8/11-field constructor schedules:8 can grow while11 does not. Source-cleared arrays are still retained."
+        },
+        {
+          "owner": "marker_map",
+          "count": 1,
+          "unit_upper": 432,
+          "requests": 432,
+          "source_lines": [
+            933
+          ],
+          "reason": "Six literal fields; at most3 newly controlled numeric referents."
+        },
+        {
+          "owner": "runner_actual_control_maps",
+          "count": 10,
+          "unit_upper": 264,
+          "requests": 2640,
+          "source_lines": [
+            300,
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "Actual Expect result maps initially have3 fields."
+        },
+        {
+          "owner": "runner_actual_witness_maps",
+          "count": 1,
+          "unit_upper": 2448,
+          "requests": 2448,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "One actual caught rejection witness per reached control."
+        },
+        {
+          "owner": "runner_expected_witness_maps",
+          "count": 1,
+          "unit_upper": 2448,
+          "requests": 2448,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "Independent expected-witness literal passed to each control, even when references agree."
+        },
+        {
+          "owner": "runner_witness_new_numeric_expression_upper",
+          "count": 1,
+          "unit_upper": 744,
+          "requests": 744,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            966,
+            967,
+            968
+          ],
+          "reason": "Relaxed primitive-store upper; exclude known predecessor H and GUI PE map aliases."
+        },
+        {
+          "owner": "runner_control_grown_Hashtable_backings",
+          "count": 1,
+          "unit_upper": 432,
+          "requests": 432,
+          "source_lines": [
+            951,
+            962
+          ],
+          "reason": "Predecessor3->5 needs no extra backing; GUI3->6 crosses loadsize and grows once."
+        },
+        {
+          "owner": "runner_controls_List",
+          "count": 1,
+          "unit_upper": 144,
+          "requests": 144,
+          "source_lines": [
+            935
+          ],
+          "reason": "Explicit source capacity10, no growth."
+        },
+        {
+          "owner": "runner_controls_ToArray6",
+          "count": 1,
+          "unit_upper": 72,
+          "requests": 72,
+          "source_lines": [
+            952
+          ],
+          "reason": "Initial six real controls."
+        },
+        {
+          "owner": "runner_controls_ToArray10",
+          "count": 1,
+          "unit_upper": 104,
+          "requests": 104,
+          "source_lines": [
+            980
+          ],
+          "reason": "Final ten real controls."
+        },
+        {
+          "owner": "mutation_fourfield_maps",
+          "count": 2,
+          "unit_upper": 288,
+          "requests": 576,
+          "source_lines": [
+            508
+          ],
+          "reason": "Each source offset can become one newly controlled numeric reference; path aliases P."
+        },
+        {
+          "owner": "reference_family_original_containers",
+          "count": 2,
+          "unit_upper": 18792,
+          "requests": 37584,
+          "source_lines": [
+            805,
+            807
+          ],
+          "reason": "Per GetReferences:56 rows, row/name Lists, row array, two name arrays,3-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "build_family_original_containers",
+          "count": 2,
+          "unit_upper": 1272,
+          "requests": 2544,
+          "source_lines": [
+            866,
+            868
+          ],
+          "reason": "Per GetBuildArtifacts:3 rows, rows/seen Lists and arrays,2-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "PE_header_sevenfield_maps_and_stored_numeric_results",
+          "count": 4,
+          "unit_upper": 504,
+          "requests": 2016,
+          "source_lines": [
+            811
+          ],
+          "reason": "Each returned PE map has7 fields/six fresh numeric results; captured byte arrays belong to A and path strings to P."
+        },
+        {
+          "owner": "reference_comparison_old_Hashtable",
+          "count": 1,
+          "unit_upper": 3864,
+          "requests": 3864,
+          "source_lines": [
+            809
+          ],
+          "reason": "Empty literal then56 actual writes; all old Hashtable backings retained."
+        },
+        {
+          "owner": "dependency_projected_threefield_map",
+          "count": 1,
+          "unit_upper": 336,
+          "requests": 336,
+          "source_lines": [
+            885
+          ],
+          "reason": "Only3 admitted fields survive; conservative scalar referent bound3."
+        },
+        {
+          "owner": "native_control_record_maps_3",
+          "count": 3,
+          "unit_upper": 264,
+          "requests": 792,
+          "source_lines": [
+            843
+          ],
+          "reason": "Source map projects control/gate/operands; strings borrow J."
+        },
+        {
+          "owner": "native_control_operand_arrays_3",
+          "count": 3,
+          "unit_upper": 72,
+          "requests": 216,
+          "source_lines": [
+            841
+          ],
+          "reason": "One six-object normalized operand array per admitted control."
+        },
+        {
+          "owner": "native_BigInteger_normalization_3",
+          "count": 18,
+          "unit_upper": 88,
+          "requests": 1584,
+          "source_lines": [
+            382,
+            384
+          ],
+          "reason": "Per possible BigInteger operand:MaxValue constructor bits32, conservative explicit returned value box32,normalizedUInt64box24. Not J b20."
+        },
+        {
+          "owner": "native_control_records_List_3",
+          "count": 1,
+          "unit_upper": 136,
+          "requests": 136,
+          "source_lines": [
+            831,
+            860
+          ],
+          "reason": "Exact records List and one ToArray."
+        },
+        {
+          "owner": "native_summary_result_empty_then13",
+          "count": 1,
+          "unit_upper": 1704,
+          "requests": 1704,
+          "source_lines": [
+            858,
+            860
+          ],
+          "reason": "Empty Hashtable receives twelve validated fields plus controls; J scalar values are borrowed."
+        },
+        {
+          "owner": "native_control_record_maps_11",
+          "count": 11,
+          "unit_upper": 264,
+          "requests": 2904,
+          "source_lines": [
+            843
+          ],
+          "reason": "Source map projects control/gate/operands; strings borrow J."
+        },
+        {
+          "owner": "native_control_operand_arrays_11",
+          "count": 11,
+          "unit_upper": 72,
+          "requests": 792,
+          "source_lines": [
+            841
+          ],
+          "reason": "One six-object normalized operand array per admitted control."
+        },
+        {
+          "owner": "native_BigInteger_normalization_11",
+          "count": 66,
+          "unit_upper": 88,
+          "requests": 5808,
+          "source_lines": [
+            382,
+            384
+          ],
+          "reason": "Per possible BigInteger operand:MaxValue constructor bits32, conservative explicit returned value box32,normalizedUInt64box24. Not J b20."
+        },
+        {
+          "owner": "native_control_records_List_11",
+          "count": 1,
+          "unit_upper": 264,
+          "requests": 264,
+          "source_lines": [
+            831,
+            860
+          ],
+          "reason": "Exact records List and one ToArray."
+        },
+        {
+          "owner": "native_summary_result_empty_then13",
+          "count": 1,
+          "unit_upper": 1704,
+          "requests": 1704,
+          "source_lines": [
+            858,
+            860
+          ],
+          "reason": "Empty Hashtable receives twelve validated fields plus controls; J scalar values are borrowed."
+        },
+        {
+          "owner": "secondary_codes_per_receipt",
+          "count": 4,
+          "unit_upper": 3432,
+          "requests": 13728,
+          "source_lines": [
+            407,
+            408,
+            409,
+            738
+          ],
+          "reason": "Each footer projects at most11 first-secondary maps and count referents; every replacement retained."
+        },
+        {
+          "owner": "failure_original_rows_and_root",
+          "count": 1,
+          "unit_upper": 25768,
+          "requests": 25768,
+          "source_lines": [
+            888,
+            890,
+            892
+          ],
+          "reason": "78 output-file rows, List/array/root; bytes/reparse borrow W,opaque_temporary and root scalar stores have finite upper82."
+        },
+        {
+          "owner": "control_file_descriptor_family",
+          "count": 1,
+          "unit_upper": 1208,
+          "requests": 1208,
+          "source_lines": [
+            976,
+            981
+          ],
+          "reason": "Four old/live control descriptors; bytes borrow H."
+        },
+        {
+          "owner": "expected_observed_run_name_lists",
+          "count": 1,
+          "unit_upper": 5608,
+          "requests": 5608,
+          "source_lines": [
+            977,
+            978,
+            979
+          ],
+          "reason": "67 declared files; first-refusing observed list may reach78."
+        }
+      ],
+      "preflight_measure_schedule": {
+        "marker": 1,
+        "receipt": 4,
+        "failure": 1,
+        "bundle": 0
+      },
+      "preflight_requests": 315488,
+      "selected_explicit_arrays": {
+        "fixed_definition_arrays": 70536,
+        "raw_grammar_state_arrays": 728,
+        "raw_byte_control_encoded_arrays": 144,
+        "owned_copy_buffers": 131120,
+        "PE_captured_arrays": 17024,
+        "task_read_reference_concat_conversion_arrays": 768,
+        "child_sink_and_owner_literal_arrays": 288,
+        "mutation_before_replacement_arrays_and_hex": 312,
+        "compiler_and_native_argument_arrays": 392,
+        "BigInteger_cold_static_bits32": 32,
+        "dependency_captured_digest_and_hex": 208,
+        "SDK_BigInteger_controlled_stack_peak": 534
+      },
+      "selected_terms": {
+        "previous_component_selected": 37562784,
+        "O_original_DTOs": 132800,
+        "O_preflight_private_state_boxes_maps_and_iterator_returns": 315488,
+        "F_A_explicit_arrays_and_bytes_selected": 222086
+      },
+      "selected_partial": 38233158
+    },
+    {
+      "id": "P5",
+      "original_rows": [
+        {
+          "owner": "receipt_initial_ordered_map",
+          "count": 1,
+          "unit_upper": 2552,
+          "requests": 2552,
+          "source_lines": [
+            56
+          ],
+          "reason": "One initial ordered root; every initial boxed DictionaryEntry included."
+        },
+        {
+          "owner": "accepted_predecessor_descriptor_map",
+          "count": 1,
+          "unit_upper": 360,
+          "requests": 360,
+          "source_lines": [
+            769,
+            917
+          ],
+          "reason": "One source projection before created root; the final bundle borrows the same descriptor."
+        },
+        {
+          "owner": "receipt_children_List",
+          "count": 1,
+          "unit_upper": 96,
+          "requests": 96,
+          "source_lines": [
+            56,
+            249
+          ],
+          "reason": "One rooted List, source-sized old backings."
+        },
+        {
+          "owner": "receipt_replaced_DictionaryEntry_objects",
+          "count": 28,
+          "unit_upper": 32,
+          "requests": 896,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Every source setter replaces an ordered DictionaryEntry; retained old entries are charged."
+        },
+        {
+          "owner": "receipt_possible_new_scalar_referents",
+          "count": 28,
+          "unit_upper": 24,
+          "requests": 672,
+          "source_lines": [
+            250,
+            738,
+            891,
+            952,
+            958,
+            970,
+            980,
+            998
+          ],
+          "reason": "Conservative one newly promoted builtin scalar per setter; reference/string writes can only reduce this upper. No descriptor/H/J boxes counted by this row."
+        },
+        {
+          "owner": "child_ordered_rows",
+          "count": 3,
+          "unit_upper": 2072,
+          "requests": 6216,
+          "source_lines": [
+            248
+          ],
+          "reason": "One actual 24-field row per reached child including every DictionaryEntry."
+        },
+        {
+          "owner": "child_stored_scalar_field_upper",
+          "count": 3,
+          "unit_upper": 504,
+          "requests": 1512,
+          "source_lines": [
+            248
+          ],
+          "reason": "24 fields minus name/failure/cleanup; at most21 newly controlled builtin scalar referents."
+        },
+        {
+          "owner": "child_cleanup_List_and_ToArray",
+          "count": 3,
+          "unit_upper": 296,
+          "requests": 888,
+          "source_lines": [
+            194,
+            248
+          ],
+          "reason": "The thirteen-obligation List is exact-capacity, then one source ToArray."
+        },
+        {
+          "owner": "one_quarantine_map",
+          "count": 1,
+          "unit_upper": 1008,
+          "requests": 1008,
+          "source_lines": [
+            245,
+            253
+          ],
+          "reason": "Only one rooted quarantine can form; no next child after it. Maximize both8/11-field constructor schedules:8 can grow while11 does not. Source-cleared arrays are still retained."
+        },
+        {
+          "owner": "marker_map",
+          "count": 1,
+          "unit_upper": 432,
+          "requests": 432,
+          "source_lines": [
+            933
+          ],
+          "reason": "Six literal fields; at most3 newly controlled numeric referents."
+        },
+        {
+          "owner": "runner_actual_control_maps",
+          "count": 10,
+          "unit_upper": 264,
+          "requests": 2640,
+          "source_lines": [
+            300,
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "Actual Expect result maps initially have3 fields."
+        },
+        {
+          "owner": "runner_actual_witness_maps",
+          "count": 1,
+          "unit_upper": 2448,
+          "requests": 2448,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "One actual caught rejection witness per reached control."
+        },
+        {
+          "owner": "runner_expected_witness_maps",
+          "count": 1,
+          "unit_upper": 2448,
+          "requests": 2448,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            951,
+            962,
+            966,
+            967,
+            968
+          ],
+          "reason": "Independent expected-witness literal passed to each control, even when references agree."
+        },
+        {
+          "owner": "runner_witness_new_numeric_expression_upper",
+          "count": 1,
+          "unit_upper": 744,
+          "requests": 744,
+          "source_lines": [
+            937,
+            939,
+            940,
+            941,
+            942,
+            966,
+            967,
+            968
+          ],
+          "reason": "Relaxed primitive-store upper; exclude known predecessor H and GUI PE map aliases."
+        },
+        {
+          "owner": "runner_control_grown_Hashtable_backings",
+          "count": 1,
+          "unit_upper": 432,
+          "requests": 432,
+          "source_lines": [
+            951,
+            962
+          ],
+          "reason": "Predecessor3->5 needs no extra backing; GUI3->6 crosses loadsize and grows once."
+        },
+        {
+          "owner": "runner_controls_List",
+          "count": 1,
+          "unit_upper": 144,
+          "requests": 144,
+          "source_lines": [
+            935
+          ],
+          "reason": "Explicit source capacity10, no growth."
+        },
+        {
+          "owner": "runner_controls_ToArray6",
+          "count": 1,
+          "unit_upper": 72,
+          "requests": 72,
+          "source_lines": [
+            952
+          ],
+          "reason": "Initial six real controls."
+        },
+        {
+          "owner": "runner_controls_ToArray10",
+          "count": 1,
+          "unit_upper": 104,
+          "requests": 104,
+          "source_lines": [
+            980
+          ],
+          "reason": "Final ten real controls."
+        },
+        {
+          "owner": "mutation_fourfield_maps",
+          "count": 2,
+          "unit_upper": 288,
+          "requests": 576,
+          "source_lines": [
+            508
+          ],
+          "reason": "Each source offset can become one newly controlled numeric reference; path aliases P."
+        },
+        {
+          "owner": "reference_family_original_containers",
+          "count": 2,
+          "unit_upper": 18792,
+          "requests": 37584,
+          "source_lines": [
+            805,
+            807
+          ],
+          "reason": "Per GetReferences:56 rows, row/name Lists, row array, two name arrays,3-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "build_family_original_containers",
+          "count": 2,
+          "unit_upper": 1272,
+          "requests": 2544,
+          "source_lines": [
+            866,
+            868
+          ],
+          "reason": "Per GetBuildArtifacts:3 rows, rows/seen Lists and arrays,2-field wrapper and one stored summed-byte scalar. Per-file byte counts borrow H."
+        },
+        {
+          "owner": "PE_header_sevenfield_maps_and_stored_numeric_results",
+          "count": 4,
+          "unit_upper": 504,
+          "requests": 2016,
+          "source_lines": [
+            811
+          ],
+          "reason": "Each returned PE map has7 fields/six fresh numeric results; captured byte arrays belong to A and path strings to P."
+        },
+        {
+          "owner": "reference_comparison_old_Hashtable",
+          "count": 1,
+          "unit_upper": 3864,
+          "requests": 3864,
+          "source_lines": [
+            809
+          ],
+          "reason": "Empty literal then56 actual writes; all old Hashtable backings retained."
+        },
+        {
+          "owner": "dependency_projected_threefield_map",
+          "count": 1,
+          "unit_upper": 336,
+          "requests": 336,
+          "source_lines": [
+            885
+          ],
+          "reason": "Only3 admitted fields survive; conservative scalar referent bound3."
+        },
+        {
+          "owner": "native_control_record_maps_3",
+          "count": 3,
+          "unit_upper": 264,
+          "requests": 792,
+          "source_lines": [
+            843
+          ],
+          "reason": "Source map projects control/gate/operands; strings borrow J."
+        },
+        {
+          "owner": "native_control_operand_arrays_3",
+          "count": 3,
+          "unit_upper": 72,
+          "requests": 216,
+          "source_lines": [
+            841
+          ],
+          "reason": "One six-object normalized operand array per admitted control."
+        },
+        {
+          "owner": "native_BigInteger_normalization_3",
+          "count": 18,
+          "unit_upper": 88,
+          "requests": 1584,
+          "source_lines": [
+            382,
+            384
+          ],
+          "reason": "Per possible BigInteger operand:MaxValue constructor bits32, conservative explicit returned value box32,normalizedUInt64box24. Not J b20."
+        },
+        {
+          "owner": "native_control_records_List_3",
+          "count": 1,
+          "unit_upper": 136,
+          "requests": 136,
+          "source_lines": [
+            831,
+            860
+          ],
+          "reason": "Exact records List and one ToArray."
+        },
+        {
+          "owner": "native_summary_result_empty_then13",
+          "count": 1,
+          "unit_upper": 1704,
+          "requests": 1704,
+          "source_lines": [
+            858,
+            860
+          ],
+          "reason": "Empty Hashtable receives twelve validated fields plus controls; J scalar values are borrowed."
+        },
+        {
+          "owner": "native_control_record_maps_11",
+          "count": 11,
+          "unit_upper": 264,
+          "requests": 2904,
+          "source_lines": [
+            843
+          ],
+          "reason": "Source map projects control/gate/operands; strings borrow J."
+        },
+        {
+          "owner": "native_control_operand_arrays_11",
+          "count": 11,
+          "unit_upper": 72,
+          "requests": 792,
+          "source_lines": [
+            841
+          ],
+          "reason": "One six-object normalized operand array per admitted control."
+        },
+        {
+          "owner": "native_BigInteger_normalization_11",
+          "count": 66,
+          "unit_upper": 88,
+          "requests": 5808,
+          "source_lines": [
+            382,
+            384
+          ],
+          "reason": "Per possible BigInteger operand:MaxValue constructor bits32, conservative explicit returned value box32,normalizedUInt64box24. Not J b20."
+        },
+        {
+          "owner": "native_control_records_List_11",
+          "count": 1,
+          "unit_upper": 264,
+          "requests": 264,
+          "source_lines": [
+            831,
+            860
+          ],
+          "reason": "Exact records List and one ToArray."
+        },
+        {
+          "owner": "native_summary_result_empty_then13",
+          "count": 1,
+          "unit_upper": 1704,
+          "requests": 1704,
+          "source_lines": [
+            858,
+            860
+          ],
+          "reason": "Empty Hashtable receives twelve validated fields plus controls; J scalar values are borrowed."
+        },
+        {
+          "owner": "secondary_codes_per_receipt",
+          "count": 4,
+          "unit_upper": 3432,
+          "requests": 13728,
+          "source_lines": [
+            407,
+            408,
+            409,
+            738
+          ],
+          "reason": "Each footer projects at most11 first-secondary maps and count referents; every replacement retained."
+        },
+        {
+          "owner": "failure_original_rows_and_root",
+          "count": 1,
+          "unit_upper": 25768,
+          "requests": 25768,
+          "source_lines": [
+            888,
+            890,
+            892
+          ],
+          "reason": "78 output-file rows, List/array/root; bytes/reparse borrow W,opaque_temporary and root scalar stores have finite upper82."
+        },
+        {
+          "owner": "control_file_descriptor_family",
+          "count": 1,
+          "unit_upper": 1208,
+          "requests": 1208,
+          "source_lines": [
+            976,
+            981
+          ],
+          "reason": "Four old/live control descriptors; bytes borrow H."
+        },
+        {
+          "owner": "expected_observed_run_name_lists",
+          "count": 1,
+          "unit_upper": 5608,
+          "requests": 5608,
+          "source_lines": [
+            977,
+            978,
+            979
+          ],
+          "reason": "67 declared files; first-refusing observed list may reach78."
+        },
+        {
+          "owner": "artifact_List_and_ToArray",
+          "count": 1,
+          "unit_upper": 3816,
+          "requests": 3816,
+          "source_lines": [
+            981,
+            982,
+            985
+          ],
+          "reason": "67 aliases plus4 stage-created descriptor maps; borrowed earlier row objects are not copied."
+        },
+        {
+          "owner": "transitive_List_and_rows",
+          "count": 1,
+          "unit_upper": 366264,
+          "requests": 366264,
+          "source_lines": [
+            984,
+            985
+          ],
+          "reason": "Exactly1225 four-field new descriptor maps; input/own byte values borrow parsed input. One GetItem manifest-length numeric result is promoted into its descriptor."
+        },
+        {
+          "owner": "bundle_ordered_root",
+          "count": 1,
+          "unit_upper": 3808,
+          "requests": 3808,
+          "source_lines": [
+            985,
+            990
+          ],
+          "reason": "Root21 entries; predecessor descriptor is borrowed from its earlier owner; at most10 fixed-point ordered-entry replacements and12 newly stored builtin values."
+        }
+      ],
+      "preflight_measure_schedule": {
+        "marker": 1,
+        "receipt": 4,
+        "failure": 1,
+        "bundle": 5
+      },
+      "preflight_requests": 5136568,
+      "selected_explicit_arrays": {
+        "fixed_definition_arrays": 70536,
+        "raw_grammar_state_arrays": 728,
+        "raw_byte_control_encoded_arrays": 144,
+        "owned_copy_buffers": 131120,
+        "PE_captured_arrays": 17024,
+        "task_read_reference_concat_conversion_arrays": 768,
+        "child_sink_and_owner_literal_arrays": 288,
+        "mutation_before_replacement_arrays_and_hex": 312,
+        "compiler_and_native_argument_arrays": 392,
+        "BigInteger_cold_static_bits32": 32,
+        "dependency_captured_digest_and_hex": 208,
+        "SDK_BigInteger_controlled_stack_peak": 534
+      },
+      "selected_terms": {
+        "previous_component_selected": 41855696,
+        "O_original_DTOs": 506688,
+        "O_preflight_private_state_boxes_maps_and_iterator_returns": 5136568,
+        "F_A_explicit_arrays_and_bytes_selected": 222086
+      },
+      "selected_partial": 47721038
+    }
+  ],
+  "important_correction": "Private Hashtable state stores a fresh numeric result on every nodes++ and bytes+=; these source-controlled boxes were absent from prior worksheet. Explicit map enumerators and boxed DictionaryEntry returns remain controlled, as in K.",
+  "remaining_A_F": "This evaluated explicit table is not all source transfer work. Full remaining includes actual bounded FileSet/key-array/source-pipeline materializations, private catalogue dictionaries/maps and original literal strings. No blanket per-helper binder fee or zero is asserted.",
+  "unresolved_V": "Selected FileStream/crypto/pipe/process/async/encoding wrappers and native-child payload still require source coefficients and phases. FileInfo136 and b20 source components are pending independent review.",
+  "no_claims": [
+    "No target execution",
+    "No source/cap/domain change",
+    "No complete numeric U or fit/NOFIT",
+    "No GC or physical-process-heap claim",
+    "No final union/ABI/environment binding or GO"
+  ]
+}

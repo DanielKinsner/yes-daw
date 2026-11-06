@@ -1,0 +1,407 @@
+{
+  "schema": "R12_COMPLETE_HOLD_BASELINE_SOURCE_PINS_R1",
+  "verdict": "HOLD_NO_COMPLETE_NUMERIC_UPPER_NO_FIT_OR_NOFIT",
+  "scope": "Immutable resource baseline disposition only;13 families with selected source/data arithmetic and explicit remaining V/P/native/cold/A/profile obligations. Ordinary files/JSON/hash/ownPython arithmetic only; no target/GUI/environment/Git/CI execution.",
+  "input_admission": "These are qualification/evidence/ordinary source inputs, not new authored Clock compiler/runtime inputs or archive-copy admissions. Final canonical union/profile remains pending.",
+  "authored_files": [
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/assemble-baseline.py",
+      "bytes": 15694,
+      "sha256": "2D613C05F77B2F8397974A472A5E9E7A69DCAE2727E07922EF78B9A4BEB44E53"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/baseline.json",
+      "bytes": 17712,
+      "sha256": "0B7093605D65D8F0E7C4BA5EBCADCE1843D2FE54FED601FE1E0DB72BE7095D49"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/baseline.md",
+      "bytes": 10443,
+      "sha256": "2BE5DD192D422AE360D35DBC6C5EA65EFBD83B4F5CD5DD2AD45880DF45EFF83D"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/check-fixed-key-hashes.py",
+      "bytes": 7677,
+      "sha256": "BACD6D7F66B76334429005BBF38A7C028733E66E3596C649CE11827DB5D5671C"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/collections.json",
+      "bytes": 52329,
+      "sha256": "D7A2952F541A85D3E82C92DF9259FC74377F6E01E6D099060D3066C2A07F31B1"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/components.json",
+      "bytes": 9381,
+      "sha256": "A3E4468CFD09272851CB9D4E67FCF0E530B2149259D1EDA1B3F3B76BC68BF2DC"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/derive-collections.py",
+      "bytes": 11206,
+      "sha256": "B64097A5D116328649F41FFF383C0CA10B001EEA90FCEB7F84A7F6A217497A54"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/derive-components.py",
+      "bytes": 12772,
+      "sha256": "68EC22BDD70F2AC7E0EC8CB38D7D7C65D3225B0362662F83E33FD273CFDE6502"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/derive-environment.py",
+      "bytes": 4694,
+      "sha256": "987B395A1536BC34ED7442EEDAE548D7C1E19474DC561AECD763ECE1BD34DCEA"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/derive-originals.py",
+      "bytes": 14654,
+      "sha256": "AA15DA0582E5E25B5F55DC0CDF09E11BCBA83AE8F5620B7DE667D4822D77040E"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/derive.py",
+      "bytes": 13844,
+      "sha256": "C6DFCE59457FAAB3DAFD11CCDC6E06A8186BC50170AC27E77D547CE6A94EEE52"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/environment.json",
+      "bytes": 3351,
+      "sha256": "3278F275E917B62320BE097212E90E4D0DCB956D3BE555CD0B83E28491F54FFF"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/evaluation.json",
+      "bytes": 16060,
+      "sha256": "872E24B3B7A11476AAE4949E6B0D43B54D6DD19B266FF0FA52D66A26691E5C4F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/fixed-key-hash-chains.json",
+      "bytes": 16710,
+      "sha256": "587CB936BC03C25E3C6336AC1240C8B4EA763AEAE1EE327F4D43D1987610E1FD"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/mechanical-evidence.json",
+      "bytes": 33327,
+      "sha256": "BEBCB7AB6503C804E1741527ED85289650639F45F78B988F3910EF0EB14C0EF4"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/originals.json",
+      "bytes": 73149,
+      "sha256": "8F76D3688B9C74296E2E595C33C6C1A074C294D59897FBD28CE82F893C083CF5"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/seal.py",
+      "bytes": 2042,
+      "sha256": "15FE6DC58825541D62759A96C68BE3A2A4635E0E00EC5710C973462A5E2900B2"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-payload-evaluation-r1/selfcheck.py",
+      "bytes": 11647,
+      "sha256": "8280DD69B3F09518B9767C5FADF127D8391BC656F71262EF426C77FF44A5B6FA"
+    }
+  ],
+  "input_pins": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-manifest.json",
+      "bytes": 501180,
+      "sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/README.md",
+      "bytes": 20285,
+      "sha256": "DC39905A4833FB580FAA55BE562E15EAB923F3B9D1006371D88CBE928C386D90"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-hash-carrier-independent-review/review.json",
+      "bytes": 331466,
+      "sha256": "9CB2E2E9F1DDE05400CA293EC95991F8A78E9D1A1F4AFF96739966B6648E43D1"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-hash-carrier-independent-review/source-pins.json",
+      "bytes": 311345,
+      "sha256": "81380C9AEEEBAA6E26AF9932922B11F941FAF13ECAFB46214AE645BA141B3786"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/phases.json",
+      "bytes": 19528,
+      "sha256": "EB245E1845CB1FBCF49234228DE313B6277F9473BFF811AB5F92EDDF99B91526"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/fixed-inputs.json",
+      "bytes": 5451,
+      "sha256": "AA9331358E90A402CCBE77D96C81B8BF8D6F4ACFDB4DFDF2227F22FE224C1477"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-independent-review-r1/review.json",
+      "bytes": 9714,
+      "sha256": "10E3A83BF991AA1D5B19AF83A214DF2527F6372926E1322D0AA9051C4652C170"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-cap-domain-closure-r2/cap-domain.json",
+      "bytes": 6780,
+      "sha256": "73F35642E88885B01192FECDA706E854D6E49A5D1B80AB4435AD219F67A7B166"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r3/writer-join.json",
+      "bytes": 9229,
+      "sha256": "246F9C0FF1ED59D20B9236954A400BB457B2A9F3C9D169415B90C7E74A41E3BE"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r3/source-pins.json",
+      "bytes": 1770,
+      "sha256": "E93740B31D0227083EC2C3652C8293495F5E1463CD123F3D0C2ED597CD6106A7"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-components-independent-review-r2/review.json",
+      "bytes": 2343,
+      "sha256": "B2EA9D0FB7B0A17FC863F0C11C99E1922E9FE4D3BDEC5A58A520C6D6E7AA9F90"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-components-independent-review-r2/source-pins.json",
+      "bytes": 17890,
+      "sha256": "49EA03E9CDBAEEE741C376B9254ED8CE62866BDF9EA4749881CCDEC64D1598FE"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r2/writer-join.json",
+      "bytes": 7581,
+      "sha256": "25C4167F94C8DE538861F391F2DF940D345ABD4139CD219E2ACA25DE97A047A5"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/writer-component.json",
+      "bytes": 13506,
+      "sha256": "C5E40FD9740760613B9A0BAD7F2739B533060EFEDB97D931F77B7517FADBB3E4"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/cold-supplement.json",
+      "bytes": 10073,
+      "sha256": "3A3A964618CBBE4A8145BEA479B673E8DF931D11B9FDBC5467859588A60693D3"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/small-owner-components.json",
+      "bytes": 6773,
+      "sha256": "99BA44F5628CDF40AE19452999D790445F395C3E7712BA6DD51F9934F8B33D2B"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/source-pins.json",
+      "bytes": 4366,
+      "sha256": "54B203434707D774F355925C7AE3B79ADB30C823D525D4AA07CBBAF968A78BC5"
+    },
+    {
+      "path": "build-ci/20261106-fixed-key-hash-independent-review-r1/freeze-manifest.json",
+      "bytes": 1085,
+      "sha256": "1F7FC534921DFCDE46CB1F425EDAE36D4AD769FAB18EF975FBDF259949D25883"
+    },
+    {
+      "path": "build-ci/20261106-fixed-key-hash-independent-review-r1/review.json",
+      "bytes": 1471,
+      "sha256": "CCD575DDEE91596E0ADBD6683FE39F077B32DC2B83627186609C0629D8797C9F"
+    },
+    {
+      "path": "build-ci/20261106-fixed-key-hash-independent-review-r1/source-pins.json",
+      "bytes": 1944,
+      "sha256": "EEAF3FF80FBF1067E6FEB0BCBDA9D97F8A218A095B313893F1DCF05D3A2B0260"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-path-geometry-r1/geometry.json",
+      "bytes": 2350419,
+      "sha256": "BE95DC06AB85E7BF0A706656B08A6C2C8B5581C4AE3376BFE7AB1D98CADBAD9F"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/review.json",
+      "bytes": 9183,
+      "sha256": "33A90EDA40F801250828A2E3D5F7C304425A451520755A96088A1F8CF7DA69FF"
+    },
+    {
+      "path": "build-ci/20261106-clock-oracle-r12-path-geometry-independent-review-r1/source-pins.json",
+      "bytes": 8548,
+      "sha256": "E03CD209E34D70C94D6925A7C7ACBDD4331D926F13149C45F07716587AF8A389"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/writer-closure.json",
+      "bytes": 5875,
+      "sha256": "F43C234BF32F929BFF0076813BF1D4A51704E9626010B1E740433E2AA8191F87"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/source-pins.json",
+      "bytes": 1185,
+      "sha256": "94D3B05DFA28ABFD616E2AC0E7EBDBA4E950D172BFA2FE37D20F6376FBAA034A"
+    },
+    {
+      "path": "build-ci/20261106-controller-environment-writer-closure-independent-review-r2/review.json",
+      "bytes": 358816,
+      "sha256": "1D4B5530609589DD4B44BB6FB4A67771E666736A239EFDB1183A4BB0F40929D3"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/execution-r1/receipt.json",
+      "bytes": 2316,
+      "sha256": "39A59FC9C42715C339B6F2AD7AB1456B3850F645A6E884F9CBDC2144A3189A50"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/execution-r1/stdout.jsonl",
+      "bytes": 33658,
+      "sha256": "60D6FF3A373E8649D25772C33A0F86281F684EC298E2700E2120CF21495DA6F8"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-independent-review-r2/review.json",
+      "bytes": 16891,
+      "sha256": "57795D482F39EBDE2C965F6AB66BE533438EE71AC1590EDF820593ADB2014DFE"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r2/execution-r1/inventory.json",
+      "bytes": 41601,
+      "sha256": "EA5A5F25A40F2017BD7BE223104C210887B4A3203281FA6E16445E823C6FBF80"
+    },
+    {
+      "path": "build-ci/20261106-comparer-encoding-source-r1/RandomizedStringEqualityComparer.cs",
+      "bytes": 5452,
+      "sha256": "5ACE0E43FBCB448D3A6003B915EF4E29D64709F2AB634E4A6B9A817FE75BFE90"
+    },
+    {
+      "path": "build-ci/20261106-comparer-encoding-source-r1/NonRandomizedStringEqualityComparer.cs",
+      "bytes": 8109,
+      "sha256": "083FC121C8E8F7FD54AD8871FF9AC3CE8E716D8EA4935CC1A9258ABE6425B2FF"
+    },
+    {
+      "path": "build-ci/20261106-comparer-encoding-source-r1/String.Comparison.cs",
+      "bytes": 50926,
+      "sha256": "332E2A21449AD65F2368D672A116246EADF3842DFCB45F35A713D912C51731C5"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/primary/DictionaryWrapper.cs",
+      "bytes": 3096,
+      "sha256": "B8E2B5381CF374C615F64C044DF2B5BB1E17FC3A44500331EFC4F7D53955CEEB"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "bytes": 5167,
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Hashtable.cs",
+      "bytes": 63165,
+      "sha256": "BC06B72D387FAE36844C63ADA61D0AB5BC447E9710AA3891906EE4E923DE674C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "bytes": 93117,
+      "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/List.cs",
+      "bytes": 43437,
+      "sha256": "1346574BE64B5708F97AAA196AD474A63FF52F6D977D7AE18C366A600766F036"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/StringReader.cs",
+      "bytes": 11996,
+      "sha256": "78804249EB16A854FAEF70B19D0A7B4922DC504C1EAF2DAC446F26EEE45429AD"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Environment.Variables.Windows.cs",
+      "bytes": 5749,
+      "sha256": "84E3F67D9C45361C862784C5F75FED4A53507B4D42B364A707C57F411DC6BE4A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/ProcessStartInfo.cs",
+      "bytes": 8090,
+      "sha256": "E3CA0240C9FB9AF963631AD0C04B62CE577079D7FD177AF150096E9E15627E6E"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Process.Windows.cs",
+      "bytes": 41903,
+      "sha256": "49620FB20FEFFB84E36D587A381C0CF161E3EC8C114F6FF1E7FA2D7672B518CF"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/primary-sources/OrderedDictionary.cs",
+      "bytes": 23159,
+      "sha256": "E369315F40BD415CFC2514CEB35DC32D9C3A8A3103FEB51B54F5FCDE87045786"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/primary-sources/ArrayList.cs",
+      "bytes": 91650,
+      "sha256": "99072C93345E43B487250931548039DD419A8E02F6C63BD73D39AC1CC6F89BAC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/primary-sources/JTokenWriter.cs",
+      "bytes": 17989,
+      "sha256": "3320A0118184D75F22C510616C959B6A45A168CBC72BD8E72D4EAC9DBE8B767C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/primary-sources/JsonSerializerInternalReader.cs",
+      "bytes": 125104,
+      "sha256": "0EFFC6DD400D90679FDCDBF48525D851FE93A790E14F648F8B163762B2E67CF0"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/JsonTextReader.cs",
+      "bytes": 101923,
+      "sha256": "A9F79EBF4527275D5DE362DD9160F8B246CF34A5D1F767B4A978ECF420C36039"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/Compiler.cs",
+      "bytes": 341878,
+      "sha256": "C5DED9509B65F2CD81B1D5B11F8915A220B32BE038599FC7008BA235563B95DC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/primary-sources/Binders.cs",
+      "bytes": 389899,
+      "sha256": "CCA6BC97C2CDC16FDC1EB612FABCCCEA919629BC4C04F952C00A458FF7C9F6AC"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Utility/commands/utility/WebCmdlet/JsonObject.cs",
+      "bytes": 37049,
+      "sha256": "B0673F6376217F1104293297F0B2E3C7C9F928045F8435CD93865EF024E287B0"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/Pipe.cs",
+      "bytes": 22013,
+      "sha256": "288E5FA6C09AE0A6274A07863820FDC4302C23421AF22ABAF9A9971EA0514214"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/runtime/Operations/MiscOps.cs",
+      "bytes": 163706,
+      "sha256": "DDE0288A913C0B34F6361DE4DF0C48499C54EABAE7B14F50083729C1EF6E839F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-family-r1/primary/HashSet.cs",
+      "bytes": 78650,
+      "sha256": "2F3C12B3EE6D7E109E1F6CD019BE8BB91DA55784E00E115D8C752B17BD4446A0"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "bytes": 9187,
+      "sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    {
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/runs/20261105-171222-6659395/stages/DefinitionFreeze/bundle.json",
+      "bytes": 98009,
+      "sha256": "28909B793046C026890456FA59A841DA2B75450B60AAD5E8DD3888DFCCB23E71"
+    }
+  ],
+  "first_evaluation_preserved": "evaluation.json872E24B3... remains byte-exact; successors explicitly compose corrections.",
+  "frozen_hash_theorem": "HelperBACD6D7F... and result587CB936... preserved; independently accepted freeze1F7FC534... includes sixth HashHelpers input.",
+  "verification": {
+    "consistency_checks": 146,
+    "failures": 0,
+    "meaning": "Artifact/source consistency, not independent whole resource acceptance or runtime measurement."
+  }
+}

@@ -1,0 +1,214 @@
+{
+  "schema": "R11_CAP_DOMAIN_SUBFAMILY_CORRECTION_R2_WORKING",
+  "status": "FINITE_CORRECTED_SUBFAMILY_EQUATIONS_NOT_COMPLETE_RESIDUALS_OR_GLOBAL_NUMERIC_UPPER",
+  "source_sha256": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9",
+  "no_quiet_output_premise": true,
+  "caps_or_source_or_domain_changed": false,
+  "stages": [
+    {
+      "id": "P0",
+      "stage_calls_upper": 0,
+      "stage_rows_upper": 0,
+      "children_upper": 0,
+      "native_result_capture_calls_upper": 0,
+      "capture_and_slice_selected_upper": 0,
+      "native_reader_arrays_upper": 0,
+      "native_StringBuffer_arrays_upper": 0
+    },
+    {
+      "id": "P1",
+      "stage_calls_upper": 7,
+      "stage_rows_upper": 45,
+      "children_upper": 0,
+      "native_result_capture_calls_upper": 0,
+      "capture_and_slice_selected_upper": 0,
+      "native_reader_arrays_upper": 0,
+      "native_StringBuffer_arrays_upper": 0
+    },
+    {
+      "id": "P2",
+      "stage_calls_upper": 264,
+      "stage_rows_upper": 1587,
+      "children_upper": 1,
+      "native_result_capture_calls_upper": 0,
+      "capture_and_slice_selected_upper": 0,
+      "native_reader_arrays_upper": 0,
+      "native_StringBuffer_arrays_upper": 0
+    },
+    {
+      "id": "P3",
+      "stage_calls_upper": 523,
+      "stage_rows_upper": 3141,
+      "children_upper": 2,
+      "native_result_capture_calls_upper": 1,
+      "capture_and_slice_selected_upper": 328980,
+      "native_reader_arrays_upper": 528648,
+      "native_StringBuffer_arrays_upper": 8288
+    },
+    {
+      "id": "P4",
+      "stage_calls_upper": 782,
+      "stage_rows_upper": 4695,
+      "children_upper": 3,
+      "native_result_capture_calls_upper": 2,
+      "capture_and_slice_selected_upper": 657960,
+      "native_reader_arrays_upper": 1069896,
+      "native_StringBuffer_arrays_upper": 33152
+    },
+    {
+      "id": "P5",
+      "stage_calls_upper": 784,
+      "stage_rows_upper": 4707,
+      "children_upper": 3,
+      "native_result_capture_calls_upper": 2,
+      "capture_and_slice_selected_upper": 657960,
+      "native_reader_arrays_upper": 1069896,
+      "native_StringBuffer_arrays_upper": 33152
+    }
+  ],
+  "per_native_capture": {
+    "stdout_byte_cap": 65536,
+    "source_UTF16_units_upper": 65536,
+    "slice_count_upper": 33,
+    "raw_byte_array": 65560,
+    "decoded_string": 131096,
+    "all_slice_strings_upper": 131996,
+    "slice_reference_backing33": 288,
+    "slice_List_class_source_upper": 40,
+    "explanation": "Each String request Align8(22+2n) <=2n+28; sum slice units <=source UTF16 units. Every old substring remains charged. List has explicit initial capacity33 and no admitted growth.",
+    "per_child_capture_and_slice_selected_upper": 328980
+  },
+  "reader_categories": [
+    {
+      "capacity": 1024,
+      "minimum_line_units": 1,
+      "all_array_requests": 2072,
+      "sequence": [
+        1024
+      ]
+    },
+    {
+      "capacity": 2048,
+      "minimum_line_units": 1018,
+      "all_array_requests": 6192,
+      "sequence": [
+        1024,
+        2048
+      ]
+    },
+    {
+      "capacity": 4096,
+      "minimum_line_units": 2042,
+      "all_array_requests": 14408,
+      "sequence": [
+        1024,
+        2048,
+        4096
+      ]
+    },
+    {
+      "capacity": 8192,
+      "minimum_line_units": 4090,
+      "all_array_requests": 30816,
+      "sequence": [
+        1024,
+        2048,
+        4096,
+        8192
+      ]
+    },
+    {
+      "capacity": 16384,
+      "minimum_line_units": 8186,
+      "all_array_requests": 63608,
+      "sequence": [
+        1024,
+        2048,
+        4096,
+        8192,
+        16384
+      ]
+    },
+    {
+      "capacity": 32768,
+      "minimum_line_units": 16378,
+      "all_array_requests": 129168,
+      "sequence": [
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768
+      ]
+    },
+    {
+      "capacity": 65536,
+      "minimum_line_units": 32762,
+      "all_array_requests": 260264,
+      "sequence": [
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536
+      ]
+    },
+    {
+      "capacity": 131072,
+      "minimum_line_units": 65530,
+      "all_array_requests": 522432,
+      "sequence": [
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072
+      ]
+    }
+  ],
+  "reader_maxima": {
+    "producer_at_most4_SDK_calls": {
+      "maximum_requests_upper": 528648,
+      "category_counts": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "reader_calls_in_relaxed_maximum": 4,
+      "minimum_units_for_categories": 65533,
+      "not_an_asserted_attainable_JSON_or_target_trace": true
+    },
+    "verifier_at_most12_SDK_calls": {
+      "maximum_requests_upper": 541248,
+      "category_counts": [
+        10,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "reader_calls_in_relaxed_maximum": 12,
+      "minimum_units_for_categories": 65534,
+      "not_an_asserted_attainable_JSON_or_target_trace": true
+    }
+  },
+  "reader_proof": "Pinned reader starts1024. All admitted strict child JSON EnsureChars requests <=5. If append replacement is needed at capacity C, C<=L+6; replacement is2C. Thus C_final<=nextPow2(max(1024,L+7)). Nonappend exhausted/lookahead reads cannot growC>=1024. Across distinct parsed slices sum L<=65536 for each captured child. Enumerating at most4/12 reader capacities with their minimum possible lengths gives a conservative cumulative all-old-array upper, not an actual parser trace. Default/null pool source route still requires its existing association. Exact reader instances/stacks/graphs/PS copies are separate.",
+  "SDK_call_bound": "Three/eleven unique expected control IDs admit at most3/11 successful control iterations. A next invalid/duplicate control can parse once then refuses; the last summary alternatively parses once. Hence4/12 SDK calls maximum even with33 captured nonempty slices. Failed preparse can only reduce calls.",
+  "StringBuffer_proof": "Each child parsed string has<=128 decoded UTF16 units. Escapes may be present in cap-domain input, so charge one1024-char old buffer per reached reader; it cannot grow under this string bound. No silent no-escape law. All16 potential arrays are retained.",
+  "remaining": "All13 residual families still being evaluated. These selected source byte equations do not price a Site, establish a complete numeric U, fit/NOFIT/coexisting lower, physical reclaim, runtime/RSS orGO. R12 correspondence waits its whole functional acceptance and fresh current profile/census.",
+  "operations": "Own Python/file/source/data/integer arithmetic only. No targetPS parser/AST/helper/import/compiler/program/stage/native/GUI/Git/CI."
+}

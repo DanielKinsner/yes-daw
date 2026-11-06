@@ -1,0 +1,1538 @@
+{
+  "schema": "R12_STRUCTURAL_COLLECTION_AND_LITERAL_WORKING_R1",
+  "status": "FINITE_CONDITIONAL_SELECTED_UPPER_WITH_V_P_N_COLD_RESIDUAL_HOLD",
+  "source_manifest_sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557",
+  "B_R3_sha256": "246F9C0FF1ED59D20B9236954A400BB457B2A9F3C9D169415B90C7E74A41E3BE",
+  "small_owner_sha256": "99BA44F5628CDF40AE19452999D790445F395C3E7712BA6DD51F9934F8B33D2B",
+  "P_structural_coefficients": {
+    "catalogue_10field_map": 504,
+    "entry_5field_maps": 341616,
+    "rows_exact_List": 10416,
+    "input_Dictionary": 156336,
+    "alias_Dictionary": 329064,
+    "strings_Dictionary": 156336,
+    "parent_strings_Dictionary": 156336,
+    "all_parent_arrays_including_three_unpublished": 705568,
+    "first_build_alias_pair_arrays": 51880,
+    "stored_maximum_aliasmaximum_and_parent_count_boxes": 31176,
+    "main_input_index_Dictionary": 156336,
+    "main_include_index_Dictionary": 156336,
+    "input_index_enumerator_and_KeyValuePair_returns": 39104,
+    "reference_caps_Dictionary": 4624,
+    "build_caps_Dictionary": 216
+  },
+  "P_structural_total": 2295848,
+  "P_geometry_condition": "Only the separately reviewed provisional ordinary-drive root/1294 identities/1458 pooled strings profile. Alias guard2662; three unpublished65-element arrays remain charged. P fresh strings and native buffers are not zero or included here.",
+  "A_materialization_qualification": "Every explicitly requested collection-valued pipeline/capture/typed-array transfer has bounded source length. The assigned List/backing/result-array envelope must be joined to the selected PowerShell Compiler/Pipe/PipelineResult array-association proof; exact-array aliases may tighten it. No scalar-call frame allocation tariff is imposed.",
+  "literals_qualification": "Literal string spans disjoint in this fixed non-expandable source; all decoded literal units <=rawsource bytes and literal count<=quote count. Numeric regex deliberately overcounts hashes/comments; no literal slot is assumed runtime-reallocated at every call. Source parser/binder/type metadata general heap remains unqualified.",
+  "phases": [
+    {
+      "id": "P0",
+      "FileSet_vector": [
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include",
+          "expected": 361,
+          "observed": 361,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64",
+          "expected": 91,
+          "observed": 91,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt",
+          "expected": 66,
+          "observed": 66,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell",
+          "expected": 320,
+          "observed": 320,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/en-US",
+          "expected": 1,
+          "observed": 1,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Management",
+          "expected": 1,
+          "observed": 1,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Utility",
+          "expected": 1,
+          "observed": 1,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/runs/20261105-171222-6659395",
+          "expected": 97,
+          "observed": 97,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r1",
+          "expected": 4,
+          "observed": 4,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r2",
+          "expected": 4,
+          "observed": 4,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r3-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-cpp-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract",
+          "expected": 2,
+          "observed": 2,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-cpp-transitive-closure-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-json-primary-sources",
+          "expected": 7,
+          "observed": 7,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r5-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r6-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r7-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r8-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-numeric-independent-review",
+          "expected": 22,
+          "observed": 22,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "reference_internal",
+          "expected": 56,
+          "observed": 56,
+          "calls": 0
+        },
+        {
+          "name": "reference_external_before",
+          "expected": 56,
+          "observed": 56,
+          "calls": 0
+        },
+        {
+          "name": "build",
+          "expected": 3,
+          "observed": 3,
+          "calls": 0
+        }
+      ],
+      "FileSet_sums": {
+        "calls": 31,
+        "N": 1045,
+        "M": 1045
+      },
+      "selected_terms": {
+        "previous_selected_partial": 8260800,
+        "B_R3_correction": 0,
+        "P_catalogue_and_index_structures_only": 2295848,
+        "A_FileSet_original_sets": 210640,
+        "A_FileSet_replacing_failure_surplus": 796704,
+        "A_FileSet_typed_argument_array_upper": 18208,
+        "A_source_key_argument_capture_upper": 72592,
+        "A_ExactKeys_set_and_argument_arrays": 608,
+        "A_collection_function_pipeline_transfers": 74320,
+        "F_fixed_literal_string_upper": 258902,
+        "F_fixed_literal_builtin_scalar_upper": 19704,
+        "E_source_failure_projection_upper": 2880
+      },
+      "selected_partial": 12011206
+    },
+    {
+      "id": "P1",
+      "FileSet_vector": [
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include",
+          "expected": 361,
+          "observed": 361,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64",
+          "expected": 91,
+          "observed": 91,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt",
+          "expected": 66,
+          "observed": 66,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell",
+          "expected": 320,
+          "observed": 320,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/en-US",
+          "expected": 1,
+          "observed": 1,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Management",
+          "expected": 1,
+          "observed": 1,
+          "calls": 1
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Utility",
+          "expected": 1,
+          "observed": 1,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/runs/20261105-171222-6659395",
+          "expected": 97,
+          "observed": 97,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r1",
+          "expected": 4,
+          "observed": 4,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r2",
+          "expected": 4,
+          "observed": 4,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r3-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-cpp-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract",
+          "expected": 2,
+          "observed": 2,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-cpp-transitive-closure-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-json-primary-sources",
+          "expected": 7,
+          "observed": 7,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r5-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r6-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r7-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r8-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-numeric-independent-review",
+          "expected": 22,
+          "observed": 22,
+          "calls": 1
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "reference_internal",
+          "expected": 56,
+          "observed": 56,
+          "calls": 0
+        },
+        {
+          "name": "reference_external_before",
+          "expected": 56,
+          "observed": 56,
+          "calls": 0
+        },
+        {
+          "name": "build",
+          "expected": 3,
+          "observed": 3,
+          "calls": 0
+        }
+      ],
+      "FileSet_sums": {
+        "calls": 31,
+        "N": 1045,
+        "M": 1045
+      },
+      "selected_terms": {
+        "previous_selected_partial": 11391976,
+        "B_R3_correction": 97056,
+        "P_catalogue_and_index_structures_only": 2295848,
+        "A_FileSet_original_sets": 210640,
+        "A_FileSet_replacing_failure_surplus": 796704,
+        "A_FileSet_typed_argument_array_upper": 18208,
+        "A_source_key_argument_capture_upper": 72592,
+        "A_ExactKeys_set_and_argument_arrays": 608,
+        "A_collection_function_pipeline_transfers": 78984,
+        "F_fixed_literal_string_upper": 258902,
+        "F_fixed_literal_builtin_scalar_upper": 19704,
+        "E_source_failure_projection_upper": 2880
+      },
+      "selected_partial": 15244102
+    },
+    {
+      "id": "P2",
+      "FileSet_vector": [
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include",
+          "expected": 361,
+          "observed": 361,
+          "calls": 3
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64",
+          "expected": 91,
+          "observed": 91,
+          "calls": 3
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt",
+          "expected": 66,
+          "observed": 66,
+          "calls": 3
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell",
+          "expected": 320,
+          "observed": 320,
+          "calls": 3
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/en-US",
+          "expected": 1,
+          "observed": 1,
+          "calls": 3
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Management",
+          "expected": 1,
+          "observed": 1,
+          "calls": 3
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Utility",
+          "expected": 1,
+          "observed": 1,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4",
+          "expected": 5,
+          "observed": 5,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/runs/20261105-171222-6659395",
+          "expected": 97,
+          "observed": 97,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r1",
+          "expected": 4,
+          "observed": 4,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r2",
+          "expected": 4,
+          "observed": 4,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r3-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-cpp-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract",
+          "expected": 2,
+          "observed": 2,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-cpp-transitive-closure-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-json-primary-sources",
+          "expected": 7,
+          "observed": 7,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r5-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r6-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r7-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r8-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-numeric-independent-review",
+          "expected": 22,
+          "observed": 22,
+          "calls": 3
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1",
+          "expected": 3,
+          "observed": 3,
+          "calls": 3
+        },
+        {
+          "name": "reference_internal",
+          "expected": 56,
+          "observed": 56,
+          "calls": 0
+        },
+        {
+          "name": "reference_external_before",
+          "expected": 56,
+          "observed": 56,
+          "calls": 0
+        },
+        {
+          "name": "build",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        }
+      ],
+      "FileSet_sums": {
+        "calls": 94,
+        "N": 3138,
+        "M": 3138
+      },
+      "selected_terms": {
+        "previous_selected_partial": 30893166,
+        "B_R3_correction": 97056,
+        "P_catalogue_and_index_structures_only": 2295848,
+        "A_FileSet_original_sets": 632432,
+        "A_FileSet_replacing_failure_surplus": 796704,
+        "A_FileSet_typed_argument_array_upper": 54720,
+        "A_source_key_argument_capture_upper": 218064,
+        "A_ExactKeys_set_and_argument_arrays": 1776,
+        "A_collection_function_pipeline_transfers": 293312,
+        "F_fixed_literal_string_upper": 258902,
+        "F_fixed_literal_builtin_scalar_upper": 19704,
+        "E_source_failure_projection_upper": 2880
+      },
+      "selected_partial": 35564564
+    },
+    {
+      "id": "P3",
+      "FileSet_vector": [
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include",
+          "expected": 361,
+          "observed": 361,
+          "calls": 5
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64",
+          "expected": 91,
+          "observed": 91,
+          "calls": 5
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt",
+          "expected": 66,
+          "observed": 66,
+          "calls": 5
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell",
+          "expected": 320,
+          "observed": 320,
+          "calls": 5
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/en-US",
+          "expected": 1,
+          "observed": 1,
+          "calls": 5
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Management",
+          "expected": 1,
+          "observed": 1,
+          "calls": 5
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Utility",
+          "expected": 1,
+          "observed": 1,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4",
+          "expected": 5,
+          "observed": 5,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/runs/20261105-171222-6659395",
+          "expected": 97,
+          "observed": 97,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r1",
+          "expected": 4,
+          "observed": 4,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r2",
+          "expected": 4,
+          "observed": 4,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r3-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-cpp-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract",
+          "expected": 2,
+          "observed": 2,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-cpp-transitive-closure-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-json-primary-sources",
+          "expected": 7,
+          "observed": 7,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r5-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r6-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r7-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r8-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-numeric-independent-review",
+          "expected": 22,
+          "observed": 22,
+          "calls": 5
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1",
+          "expected": 3,
+          "observed": 3,
+          "calls": 5
+        },
+        {
+          "name": "reference_internal",
+          "expected": 56,
+          "observed": 56,
+          "calls": 1
+        },
+        {
+          "name": "reference_external_before",
+          "expected": 56,
+          "observed": 56,
+          "calls": 1
+        },
+        {
+          "name": "build",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "producer_ids",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "missing_control",
+          "expected": 56,
+          "observed": 55,
+          "calls": 1
+        },
+        {
+          "name": "extra_control",
+          "expected": 56,
+          "observed": 57,
+          "calls": 1
+        },
+        {
+          "name": "duplicate_control",
+          "expected": 56,
+          "observed": 57,
+          "calls": 1
+        }
+      ],
+      "FileSet_sums": {
+        "calls": 162,
+        "N": 5511,
+        "M": 5512
+      },
+      "selected_terms": {
+        "previous_selected_partial": 34248438,
+        "B_R3_correction": 97120,
+        "P_catalogue_and_index_structures_only": 2295848,
+        "A_FileSet_original_sets": 1100864,
+        "A_FileSet_replacing_failure_surplus": 796704,
+        "A_FileSet_typed_argument_array_upper": 95960,
+        "A_source_key_argument_capture_upper": 379784,
+        "A_ExactKeys_set_and_argument_arrays": 5112,
+        "A_collection_function_pipeline_transfers": 509656,
+        "F_fixed_literal_string_upper": 258902,
+        "F_fixed_literal_builtin_scalar_upper": 19704,
+        "E_source_failure_projection_upper": 2880
+      },
+      "selected_partial": 39810972
+    },
+    {
+      "id": "P4",
+      "FileSet_vector": [
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include",
+          "expected": 361,
+          "observed": 361,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64",
+          "expected": 91,
+          "observed": 91,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt",
+          "expected": 66,
+          "observed": 66,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell",
+          "expected": 320,
+          "observed": 320,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/en-US",
+          "expected": 1,
+          "observed": 1,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Management",
+          "expected": 1,
+          "observed": 1,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Utility",
+          "expected": 1,
+          "observed": 1,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/runs/20261105-171222-6659395",
+          "expected": 97,
+          "observed": 97,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r1",
+          "expected": 4,
+          "observed": 4,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r2",
+          "expected": 4,
+          "observed": 4,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r3-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-cpp-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract",
+          "expected": 2,
+          "observed": 2,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-cpp-transitive-closure-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-json-primary-sources",
+          "expected": 7,
+          "observed": 7,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r5-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r6-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r7-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r8-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-numeric-independent-review",
+          "expected": 22,
+          "observed": 22,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "reference_internal",
+          "expected": 56,
+          "observed": 56,
+          "calls": 2
+        },
+        {
+          "name": "reference_external_before",
+          "expected": 56,
+          "observed": 56,
+          "calls": 1
+        },
+        {
+          "name": "build",
+          "expected": 3,
+          "observed": 3,
+          "calls": 2
+        },
+        {
+          "name": "producer_ids",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "verifier_ids",
+          "expected": 11,
+          "observed": 11,
+          "calls": 1
+        },
+        {
+          "name": "missing_control",
+          "expected": 56,
+          "observed": 55,
+          "calls": 1
+        },
+        {
+          "name": "extra_control",
+          "expected": 56,
+          "observed": 57,
+          "calls": 1
+        },
+        {
+          "name": "duplicate_control",
+          "expected": 56,
+          "observed": 57,
+          "calls": 1
+        },
+        {
+          "name": "root_files",
+          "expected": 67,
+          "observed": 67,
+          "calls": 1
+        }
+      ],
+      "FileSet_sums": {
+        "calls": 259,
+        "N": 8783,
+        "M": 8784
+      },
+      "selected_terms": {
+        "previous_selected_partial": 38233158,
+        "B_R3_correction": 97184,
+        "P_catalogue_and_index_structures_only": 2295848,
+        "A_FileSet_original_sets": 1754016,
+        "A_FileSet_replacing_failure_surplus": 796704,
+        "A_FileSet_typed_argument_array_upper": 152968,
+        "A_source_key_argument_capture_upper": 607512,
+        "A_ExactKeys_set_and_argument_arrays": 10944,
+        "A_collection_function_pipeline_transfers": 803192,
+        "F_fixed_literal_string_upper": 258902,
+        "F_fixed_literal_builtin_scalar_upper": 19704,
+        "E_source_failure_projection_upper": 2880
+      },
+      "selected_partial": 45033012
+    },
+    {
+      "id": "P5",
+      "FileSet_vector": [
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include",
+          "expected": 361,
+          "observed": 361,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64",
+          "expected": 91,
+          "observed": 91,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt",
+          "expected": 66,
+          "observed": 66,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell",
+          "expected": 320,
+          "observed": 320,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/en-US",
+          "expected": 1,
+          "observed": 1,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Management",
+          "expected": 1,
+          "observed": 1,
+          "calls": 8
+        },
+        {
+          "name": "namespace:C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Modules/Microsoft.PowerShell.Utility",
+          "expected": 1,
+          "observed": 1,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r4/runs/20261105-171222-6659395",
+          "expected": 97,
+          "observed": 97,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r1",
+          "expected": 4,
+          "observed": 4,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r2",
+          "expected": 4,
+          "observed": 4,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r3-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r4-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-cpp-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r4-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-separate-research-contract",
+          "expected": 2,
+          "observed": 2,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-cpp-transitive-closure-prep",
+          "expected": 2,
+          "observed": 2,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-json-primary-sources",
+          "expected": 7,
+          "observed": 7,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r5-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r6-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r6-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-primary-sources",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r7-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r7-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r8-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r9-source-prototype",
+          "expected": 5,
+          "observed": 5,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-runner-census",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-numeric-independent-review",
+          "expected": 22,
+          "observed": 22,
+          "calls": 8
+        },
+        {
+          "name": "namespace:build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1",
+          "expected": 3,
+          "observed": 3,
+          "calls": 8
+        },
+        {
+          "name": "reference_internal",
+          "expected": 56,
+          "observed": 56,
+          "calls": 2
+        },
+        {
+          "name": "reference_external_before",
+          "expected": 56,
+          "observed": 56,
+          "calls": 1
+        },
+        {
+          "name": "build",
+          "expected": 3,
+          "observed": 3,
+          "calls": 2
+        },
+        {
+          "name": "producer_ids",
+          "expected": 3,
+          "observed": 3,
+          "calls": 1
+        },
+        {
+          "name": "verifier_ids",
+          "expected": 11,
+          "observed": 11,
+          "calls": 1
+        },
+        {
+          "name": "missing_control",
+          "expected": 56,
+          "observed": 55,
+          "calls": 1
+        },
+        {
+          "name": "extra_control",
+          "expected": 56,
+          "observed": 57,
+          "calls": 1
+        },
+        {
+          "name": "duplicate_control",
+          "expected": 56,
+          "observed": 57,
+          "calls": 1
+        },
+        {
+          "name": "root_files",
+          "expected": 67,
+          "observed": 67,
+          "calls": 1
+        }
+      ],
+      "FileSet_sums": {
+        "calls": 259,
+        "N": 8783,
+        "M": 8784
+      },
+      "selected_terms": {
+        "previous_selected_partial": 47721038,
+        "B_R3_correction": 97680,
+        "P_catalogue_and_index_structures_only": 2295848,
+        "A_FileSet_original_sets": 1754016,
+        "A_FileSet_replacing_failure_surplus": 796704,
+        "A_FileSet_typed_argument_array_upper": 152968,
+        "A_source_key_argument_capture_upper": 607512,
+        "A_ExactKeys_set_and_argument_arrays": 10944,
+        "A_collection_function_pipeline_transfers": 803704,
+        "F_fixed_literal_string_upper": 258902,
+        "F_fixed_literal_builtin_scalar_upper": 19704,
+        "E_source_failure_projection_upper": 2880
+      },
+      "selected_partial": 54521900
+    }
+  ],
+  "remaining_coefficients": [
+    {
+      "id": "P_fresh",
+      "owner": "Path/catalogue first-normalization/iterator Current/filename/relative/replace/unknown-prefix/native-normalizer allocations",
+      "coefficient": "Root P source allocation request sum; this worksheet already owns only P structural maps/dictionaries/parent-reference arrays."
+    },
+    {
+      "id": "N_capture",
+      "owner": "Inherited environment clone at each child then cleared Dictionary/outgoing block",
+      "coefficient": "Sum_i Capture(E=15,V=690+P_i,B=2*(721+P_i)); P_i<=32766 only under qualified ordinary selected SDK noninterference/stock profile. No actual host snapshot."
+    },
+    {
+      "id": "V_hash",
+      "owner": "IncrementalHash/provider/handle and FileStream wrapper/source buffers",
+      "coefficient": "(H+7)*v_incremental + FileStreamCalls*v_stream; file/source/crypto CPU/internal native heap remains opaque, not counted as0."
+    },
+    {
+      "id": "V_FileInfo",
+      "owner": "Source FileInfo wrappers",
+      "coefficient": "136*F_i, F_i=all H+7bootstrap+walker_file_rows+3ReadBounded+4GetPE+document-write old-length checks+source GetItem wrappers. Each actual non-file row can reduce F_i; referent paths in P."
+    },
+    {
+      "id": "V_child",
+      "owner": "Process/pipe/hidden StreamReaders/command/environment builder/task/async wrappers and authored C++ scratch",
+      "coefficient": "c*(fixed_process_and_streams+2*Abyte4096+2*Achar(m4096))+outerOps*v_outer+innerOps*v_inner+max(one active native child payload), outerOps<=258c, innerOps<=1056772c pending exact SDK scheduling proof. m4096=selectedEncoding.GetMaxCharCount(4096), no assumed console codepage."
+    },
+    {
+      "id": "F_SDKcold",
+      "owner": "Controlled selected serializer EnumUtils/concurrent-store/reflection/name/contract-cache owners",
+      "coefficient": "Root B named once-only selected-profile remainder; general VM/binder/type-metadata heap expressly UNQUALIFIED, not0."
+    },
+    {
+      "id": "A_association",
+      "owner": "Selected source association of explicit collection pipeline/typed-copy envelopes",
+      "coefficient": "The finite evaluated A rows require the exact Compiler/Pipe/PipelineResult selected-source association, not a new per-action fee."
+    }
+  ],
+  "no_claim": "Complete numeric U, coexisting lower/NOFIT,physical-process/RSS/GC freedom,immutable binding and execution GO are all withheld."
+}

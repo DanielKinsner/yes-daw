@@ -1,0 +1,92 @@
+{
+  "schema": "R12_ENVIRONMENT_CONDITIONAL_SOURCE_COMPONENT_R1",
+  "status": "CONDITIONAL_ORDINARY_STOCK_PROFILE_NOT_ACTUAL_ENVIRONMENT_QUALIFICATION",
+  "no_host_environment_read": true,
+  "environment_values_written_or_dumped": false,
+  "source_profile": {
+    "entries": 15,
+    "key_value_units_equation": "690+PSModulePathUnits",
+    "PSModulePath_units_upper": 32766,
+    "key_value_units_upper": 33456,
+    "native_bytes_upper": 66974,
+    "valid_unique_nonhidden_block_required": true,
+    "ordinary_selected_SDK_noninterference_during_all_three_clone_intervals_required": true
+  },
+  "incoming_terms": {
+    "native_GetEnvironmentStringsW_blocks": 66974,
+    "key_and_value_strings": 67752,
+    "inherited_Hashtable": 1704,
+    "inherited_Dictionary": 608,
+    "manual_Hashtable_enumerator": 72,
+    "cached_Dictionary_key_view": 24
+  },
+  "incoming_Hashtable_capacities": [
+    3,
+    7,
+    17,
+    37
+  ],
+  "incoming_Dictionary_capacity": 17,
+  "outgoing_profile": {
+    "public_manifest_fixed_key_value_units_excluding_TEMP_TMP": 569,
+    "opaque_path_units": 188,
+    "output_units": 968,
+    "chunk_count_upper": 5,
+    "all_chunk_capacity_upper": 1934,
+    "terms": {
+      "StringBuilder_all_old_arrays": 4018,
+      "StringBuilder_all_old_objects": 280,
+      "outgoing_environment_string": 1960,
+      "sorted_keys_string_array": 88
+    },
+    "requests": 6346
+  },
+  "per_child_numeric_selected": 143480,
+  "per_child_still_nonzero": "DictionaryWrapper instance field-slot upper v_DW, pending selected source association",
+  "phases": [
+    {
+      "id": "P0",
+      "children": 0,
+      "numeric_selected": 0,
+      "whole_environment_equation": "0 + 0*v_DW"
+    },
+    {
+      "id": "P1",
+      "children": 0,
+      "numeric_selected": 0,
+      "whole_environment_equation": "0 + 0*v_DW"
+    },
+    {
+      "id": "P2",
+      "children": 1,
+      "numeric_selected": 143480,
+      "whole_environment_equation": "143480 + 1*v_DW"
+    },
+    {
+      "id": "P3",
+      "children": 2,
+      "numeric_selected": 286960,
+      "whole_environment_equation": "286960 + 2*v_DW"
+    },
+    {
+      "id": "P4",
+      "children": 3,
+      "numeric_selected": 430440,
+      "whole_environment_equation": "430440 + 3*v_DW"
+    },
+    {
+      "id": "P5",
+      "children": 3,
+      "numeric_selected": 430440,
+      "whole_environment_equation": "430440 + 3*v_DW"
+    }
+  ],
+  "safety_model": [
+    "No second key/value string copy when Dictionary inherits Hashtable values; references are shared.",
+    "Manual IDictionaryEnumerator.Entry avoids per-entry boxed DictionaryEntry allocations in this clone path.",
+    "Clear retains inherited Dictionary arrays;8 outgoing additions fit17 and cannot trigger>100 collision rehash.",
+    "Native GetEnvironmentStringsW copy is retained conservatively for every clone: selected Release source only Debug.Assert checks FreeEnvironmentStringsW success. No successful-free credit is needed.",
+    "Outgoing native CreateProcess pins the produced String; do not fabricate another native block copy. OS child environment storage remains separate native/process qualification.",
+    "Ordinary selected SDK/provider/build/stock environment facts are prerequisites, not measured or unconditionally true. No sampled environment, sleep, fresh process or absence of hooks proves this profile by itself."
+  ]
+}

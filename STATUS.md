@@ -90,6 +90,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    and all target execution guards remain false. Parser/source checks are not target runtime success.
    The fixed-key R12 dictionary theorem passed228 independent source checks; whole resources remain held.
    Separate metadata reader R4 passed for88 types/391 declared fields; actual object sizes remain unmeasured.
+   The complete R12 resource disposition is frozen HOLD; R13's full scalar proposal is in independent review.
    The narrow candidate observation/restoration lemma passed13,368 independent checks; actual errno,
    floor/provider/interval and whole runtime/resource qualification remain pending.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
@@ -112,6 +113,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Freeze the resource baseline and host-cleanup gap
+
+- Archived83 complete baseline/helper/input/addendum records. All13 family dispositions are explicit;146 author consistency checks and recorded phase sums/pins pass. This is an authored HOLD, not an independently accepted complete numeric upper.
+- Selected partials end at57,820,404 bytes plus open path/stream/native/cold/array/profile terms; partial uppers prove neither fit nor actual coexisting NOFIT. The separate addendum records unbounded-by-child-caps host-wide Process.Kill(true) census ownership without changing R1.
+- R13's fresh74-helper/54-family scalar proposal5,536,151,256 is frozen and in whole independent critique. Continue source/resource closure without target execution; metadata archive99fa776 passed docs-only CI42203905085, with runtime jobs skipped.
 
 ## 2026-11-06 - Read genuine controller wrapper field declarations headlessly
 

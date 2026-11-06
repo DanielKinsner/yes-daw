@@ -1,0 +1,47 @@
+{
+  "schema": "R12_WRITER_JOIN_R3_PINS",
+  "status": "ACCEPTED_CONDITIONAL_SOURCE_COMPONENT_ONLY_COLD_GLOBAL_FIT_BINDING_EXECUTION_HOLD",
+  "no_target_execution": true,
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r3/argument.md",
+      "bytes": 2620,
+      "sha256": "4379062A030E1EF8CC832006CC5A48D61828C3221CAB1993CBCF7F571065C98E"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r3/seal.py",
+      "bytes": 1529,
+      "sha256": "54CBD28230216F8E84AF2776B3A3710F4447CF996B51EBEB22DC7B167ECDD577"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r3/writer-join.json",
+      "bytes": 9229,
+      "sha256": "246F9C0FF1ED59D20B9236954A400BB457B2A9F3C9D169415B90C7E74A41E3BE"
+    },
+    {
+      "path": "build-ci/20261106-derive-writer-join-r3.py",
+      "bytes": 4135,
+      "sha256": "4861C5EF0BDA2692DB5D040CBA0E420A34C6457DE67FAADF4107D94CA54EF65F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r2/source-pins.json",
+      "bytes": 1147,
+      "sha256": "7741F4FA7B8502B0305FEEC7A97F9CB600F8DB9ACCDE89D0CF46D4FB275A1981"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-join-r2/phase-graph-input-snapshot.json",
+      "bytes": 16060,
+      "sha256": "872E24B3B7A11476AAE4949E6B0D43B54D6DD19B266FF0FA52D66A26691E5C4F"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-components-independent-review-r2/review.json",
+      "bytes": 2343,
+      "sha256": "B2EA9D0FB7B0A17FC863F0C11C99E1922E9FE4D3BDEC5A58A520C6D6E7AA9F90"
+    },
+    {
+      "path": "build-ci/20261106-clock-r12-writer-components-independent-review-r2/source-pins.json",
+      "bytes": 17890,
+      "sha256": "49EA03E9CDBAEEE741C376B9254ED8CE62866BDF9EA4749881CCDEC64D1598FE"
+    }
+  ]
+}
