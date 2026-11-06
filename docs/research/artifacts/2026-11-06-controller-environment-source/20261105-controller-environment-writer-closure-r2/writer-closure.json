@@ -1,0 +1,130 @@
+{
+  "schema": "CONTROLLER_ENVIRONMENT_SOURCE_WRITER_CLOSURE_R2",
+  "status": "CONDITIONAL_SOURCE_THEOREM_EXTERNAL_STARTUP_BUILD_PROFILE_OBLIGATION_REMAINS",
+  "scope": "Pinned stock PowerShell source and authored seed only; no current environment, user/machine values, registry, controller or target execution",
+  "source_files_verified": 1245,
+  "source_bytes_verified": 30347244,
+  "seed_entry_count": 14,
+  "source_added_key": "PATHEXT",
+  "source_added_value": ".CPL",
+  "qualifying_post_startup_Eentry": 15,
+  "qualifying_post_startup_Eunique_valid_keys": 15,
+  "equations": {
+    "EUTF16": "690+P",
+    "Bnative_bytes": "2*(721+P)",
+    "P": "Actual PSModulePath UTF16 value units at each boundary; never assumed234/idempotent",
+    "documented_Windows_value_max_including_terminator": 32767,
+    "conditional_P_max": 32766,
+    "conditional_EUTF16_max": 33456,
+    "conditional_Bnative_bytes_max": 66974
+  },
+  "examples": [
+    {
+      "PSModulePath_units": 0,
+      "Eentry": 15,
+      "Eunique_valid_keys": 15,
+      "EUTF16": 690,
+      "Bnative_bytes": 1442
+    },
+    {
+      "PSModulePath_units": 1,
+      "Eentry": 15,
+      "Eunique_valid_keys": 15,
+      "EUTF16": 691,
+      "Bnative_bytes": 1444
+    },
+    {
+      "PSModulePath_units": 234,
+      "Eentry": 15,
+      "Eunique_valid_keys": 15,
+      "EUTF16": 924,
+      "Bnative_bytes": 1910
+    },
+    {
+      "PSModulePath_units": 32766,
+      "Eentry": 15,
+      "Eunique_valid_keys": 15,
+      "EUTF16": 33456,
+      "Bnative_bytes": 66974
+    }
+  ],
+  "writers": [
+    {
+      "repository_path": "src/Microsoft.PowerShell.ConsoleHost/host/msh/ConsoleHost.cs",
+      "line": 141,
+      "text": "Environment.SetEnvironmentVariable(\"PATH\", pshome);"
+    },
+    {
+      "repository_path": "src/Microsoft.PowerShell.ConsoleHost/host/msh/ConsoleHost.cs",
+      "line": 145,
+      "text": "Environment.SetEnvironmentVariable(\"PATH\", pshome + path);"
+    },
+    {
+      "repository_path": "src/System.Management.Automation/engine/AutomationEngine.cs",
+      "line": 51,
+      "text": "Environment.SetEnvironmentVariable(\"PATHEXT\", \".CPL\");"
+    },
+    {
+      "repository_path": "src/System.Management.Automation/engine/AutomationEngine.cs",
+      "line": 61,
+      "text": "Environment.SetEnvironmentVariable(\"PATHEXT\", pathext);"
+    },
+    {
+      "repository_path": "src/System.Management.Automation/engine/InitialSessionState.cs",
+      "line": 2267,
+      "text": "Environment.SetEnvironmentVariable(var.Name, var.Value.ToString());"
+    },
+    {
+      "repository_path": "src/System.Management.Automation/engine/Modules/ModuleIntrinsics.cs",
+      "line": 1376,
+      "text": "Environment.SetEnvironmentVariable(Constants.PSModulePathEnvVar, newModulePathString);"
+    },
+    {
+      "repository_path": "src/System.Management.Automation/engine/NativeCommandProcessor.cs",
+      "line": 385,
+      "text": "Environment.SetEnvironmentVariable(\"Path\", newPath.ToString());"
+    },
+    {
+      "repository_path": "src/System.Management.Automation/engine/remoting/fanin/WSManPlugin.cs",
+      "line": 1183,
+      "text": "System.Environment.SetEnvironmentVariable(WSManRunAsClientTokenName, null);"
+    },
+    {
+      "repository_path": "src/System.Management.Automation/namespaces/EnvironmentProvider.cs",
+      "line": 116,
+      "text": "Environment.SetEnvironmentVariable(name, null);"
+    },
+    {
+      "repository_path": "src/System.Management.Automation/namespaces/EnvironmentProvider.cs",
+      "line": 138,
+      "text": "Environment.SetEnvironmentVariable(name, stringValue);"
+    },
+    {
+      "repository_path": "src/System.Management.Automation/namespaces/EnvironmentProvider.cs",
+      "line": 161,
+      "text": "Environment.SetEnvironmentVariable(name, null);"
+    },
+    {
+      "repository_path": "src/System.Management.Automation/security/SecuritySupport.cs",
+      "line": 170,
+      "text": "Environment.SetEnvironmentVariable(\"PSExecutionPolicyPreference\", executionPolicy);"
+    },
+    {
+      "repository_path": "src/powershell/Program.cs",
+      "line": 89,
+      "text": "Environment.SetEnvironmentVariable(LOGIN_ENV_VAR_NAME, null);"
+    }
+  ],
+  "external_profile_obligations": [
+    "Exact pre-startup direct apphost launch with supplied14-key unique valid Unicode block, exact14 argv entries, no inherited/drive-hidden variables or unlisted startup hooks/profilers/settings/configuration overrides.",
+    "Exact supported Windows PowerShell/nativehost/CoreCLR/module/dependency build/source association; no native loader/shim/generated/third-party callback adds an unlisted environment writer. PowerShell C# source inventory alone does not certify native startup.",
+    "CreateDefault2, empty configured environment collection, default unset execution-policy flag, no external ISS/session configuration/PSReadLine/profile/script/type-data augmentation; source and binary/inheritance/loader association must hold.",
+    "Exact two pinned DLL-only module manifests, no external generated/inherited initializer or untrusted loader/type augmentation beyond the audited stock source. No implementing initializer class appears in these1245 source files; that is not a binary reflection/IL result.",
+    "After startup/imports the source runner executes only its closed managed/helper graph and direct Process.Start children, with no native-command package-manager pipeline, environment-provider writes, remoting, policy changes or independent/concurrent environment writer.",
+    "Windows process-environment getter/setter contract including32767-character value size with NUL; no malformed/hidden/duplicate native entries outside the authored/setter-generated valid block."
+  ],
+  "no_current_environment_read_or_dump": true,
+  "no_private_user_config_or_registry_read": true,
+  "no_actual_boundary_snapshot": true,
+  "no_unconditional_numeric_N_fit_or_GO": true
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "OFFICIAL_PLATFORM_CONTRACT_REVIEW_REFERENCES",
+  "checked_date": "2026-11-06",
+  "sources": [
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getenvironmentvariable",
+      "reviewed_claim": "lpBuffer contract includes terminating NUL in32767 maximum;conditional value upper32766 UTF16 units on the supported W API."
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setenvironmentvariable",
+      "reviewed_claim": "Sets current process only;maximum variable size and explicit success/failure behavior. API/native source association/failure valid-block semantics remain premises."
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw",
+      "reviewed_claim": "Explicit Unicode block needs CREATE_UNICODE_ENVIRONMENT;per-drive entries not automatically inherited;ANSI total-size rule does not silently bind W block. Process children do not mutate parent environment."
+    }
+  ]
+}

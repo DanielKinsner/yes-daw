@@ -78,6 +78,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    discovered JObject iterator and three CoreLib enumerators. Complete payload equations remain in progress.
    R12's internal hash carrier passed2,735 whole functional source checks against provisional inputs;
    final input/root/environment, numeric/resource closure, binding and execution remain held.
+   The controller environment equations passed1,293 conditional source checks; actual native startup,
+   unjoined early-startup callbacks and the true writer interval remain unqualified. No environment dump was read.
    R5's conditional all-input/source-object argument passed18,197 independent checks; actual native
    binding/funding/resources/integration remain held. Whole production census R3 review is REVISE;
    a systematic explicit/unqualified-designator inventory across420 bodies/51 helpers is required next.
@@ -103,6 +105,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Preserve conditional controller environment closure
+
+- Archived12 source/checker/review records with the complete1,245-file primary-source inventory; independent conditional review passed1,293 checks.
+- Windows startup adds the previously omitted PATHEXT key. Conditional capture equations now include it and leave the actual PSModulePath length explicit.
+- Actual host/native/profile association and unjoined EarlyStartup callbacks remain pending; no actual N, payload fit or target execution is certified. Continue source/resource qualification without reading private environment values or disturbing the desktop.
 
 ## 2026-11-06 - Preserve the complete R12 functional source review
 

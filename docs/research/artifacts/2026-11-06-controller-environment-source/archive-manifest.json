@@ -1,0 +1,116 @@
+{
+  "schema": "CONTROLLER_ENVIRONMENT_CONDITIONAL_SOURCE_ARCHIVE",
+  "scope": "Conditional writer equations only; actual startup/native/profile and true writer interval remain unqualified; no N binding, payload fit or execution GO",
+  "subject_pins_sha256": "94D3B05DFA28ABFD616E2AC0E7EBDBA4E950D172BFA2FE37D20F6376FBAA034A",
+  "independent_review_sha256": "1D4B5530609589DD4B44BB6FB4A67771E666736A239EFDB1183A4BB0F40929D3",
+  "files": [
+    {
+      "file": "20261105-controller-environment-writer-closure-r2/argument.md",
+      "original_path": "build-ci/20261105-controller-environment-writer-closure-r2/argument.md",
+      "original_bytes": 8357,
+      "original_sha256": "58D5C384DB8E1239CE1F7EDB462C58A877533906BB6F4AF2B4B3E922765C2356",
+      "transformation": "BYTE_EXACT",
+      "bytes": 8357,
+      "sha256": "58D5C384DB8E1239CE1F7EDB462C58A877533906BB6F4AF2B4B3E922765C2356"
+    },
+    {
+      "file": "20261105-controller-environment-writer-closure-r2/source-origins.json",
+      "original_path": "build-ci/20261105-controller-environment-writer-closure-r2/source-origins.json",
+      "original_bytes": 276057,
+      "original_sha256": "5314810ED0AF072A0103248367FAF8A42E51D3C1835242D2D40309771D06DA68",
+      "transformation": "BYTE_EXACT",
+      "bytes": 276057,
+      "sha256": "5314810ED0AF072A0103248367FAF8A42E51D3C1835242D2D40309771D06DA68"
+    },
+    {
+      "file": "20261105-controller-environment-writer-closure-r2/source-pins.json",
+      "original_path": "build-ci/20261105-controller-environment-writer-closure-r2/source-pins.json",
+      "original_bytes": 1185,
+      "original_sha256": "94D3B05DFA28ABFD616E2AC0E7EBDBA4E950D172BFA2FE37D20F6376FBAA034A",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1185,
+      "sha256": "94D3B05DFA28ABFD616E2AC0E7EBDBA4E950D172BFA2FE37D20F6376FBAA034A"
+    },
+    {
+      "file": "20261105-controller-environment-writer-closure-r2/writer-closure.json",
+      "original_path": "build-ci/20261105-controller-environment-writer-closure-r2/writer-closure.json",
+      "original_bytes": 5875,
+      "original_sha256": "F43C234BF32F929BFF0076813BF1D4A51704E9626010B1E740433E2AA8191F87",
+      "transformation": "BYTE_EXACT",
+      "bytes": 5875,
+      "sha256": "F43C234BF32F929BFF0076813BF1D4A51704E9626010B1E740433E2AA8191F87"
+    },
+    {
+      "file": "20261105-derive-controller-environment-closure-r2.py",
+      "original_path": "build-ci/20261105-derive-controller-environment-closure-r2.py",
+      "original_bytes": 7576,
+      "original_sha256": "D2B7A82D261810C7C7E12AA0C0474B00E7717DA64CC0A21D1BC2CD99DDA1254F",
+      "transformation": "BYTE_EXACT",
+      "bytes": 7576,
+      "sha256": "D2B7A82D261810C7C7E12AA0C0474B00E7717DA64CC0A21D1BC2CD99DDA1254F"
+    },
+    {
+      "file": "20261105-fetch-powershell-environment-sources.py",
+      "original_path": "build-ci/20261105-fetch-powershell-environment-sources.py",
+      "original_bytes": 2138,
+      "original_sha256": "FFCB2A5F73360E3A85BF57BA641ADDE1AF9C55210D4979C2A17BC78C73CCFA7B",
+      "transformation": "BYTE_EXACT",
+      "bytes": 2138,
+      "sha256": "FFCB2A5F73360E3A85BF57BA641ADDE1AF9C55210D4979C2A17BC78C73CCFA7B"
+    },
+    {
+      "file": "20261106-controller-environment-writer-closure-independent-review-r2/evidence/file-checks.json",
+      "original_path": "build-ci/20261106-controller-environment-writer-closure-independent-review-r2/evidence/file-checks.json",
+      "original_bytes": 525244,
+      "original_sha256": "A774639FCE2BB22EAA31FFE908295A4706D219FD032E62319F36F7C830AA9378",
+      "transformation": "BYTE_EXACT",
+      "bytes": 525244,
+      "sha256": "A774639FCE2BB22EAA31FFE908295A4706D219FD032E62319F36F7C830AA9378"
+    },
+    {
+      "file": "20261106-controller-environment-writer-closure-independent-review-r2/evidence/primary-references.json",
+      "original_path": "build-ci/20261106-controller-environment-writer-closure-independent-review-r2/evidence/primary-references.json",
+      "original_bytes": 1067,
+      "original_sha256": "FE6CB5087A9867791CFCD5FB34F16842B5F2EED074C2A32D3C9FF5669E9442EC",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1067,
+      "sha256": "FE6CB5087A9867791CFCD5FB34F16842B5F2EED074C2A32D3C9FF5669E9442EC"
+    },
+    {
+      "file": "20261106-controller-environment-writer-closure-independent-review-r2/evidence/verify_files.py",
+      "original_path": "build-ci/20261106-controller-environment-writer-closure-independent-review-r2/evidence/verify_files.py",
+      "original_bytes": 11912,
+      "original_sha256": "B2B1D9BE2873E4A52D3728C728C0207018003A02ACC7B449A63872EF440333B7",
+      "transformation": "BYTE_EXACT",
+      "bytes": 11912,
+      "sha256": "B2B1D9BE2873E4A52D3728C728C0207018003A02ACC7B449A63872EF440333B7"
+    },
+    {
+      "file": "20261106-controller-environment-writer-closure-independent-review-r2/review.json",
+      "original_path": "build-ci/20261106-controller-environment-writer-closure-independent-review-r2/review.json",
+      "original_bytes": 358816,
+      "original_sha256": "1D4B5530609589DD4B44BB6FB4A67771E666736A239EFDB1183A4BB0F40929D3",
+      "transformation": "BYTE_EXACT",
+      "bytes": 358816,
+      "sha256": "1D4B5530609589DD4B44BB6FB4A67771E666736A239EFDB1183A4BB0F40929D3"
+    },
+    {
+      "file": "20261106-controller-environment-writer-closure-independent-review-r2/review.md",
+      "original_path": "build-ci/20261106-controller-environment-writer-closure-independent-review-r2/review.md",
+      "original_bytes": 10517,
+      "original_sha256": "62FCAAE661A8E4692D8838BC708797AD884755FF29543103DF1A83ED2BBFFC48",
+      "transformation": "BYTE_EXACT",
+      "bytes": 10517,
+      "sha256": "62FCAAE661A8E4692D8838BC708797AD884755FF29543103DF1A83ED2BBFFC48"
+    },
+    {
+      "file": "20261106-controller-environment-writer-closure-independent-review-r2/source-pins.json",
+      "original_path": "build-ci/20261106-controller-environment-writer-closure-independent-review-r2/source-pins.json",
+      "original_bytes": 349642,
+      "original_sha256": "A85F80F9A162D350E4FE6708E259A1D1CD6457B6EBF223307E08F5E50A5D06DC",
+      "transformation": "BYTE_EXACT",
+      "bytes": 349642,
+      "sha256": "A85F80F9A162D350E4FE6708E259A1D1CD6457B6EBF223307E08F5E50A5D06DC"
+    }
+  ]
+}
