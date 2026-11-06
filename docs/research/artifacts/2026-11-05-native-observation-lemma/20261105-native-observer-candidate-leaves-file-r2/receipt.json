@@ -1,0 +1,102 @@
+{
+  "scope": "Candidate SDK leaf FILE inspection only; no target calls, loading, runtime association, state proof, Data or execution GO",
+  "target_functions_invoked": false,
+  "desktop_input": false,
+  "native_windows": false,
+  "devices": false,
+  "tool_sha256": "12A1CD87238BD66DFDB788B4FCDCB91CE4B3F81236AAB12A7A29E5AE1D85AF50",
+  "candidate_sha256": "DEDB7611E1ABC1FF3852DCAC3D4C93A048D729E25B061973B9969F22698F14CA",
+  "exports_source_sha256": "5C558592D9CCC3B9551A47B5491EA4D60E57648E608E79318A4602B00A80CD20",
+  "commands": [
+    {
+      "name": "status_helper_55930",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/nologo",
+        "/disasm",
+        "/range:0x180055930,0x180055D30",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "range_rva": [
+        350512,
+        351536
+      ],
+      "exact_begin_runtime_function": false,
+      "runtime_function_record": null,
+      "requested_range_is_not_asserted_leaf_extent": true,
+      "raw_exit": 0,
+      "stdout_bytes": 17253,
+      "stdout_sha256": "AA2522EF9EF01A1C03456085E629C08E0D74E06AB7AA5514BA573760B8B13D21",
+      "stderr_bytes": 0
+    },
+    {
+      "name": "set_helper_558B0",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/nologo",
+        "/disasm",
+        "/range:0x1800558B0,0x180055CB0",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "range_rva": [
+        350384,
+        351408
+      ],
+      "exact_begin_runtime_function": false,
+      "runtime_function_record": null,
+      "requested_range_is_not_asserted_leaf_extent": true,
+      "raw_exit": 0,
+      "stdout_bytes": 18695,
+      "stdout_sha256": "BCF22FDE445EBC11F6EAFC97CAA2F5C82249238C892C31142D5EA9589AF4D13E",
+      "stderr_bytes": 0
+    },
+    {
+      "name": "control_helper_5FC10",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/nologo",
+        "/disasm",
+        "/range:0x18005FC10,0x18005FEFD",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "range_rva": [
+        392208,
+        392957
+      ],
+      "exact_begin_runtime_function": true,
+      "runtime_function_record": [
+        392208,
+        392957,
+        1179160
+      ],
+      "requested_range_is_not_asserted_leaf_extent": true,
+      "raw_exit": 0,
+      "stdout_bytes": 11822,
+      "stdout_sha256": "95E4260563412DC85132D87EAC79B8FA65F1DA92539839D5155EA5CDBA10637E",
+      "stderr_bytes": 0
+    },
+    {
+      "name": "floor_target_8D6D0",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+        "/nologo",
+        "/disasm",
+        "/range:0x18008D6D0,0x18008D6F0",
+        "C:\\Windows\\System32\\ucrtbase.dll"
+      ],
+      "range_rva": [
+        579280,
+        579312
+      ],
+      "exact_begin_runtime_function": false,
+      "runtime_function_record": null,
+      "requested_range_is_not_asserted_leaf_extent": true,
+      "raw_exit": 0,
+      "stdout_bytes": 1130,
+      "stdout_sha256": "0DBC832F97290C95988899B5E80B9E6A936E7C4B5342A710CB42EB42DD5CD882",
+      "stderr_bytes": 0
+    }
+  ],
+  "pre_post_pins_match": true,
+  "reader_source_sha256": "7F980C3AA3D5D4AC6773C2E195DBB6C3ED58C30BAE19131BA83C29262BA7D232"
+}

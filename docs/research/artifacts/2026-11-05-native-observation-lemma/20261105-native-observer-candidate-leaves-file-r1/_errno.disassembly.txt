@@ -1,0 +1,74 @@
+
+Dump of file C:\Windows\System32\ucrtbase.dll
+
+File Type: DLL
+
+  0000000180007A60: 40 57              push        rdi
+  0000000180007A62: 48 83 EC 30        sub         rsp,30h
+  0000000180007A66: 48 C7 44 24 20 FE  mov         qword ptr [rsp+20h],0FFFFFFFFFFFFFFFEh
+                    FF FF FF
+  0000000180007A6F: 48 89 5C 24 40     mov         qword ptr [rsp+40h],rbx
+  0000000180007A74: 48 89 74 24 48     mov         qword ptr [rsp+48h],rsi
+  0000000180007A79: 80 3D 30 1D 13 00  cmp         byte ptr [00000001801397B0h],0
+                    00
+  0000000180007A80: 0F 84 97 00 00 00  je          0000000180007B1D
+  0000000180007A86: 8B 0D 58 0A 13 00  mov         ecx,dword ptr [00000001801384E4h]
+  0000000180007A8C: 83 F9 FF           cmp         ecx,0FFFFFFFFh
+  0000000180007A8F: 0F 84 82 00 00 00  je          0000000180007B17
+  0000000180007A95: E8 3E 4A 00 00     call        000000018000C4D8
+  0000000180007A9A: 48 8B D8           mov         rbx,rax
+  0000000180007A9D: 33 FF              xor         edi,edi
+  0000000180007A9F: 48 85 C0           test        rax,rax
+  0000000180007AA2: 48 0F 44 DF        cmove       rbx,rdi
+  0000000180007AA6: 48 83 FB FF        cmp         rbx,0FFFFFFFFFFFFFFFFh
+  0000000180007AAA: 74 38              je          0000000180007AE4
+  0000000180007AAC: 48 85 DB           test        rbx,rbx
+  0000000180007AAF: 75 0D              jne         0000000180007ABE
+  0000000180007AB1: E8 4A 4A 00 00     call        000000018000C500
+  0000000180007AB6: 48 8B D8           mov         rbx,rax
+  0000000180007AB9: 48 85 C0           test        rax,rax
+  0000000180007ABC: 74 26              je          0000000180007AE4
+  0000000180007ABE: 80 3D 97 1C 13 00  cmp         byte ptr [000000018013975Ch],0
+                    00
+  0000000180007AC5: 74 3F              je          0000000180007B06
+  0000000180007AC7: FF 15 53 5C 0F 00  call        qword ptr [00000001800FD720h]
+  0000000180007ACD: 85 C0              test        eax,eax
+  0000000180007ACF: 75 35              jne         0000000180007B06
+  0000000180007AD1: 65 48 8B 04 25 20  mov         rax,qword ptr gs:[0000000000001820h]
+                    18 00 00
+  0000000180007ADA: 48 69 F8 C8 03 00  imul        rdi,rax,3C8h
+                    00
+  0000000180007AE1: 48 03 FB           add         rdi,rbx
+  0000000180007AE4: 48 8D 47 20        lea         rax,[rdi+20h]
+  0000000180007AE8: 48 8D 0D 41 11 13  lea         rcx,[0000000180138C30h]
+                    00
+  0000000180007AEF: 48 85 FF           test        rdi,rdi
+  0000000180007AF2: 48 0F 44 C1        cmove       rax,rcx
+  0000000180007AF6: 48 8B 5C 24 40     mov         rbx,qword ptr [rsp+40h]
+  0000000180007AFB: 48 8B 74 24 48     mov         rsi,qword ptr [rsp+48h]
+  0000000180007B00: 48 83 C4 30        add         rsp,30h
+  0000000180007B04: 5F                 pop         rdi
+  0000000180007B05: C3                 ret
+  0000000180007B06: 8B 0D D4 09 13 00  mov         ecx,dword ptr [00000001801384E0h]
+  0000000180007B0C: 48 8B 05 05 15 14  mov         rax,qword ptr [0000000180149018h]
+                    00
+  0000000180007B13: FF D0              call        rax
+  0000000180007B15: EB C3              jmp         0000000180007ADA
+  0000000180007B17: 33 FF              xor         edi,edi
+  0000000180007B19: 8B DF              mov         ebx,edi
+  0000000180007B1B: EB 89              jmp         0000000180007AA6
+  0000000180007B1D: FF 15 BD 5B 0F 00  call        qword ptr [00000001800FD6E0h]
+  0000000180007B23: 8B D8              mov         ebx,eax
+  0000000180007B25: E8 26 6D 05 00     call        000000018005E850
+  0000000180007B2A: 48 8B F0           mov         rsi,rax
+  0000000180007B2D: 33 FF              xor         edi,edi
+  0000000180007B2F: 8B 0D AF 09 13 00  mov         ecx,dword ptr [00000001801384E4h]
+  0000000180007B35: 83 F9 FF           cmp         ecx,0FFFFFFFFh
+  0000000180007B38: 0F 85 AA 9F 0E 00  jne         00000001800F1AE8
+  0000000180007B3E: 8B C7              mov         eax,edi
+  0000000180007B40: E9 A9 9F 0E 00     jmp         00000001800F1AEE
+  0000000180007B45: CC                 int         3
+
+  Summary
+
+       F7000 .text

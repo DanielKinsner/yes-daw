@@ -1,0 +1,286 @@
+
+Dump of file C:\Windows\System32\ucrtbase.dll
+
+File Type: DLL
+
+  0000000180055930: 0F AE 5C 24 08     stmxcsr     dword ptr [rsp+8]
+  0000000180055935: 8B 54 24 08        mov         edx,dword ptr [rsp+8]
+  0000000180055939: 83 E2 3F           and         edx,3Fh
+  000000018005593C: 8B CA              mov         ecx,edx
+  000000018005593E: 8B C2              mov         eax,edx
+  0000000180055940: C1 E8 03           shr         eax,3
+  0000000180055943: 83 E0 02           and         eax,2
+  0000000180055946: C1 E9 05           shr         ecx,5
+  0000000180055949: 83 E1 01           and         ecx,1
+  000000018005594C: 0B C8              or          ecx,eax
+  000000018005594E: 8B C2              mov         eax,edx
+  0000000180055950: D1 E8              shr         eax,1
+  0000000180055952: 83 E0 04           and         eax,4
+  0000000180055955: 0B C8              or          ecx,eax
+  0000000180055957: 8B C2              mov         eax,edx
+  0000000180055959: 83 E0 04           and         eax,4
+  000000018005595C: 03 C0              add         eax,eax
+  000000018005595E: 0B C8              or          ecx,eax
+  0000000180055960: 8B C2              mov         eax,edx
+  0000000180055962: 83 E0 01           and         eax,1
+  0000000180055965: 83 E2 02           and         edx,2
+  0000000180055968: C1 E0 04           shl         eax,4
+  000000018005596B: 0B C8              or          ecx,eax
+  000000018005596D: C1 E2 04           shl         edx,4
+  0000000180055970: 0B D1              or          edx,ecx
+  0000000180055972: 8B C2              mov         eax,edx
+  0000000180055974: C1 E0 18           shl         eax,18h
+  0000000180055977: 0B C2              or          eax,edx
+  0000000180055979: C3                 ret
+  000000018005597A: CC                 int         3
+  000000018005597B: CC                 int         3
+  000000018005597C: CC                 int         3
+  000000018005597D: CC                 int         3
+  000000018005597E: CC                 int         3
+  000000018005597F: CC                 int         3
+  0000000180055980: 40 53              push        rbx
+  0000000180055982: 48 83 EC 30        sub         rsp,30h
+  0000000180055986: 0F 29 74 24 20     movaps      xmmword ptr [rsp+20h],xmm6
+  000000018005598B: 0F 28 F0           movaps      xmm6,xmm0
+  000000018005598E: E8 9D 0E 00 00     call        0000000180056830
+  0000000180055993: 85 C0              test        eax,eax
+  0000000180055995: 0F 85 DC 00 00 00  jne         0000000180055A77
+  000000018005599B: 41 B8 FF 07 00 00  mov         r8d,7FFh
+  00000001800559A1: 66 49 0F 7E F1     movq        r9,xmm6
+  00000001800559A6: 49 8B C1           mov         rax,r9
+  00000001800559A9: 48 BB FF FF FF FF  mov         rbx,7FFFFFFFFFFFFFFFh
+                    FF FF FF 7F
+  00000001800559B3: 48 C1 E8 34        shr         rax,34h
+  00000001800559B7: 49 BB 00 00 00 00  mov         r11,8000000000000000h
+                    00 00 00 80
+  00000001800559C1: 41 23 C0           and         eax,r8d
+  00000001800559C4: 41 BA 01 00 00 00  mov         r10d,1
+  00000001800559CA: 41 3B C0           cmp         eax,r8d
+  00000001800559CD: 0F 84 17 01 00 00  je          0000000180055AEA
+  00000001800559D3: 85 C0              test        eax,eax
+  00000001800559D5: 0F 84 91 03 00 00  je          0000000180055D6C
+  00000001800559DB: B9 32 04 00 00     mov         ecx,432h
+  00000001800559E0: 2B C8              sub         ecx,eax
+  00000001800559E2: 85 C9              test        ecx,ecx
+  00000001800559E4: 0F 8E 8B 03 00 00  jle         0000000180055D75
+  00000001800559EA: 83 F9 34           cmp         ecx,34h
+  00000001800559ED: 0F 8F 8A 03 00 00  jg          0000000180055D7D
+  00000001800559F3: 49 8B C2           mov         rax,r10
+  00000001800559F6: 48 D3 E0           shl         rax,cl
+  00000001800559F9: 49 2B C2           sub         rax,r10
+  00000001800559FC: 48 8B D0           mov         rdx,rax
+  00000001800559FF: 48 F7 D2           not         rdx
+  0000000180055A02: 49 23 D1           and         rdx,r9
+  0000000180055A05: 48 89 54 24 40     mov         qword ptr [rsp+40h],rdx
+  0000000180055A0A: F2 0F 10 74 24 40  movsd       xmm6,mmword ptr [rsp+40h]
+  0000000180055A10: 4C 85 C8           test        rax,r9
+  0000000180055A13: 0F 85 D4 00 00 00  jne         0000000180055AED
+  0000000180055A19: 48 8B C2           mov         rax,rdx
+  0000000180055A1C: 48 C1 E8 34        shr         rax,34h
+  0000000180055A20: 41 23 C0           and         eax,r8d
+  0000000180055A23: 41 3B C0           cmp         eax,r8d
+  0000000180055A26: 0F 84 17 01 00 00  je          0000000180055B43
+  0000000180055A2C: 85 C0              test        eax,eax
+  0000000180055A2E: 0F 84 59 03 00 00  je          0000000180055D8D
+  0000000180055A34: B9 33 04 00 00     mov         ecx,433h
+  0000000180055A39: 2B C8              sub         ecx,eax
+  0000000180055A3B: 85 C9              test        ecx,ecx
+  0000000180055A3D: 0F 8E 99 00 00 00  jle         0000000180055ADC
+  0000000180055A43: 83 F9 34           cmp         ecx,34h
+  0000000180055A46: 0F 8F 4F 03 00 00  jg          0000000180055D9B
+  0000000180055A4C: 49 8B C2           mov         rax,r10
+  0000000180055A4F: 48 D3 E0           shl         rax,cl
+  0000000180055A52: 49 2B C2           sub         rax,r10
+  0000000180055A55: 4C 8B C8           mov         r9,rax
+  0000000180055A58: 49 F7 D1           not         r9
+  0000000180055A5B: 4C 23 CA           and         r9,rdx
+  0000000180055A5E: 4C 89 4C 24 40     mov         qword ptr [rsp+40h],r9
+  0000000180055A63: 48 85 D0           test        rax,rdx
+  0000000180055A66: 0F 84 29 01 00 00  je          0000000180055B95
+  0000000180055A6C: F2 0F 10 74 24 40  movsd       xmm6,mmword ptr [rsp+40h]
+  0000000180055A72: E9 CF 00 00 00     jmp         0000000180055B46
+  0000000180055A77: 3D 00 01 00 00     cmp         eax,100h
+  0000000180055A7C: 0F 84 A3 01 00 00  je          0000000180055C25
+  0000000180055A82: 3D 00 02 00 00     cmp         eax,200h
+  0000000180055A87: 0F 84 2C 01 00 00  je          0000000180055BB9
+  0000000180055A8D: 3D 00 03 00 00     cmp         eax,300h
+  0000000180055A92: 75 48              jne         0000000180055ADC
+  0000000180055A94: 41 B8 FF 07 00 00  mov         r8d,7FFh
+  0000000180055A9A: 66 48 0F 7E F2     movq        rdx,xmm6
+  0000000180055A9F: 48 8B C2           mov         rax,rdx
+  0000000180055AA2: 48 C1 E8 34        shr         rax,34h
+  0000000180055AA6: 41 23 C0           and         eax,r8d
+  0000000180055AA9: 41 3B C0           cmp         eax,r8d
+  0000000180055AAC: 74 2E              je          0000000180055ADC
+  0000000180055AAE: 85 C0              test        eax,eax
+  0000000180055AB0: 0F 84 3A 02 00 00  je          0000000180055CF0
+  0000000180055AB6: B9 33 04 00 00     mov         ecx,433h
+  0000000180055ABB: 2B C8              sub         ecx,eax
+  0000000180055ABD: 85 C9              test        ecx,ecx
+  0000000180055ABF: 7E 1B              jle         0000000180055ADC
+  0000000180055AC1: 83 F9 34           cmp         ecx,34h
+  0000000180055AC4: 0F 8E F5 01 00 00  jle         0000000180055CBF
+  0000000180055ACA: 49 BB 00 00 00 00  mov         r11,8000000000000000h
+                    00 00 00 80
+  0000000180055AD4: 49 23 D3           and         rdx,r11
+  0000000180055AD7: 66 48 0F 6E F2     movq        xmm6,rdx
+  0000000180055ADC: 0F 28 C6           movaps      xmm0,xmm6
+  0000000180055ADF: 0F 28 74 24 20     movaps      xmm6,xmmword ptr [rsp+20h]
+  0000000180055AE4: 48 83 C4 30        add         rsp,30h
+  0000000180055AE8: 5B                 pop         rbx
+  0000000180055AE9: C3                 ret
+  0000000180055AEA: 49 8B D1           mov         rdx,r9
+  0000000180055AED: 48 8B C2           mov         rax,rdx
+  0000000180055AF0: 48 C1 E8 34        shr         rax,34h
+  0000000180055AF4: 41 23 C0           and         eax,r8d
+  0000000180055AF7: 41 3B C0           cmp         eax,r8d
+  0000000180055AFA: 0F 84 E6 01 00 00  je          0000000180055CE6
+  0000000180055B00: 85 C0              test        eax,eax
+  0000000180055B02: 0F 84 CC 02 00 00  je          0000000180055DD4
+  0000000180055B08: B9 33 04 00 00     mov         ecx,433h
+  0000000180055B0D: 2B C8              sub         ecx,eax
+  0000000180055B0F: 85 C9              test        ecx,ecx
+  0000000180055B11: 7E C9              jle         0000000180055ADC
+  0000000180055B13: 83 F9 34           cmp         ecx,34h
+  0000000180055B16: 0F 8F C6 02 00 00  jg          0000000180055DE2
+  0000000180055B1C: 49 8B C2           mov         rax,r10
+  0000000180055B1F: 48 D3 E0           shl         rax,cl
+  0000000180055B22: 49 2B C2           sub         rax,r10
+  0000000180055B25: 48 8B C8           mov         rcx,rax
+  0000000180055B28: 48 F7 D1           not         rcx
+  0000000180055B2B: 48 23 CA           and         rcx,rdx
+  0000000180055B2E: 48 89 4C 24 40     mov         qword ptr [rsp+40h],rcx
+  0000000180055B33: 48 85 D0           test        rax,rdx
+  0000000180055B36: 74 5D              je          0000000180055B95
+  0000000180055B38: F2 0F 10 74 24 40  movsd       xmm6,mmword ptr [rsp+40h]
+  0000000180055B3E: E9 A6 01 00 00     jmp         0000000180055CE9
+  0000000180055B43: 4C 8B CA           mov         r9,rdx
+  0000000180055B46: 49 8B C1           mov         rax,r9
+  0000000180055B49: 48 C1 E8 34        shr         rax,34h
+  0000000180055B4D: 41 23 C0           and         eax,r8d
+  0000000180055B50: 41 3B C0           cmp         eax,r8d
+  0000000180055B53: 74 4B              je          0000000180055BA0
+  0000000180055B55: 85 C0              test        eax,eax
+  0000000180055B57: 0F 84 4E 02 00 00  je          0000000180055DAB
+  0000000180055B5D: B9 34 04 00 00     mov         ecx,434h
+  0000000180055B62: 2B C8              sub         ecx,eax
+  0000000180055B64: 85 C9              test        ecx,ecx
+  0000000180055B66: 0F 8E 70 FF FF FF  jle         0000000180055ADC
+  0000000180055B6C: 83 F9 34           cmp         ecx,34h
+  0000000180055B6F: 0F 8F 44 02 00 00  jg          0000000180055DB9
+  0000000180055B75: 49 8B C2           mov         rax,r10
+  0000000180055B78: 48 D3 E0           shl         rax,cl
+  0000000180055B7B: 49 2B C2           sub         rax,r10
+  0000000180055B7E: 48 8B C8           mov         rcx,rax
+  0000000180055B81: 48 F7 D1           not         rcx
+  0000000180055B84: 49 23 C9           and         rcx,r9
+  0000000180055B87: 48 89 4C 24 40     mov         qword ptr [rsp+40h],rcx
+  0000000180055B8C: 4C 85 C8           test        rax,r9
+  0000000180055B8F: 0F 85 34 02 00 00  jne         0000000180055DC9
+  0000000180055B95: F2 0F 10 74 24 40  movsd       xmm6,mmword ptr [rsp+40h]
+  0000000180055B9B: E9 3C FF FF FF     jmp         0000000180055ADC
+  0000000180055BA0: 49 8B C9           mov         rcx,r9
+  0000000180055BA3: 48 85 C9           test        rcx,rcx
+  0000000180055BA6: 0F 89 2D 01 00 00  jns         0000000180055CD9
+  0000000180055BAC: F2 0F 58 35 BC CE  addsd       xmm6,mmword ptr [0000000180102A70h]
+                    0A 00
+  0000000180055BB4: E9 23 FF FF FF     jmp         0000000180055ADC
+  0000000180055BB9: 41 B8 FF 07 00 00  mov         r8d,7FFh
+  0000000180055BBF: 66 48 0F 7E F2     movq        rdx,xmm6
+  0000000180055BC4: 48 8B C2           mov         rax,rdx
+  0000000180055BC7: 48 C1 E8 34        shr         rax,34h
+  0000000180055BCB: 41 23 C0           and         eax,r8d
+  0000000180055BCE: 41 3B C0           cmp         eax,r8d
+  0000000180055BD1: 0F 84 B6 00 00 00  je          0000000180055C8D
+  0000000180055BD7: 85 C0              test        eax,eax
+  0000000180055BD9: 0F 84 29 01 00 00  je          0000000180055D08
+  0000000180055BDF: B9 33 04 00 00     mov         ecx,433h
+  0000000180055BE4: 2B C8              sub         ecx,eax
+  0000000180055BE6: 85 C9              test        ecx,ecx
+  0000000180055BE8: 0F 8E EE FE FF FF  jle         0000000180055ADC
+  0000000180055BEE: 83 F9 34           cmp         ecx,34h
+  0000000180055BF1: 0F 8F 29 01 00 00  jg          0000000180055D20
+  0000000180055BF7: 41 BA 01 00 00 00  mov         r10d,1
+  0000000180055BFD: 41 8B C2           mov         eax,r10d
+  0000000180055C00: 48 D3 E0           shl         rax,cl
+  0000000180055C03: 49 2B C2           sub         rax,r10
+  0000000180055C06: 48 8B C8           mov         rcx,rax
+  0000000180055C09: 48 F7 D1           not         rcx
+  0000000180055C0C: 48 23 CA           and         rcx,rdx
+  0000000180055C0F: 48 89 4C 24 40     mov         qword ptr [rsp+40h],rcx
+  0000000180055C14: 48 85 C2           test        rdx,rax
+  0000000180055C17: 0F 84 78 FF FF FF  je          0000000180055B95
+  0000000180055C1D: F2 0F 10 74 24 40  movsd       xmm6,mmword ptr [rsp+40h]
+  0000000180055C23: EB 6B              jmp         0000000180055C90
+  0000000180055C25: 41 B8 FF 07 00 00  mov         r8d,7FFh
+  0000000180055C2B: 66 48 0F 7E F2     movq        rdx,xmm6
+  0000000180055C30: 48 8B C2           mov         rax,rdx
+  0000000180055C33: 48 C1 E8 34        shr         rax,34h
+  0000000180055C37: 41 23 C0           and         eax,r8d
+  0000000180055C3A: 41 3B C0           cmp         eax,r8d
+  0000000180055C3D: 74 67              je          0000000180055CA6
+  0000000180055C3F: 85 C0              test        eax,eax
+  0000000180055C41: 0F 84 F3 00 00 00  je          0000000180055D3A
+  0000000180055C47: B9 33 04 00 00     mov         ecx,433h
+  0000000180055C4C: 2B C8              sub         ecx,eax
+  0000000180055C4E: 85 C9              test        ecx,ecx
+  0000000180055C50: 0F 8E 86 FE FF FF  jle         0000000180055ADC
+  0000000180055C56: 83 F9 34           cmp         ecx,34h
+  0000000180055C59: 0F 8F F3 00 00 00  jg          0000000180055D52
+  0000000180055C5F: 41 BA 01 00 00 00  mov         r10d,1
+  0000000180055C65: 41 8B C2           mov         eax,r10d
+  0000000180055C68: 48 D3 E0           shl         rax,cl
+  0000000180055C6B: 49 2B C2           sub         rax,r10
+  0000000180055C6E: 48 8B C8           mov         rcx,rax
+  0000000180055C71: 48 F7 D1           not         rcx
+  0000000180055C74: 48 23 CA           and         rcx,rdx
+  0000000180055C77: 48 89 4C 24 40     mov         qword ptr [rsp+40h],rcx
+  0000000180055C7C: 48 85 D0           test        rax,rdx
+  0000000180055C7F: 0F 84 10 FF FF FF  je          0000000180055B95
+  0000000180055C85: F2 0F 10 74 24 40  movsd       xmm6,mmword ptr [rsp+40h]
+  0000000180055C8B: EB 1C              jmp         0000000180055CA9
+  0000000180055C8D: 48 8B CA           mov         rcx,rdx
+  0000000180055C90: 48 85 C9           test        rcx,rcx
+  0000000180055C93: 0F 88 43 FE FF FF  js          0000000180055ADC
+  0000000180055C99: F2 0F 58 35 47 C4  addsd       xmm6,mmword ptr [00000001801020E8h]
+                    0A 00
+  0000000180055CA1: E9 36 FE FF FF     jmp         0000000180055ADC
+  0000000180055CA6: 48 8B CA           mov         rcx,rdx
+  0000000180055CA9: 48 85 C9           test        rcx,rcx
+  0000000180055CAC: 0F 89 2A FE FF FF  jns         0000000180055ADC
+  0000000180055CB2: F2 0F 58 35 56 E1  addsd       xmm6,mmword ptr [0000000180103E10h]
+                    0A 00
+  0000000180055CBA: E9 1D FE FF FF     jmp         0000000180055ADC
+  0000000180055CBF: 41 BA 01 00 00 00  mov         r10d,1
+  0000000180055CC5: 41 8B C2           mov         eax,r10d
+  0000000180055CC8: 48 D3 E0           shl         rax,cl
+  0000000180055CCB: 49 2B C2           sub         rax,r10
+  0000000180055CCE: 48 F7 D0           not         rax
+  0000000180055CD1: 48 23 D0           and         rdx,rax
+  0000000180055CD4: E9 FE FD FF FF     jmp         0000000180055AD7
+  0000000180055CD9: F2 0F 58 35 DF FA  addsd       xmm6,mmword ptr [00000001801057C0h]
+                    0A 00
+  0000000180055CE1: E9 F6 FD FF FF     jmp         0000000180055ADC
+  0000000180055CE6: 48 8B CA           mov         rcx,rdx
+  0000000180055CE9: 48 85 C9           test        rcx,rcx
+  0000000180055CEC: 79 AB              jns         0000000180055C99
+  0000000180055CEE: EB C2              jmp         0000000180055CB2
+  0000000180055CF0: 48 BB FF FF FF FF  mov         rbx,7FFFFFFFFFFFFFFFh
+                    FF FF FF 7F
+  0000000180055CFA: 48 85 D3           test        rbx,rdx
+  0000000180055CFD: 0F 84 D9 FD FF FF  je          0000000180055ADC
+  0000000180055D03: E9 AE FD FF FF     jmp         0000000180055AB6
+  0000000180055D08: 48 BB FF FF FF FF  mov         rbx,7FFFFFFFFFFFFFFFh
+                    FF FF FF 7F
+  0000000180055D12: 48 85 D3           test        rbx,rdx
+  0000000180055D15: 0F 84 C1 FD FF FF  je          0000000180055ADC
+  0000000180055D1B: E9 BF FE FF FF     jmp         0000000180055BDF
+  0000000180055D20: 48 8B CA           mov         rcx,rdx
+  0000000180055D23: 49 BB 00 00 00 00  mov         r11,8000000000000000h
+                    00 00 00 80
+  0000000180055D2D: 49 23 CB           and         rcx,r11
+  0000000180055D30: 66
+
+  Summary
+
+       F7000 .text

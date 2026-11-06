@@ -1,0 +1,44 @@
+
+Dump of file C:\Windows\System32\ucrtbase.dll
+
+File Type: DLL
+
+  000000018005FBA0: 40 53              push        rbx
+  000000018005FBA2: 48 83 EC 20        sub         rsp,20h
+  000000018005FBA6: 41 0F BA F0 13     btr         r8d,13h
+  000000018005FBAB: 8B C2              mov         eax,edx
+  000000018005FBAD: 41 23 C0           and         eax,r8d
+  000000018005FBB0: 44 8B CA           mov         r9d,edx
+  000000018005FBB3: 48 8B D9           mov         rbx,rcx
+  000000018005FBB6: A9 E0 FC F0 FC     test        eax,0FCF0FCE0h
+  000000018005FBBB: 75 1A              jne         000000018005FBD7
+  000000018005FBBD: 41 8B D0           mov         edx,r8d
+  000000018005FBC0: 41 8B C9           mov         ecx,r9d
+  000000018005FBC3: 48 85 DB           test        rbx,rbx
+  000000018005FBC6: 74 3A              je          000000018005FC02
+  000000018005FBC8: E8 43 00 00 00     call        000000018005FC10
+  000000018005FBCD: 89 03              mov         dword ptr [rbx],eax
+  000000018005FBCF: 33 C0              xor         eax,eax
+  000000018005FBD1: 48 83 C4 20        add         rsp,20h
+  000000018005FBD5: 5B                 pop         rbx
+  000000018005FBD6: C3                 ret
+  000000018005FBD7: 48 85 DB           test        rbx,rbx
+  000000018005FBDA: 74 0B              je          000000018005FBE7
+  000000018005FBDC: 33 D2              xor         edx,edx
+  000000018005FBDE: 33 C9              xor         ecx,ecx
+  000000018005FBE0: E8 2B 00 00 00     call        000000018005FC10
+  000000018005FBE5: 89 03              mov         dword ptr [rbx],eax
+  000000018005FBE7: E8 74 7E FA FF     call        0000000180007A60
+  000000018005FBEC: C7 00 16 00 00 00  mov         dword ptr [rax],16h
+  000000018005FBF2: E8 59 7F FA FF     call        0000000180007B50
+  000000018005FBF7: B8 16 00 00 00     mov         eax,16h
+  000000018005FBFC: 48 83 C4 20        add         rsp,20h
+  000000018005FC00: 5B                 pop         rbx
+  000000018005FC01: C3                 ret
+  000000018005FC02: E8 09 00 00 00     call        000000018005FC10
+  000000018005FC07: EB C6              jmp         000000018005FBCF
+  000000018005FC09: CC                 int         3
+
+  Summary
+
+       F7000 .text

@@ -78,6 +78,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    JObject iterator and three CoreLib enumerators. Complete payload equations remain in progress.
    R5's conditional all-input/source-object argument passed18,197 independent checks; actual native
    binding/funding/resources/integration remain held. Production census R3 is rebuilt and in whole review.
+   The narrow candidate observation/restoration lemma passed13,368 independent checks; actual errno,
+   floor/provider/interval and whole runtime/resource qualification remain pending.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -98,6 +100,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Preserve the conditional native observation/restoration lemma
+
+- Fresh independent file/PE/bit/control-flow review passed13,368 checks for nine complete candidate spans/1,427 bytes/411 instruction rows, all64 raw-six mappings and4,096 status pairs. It accepts only the stated conditional candidate-file lemma; no native function ran.
+- The selected fenv leaves preserve controls and restore named status; the observer's explicit raw-six merge covers denormal too. The zero-mask control observation excludes every setter/global/callback/cold branch for its stated live-pointer/ABI domain. General setters, errno TLS/lazy/final-use, floor/provider, true intervals and actual final association remain unqualified.
+- Archived36 source/raw-evidence/review files under `docs/research/artifacts/2026-11-05-native-observation-lemma/`; original bytes/hashes and empty stderr are preserved. No frozen log-region certificate, Data, cap or NativeFact was changed. The earlier archive EOF repair passed all checks and CI42179698760 at5893e9a.
+- Continue whole production census R3 and six-phase resource critique, then binding/native/whole API and recipe/renderer/jobs/model, followed by linked/folder/piano. Research target stages, GUI, desktop input and devices remain unrun; no fit, execution GO or activation is claimed.
 
 ## 2026-11-05 - Preserve the conditional planner forward/native proof
 

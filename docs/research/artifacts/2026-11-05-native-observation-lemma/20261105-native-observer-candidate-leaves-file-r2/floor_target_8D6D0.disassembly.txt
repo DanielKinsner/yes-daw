@@ -1,0 +1,28 @@
+
+Dump of file C:\Windows\System32\ucrtbase.dll
+
+File Type: DLL
+
+  000000018008D6D0: 83 3D F1 AD 0A 00  cmp         dword ptr [00000001801384C8h],2
+                    02
+  000000018008D6D7: 0F 8D D3 B1 01 00  jge         00000001800A88B0
+  000000018008D6DD: E9 92 22 05 00     jmp         00000001800DF974
+  000000018008D6E2: CC                 int         3
+  000000018008D6E3: CC                 int         3
+  000000018008D6E4: CC                 int         3
+  000000018008D6E5: CC                 int         3
+  000000018008D6E6: CC                 int         3
+  000000018008D6E7: CC                 int         3
+  000000018008D6E8: CC                 int         3
+  000000018008D6E9: CC                 int         3
+  000000018008D6EA: CC                 int         3
+  000000018008D6EB: CC                 int         3
+  000000018008D6EC: CC                 int         3
+  000000018008D6ED: CC                 int         3
+  000000018008D6EE: CC                 int         3
+  000000018008D6EF: CC                 int         3
+  000000018008D6F0: 48
+
+  Summary
+
+       F7000 .text

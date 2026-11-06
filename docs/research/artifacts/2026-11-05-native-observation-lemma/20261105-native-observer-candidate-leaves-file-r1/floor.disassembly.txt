@@ -1,0 +1,22 @@
+
+Dump of file C:\Windows\System32\ucrtbase.dll
+
+File Type: DLL
+
+  00000001800F8040: E9 8B 56 F9 FF     jmp         000000018008D6D0
+  00000001800F8045: CC                 int         3
+  00000001800F8046: CC                 int         3
+  00000001800F8047: CC                 int         3
+  00000001800F8048: CC                 int         3
+  00000001800F8049: CC                 int         3
+  00000001800F804A: CC                 int         3
+  00000001800F804B: CC                 int         3
+  00000001800F804C: CC                 int         3
+  00000001800F804D: CC                 int         3
+  00000001800F804E: CC                 int         3
+  00000001800F804F: CC                 int         3
+  00000001800F8050: E9
+
+  Summary
+
+        1000 fothk

@@ -1,0 +1,2550 @@
+{
+  "schema": "CANDIDATE_OBSERVATION_RESTORATION_SOURCE_LEMMA_R1",
+  "scope": "Candidate bytes plus conditional bit/status algebra only; not actual linked/runtime/native binding or target execution",
+  "verified_function_spans": [
+    {
+      "name": "fegetround",
+      "begin_rva": 354352,
+      "end_rva": 354410,
+      "bytes": 58,
+      "instructions": [
+        {
+          "rva": 354352,
+          "hex": "0FAE5C2408",
+          "assembly": "stmxcsr dword ptr [rsp+8]"
+        },
+        {
+          "rva": 354357,
+          "hex": "8B442408",
+          "assembly": "mov eax,dword ptr [rsp+8]"
+        },
+        {
+          "rva": 354361,
+          "hex": "2500600000",
+          "assembly": "and eax,6000h"
+        },
+        {
+          "rva": 354366,
+          "hex": "7503",
+          "assembly": "jne 0000000180056843"
+        },
+        {
+          "rva": 354368,
+          "hex": "33C0",
+          "assembly": "xor eax,eax"
+        },
+        {
+          "rva": 354370,
+          "hex": "C3",
+          "assembly": "ret"
+        },
+        {
+          "rva": 354371,
+          "hex": "3D00400000",
+          "assembly": "cmp eax,4000h"
+        },
+        {
+          "rva": 354376,
+          "hex": "7414",
+          "assembly": "je 000000018005685E"
+        },
+        {
+          "rva": 354378,
+          "hex": "3D00200000",
+          "assembly": "cmp eax,2000h"
+        },
+        {
+          "rva": 354383,
+          "hex": "7413",
+          "assembly": "je 0000000180056864"
+        },
+        {
+          "rva": 354385,
+          "hex": "3D00600000",
+          "assembly": "cmp eax,6000h"
+        },
+        {
+          "rva": 354390,
+          "hex": "75E8",
+          "assembly": "jne 0000000180056840"
+        },
+        {
+          "rva": 354392,
+          "hex": "B800030000",
+          "assembly": "mov eax,300h"
+        },
+        {
+          "rva": 354397,
+          "hex": "C3",
+          "assembly": "ret"
+        },
+        {
+          "rva": 354398,
+          "hex": "B800020000",
+          "assembly": "mov eax,200h"
+        },
+        {
+          "rva": 354403,
+          "hex": "C3",
+          "assembly": "ret"
+        },
+        {
+          "rva": 354404,
+          "hex": "B800010000",
+          "assembly": "mov eax,100h"
+        },
+        {
+          "rva": 354409,
+          "hex": "C3",
+          "assembly": "ret"
+        }
+      ]
+    },
+    {
+      "name": "fetestexcept",
+      "begin_rva": 349920,
+      "end_rva": 349950,
+      "bytes": 30,
+      "instructions": [
+        {
+          "rva": 349920,
+          "hex": "4883EC28",
+          "assembly": "sub rsp,28h"
+        },
+        {
+          "rva": 349924,
+          "hex": "448BC1",
+          "assembly": "mov r8d,ecx"
+        },
+        {
+          "rva": 349927,
+          "hex": "4183E01F",
+          "assembly": "and r8d,1Fh"
+        },
+        {
+          "rva": 349931,
+          "hex": "740D",
+          "assembly": "je 00000001800556FA"
+        },
+        {
+          "rva": 349933,
+          "hex": "E83E020000",
+          "assembly": "call 0000000180055930"
+        },
+        {
+          "rva": 349938,
+          "hex": "4123C0",
+          "assembly": "and eax,r8d"
+        },
+        {
+          "rva": 349941,
+          "hex": "4883C428",
+          "assembly": "add rsp,28h"
+        },
+        {
+          "rva": 349945,
+          "hex": "C3",
+          "assembly": "ret"
+        },
+        {
+          "rva": 349946,
+          "hex": "33C0",
+          "assembly": "xor eax,eax"
+        },
+        {
+          "rva": 349948,
+          "hex": "EBF7",
+          "assembly": "jmp 00000001800556F5"
+        }
+      ]
+    },
+    {
+      "name": "fegetexceptflag",
+      "begin_rva": 349968,
+      "end_rva": 350023,
+      "bytes": 55,
+      "instructions": [
+        {
+          "rva": 349968,
+          "hex": "4883EC28",
+          "assembly": "sub rsp,28h"
+        },
+        {
+          "rva": 349972,
+          "hex": "448BC2",
+          "assembly": "mov r8d,edx"
+        },
+        {
+          "rva": 349975,
+          "hex": "4C8BC9",
+          "assembly": "mov r9,rcx"
+        },
+        {
+          "rva": 349978,
+          "hex": "4183E01F",
+          "assembly": "and r8d,1Fh"
+        },
+        {
+          "rva": 349982,
+          "hex": "741A",
+          "assembly": "je 000000018005573A"
+        },
+        {
+          "rva": 349984,
+          "hex": "E80B020000",
+          "assembly": "call 0000000180055930"
+        },
+        {
+          "rva": 349989,
+          "hex": "418BC8",
+          "assembly": "mov ecx,r8d"
+        },
+        {
+          "rva": 349992,
+          "hex": "C1E118",
+          "assembly": "shl ecx,18h"
+        },
+        {
+          "rva": 349995,
+          "hex": "410BC8",
+          "assembly": "or ecx,r8d"
+        },
+        {
+          "rva": 349998,
+          "hex": "23C1",
+          "assembly": "and eax,ecx"
+        },
+        {
+          "rva": 350000,
+          "hex": "418901",
+          "assembly": "mov dword ptr [r9],eax"
+        },
+        {
+          "rva": 350003,
+          "hex": "33C0",
+          "assembly": "xor eax,eax"
+        },
+        {
+          "rva": 350005,
+          "hex": "4883C428",
+          "assembly": "add rsp,28h"
+        },
+        {
+          "rva": 350009,
+          "hex": "C3",
+          "assembly": "ret"
+        },
+        {
+          "rva": 350010,
+          "hex": "C70100000000",
+          "assembly": "mov dword ptr [rcx],0"
+        },
+        {
+          "rva": 350016,
+          "hex": "33C0",
+          "assembly": "xor eax,eax"
+        },
+        {
+          "rva": 350018,
+          "hex": "4883C428",
+          "assembly": "add rsp,28h"
+        },
+        {
+          "rva": 350022,
+          "hex": "C3",
+          "assembly": "ret"
+        }
+      ]
+    },
+    {
+      "name": "feclearexcept",
+      "begin_rva": 347456,
+      "end_rva": 347539,
+      "bytes": 83,
+      "instructions": [
+        {
+          "rva": 347456,
+          "hex": "4883EC28",
+          "assembly": "sub rsp,28h"
+        },
+        {
+          "rva": 347460,
+          "hex": "448BC9",
+          "assembly": "mov r9d,ecx"
+        },
+        {
+          "rva": 347463,
+          "hex": "4183E11F",
+          "assembly": "and r9d,1Fh"
+        },
+        {
+          "rva": 347467,
+          "hex": "7442",
+          "assembly": "je 0000000180054D8F"
+        },
+        {
+          "rva": 347469,
+          "hex": "E8DE0B0000",
+          "assembly": "call 0000000180055930"
+        },
+        {
+          "rva": 347474,
+          "hex": "458BC1",
+          "assembly": "mov r8d,r9d"
+        },
+        {
+          "rva": 347477,
+          "hex": "41C1E018",
+          "assembly": "shl r8d,18h"
+        },
+        {
+          "rva": 347481,
+          "hex": "450BC1",
+          "assembly": "or r8d,r9d"
+        },
+        {
+          "rva": 347484,
+          "hex": "41F7D0",
+          "assembly": "not r8d"
+        },
+        {
+          "rva": 347487,
+          "hex": "4423C0",
+          "assembly": "and r8d,eax"
+        },
+        {
+          "rva": 347490,
+          "hex": "413BC0",
+          "assembly": "cmp eax,r8d"
+        },
+        {
+          "rva": 347493,
+          "hex": "7428",
+          "assembly": "je 0000000180054D8F"
+        },
+        {
+          "rva": 347495,
+          "hex": "418BC8",
+          "assembly": "mov ecx,r8d"
+        },
+        {
+          "rva": 347498,
+          "hex": "E8410B0000",
+          "assembly": "call 00000001800558B0"
+        },
+        {
+          "rva": 347503,
+          "hex": "4533C9",
+          "assembly": "xor r9d,r9d"
+        },
+        {
+          "rva": 347506,
+          "hex": "4183E01F",
+          "assembly": "and r8d,1Fh"
+        },
+        {
+          "rva": 347510,
+          "hex": "7417",
+          "assembly": "je 0000000180054D8F"
+        },
+        {
+          "rva": 347512,
+          "hex": "E8B30B0000",
+          "assembly": "call 0000000180055930"
+        },
+        {
+          "rva": 347517,
+          "hex": "4123C0",
+          "assembly": "and eax,r8d"
+        },
+        {
+          "rva": 347520,
+          "hex": "413BC0",
+          "assembly": "cmp eax,r8d"
+        },
+        {
+          "rva": 347523,
+          "hex": "410F95C1",
+          "assembly": "setne r9b"
+        },
+        {
+          "rva": 347527,
+          "hex": "418BC1",
+          "assembly": "mov eax,r9d"
+        },
+        {
+          "rva": 347530,
+          "hex": "4883C428",
+          "assembly": "add rsp,28h"
+        },
+        {
+          "rva": 347534,
+          "hex": "C3",
+          "assembly": "ret"
+        },
+        {
+          "rva": 347535,
+          "hex": "33C0",
+          "assembly": "xor eax,eax"
+        },
+        {
+          "rva": 347537,
+          "hex": "EBF7",
+          "assembly": "jmp 0000000180054D8A"
+        }
+      ]
+    },
+    {
+      "name": "fesetexceptflag",
+      "begin_rva": 350208,
+      "end_rva": 350366,
+      "bytes": 158,
+      "instructions": [
+        {
+          "rva": 350208,
+          "hex": "4883EC28",
+          "assembly": "sub rsp,28h"
+        },
+        {
+          "rva": 350212,
+          "hex": "83E21F",
+          "assembly": "and edx,1Fh"
+        },
+        {
+          "rva": 350215,
+          "hex": "0F848D000000",
+          "assembly": "je 000000018005589A"
+        },
+        {
+          "rva": 350221,
+          "hex": "448B09",
+          "assembly": "mov r9d,dword ptr [rcx]"
+        },
+        {
+          "rva": 350224,
+          "hex": "448BD2",
+          "assembly": "mov r10d,edx"
+        },
+        {
+          "rva": 350227,
+          "hex": "41C1E218",
+          "assembly": "shl r10d,18h"
+        },
+        {
+          "rva": 350231,
+          "hex": "440BD2",
+          "assembly": "or r10d,edx"
+        },
+        {
+          "rva": 350234,
+          "hex": "0FAE5C2438",
+          "assembly": "stmxcsr dword ptr [rsp+38h]"
+        },
+        {
+          "rva": 350239,
+          "hex": "8B542438",
+          "assembly": "mov edx,dword ptr [rsp+38h]"
+        },
+        {
+          "rva": 350243,
+          "hex": "4523CA",
+          "assembly": "and r9d,r10d"
+        },
+        {
+          "rva": 350246,
+          "hex": "83E23F",
+          "assembly": "and edx,3Fh"
+        },
+        {
+          "rva": 350249,
+          "hex": "8BCA",
+          "assembly": "mov ecx,edx"
+        },
+        {
+          "rva": 350251,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350253,
+          "hex": "C1E803",
+          "assembly": "shr eax,3"
+        },
+        {
+          "rva": 350256,
+          "hex": "83E002",
+          "assembly": "and eax,2"
+        },
+        {
+          "rva": 350259,
+          "hex": "C1E905",
+          "assembly": "shr ecx,5"
+        },
+        {
+          "rva": 350262,
+          "hex": "83E101",
+          "assembly": "and ecx,1"
+        },
+        {
+          "rva": 350265,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350267,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350269,
+          "hex": "D1E8",
+          "assembly": "shr eax,1"
+        },
+        {
+          "rva": 350271,
+          "hex": "83E004",
+          "assembly": "and eax,4"
+        },
+        {
+          "rva": 350274,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350276,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350278,
+          "hex": "83E004",
+          "assembly": "and eax,4"
+        },
+        {
+          "rva": 350281,
+          "hex": "03C0",
+          "assembly": "add eax,eax"
+        },
+        {
+          "rva": 350283,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350285,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350287,
+          "hex": "83E001",
+          "assembly": "and eax,1"
+        },
+        {
+          "rva": 350290,
+          "hex": "83E202",
+          "assembly": "and edx,2"
+        },
+        {
+          "rva": 350293,
+          "hex": "C1E004",
+          "assembly": "shl eax,4"
+        },
+        {
+          "rva": 350296,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350298,
+          "hex": "C1E204",
+          "assembly": "shl edx,4"
+        },
+        {
+          "rva": 350301,
+          "hex": "0BD1",
+          "assembly": "or edx,ecx"
+        },
+        {
+          "rva": 350303,
+          "hex": "418BC2",
+          "assembly": "mov eax,r10d"
+        },
+        {
+          "rva": 350306,
+          "hex": "448BC2",
+          "assembly": "mov r8d,edx"
+        },
+        {
+          "rva": 350309,
+          "hex": "F7D0",
+          "assembly": "not eax"
+        },
+        {
+          "rva": 350311,
+          "hex": "41C1E018",
+          "assembly": "shl r8d,18h"
+        },
+        {
+          "rva": 350315,
+          "hex": "440BC2",
+          "assembly": "or r8d,edx"
+        },
+        {
+          "rva": 350318,
+          "hex": "4423C0",
+          "assembly": "and r8d,eax"
+        },
+        {
+          "rva": 350321,
+          "hex": "450BC1",
+          "assembly": "or r8d,r9d"
+        },
+        {
+          "rva": 350324,
+          "hex": "418BC8",
+          "assembly": "mov ecx,r8d"
+        },
+        {
+          "rva": 350327,
+          "hex": "E834000000",
+          "assembly": "call 00000001800558B0"
+        },
+        {
+          "rva": 350332,
+          "hex": "4183E01F",
+          "assembly": "and r8d,1Fh"
+        },
+        {
+          "rva": 350336,
+          "hex": "7418",
+          "assembly": "je 000000018005589A"
+        },
+        {
+          "rva": 350338,
+          "hex": "E8A9000000",
+          "assembly": "call 0000000180055930"
+        },
+        {
+          "rva": 350343,
+          "hex": "448BC8",
+          "assembly": "mov r9d,eax"
+        },
+        {
+          "rva": 350346,
+          "hex": "33C0",
+          "assembly": "xor eax,eax"
+        },
+        {
+          "rva": 350348,
+          "hex": "4523C8",
+          "assembly": "and r9d,r8d"
+        },
+        {
+          "rva": 350351,
+          "hex": "453BC8",
+          "assembly": "cmp r9d,r8d"
+        },
+        {
+          "rva": 350354,
+          "hex": "0F95C0",
+          "assembly": "setne al"
+        },
+        {
+          "rva": 350357,
+          "hex": "4883C428",
+          "assembly": "add rsp,28h"
+        },
+        {
+          "rva": 350361,
+          "hex": "C3",
+          "assembly": "ret"
+        },
+        {
+          "rva": 350362,
+          "hex": "33C0",
+          "assembly": "xor eax,eax"
+        },
+        {
+          "rva": 350364,
+          "hex": "EBF7",
+          "assembly": "jmp 0000000180055895"
+        }
+      ]
+    },
+    {
+      "name": "_controlfp_s",
+      "begin_rva": 392096,
+      "end_rva": 392201,
+      "bytes": 105,
+      "instructions": [
+        {
+          "rva": 392096,
+          "hex": "4053",
+          "assembly": "push rbx"
+        },
+        {
+          "rva": 392098,
+          "hex": "4883EC20",
+          "assembly": "sub rsp,20h"
+        },
+        {
+          "rva": 392102,
+          "hex": "410FBAF013",
+          "assembly": "btr r8d,13h"
+        },
+        {
+          "rva": 392107,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 392109,
+          "hex": "4123C0",
+          "assembly": "and eax,r8d"
+        },
+        {
+          "rva": 392112,
+          "hex": "448BCA",
+          "assembly": "mov r9d,edx"
+        },
+        {
+          "rva": 392115,
+          "hex": "488BD9",
+          "assembly": "mov rbx,rcx"
+        },
+        {
+          "rva": 392118,
+          "hex": "A9E0FCF0FC",
+          "assembly": "test eax,0FCF0FCE0h"
+        },
+        {
+          "rva": 392123,
+          "hex": "751A",
+          "assembly": "jne 000000018005FBD7"
+        },
+        {
+          "rva": 392125,
+          "hex": "418BD0",
+          "assembly": "mov edx,r8d"
+        },
+        {
+          "rva": 392128,
+          "hex": "418BC9",
+          "assembly": "mov ecx,r9d"
+        },
+        {
+          "rva": 392131,
+          "hex": "4885DB",
+          "assembly": "test rbx,rbx"
+        },
+        {
+          "rva": 392134,
+          "hex": "743A",
+          "assembly": "je 000000018005FC02"
+        },
+        {
+          "rva": 392136,
+          "hex": "E843000000",
+          "assembly": "call 000000018005FC10"
+        },
+        {
+          "rva": 392141,
+          "hex": "8903",
+          "assembly": "mov dword ptr [rbx],eax"
+        },
+        {
+          "rva": 392143,
+          "hex": "33C0",
+          "assembly": "xor eax,eax"
+        },
+        {
+          "rva": 392145,
+          "hex": "4883C420",
+          "assembly": "add rsp,20h"
+        },
+        {
+          "rva": 392149,
+          "hex": "5B",
+          "assembly": "pop rbx"
+        },
+        {
+          "rva": 392150,
+          "hex": "C3",
+          "assembly": "ret"
+        },
+        {
+          "rva": 392151,
+          "hex": "4885DB",
+          "assembly": "test rbx,rbx"
+        },
+        {
+          "rva": 392154,
+          "hex": "740B",
+          "assembly": "je 000000018005FBE7"
+        },
+        {
+          "rva": 392156,
+          "hex": "33D2",
+          "assembly": "xor edx,edx"
+        },
+        {
+          "rva": 392158,
+          "hex": "33C9",
+          "assembly": "xor ecx,ecx"
+        },
+        {
+          "rva": 392160,
+          "hex": "E82B000000",
+          "assembly": "call 000000018005FC10"
+        },
+        {
+          "rva": 392165,
+          "hex": "8903",
+          "assembly": "mov dword ptr [rbx],eax"
+        },
+        {
+          "rva": 392167,
+          "hex": "E8747EFAFF",
+          "assembly": "call 0000000180007A60"
+        },
+        {
+          "rva": 392172,
+          "hex": "C70016000000",
+          "assembly": "mov dword ptr [rax],16h"
+        },
+        {
+          "rva": 392178,
+          "hex": "E8597FFAFF",
+          "assembly": "call 0000000180007B50"
+        },
+        {
+          "rva": 392183,
+          "hex": "B816000000",
+          "assembly": "mov eax,16h"
+        },
+        {
+          "rva": 392188,
+          "hex": "4883C420",
+          "assembly": "add rsp,20h"
+        },
+        {
+          "rva": 392192,
+          "hex": "5B",
+          "assembly": "pop rbx"
+        },
+        {
+          "rva": 392193,
+          "hex": "C3",
+          "assembly": "ret"
+        },
+        {
+          "rva": 392194,
+          "hex": "E809000000",
+          "assembly": "call 000000018005FC10"
+        },
+        {
+          "rva": 392199,
+          "hex": "EBC6",
+          "assembly": "jmp 000000018005FBCF"
+        }
+      ]
+    },
+    {
+      "name": "status_helper_55930",
+      "begin_rva": 350512,
+      "end_rva": 350586,
+      "bytes": 74,
+      "instructions": [
+        {
+          "rva": 350512,
+          "hex": "0FAE5C2408",
+          "assembly": "stmxcsr dword ptr [rsp+8]"
+        },
+        {
+          "rva": 350517,
+          "hex": "8B542408",
+          "assembly": "mov edx,dword ptr [rsp+8]"
+        },
+        {
+          "rva": 350521,
+          "hex": "83E23F",
+          "assembly": "and edx,3Fh"
+        },
+        {
+          "rva": 350524,
+          "hex": "8BCA",
+          "assembly": "mov ecx,edx"
+        },
+        {
+          "rva": 350526,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350528,
+          "hex": "C1E803",
+          "assembly": "shr eax,3"
+        },
+        {
+          "rva": 350531,
+          "hex": "83E002",
+          "assembly": "and eax,2"
+        },
+        {
+          "rva": 350534,
+          "hex": "C1E905",
+          "assembly": "shr ecx,5"
+        },
+        {
+          "rva": 350537,
+          "hex": "83E101",
+          "assembly": "and ecx,1"
+        },
+        {
+          "rva": 350540,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350542,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350544,
+          "hex": "D1E8",
+          "assembly": "shr eax,1"
+        },
+        {
+          "rva": 350546,
+          "hex": "83E004",
+          "assembly": "and eax,4"
+        },
+        {
+          "rva": 350549,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350551,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350553,
+          "hex": "83E004",
+          "assembly": "and eax,4"
+        },
+        {
+          "rva": 350556,
+          "hex": "03C0",
+          "assembly": "add eax,eax"
+        },
+        {
+          "rva": 350558,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350560,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350562,
+          "hex": "83E001",
+          "assembly": "and eax,1"
+        },
+        {
+          "rva": 350565,
+          "hex": "83E202",
+          "assembly": "and edx,2"
+        },
+        {
+          "rva": 350568,
+          "hex": "C1E004",
+          "assembly": "shl eax,4"
+        },
+        {
+          "rva": 350571,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350573,
+          "hex": "C1E204",
+          "assembly": "shl edx,4"
+        },
+        {
+          "rva": 350576,
+          "hex": "0BD1",
+          "assembly": "or edx,ecx"
+        },
+        {
+          "rva": 350578,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350580,
+          "hex": "C1E018",
+          "assembly": "shl eax,18h"
+        },
+        {
+          "rva": 350583,
+          "hex": "0BC2",
+          "assembly": "or eax,edx"
+        },
+        {
+          "rva": 350585,
+          "hex": "C3",
+          "assembly": "ret"
+        }
+      ]
+    },
+    {
+      "name": "set_helper_558B0",
+      "begin_rva": 350384,
+      "end_rva": 350499,
+      "bytes": 115,
+      "instructions": [
+        {
+          "rva": 350384,
+          "hex": "8BD1",
+          "assembly": "mov edx,ecx"
+        },
+        {
+          "rva": 350386,
+          "hex": "C1EA18",
+          "assembly": "shr edx,18h"
+        },
+        {
+          "rva": 350389,
+          "hex": "83E23F",
+          "assembly": "and edx,3Fh"
+        },
+        {
+          "rva": 350392,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350394,
+          "hex": "83E001",
+          "assembly": "and eax,1"
+        },
+        {
+          "rva": 350397,
+          "hex": "F7D8",
+          "assembly": "neg eax"
+        },
+        {
+          "rva": 350399,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350401,
+          "hex": "1BC9",
+          "assembly": "sbb ecx,ecx"
+        },
+        {
+          "rva": 350403,
+          "hex": "83E002",
+          "assembly": "and eax,2"
+        },
+        {
+          "rva": 350406,
+          "hex": "83E120",
+          "assembly": "and ecx,20h"
+        },
+        {
+          "rva": 350409,
+          "hex": "F7D8",
+          "assembly": "neg eax"
+        },
+        {
+          "rva": 350411,
+          "hex": "1BC0",
+          "assembly": "sbb eax,eax"
+        },
+        {
+          "rva": 350413,
+          "hex": "83E010",
+          "assembly": "and eax,10h"
+        },
+        {
+          "rva": 350416,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350418,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350420,
+          "hex": "83E004",
+          "assembly": "and eax,4"
+        },
+        {
+          "rva": 350423,
+          "hex": "F7D8",
+          "assembly": "neg eax"
+        },
+        {
+          "rva": 350425,
+          "hex": "1BC0",
+          "assembly": "sbb eax,eax"
+        },
+        {
+          "rva": 350427,
+          "hex": "83E008",
+          "assembly": "and eax,8"
+        },
+        {
+          "rva": 350430,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350432,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 350434,
+          "hex": "83E008",
+          "assembly": "and eax,8"
+        },
+        {
+          "rva": 350437,
+          "hex": "F7D8",
+          "assembly": "neg eax"
+        },
+        {
+          "rva": 350439,
+          "hex": "1BC0",
+          "assembly": "sbb eax,eax"
+        },
+        {
+          "rva": 350441,
+          "hex": "83E004",
+          "assembly": "and eax,4"
+        },
+        {
+          "rva": 350444,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350446,
+          "hex": "B800000000",
+          "assembly": "mov eax,0"
+        },
+        {
+          "rva": 350451,
+          "hex": "0FBAE204",
+          "assembly": "bt edx,4"
+        },
+        {
+          "rva": 350455,
+          "hex": "0F92C0",
+          "assembly": "setb al"
+        },
+        {
+          "rva": 350458,
+          "hex": "83E220",
+          "assembly": "and edx,20h"
+        },
+        {
+          "rva": 350461,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350463,
+          "hex": "F7DA",
+          "assembly": "neg edx"
+        },
+        {
+          "rva": 350465,
+          "hex": "1BC0",
+          "assembly": "sbb eax,eax"
+        },
+        {
+          "rva": 350467,
+          "hex": "83E002",
+          "assembly": "and eax,2"
+        },
+        {
+          "rva": 350470,
+          "hex": "0BC8",
+          "assembly": "or ecx,eax"
+        },
+        {
+          "rva": 350472,
+          "hex": "83E13F",
+          "assembly": "and ecx,3Fh"
+        },
+        {
+          "rva": 350475,
+          "hex": "0FAE5C2408",
+          "assembly": "stmxcsr dword ptr [rsp+8]"
+        },
+        {
+          "rva": 350480,
+          "hex": "8B442408",
+          "assembly": "mov eax,dword ptr [rsp+8]"
+        },
+        {
+          "rva": 350484,
+          "hex": "83E0C0",
+          "assembly": "and eax,0FFFFFFC0h"
+        },
+        {
+          "rva": 350487,
+          "hex": "0BC1",
+          "assembly": "or eax,ecx"
+        },
+        {
+          "rva": 350489,
+          "hex": "89442408",
+          "assembly": "mov dword ptr [rsp+8],eax"
+        },
+        {
+          "rva": 350493,
+          "hex": "0FAE542408",
+          "assembly": "ldmxcsr dword ptr [rsp+8]"
+        },
+        {
+          "rva": 350498,
+          "hex": "C3",
+          "assembly": "ret"
+        }
+      ]
+    },
+    {
+      "name": "control_helper_5FC10",
+      "begin_rva": 392208,
+      "end_rva": 392957,
+      "bytes": 749,
+      "instructions": [
+        {
+          "rva": 392208,
+          "hex": "4883EC18",
+          "assembly": "sub rsp,18h"
+        },
+        {
+          "rva": 392212,
+          "hex": "448BC9",
+          "assembly": "mov r9d,ecx"
+        },
+        {
+          "rva": 392215,
+          "hex": "81E21F030803",
+          "assembly": "and edx,308031Fh"
+        },
+        {
+          "rva": 392221,
+          "hex": "0FAE5C2420",
+          "assembly": "stmxcsr dword ptr [rsp+20h]"
+        },
+        {
+          "rva": 392226,
+          "hex": "8B442420",
+          "assembly": "mov eax,dword ptr [rsp+20h]"
+        },
+        {
+          "rva": 392230,
+          "hex": "4533D2",
+          "assembly": "xor r10d,r10d"
+        },
+        {
+          "rva": 392233,
+          "hex": "A880",
+          "assembly": "test al,80h"
+        },
+        {
+          "rva": 392235,
+          "hex": "458BC2",
+          "assembly": "mov r8d,r10d"
+        },
+        {
+          "rva": 392238,
+          "hex": "41BB10000000",
+          "assembly": "mov r11d,10h"
+        },
+        {
+          "rva": 392244,
+          "hex": "450F45C3",
+          "assembly": "cmovne r8d,r11d"
+        },
+        {
+          "rva": 392248,
+          "hex": "0FBAE009",
+          "assembly": "bt eax,9"
+        },
+        {
+          "rva": 392252,
+          "hex": "7304",
+          "assembly": "jae 000000018005FC42"
+        },
+        {
+          "rva": 392254,
+          "hex": "4183C808",
+          "assembly": "or r8d,8"
+        },
+        {
+          "rva": 392258,
+          "hex": "0FBAE00A",
+          "assembly": "bt eax,0Ah"
+        },
+        {
+          "rva": 392262,
+          "hex": "7304",
+          "assembly": "jae 000000018005FC4C"
+        },
+        {
+          "rva": 392264,
+          "hex": "4183C804",
+          "assembly": "or r8d,4"
+        },
+        {
+          "rva": 392268,
+          "hex": "0FBAE00B",
+          "assembly": "bt eax,0Bh"
+        },
+        {
+          "rva": 392272,
+          "hex": "7304",
+          "assembly": "jae 000000018005FC56"
+        },
+        {
+          "rva": 392274,
+          "hex": "4183C802",
+          "assembly": "or r8d,2"
+        },
+        {
+          "rva": 392278,
+          "hex": "0FBAE00C",
+          "assembly": "bt eax,0Ch"
+        },
+        {
+          "rva": 392282,
+          "hex": "7304",
+          "assembly": "jae 000000018005FC60"
+        },
+        {
+          "rva": 392284,
+          "hex": "4183C801",
+          "assembly": "or r8d,1"
+        },
+        {
+          "rva": 392288,
+          "hex": "0FBAE008",
+          "assembly": "bt eax,8"
+        },
+        {
+          "rva": 392292,
+          "hex": "7305",
+          "assembly": "jae 000000018005FC6B"
+        },
+        {
+          "rva": 392294,
+          "hex": "410FBAE813",
+          "assembly": "bts r8d,13h"
+        },
+        {
+          "rva": 392299,
+          "hex": "8BC8",
+          "assembly": "mov ecx,eax"
+        },
+        {
+          "rva": 392301,
+          "hex": "81E100600000",
+          "assembly": "and ecx,6000h"
+        },
+        {
+          "rva": 392307,
+          "hex": "7424",
+          "assembly": "je 000000018005FC99"
+        },
+        {
+          "rva": 392309,
+          "hex": "81F900200000",
+          "assembly": "cmp ecx,2000h"
+        },
+        {
+          "rva": 392315,
+          "hex": "0F84D2010000",
+          "assembly": "je 000000018005FE53"
+        },
+        {
+          "rva": 392321,
+          "hex": "81F900400000",
+          "assembly": "cmp ecx,4000h"
+        },
+        {
+          "rva": 392327,
+          "hex": "0F84D9010000",
+          "assembly": "je 000000018005FE66"
+        },
+        {
+          "rva": 392333,
+          "hex": "81F900600000",
+          "assembly": "cmp ecx,6000h"
+        },
+        {
+          "rva": 392339,
+          "hex": "0F84EC010000",
+          "assembly": "je 000000018005FE85"
+        },
+        {
+          "rva": 392345,
+          "hex": "2540800000",
+          "assembly": "and eax,8040h"
+        },
+        {
+          "rva": 392350,
+          "hex": "83E840",
+          "assembly": "sub eax,40h"
+        },
+        {
+          "rva": 392353,
+          "hex": "0F84EA010000",
+          "assembly": "je 000000018005FE91"
+        },
+        {
+          "rva": 392359,
+          "hex": "2DC07F0000",
+          "assembly": "sub eax,7FC0h"
+        },
+        {
+          "rva": 392364,
+          "hex": "0F84BE010000",
+          "assembly": "je 000000018005FE70"
+        },
+        {
+          "rva": 392370,
+          "hex": "83F840",
+          "assembly": "cmp eax,40h"
+        },
+        {
+          "rva": 392373,
+          "hex": "741A",
+          "assembly": "je 000000018005FCD1"
+        },
+        {
+          "rva": 392375,
+          "hex": "8BC2",
+          "assembly": "mov eax,edx"
+        },
+        {
+          "rva": 392377,
+          "hex": "F7D0",
+          "assembly": "not eax"
+        },
+        {
+          "rva": 392379,
+          "hex": "4123C0",
+          "assembly": "and eax,r8d"
+        },
+        {
+          "rva": 392382,
+          "hex": "4423CA",
+          "assembly": "and r9d,edx"
+        },
+        {
+          "rva": 392385,
+          "hex": "410BC1",
+          "assembly": "or eax,r9d"
+        },
+        {
+          "rva": 392388,
+          "hex": "413BC0",
+          "assembly": "cmp eax,r8d"
+        },
+        {
+          "rva": 392391,
+          "hex": "750F",
+          "assembly": "jne 000000018005FCD8"
+        },
+        {
+          "rva": 392393,
+          "hex": "418BC0",
+          "assembly": "mov eax,r8d"
+        },
+        {
+          "rva": 392396,
+          "hex": "4883C418",
+          "assembly": "add rsp,18h"
+        },
+        {
+          "rva": 392400,
+          "hex": "C3",
+          "assembly": "ret"
+        },
+        {
+          "rva": 392401,
+          "hex": "410FBAE818",
+          "assembly": "bts r8d,18h"
+        },
+        {
+          "rva": 392406,
+          "hex": "EBDF",
+          "assembly": "jmp 000000018005FCB7"
+        },
+        {
+          "rva": 392408,
+          "hex": "4184C3",
+          "assembly": "test r11b,al"
+        },
+        {
+          "rva": 392411,
+          "hex": "418BCA",
+          "assembly": "mov ecx,r10d"
+        },
+        {
+          "rva": 392414,
+          "hex": "BA80000000",
+          "assembly": "mov edx,80h"
+        },
+        {
+          "rva": 392419,
+          "hex": "0F45CA",
+          "assembly": "cmovne ecx,edx"
+        },
+        {
+          "rva": 392422,
+          "hex": "A808",
+          "assembly": "test al,8"
+        },
+        {
+          "rva": 392424,
+          "hex": "7404",
+          "assembly": "je 000000018005FCEE"
+        },
+        {
+          "rva": 392426,
+          "hex": "0FBAE909",
+          "assembly": "bts ecx,9"
+        },
+        {
+          "rva": 392430,
+          "hex": "A804",
+          "assembly": "test al,4"
+        },
+        {
+          "rva": 392432,
+          "hex": "7404",
+          "assembly": "je 000000018005FCF6"
+        },
+        {
+          "rva": 392434,
+          "hex": "0FBAE90A",
+          "assembly": "bts ecx,0Ah"
+        },
+        {
+          "rva": 392438,
+          "hex": "A802",
+          "assembly": "test al,2"
+        },
+        {
+          "rva": 392440,
+          "hex": "7404",
+          "assembly": "je 000000018005FCFE"
+        },
+        {
+          "rva": 392442,
+          "hex": "0FBAE90B",
+          "assembly": "bts ecx,0Bh"
+        },
+        {
+          "rva": 392446,
+          "hex": "A801",
+          "assembly": "test al,1"
+        },
+        {
+          "rva": 392448,
+          "hex": "7404",
+          "assembly": "je 000000018005FD06"
+        },
+        {
+          "rva": 392450,
+          "hex": "0FBAE90C",
+          "assembly": "bts ecx,0Ch"
+        },
+        {
+          "rva": 392454,
+          "hex": "0FBAE013",
+          "assembly": "bt eax,13h"
+        },
+        {
+          "rva": 392458,
+          "hex": "7304",
+          "assembly": "jae 000000018005FD10"
+        },
+        {
+          "rva": 392460,
+          "hex": "0FBAE908",
+          "assembly": "bts ecx,8"
+        },
+        {
+          "rva": 392464,
+          "hex": "8BD0",
+          "assembly": "mov edx,eax"
+        },
+        {
+          "rva": 392466,
+          "hex": "81E200030000",
+          "assembly": "and edx,300h"
+        },
+        {
+          "rva": 392472,
+          "hex": "7424",
+          "assembly": "je 000000018005FD3E"
+        },
+        {
+          "rva": 392474,
+          "hex": "81FA00010000",
+          "assembly": "cmp edx,100h"
+        },
+        {
+          "rva": 392480,
+          "hex": "0F8437010000",
+          "assembly": "je 000000018005FE5D"
+        },
+        {
+          "rva": 392486,
+          "hex": "81FA00020000",
+          "assembly": "cmp edx,200h"
+        },
+        {
+          "rva": 392492,
+          "hex": "0F844A010000",
+          "assembly": "je 000000018005FE7C"
+        },
+        {
+          "rva": 392498,
+          "hex": "81FA00030000",
+          "assembly": "cmp edx,300h"
+        },
+        {
+          "rva": 392504,
+          "hex": "0F8466010000",
+          "assembly": "je 000000018005FEA4"
+        },
+        {
+          "rva": 392510,
+          "hex": "2500000003",
+          "assembly": "and eax,3000000h"
+        },
+        {
+          "rva": 392515,
+          "hex": "3D00000001",
+          "assembly": "cmp eax,1000000h"
+        },
+        {
+          "rva": 392520,
+          "hex": "0F84FA000000",
+          "assembly": "je 000000018005FE48"
+        },
+        {
+          "rva": 392526,
+          "hex": "3D00000002",
+          "assembly": "cmp eax,2000000h"
+        },
+        {
+          "rva": 392531,
+          "hex": "0F8456010000",
+          "assembly": "je 000000018005FEAF"
+        },
+        {
+          "rva": 392537,
+          "hex": "3D00000003",
+          "assembly": "cmp eax,3000000h"
+        },
+        {
+          "rva": 392542,
+          "hex": "0F8437010000",
+          "assembly": "je 000000018005FE9B"
+        },
+        {
+          "rva": 392548,
+          "hex": "890C24",
+          "assembly": "mov dword ptr [rsp],ecx"
+        },
+        {
+          "rva": 392551,
+          "hex": "4438155F930D00",
+          "assembly": "cmp byte ptr [00000001801390CDh],r10b"
+        },
+        {
+          "rva": 392558,
+          "hex": "7409",
+          "assembly": "je 000000018005FD79"
+        },
+        {
+          "rva": 392560,
+          "hex": "F6C140",
+          "assembly": "test cl,40h"
+        },
+        {
+          "rva": 392563,
+          "hex": "0F859C000000",
+          "assembly": "jne 000000018005FE15"
+        },
+        {
+          "rva": 392569,
+          "hex": "83E1BF",
+          "assembly": "and ecx,0FFFFFFBFh"
+        },
+        {
+          "rva": 392572,
+          "hex": "894C2420",
+          "assembly": "mov dword ptr [rsp+20h],ecx"
+        },
+        {
+          "rva": 392576,
+          "hex": "0FAE542420",
+          "assembly": "ldmxcsr dword ptr [rsp+20h]"
+        },
+        {
+          "rva": 392581,
+          "hex": "F6C180",
+          "assembly": "test cl,80h"
+        },
+        {
+          "rva": 392584,
+          "hex": "450F45D3",
+          "assembly": "cmovne r10d,r11d"
+        },
+        {
+          "rva": 392588,
+          "hex": "0FBAE109",
+          "assembly": "bt ecx,9"
+        },
+        {
+          "rva": 392592,
+          "hex": "7304",
+          "assembly": "jae 000000018005FD96"
+        },
+        {
+          "rva": 392594,
+          "hex": "4183CA08",
+          "assembly": "or r10d,8"
+        },
+        {
+          "rva": 392598,
+          "hex": "0FBAE10A",
+          "assembly": "bt ecx,0Ah"
+        },
+        {
+          "rva": 392602,
+          "hex": "7304",
+          "assembly": "jae 000000018005FDA0"
+        },
+        {
+          "rva": 392604,
+          "hex": "4183CA04",
+          "assembly": "or r10d,4"
+        },
+        {
+          "rva": 392608,
+          "hex": "0FBAE10B",
+          "assembly": "bt ecx,0Bh"
+        },
+        {
+          "rva": 392612,
+          "hex": "7304",
+          "assembly": "jae 000000018005FDAA"
+        },
+        {
+          "rva": 392614,
+          "hex": "4183CA02",
+          "assembly": "or r10d,2"
+        },
+        {
+          "rva": 392618,
+          "hex": "0FBAE10C",
+          "assembly": "bt ecx,0Ch"
+        },
+        {
+          "rva": 392622,
+          "hex": "7304",
+          "assembly": "jae 000000018005FDB4"
+        },
+        {
+          "rva": 392624,
+          "hex": "4183CA01",
+          "assembly": "or r10d,1"
+        },
+        {
+          "rva": 392628,
+          "hex": "0FBAE108",
+          "assembly": "bt ecx,8"
+        },
+        {
+          "rva": 392632,
+          "hex": "7305",
+          "assembly": "jae 000000018005FDBF"
+        },
+        {
+          "rva": 392634,
+          "hex": "410FBAEA13",
+          "assembly": "bts r10d,13h"
+        },
+        {
+          "rva": 392639,
+          "hex": "8BC1",
+          "assembly": "mov eax,ecx"
+        },
+        {
+          "rva": 392641,
+          "hex": "2500600000",
+          "assembly": "and eax,6000h"
+        },
+        {
+          "rva": 392646,
+          "hex": "7421",
+          "assembly": "je 000000018005FDE9"
+        },
+        {
+          "rva": 392648,
+          "hex": "3D00200000",
+          "assembly": "cmp eax,2000h"
+        },
+        {
+          "rva": 392653,
+          "hex": "0F84F1000000",
+          "assembly": "je 000000018005FEC4"
+        },
+        {
+          "rva": 392659,
+          "hex": "3D00400000",
+          "assembly": "cmp eax,4000h"
+        },
+        {
+          "rva": 392664,
+          "hex": "0F84F0000000",
+          "assembly": "je 000000018005FECE"
+        },
+        {
+          "rva": 392670,
+          "hex": "3D00600000",
+          "assembly": "cmp eax,6000h"
+        },
+        {
+          "rva": 392675,
+          "hex": "0F84FE000000",
+          "assembly": "je 000000018005FEE7"
+        },
+        {
+          "rva": 392681,
+          "hex": "81E140800000",
+          "assembly": "and ecx,8040h"
+        },
+        {
+          "rva": 392687,
+          "hex": "83E940",
+          "assembly": "sub ecx,40h"
+        },
+        {
+          "rva": 392690,
+          "hex": "0F84FB000000",
+          "assembly": "je 000000018005FEF3"
+        },
+        {
+          "rva": 392696,
+          "hex": "81E9C07F0000",
+          "assembly": "sub ecx,7FC0h"
+        },
+        {
+          "rva": 392702,
+          "hex": "0F84D4000000",
+          "assembly": "je 000000018005FED8"
+        },
+        {
+          "rva": 392708,
+          "hex": "83F940",
+          "assembly": "cmp ecx,40h"
+        },
+        {
+          "rva": 392711,
+          "hex": "0F84AA000000",
+          "assembly": "je 000000018005FEB7"
+        },
+        {
+          "rva": 392717,
+          "hex": "418BC2",
+          "assembly": "mov eax,r10d"
+        },
+        {
+          "rva": 392720,
+          "hex": "E9B7FEFFFF",
+          "assembly": "jmp 000000018005FCCC"
+        },
+        {
+          "rva": 392725,
+          "hex": "894C2420",
+          "assembly": "mov dword ptr [rsp+20h],ecx"
+        },
+        {
+          "rva": 392729,
+          "hex": "0FAE542420",
+          "assembly": "ldmxcsr dword ptr [rsp+20h]"
+        },
+        {
+          "rva": 392734,
+          "hex": "E962FFFFFF",
+          "assembly": "jmp 000000018005FD85"
+        },
+        {
+          "rva": 392739,
+          "hex": "C605A3920D0000",
+          "assembly": "mov byte ptr [00000001801390CDh],0"
+        },
+        {
+          "rva": 392746,
+          "hex": "8B0C24",
+          "assembly": "mov ecx,dword ptr [rsp]"
+        },
+        {
+          "rva": 392749,
+          "hex": "83E1BF",
+          "assembly": "and ecx,0FFFFFFBFh"
+        },
+        {
+          "rva": 392752,
+          "hex": "890C24",
+          "assembly": "mov dword ptr [rsp],ecx"
+        },
+        {
+          "rva": 392755,
+          "hex": "894C2420",
+          "assembly": "mov dword ptr [rsp+20h],ecx"
+        },
+        {
+          "rva": 392759,
+          "hex": "0FAE542420",
+          "assembly": "ldmxcsr dword ptr [rsp+20h]"
+        },
+        {
+          "rva": 392764,
+          "hex": "4533D2",
+          "assembly": "xor r10d,r10d"
+        },
+        {
+          "rva": 392767,
+          "hex": "458D5A10",
+          "assembly": "lea r11d,[r10+10h]"
+        },
+        {
+          "rva": 392771,
+          "hex": "E93DFFFFFF",
+          "assembly": "jmp 000000018005FD85"
+        },
+        {
+          "rva": 392776,
+          "hex": "81C940800000",
+          "assembly": "or ecx,8040h"
+        },
+        {
+          "rva": 392782,
+          "hex": "E911FFFFFF",
+          "assembly": "jmp 000000018005FD64"
+        },
+        {
+          "rva": 392787,
+          "hex": "410FBAE808",
+          "assembly": "bts r8d,8"
+        },
+        {
+          "rva": 392792,
+          "hex": "E93CFEFFFF",
+          "assembly": "jmp 000000018005FC99"
+        },
+        {
+          "rva": 392797,
+          "hex": "0FBAE90D",
+          "assembly": "bts ecx,0Dh"
+        },
+        {
+          "rva": 392801,
+          "hex": "E9D8FEFFFF",
+          "assembly": "jmp 000000018005FD3E"
+        },
+        {
+          "rva": 392806,
+          "hex": "410FBAE809",
+          "assembly": "bts r8d,9"
+        },
+        {
+          "rva": 392811,
+          "hex": "E929FEFFFF",
+          "assembly": "jmp 000000018005FC99"
+        },
+        {
+          "rva": 392816,
+          "hex": "4181C800000003",
+          "assembly": "or r8d,3000000h"
+        },
+        {
+          "rva": 392823,
+          "hex": "E93BFEFFFF",
+          "assembly": "jmp 000000018005FCB7"
+        },
+        {
+          "rva": 392828,
+          "hex": "0FBAE90E",
+          "assembly": "bts ecx,0Eh"
+        },
+        {
+          "rva": 392832,
+          "hex": "E9B9FEFFFF",
+          "assembly": "jmp 000000018005FD3E"
+        },
+        {
+          "rva": 392837,
+          "hex": "4181C800030000",
+          "assembly": "or r8d,300h"
+        },
+        {
+          "rva": 392844,
+          "hex": "E908FEFFFF",
+          "assembly": "jmp 000000018005FC99"
+        },
+        {
+          "rva": 392849,
+          "hex": "410FBAE819",
+          "assembly": "bts r8d,19h"
+        },
+        {
+          "rva": 392854,
+          "hex": "E91CFEFFFF",
+          "assembly": "jmp 000000018005FCB7"
+        },
+        {
+          "rva": 392859,
+          "hex": "0FBAE90F",
+          "assembly": "bts ecx,0Fh"
+        },
+        {
+          "rva": 392863,
+          "hex": "E9C0FEFFFF",
+          "assembly": "jmp 000000018005FD64"
+        },
+        {
+          "rva": 392868,
+          "hex": "81C900600000",
+          "assembly": "or ecx,6000h"
+        },
+        {
+          "rva": 392874,
+          "hex": "E98FFEFFFF",
+          "assembly": "jmp 000000018005FD3E"
+        },
+        {
+          "rva": 392879,
+          "hex": "83C940",
+          "assembly": "or ecx,40h"
+        },
+        {
+          "rva": 392882,
+          "hex": "E9ADFEFFFF",
+          "assembly": "jmp 000000018005FD64"
+        },
+        {
+          "rva": 392887,
+          "hex": "410FBAEA18",
+          "assembly": "bts r10d,18h"
+        },
+        {
+          "rva": 392892,
+          "hex": "418BC2",
+          "assembly": "mov eax,r10d"
+        },
+        {
+          "rva": 392895,
+          "hex": "E908FEFFFF",
+          "assembly": "jmp 000000018005FCCC"
+        },
+        {
+          "rva": 392900,
+          "hex": "410FBAEA08",
+          "assembly": "bts r10d,8"
+        },
+        {
+          "rva": 392905,
+          "hex": "E91BFFFFFF",
+          "assembly": "jmp 000000018005FDE9"
+        },
+        {
+          "rva": 392910,
+          "hex": "410FBAEA09",
+          "assembly": "bts r10d,9"
+        },
+        {
+          "rva": 392915,
+          "hex": "E911FFFFFF",
+          "assembly": "jmp 000000018005FDE9"
+        },
+        {
+          "rva": 392920,
+          "hex": "4181CA00000003",
+          "assembly": "or r10d,3000000h"
+        },
+        {
+          "rva": 392927,
+          "hex": "418BC2",
+          "assembly": "mov eax,r10d"
+        },
+        {
+          "rva": 392930,
+          "hex": "E9E5FDFFFF",
+          "assembly": "jmp 000000018005FCCC"
+        },
+        {
+          "rva": 392935,
+          "hex": "4181CA00030000",
+          "assembly": "or r10d,300h"
+        },
+        {
+          "rva": 392942,
+          "hex": "E9F6FEFFFF",
+          "assembly": "jmp 000000018005FDE9"
+        },
+        {
+          "rva": 392947,
+          "hex": "410FBAEA19",
+          "assembly": "bts r10d,19h"
+        },
+        {
+          "rva": 392952,
+          "hex": "E910FFFFFF",
+          "assembly": "jmp 000000018005FE0D"
+        }
+      ]
+    }
+  ],
+  "status_mapping_cases": [
+    {
+      "original_raw_six": 0,
+      "abstract_six": 0,
+      "fegetexceptflag_all": 0
+    },
+    {
+      "original_raw_six": 1,
+      "abstract_six": 16,
+      "fegetexceptflag_all": 268435472
+    },
+    {
+      "original_raw_six": 2,
+      "abstract_six": 32,
+      "fegetexceptflag_all": 0
+    },
+    {
+      "original_raw_six": 3,
+      "abstract_six": 48,
+      "fegetexceptflag_all": 268435472
+    },
+    {
+      "original_raw_six": 4,
+      "abstract_six": 8,
+      "fegetexceptflag_all": 134217736
+    },
+    {
+      "original_raw_six": 5,
+      "abstract_six": 24,
+      "fegetexceptflag_all": 402653208
+    },
+    {
+      "original_raw_six": 6,
+      "abstract_six": 40,
+      "fegetexceptflag_all": 134217736
+    },
+    {
+      "original_raw_six": 7,
+      "abstract_six": 56,
+      "fegetexceptflag_all": 402653208
+    },
+    {
+      "original_raw_six": 8,
+      "abstract_six": 4,
+      "fegetexceptflag_all": 67108868
+    },
+    {
+      "original_raw_six": 9,
+      "abstract_six": 20,
+      "fegetexceptflag_all": 335544340
+    },
+    {
+      "original_raw_six": 10,
+      "abstract_six": 36,
+      "fegetexceptflag_all": 67108868
+    },
+    {
+      "original_raw_six": 11,
+      "abstract_six": 52,
+      "fegetexceptflag_all": 335544340
+    },
+    {
+      "original_raw_six": 12,
+      "abstract_six": 12,
+      "fegetexceptflag_all": 201326604
+    },
+    {
+      "original_raw_six": 13,
+      "abstract_six": 28,
+      "fegetexceptflag_all": 469762076
+    },
+    {
+      "original_raw_six": 14,
+      "abstract_six": 44,
+      "fegetexceptflag_all": 201326604
+    },
+    {
+      "original_raw_six": 15,
+      "abstract_six": 60,
+      "fegetexceptflag_all": 469762076
+    },
+    {
+      "original_raw_six": 16,
+      "abstract_six": 2,
+      "fegetexceptflag_all": 33554434
+    },
+    {
+      "original_raw_six": 17,
+      "abstract_six": 18,
+      "fegetexceptflag_all": 301989906
+    },
+    {
+      "original_raw_six": 18,
+      "abstract_six": 34,
+      "fegetexceptflag_all": 33554434
+    },
+    {
+      "original_raw_six": 19,
+      "abstract_six": 50,
+      "fegetexceptflag_all": 301989906
+    },
+    {
+      "original_raw_six": 20,
+      "abstract_six": 10,
+      "fegetexceptflag_all": 167772170
+    },
+    {
+      "original_raw_six": 21,
+      "abstract_six": 26,
+      "fegetexceptflag_all": 436207642
+    },
+    {
+      "original_raw_six": 22,
+      "abstract_six": 42,
+      "fegetexceptflag_all": 167772170
+    },
+    {
+      "original_raw_six": 23,
+      "abstract_six": 58,
+      "fegetexceptflag_all": 436207642
+    },
+    {
+      "original_raw_six": 24,
+      "abstract_six": 6,
+      "fegetexceptflag_all": 100663302
+    },
+    {
+      "original_raw_six": 25,
+      "abstract_six": 22,
+      "fegetexceptflag_all": 369098774
+    },
+    {
+      "original_raw_six": 26,
+      "abstract_six": 38,
+      "fegetexceptflag_all": 100663302
+    },
+    {
+      "original_raw_six": 27,
+      "abstract_six": 54,
+      "fegetexceptflag_all": 369098774
+    },
+    {
+      "original_raw_six": 28,
+      "abstract_six": 14,
+      "fegetexceptflag_all": 234881038
+    },
+    {
+      "original_raw_six": 29,
+      "abstract_six": 30,
+      "fegetexceptflag_all": 503316510
+    },
+    {
+      "original_raw_six": 30,
+      "abstract_six": 46,
+      "fegetexceptflag_all": 234881038
+    },
+    {
+      "original_raw_six": 31,
+      "abstract_six": 62,
+      "fegetexceptflag_all": 503316510
+    },
+    {
+      "original_raw_six": 32,
+      "abstract_six": 1,
+      "fegetexceptflag_all": 16777217
+    },
+    {
+      "original_raw_six": 33,
+      "abstract_six": 17,
+      "fegetexceptflag_all": 285212689
+    },
+    {
+      "original_raw_six": 34,
+      "abstract_six": 33,
+      "fegetexceptflag_all": 16777217
+    },
+    {
+      "original_raw_six": 35,
+      "abstract_six": 49,
+      "fegetexceptflag_all": 285212689
+    },
+    {
+      "original_raw_six": 36,
+      "abstract_six": 9,
+      "fegetexceptflag_all": 150994953
+    },
+    {
+      "original_raw_six": 37,
+      "abstract_six": 25,
+      "fegetexceptflag_all": 419430425
+    },
+    {
+      "original_raw_six": 38,
+      "abstract_six": 41,
+      "fegetexceptflag_all": 150994953
+    },
+    {
+      "original_raw_six": 39,
+      "abstract_six": 57,
+      "fegetexceptflag_all": 419430425
+    },
+    {
+      "original_raw_six": 40,
+      "abstract_six": 5,
+      "fegetexceptflag_all": 83886085
+    },
+    {
+      "original_raw_six": 41,
+      "abstract_six": 21,
+      "fegetexceptflag_all": 352321557
+    },
+    {
+      "original_raw_six": 42,
+      "abstract_six": 37,
+      "fegetexceptflag_all": 83886085
+    },
+    {
+      "original_raw_six": 43,
+      "abstract_six": 53,
+      "fegetexceptflag_all": 352321557
+    },
+    {
+      "original_raw_six": 44,
+      "abstract_six": 13,
+      "fegetexceptflag_all": 218103821
+    },
+    {
+      "original_raw_six": 45,
+      "abstract_six": 29,
+      "fegetexceptflag_all": 486539293
+    },
+    {
+      "original_raw_six": 46,
+      "abstract_six": 45,
+      "fegetexceptflag_all": 218103821
+    },
+    {
+      "original_raw_six": 47,
+      "abstract_six": 61,
+      "fegetexceptflag_all": 486539293
+    },
+    {
+      "original_raw_six": 48,
+      "abstract_six": 3,
+      "fegetexceptflag_all": 50331651
+    },
+    {
+      "original_raw_six": 49,
+      "abstract_six": 19,
+      "fegetexceptflag_all": 318767123
+    },
+    {
+      "original_raw_six": 50,
+      "abstract_six": 35,
+      "fegetexceptflag_all": 50331651
+    },
+    {
+      "original_raw_six": 51,
+      "abstract_six": 51,
+      "fegetexceptflag_all": 318767123
+    },
+    {
+      "original_raw_six": 52,
+      "abstract_six": 11,
+      "fegetexceptflag_all": 184549387
+    },
+    {
+      "original_raw_six": 53,
+      "abstract_six": 27,
+      "fegetexceptflag_all": 452984859
+    },
+    {
+      "original_raw_six": 54,
+      "abstract_six": 43,
+      "fegetexceptflag_all": 184549387
+    },
+    {
+      "original_raw_six": 55,
+      "abstract_six": 59,
+      "fegetexceptflag_all": 452984859
+    },
+    {
+      "original_raw_six": 56,
+      "abstract_six": 7,
+      "fegetexceptflag_all": 117440519
+    },
+    {
+      "original_raw_six": 57,
+      "abstract_six": 23,
+      "fegetexceptflag_all": 385875991
+    },
+    {
+      "original_raw_six": 58,
+      "abstract_six": 39,
+      "fegetexceptflag_all": 117440519
+    },
+    {
+      "original_raw_six": 59,
+      "abstract_six": 55,
+      "fegetexceptflag_all": 385875991
+    },
+    {
+      "original_raw_six": 60,
+      "abstract_six": 15,
+      "fegetexceptflag_all": 251658255
+    },
+    {
+      "original_raw_six": 61,
+      "abstract_six": 31,
+      "fegetexceptflag_all": 520093727
+    },
+    {
+      "original_raw_six": 62,
+      "abstract_six": 47,
+      "fegetexceptflag_all": 251658255
+    },
+    {
+      "original_raw_six": 63,
+      "abstract_six": 63,
+      "fegetexceptflag_all": 520093727
+    }
+  ],
+  "status_pair_cases": 4096,
+  "rounding_partition": [
+    {
+      "mxcsr_rounding": 0,
+      "fegetround": 0
+    },
+    {
+      "mxcsr_rounding": 8192,
+      "fegetround": 256
+    },
+    {
+      "mxcsr_rounding": 16384,
+      "fegetround": 512
+    },
+    {
+      "mxcsr_rounding": 24576,
+      "fegetround": 768
+    }
+  ],
+  "selected_controlfp_arguments": {
+    "new": 0,
+    "mask": 0,
+    "nonnull_current_word": true
+  },
+  "controlfp_zero_mask_identity": "(~0 & current_abstract) | (new & 0) == current_abstract; comparison equal at5FCC4 bypasses all control writes/global accesses/callbacks",
+  "remaining": [
+    "actual final call/provider/loaded-module and readonly lifetime association",
+    "_errno TLS/lazy initialization and cold helpers retain stock SDK/ABI behavior premise",
+    "get_new_handler and actual handler/dispatch interval association",
+    "floor selected SDK contract/provider and extra dispatch are outside this fenv lemma",
+    "all source funding/physical resource/whole API binding and separate execution GO"
+  ],
+  "target_invoked": false,
+  "pins": [
+    {
+      "path": "build-ci/20261105-native-observer-candidate-leaves-file-r1/receipt.json",
+      "bytes": 6604,
+      "sha256": "2DEF19170ACAA0C8106178AFA3510FA4B294AA67970F2F16A3D37CDDB99F30BF"
+    },
+    {
+      "path": "build-ci/20261105-native-observer-candidate-leaves-file-r2/receipt.json",
+      "bytes": 3564,
+      "sha256": "4B1A0C38B2F334C68CE6908D5F0EC2C2AAF4A43F261C6402A4A9D78A13986ACE"
+    },
+    {
+      "path": "C:\\Windows\\System32\\ucrtbase.dll",
+      "bytes": 1399656,
+      "sha256": "DEDB7611E1ABC1FF3852DCAC3D4C93A048D729E25B061973B9969F22698F14CA"
+    },
+    {
+      "path": "build-ci/20261105-native-observer-candidate-leaves-file-r1/fegetround.disassembly.txt",
+      "bytes": 6737,
+      "sha256": "36329D47C26E9168122886CF24D930228AB7881A1238BA54913630E175E4A9F3"
+    },
+    {
+      "path": "build-ci/20261105-native-observer-candidate-leaves-file-r1/fetestexcept.disassembly.txt",
+      "bytes": 769,
+      "sha256": "42027185F9E4E83063655DA1D3029CA8E05909C79AC61950F0718AA070B974EA"
+    },
+    {
+      "path": "build-ci/20261105-native-observer-candidate-leaves-file-r1/fegetexceptflag.disassembly.txt",
+      "bytes": 1244,
+      "sha256": "56C58C85419D373D57F31B89C212146D2E084295F4F6F30808DD06D05E4E15C2"
+    },
+    {
+      "path": "build-ci/20261105-native-observer-candidate-leaves-file-r1/feclearexcept.disassembly.txt",
+      "bytes": 1757,
+      "sha256": "D15D3A9957DB66143C112383BA5AEC03B96F5CD0D3D70C6EA5C1CF749EA22553"
+    },
+    {
+      "path": "build-ci/20261105-native-observer-candidate-leaves-file-r1/fesetexceptflag.disassembly.txt",
+      "bytes": 3441,
+      "sha256": "F1AA00BA0D0C1376D0B653C78034955CEAD97484D1F503B1B779BA9848AE9A28"
+    },
+    {
+      "path": "build-ci/20261105-native-observer-candidate-leaves-file-r1/_controlfp_s.disassembly.txt",
+      "bytes": 2278,
+      "sha256": "F85FED219B048D940AC407725F34263A2931DF10622471123E0DEAEC8B7267C8"
+    },
+    {
+      "path": "build-ci/20261105-native-observer-candidate-leaves-file-r2/status_helper_55930.disassembly.txt",
+      "bytes": 17253,
+      "sha256": "AA2522EF9EF01A1C03456085E629C08E0D74E06AB7AA5514BA573760B8B13D21"
+    },
+    {
+      "path": "build-ci/20261105-native-observer-candidate-leaves-file-r2/set_helper_558B0.disassembly.txt",
+      "bytes": 18695,
+      "sha256": "BCF22FDE445EBC11F6EAFC97CAA2F5C82249238C892C31142D5EA9589AF4D13E"
+    },
+    {
+      "path": "build-ci/20261105-native-observer-candidate-leaves-file-r2/control_helper_5FC10.disassembly.txt",
+      "bytes": 11822,
+      "sha256": "95E4260563412DC85132D87EAC79B8FA65F1DA92539839D5155EA5CDBA10637E"
+    }
+  ]
+}

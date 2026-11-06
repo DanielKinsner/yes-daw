@@ -1,0 +1,30 @@
+{
+  "scope": "Frozen complete first-green candidate file/data lemma and root inspection helpers; no native function execution or whole qualification",
+  "files": [
+    {
+      "path": "build-ci/20261105-native-observation-lemma-r1.py",
+      "bytes": 5936,
+      "sha256": "DFE793317E3DA359D50FAB10346FCF27941C9BADD8B3DB8AC02CB4F78DD71463"
+    },
+    {
+      "path": "build-ci/20261105-native-observation-restoration-lemma-r1/lemma.json",
+      "bytes": 58400,
+      "sha256": "8F88017B8FFAE57AA73DE744BCCB5B98F515D7C1ED1CB6CF3288DC4947272D9A"
+    },
+    {
+      "path": "build-ci/20261105-native-observation-restoration-lemma-r1/README.md",
+      "bytes": 4976,
+      "sha256": "A607DDC261419352D9F8EC68C10EE59FF4A1F3472F93C20EBFB1D23E134D6D76"
+    },
+    {
+      "path": "build-ci/20261105-inspect-native-observer-leaves-r1.py",
+      "bytes": 4708,
+      "sha256": "19D6174BB8DC99A54390E5A9F8E2DA6CC825F96C8383A90890C01AA7839E1243"
+    },
+    {
+      "path": "build-ci/20261105-inspect-native-observer-leaves-r2.py",
+      "bytes": 4605,
+      "sha256": "7F980C3AA3D5D4AC6773C2E195DBB6C3ED58C30BAE19131BA83C29262BA7D232"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+
+Dump of file C:\Windows\System32\ucrtbase.dll
+
+File Type: DLL
+
+  00000001800556E0: 48 83 EC 28        sub         rsp,28h
+  00000001800556E4: 44 8B C1           mov         r8d,ecx
+  00000001800556E7: 41 83 E0 1F        and         r8d,1Fh
+  00000001800556EB: 74 0D              je          00000001800556FA
+  00000001800556ED: E8 3E 02 00 00     call        0000000180055930
+  00000001800556F2: 41 23 C0           and         eax,r8d
+  00000001800556F5: 48 83 C4 28        add         rsp,28h
+  00000001800556F9: C3                 ret
+  00000001800556FA: 33 C0              xor         eax,eax
+  00000001800556FC: EB F7              jmp         00000001800556F5
+  00000001800556FE: CC                 int         3
+
+  Summary
+
+       F7000 .text

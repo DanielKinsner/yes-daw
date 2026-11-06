@@ -1,0 +1,28 @@
+
+Dump of file C:\Windows\System32\ucrtbase.dll
+
+File Type: DLL
+
+  0000000180055710: 48 83 EC 28        sub         rsp,28h
+  0000000180055714: 44 8B C2           mov         r8d,edx
+  0000000180055717: 4C 8B C9           mov         r9,rcx
+  000000018005571A: 41 83 E0 1F        and         r8d,1Fh
+  000000018005571E: 74 1A              je          000000018005573A
+  0000000180055720: E8 0B 02 00 00     call        0000000180055930
+  0000000180055725: 41 8B C8           mov         ecx,r8d
+  0000000180055728: C1 E1 18           shl         ecx,18h
+  000000018005572B: 41 0B C8           or          ecx,r8d
+  000000018005572E: 23 C1              and         eax,ecx
+  0000000180055730: 41 89 01           mov         dword ptr [r9],eax
+  0000000180055733: 33 C0              xor         eax,eax
+  0000000180055735: 48 83 C4 28        add         rsp,28h
+  0000000180055739: C3                 ret
+  000000018005573A: C7 01 00 00 00 00  mov         dword ptr [rcx],0
+  0000000180055740: 33 C0              xor         eax,eax
+  0000000180055742: 48 83 C4 28        add         rsp,28h
+  0000000180055746: C3                 ret
+  0000000180055747: CC                 int         3
+
+  Summary
+
+       F7000 .text
