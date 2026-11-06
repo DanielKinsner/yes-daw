@@ -1,0 +1,158 @@
+{
+  "schema": "MANAGED_PAYLOAD_ABI_PROBE_SOURCE_R2",
+  "status": "SOURCE_ONLY_UNRUN_REQUIRES_INDEPENDENT_WHOLE_REVIEW_BEFORE_COMPILATION_OR_EXECUTION",
+  "encoding": "UTF-8 without BOM; LF; hashes cover complete raw file bytes",
+  "files": [
+    {
+      "path": "probe.cs",
+      "bytes": 15934,
+      "sha256": "FE0232CE0507AA55435CCD3B880E28F0D9ED05F79C1ECE4DAABD05F454AA2F5E"
+    },
+    {
+      "path": "run-probe.ps1",
+      "bytes": 7627,
+      "sha256": "B1F85467BCBD392A58B1EBA9E3663C2A0316B2D6925DC144DEFD657B7D4323F8"
+    },
+    {
+      "path": "README.md",
+      "bytes": 11813,
+      "sha256": "9283F6FA83B75EFB7802EC098B7D0DDD8A3BC7706BA12597CD5C7C083E6D08FF"
+    }
+  ],
+  "runtime": {
+    "root": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell",
+    "executable": "pwsh.exe",
+    "operating_system": "Windows",
+    "architecture": "X64",
+    "pointer_bytes": 8,
+    "runtime_identifier": "win-x64",
+    "framework": ".NET 10.0.11",
+    "server_gc": false,
+    "corelib_informational_version": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32",
+    "compiler_options": [
+      "/optimize+",
+      "/warnaserror+",
+      "/unsafe-",
+      "/checked+"
+    ],
+    "explicit_hashed_runner_inputs": 14,
+    "loaded_native_module_associations": [
+      "coreclr.dll",
+      "clrjit.dll"
+    ],
+    "startup_premise": "Root-owned fresh NoLogo/NoProfile/NonInteractive process with ordinary noninstrumented CLR startup, hidden/no-window/redirected/timeout/no-error-box. Probe reads no environment-variable values. No historical loaded-image equivalence inferred from current file hashes."
+  },
+  "input_evidence": [
+    {
+      "path": "build-ci/20261105-managed-payload-abi-runtime-metadata-r1/runtime.json",
+      "sha256": "45817E116A4E6F6F9C9AA5089D1773F3F8978442A369D1DAFFDCF6A03CFBB8D0",
+      "scope": "Root-provided current file/public tool-host runtime metadata; not this probe's execution"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/run-clock.ps1",
+      "bytes": 104099,
+      "sha256": "BF117EAEA5AABCD40FFE30C785B75C875BAF92A9DA995B181B37DBB5FB75FEDB",
+      "scope": "Read-only Initialize-TaskController seven runtime pin authority; not executed, imported or parsed by this probe"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/source-manifest.json",
+      "bytes": 497616,
+      "sha256": "91529AC11BB131BAE1B9083D95CE343877C5AF62AC50AF23628B63E1C1331B23",
+      "scope": "Read-only CoreCLR/CoreLib/JIT/Roslyn file pin authority; no R10 execution authority inherited"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "bytes": 93117,
+      "sha256": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Hashtable.cs",
+      "bytes": 63165,
+      "sha256": "BC06B72D387FAE36844C63ADA61D0AB5BC447E9710AA3891906EE4E923DE674C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "bytes": 5167,
+      "sha256": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4"
+    }
+  ],
+  "measurement_plan_only": {
+    "fixed_cases_per_pass": 52,
+    "uncredited_warmup_passes": 2,
+    "recorded_repeats": 3,
+    "recorded_measurement_rows": 156,
+    "derived_coefficient_rows": 21,
+    "successful_run_stdout_lines": 178,
+    "maximum_completed_run_stdout_lines": 179,
+    "maximum_requested_fixture_count": 1931,
+    "array_and_string_sizes": [
+      1,
+      7,
+      17,
+      64,
+      435,
+      512
+    ],
+    "dictionary_and_independent_bucket_array_capacities": [
+      3,
+      7,
+      17,
+      37,
+      197,
+      1931
+    ],
+    "hashtable_constructor_capacities": [
+      2,
+      3,
+      5,
+      10
+    ],
+    "source_predicted_hashtable_bucket_counts_not_publicly_observed": [
+      3,
+      7,
+      7,
+      17
+    ],
+    "source_predicted_fixture_request_bytes_all_five_passes_not_measurement": 764280,
+    "conservative_csharp_run_allocation_request_budget": 8388608,
+    "final_budget_gate": "Actual GC counter sampled AFTER writing summary; total Run delta through summary must not exceed 8388608. On excess emit bounded failure row and return ordinary 1. Summary alone is tentative; raw process exit is required. No source allocation follows a successful final gate.",
+    "budget_scope": "C# Run current-thread managed requests, including warmup/check/output work and final summary formatting/writing; excludes earlier host/script/Add-Type startup. Not peak/in-use/native/other-thread bytes. Failure reporting after a violated budget confers no completed budget credit.",
+    "measurement_interval": "Immediately surrounding fresh constructor; dictionary interval additionally includes EnsureCapacity(0). No delegate/boxing/formatting/result-container write. Fresh object escapes and is kept alive after closing counter.",
+    "capacity_provenance": "Dictionary capacity is public EnsureCapacity(0) observation. Hashtable bucket count is source prediction only; public-capacity field remains -1."
+  },
+  "primary_sources": {
+    "commit": "e2f47b0110ed922f21a1522da67279133ce28f32",
+    "source_binary_boundary": "Commit matches installed informational metadata; source association alone does not assert complete binary equivalence. Runtime allocation measurements remain required.",
+    "links": [
+      "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/coreclr/vm/object.h",
+      "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/coreclr/vm/object.inl",
+      "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/coreclr/vm/gchelpers.cpp",
+      "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/Dictionary.cs",
+      "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Hashtable.cs",
+      "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/HashHelpers.cs",
+      "https://learn.microsoft.com/en-us/dotnet/api/system.gc.getallocatedbytesforcurrentthread?view=net-10.0",
+      "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.dictionary-2.ensurecapacity?view=net-10.0"
+    ]
+  },
+  "exit_contract": {
+    "0": "All completed finite formula/capacity/derived-coefficient/count/budget checks passed; this probe only",
+    "1": "Completed measurement or assertion mismatch",
+    "2": "Unsupported runtime/setup or ordinary caught exception; no complete PASS verdict"
+  },
+  "not_claimed": [
+    "Execution, compilation or measurement has occurred for these source bytes",
+    "R10 path/error/ownership census closure, payload fit or execution GO",
+    "NativeBinding, tariff, price, cap change or production implementation",
+    "Private field layout observations or universal CLR ABI guarantee",
+    "Peak/in-use/surviving/reclaimable/old-free heap or native/other-thread allocation accounting",
+    "Hardware, GUI, device, real-app or synthetic hardware evidence"
+  ],
+  "freeze_boundary": "At first future GREEN, freeze all four whole files including helpers/comments/README/pins. No post-green edit or helper expansion; any source change requires a new separately reviewed revision.",
+  "revision_of": {
+    "path": "build-ci/20261105-managed-payload-abi-probe-source-r1",
+    "source_manifest_sha256": "A4DD60EDA30DB2F63566AC33015557F18BAA23BB6962F220E08659DC8A1EAD95",
+    "first_attempt_raw_exit": 2,
+    "first_attempt_measurement_rows": 0,
+    "correction": "Normalize the fixed runtime directory once before exact ordinal path checks; fixed stage diagnostics only. Measurement source unchanged."
+  }
+}

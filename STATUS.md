@@ -63,7 +63,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    is accepted. Independent R9 review conditionally accepts5,041,187,603 runner operations; the exact
    clone-capacity correction also passed review. Payload remains on hold, with no execution GO. R10 is
    a separate unrun source successor for path-string reuse and byte-validated whitespace compaction;
-   its whole functional review passed, while its new complete scalar/lifetime census remains active.
+   its new runner scalar proposal5,543,964,320 awaits independent numeric review, with payload HOLD.
+   Source inspection found an exact-controller path separator defect in R10; a narrow source successor
+   is required before any execution GO. The separate reviewed ABI probe R2 passed574 checks/156
+   measurements and froze its whole source; no R10 payload fit or GO follows. The exact R4 strict
+   native observer compiles warning-free to an object. A full-header compile found C4324 at the
+   inline result cell; a narrow source repair is being reviewed. No combined adapter was executed.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -84,6 +89,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Measure the selected managed allocation coefficients headlessly
+
+- Separate ABI probe R2 exited0 with574 checks/156 measurements, three repeats and zero stderr; its complete source/launcher froze at first green. Selected array/string/dictionary/Hashtable request coefficients match the pinned runtime/source predictions. This is not retained/peak/native/R10-fit evidence.
+- Archived the exact source, independent review, actual receipts and original raw stdout bytes under `docs/research/artifacts/2026-11-05-managed-payload-abi-probe-r2/`. The earlier ordinary exit2 before measurements is preserved; the corrected fixed Windows path comparison passed fresh review before execution.
+- R10's complete runner scalar proposal5,543,964,320 is in independent review, with payload HOLD. A same-length fixed-literal source successor repairs its separately confirmed controller-path guard defect; all guards remain false and no target stage ran.
+- The R4 strict native observer compiled0; compiling all headers exposed C4324 in its inline result storage. Keep that actual raw failure pending while reviewing a minimal storage-order correction. Continue complete420-Site production census, source/ABI/native/whole proof and recipe/renderer/jobs/model, then linked/folder/piano; no GUI/device/input was used.
 
 ## 2026-11-05 - Close the matcher source and candidate dependency reviews
 

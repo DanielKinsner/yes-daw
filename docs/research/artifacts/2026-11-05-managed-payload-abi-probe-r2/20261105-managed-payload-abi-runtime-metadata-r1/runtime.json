@@ -1,0 +1,89 @@
+{
+  "files": [
+    {
+      "bytes": 301368,
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "file_version": "7.6.5.500",
+      "name": "pwsh.exe",
+      "sha256": "362A356CE7F0940EC74F73A8FC2C990A2CC24A38A11C90BBD8ECA947110AD139",
+      "product_version": "7.6.5 SHA: ea554a8f9c6085f54fb2828f7ea286c65c35599f+ea554a8f9c6085f54fb2828f7ea286c65c35599f"
+    },
+    {
+      "bytes": 157496,
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.dll",
+      "file_version": "7.6.5.500",
+      "name": "pwsh.dll",
+      "sha256": "3046ED02928F5D8F78BB3106A861984498D4DC5F80E69A1D5BC7EEB911F0FA90",
+      "product_version": "7.6.5 SHA: ea554a8f9c6085f54fb2828f7ea286c65c35599f+ea554a8f9c6085f54fb2828f7ea286c65c35599f"
+    },
+    {
+      "bytes": 2092328,
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\clrjit.dll",
+      "file_version": "10,0,1126,37416 @Commit: e2f47b0110ed922f21a1522da67279133ce28f32",
+      "name": "clrjit.dll",
+      "sha256": "E7BF743E7BF9A01C8C2BCDC0D828212FD8DFC285BE9D4EC21962BECF456DF648",
+      "product_version": "10,0,1126,37416 @Commit: e2f47b0110ed922f21a1522da67279133ce28f32"
+    },
+    {
+      "bytes": 4614440,
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\coreclr.dll",
+      "file_version": "10,0,1126,37416 @Commit: e2f47b0110ed922f21a1522da67279133ce28f32",
+      "name": "coreclr.dll",
+      "sha256": "C98C3078A4F2495DD7D3CED967C7A6981545194ED163454703580B740F435521",
+      "product_version": "10,0,1126,37416 @Commit: e2f47b0110ed922f21a1522da67279133ce28f32"
+    },
+    {
+      "bytes": 16033616,
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Private.CoreLib.dll",
+      "file_version": "10.0.1126.37416",
+      "name": "System.Private.CoreLib.dll",
+      "sha256": "ED80A1A5DD066C0407AD59686F9AF90A4F3E55DBF3E4C973B53CC8C9D0706F82",
+      "product_version": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32"
+    },
+    {
+      "bytes": 790,
+      "path": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.runtimeconfig.json",
+      "file_version": null,
+      "name": "pwsh.runtimeconfig.json",
+      "sha256": "BE41756D6ECCAC092DA616818C83F811C377ADDE6B3696864DD32220770B4D93",
+      "product_version": null
+    }
+  ],
+  "schema": "FILE_AND_CURRENT_TOOL_HOST_PUBLIC_RUNTIME_METADATA_ONLY",
+  "current_tool_host": {
+    "executable": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+    "runtime_version": "10.0.11",
+    "corelib_informational_version": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32",
+    "framework": ".NET 10.0.11",
+    "powershell_assembly": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Management.Automation.dll",
+    "corelib_location": "C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Private.CoreLib.dll",
+    "server_gc": false,
+    "pointer_bytes": 8
+  },
+  "scope": "File hashes/versions and public runtime identity of this existing tool PowerShell process only; no new ABI probe, target helper or R10 controller executed; no environment values read",
+  "pinned_runtime_config": {
+    "runtimeOptions": {
+      "tfm": "net10.0",
+      "includedFrameworks": [
+        {
+          "name": "Microsoft.NETCore.App",
+          "version": "10.0.11"
+        },
+        {
+          "name": "Microsoft.WindowsDesktop.App",
+          "version": "10.0.11"
+        }
+      ],
+      "rollForwardOnNoCandidateFx": 1,
+      "configProperties": {
+        "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+        "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
+        "System.Runtime.TieredCompilation": true,
+        "System.Runtime.TieredCompilation.QuickJit": true,
+        "System.Runtime.TieredCompilation.QuickJitForLoops": true,
+        "System.Runtime.Loader.UseRidGraph": true,
+        "CSWINRT_USE_WINDOWS_UI_XAML_PROJECTIONS": false
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "MANAGED_PAYLOAD_ABI_PROBE_R2_REVIEW_PINS_V1",
+  "verdict": "ACCEPT_FOR_ONE_SEPARATE_ROOT_OWNED_BOUNDED_HEADLESS_ABI_ATTEMPT",
+  "source_only": true,
+  "artifacts": [
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-independent-review-r2/mechanical-evidence.json",
+      "bytes": 10764,
+      "sha256": "F25037BAB9D645BB7E99ED5FE2995AA4E999F0EE430016EAF64D245D500BA207"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-independent-review-r2/review.json",
+      "bytes": 16891,
+      "sha256": "57795D482F39EBDE2C965F6AB66BE533438EE71AC1590EDF820593ADB2014DFE"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-independent-review-r2/review.md",
+      "bytes": 1591,
+      "sha256": "A65D020CF0E89097D75E489CC171B3120C8B63C6EFA79BBFC2E043105FF176CC"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-independent-review-r2/runner-r1-r2.diff",
+      "bytes": 5197,
+      "sha256": "2E5EF0969FC052D64A19F51E6F55442D53A486872FE1196F95F8964E41929B3D"
+    }
+  ]
+}

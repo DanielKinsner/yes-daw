@@ -1,0 +1,412 @@
+{
+  "checks": [
+    {
+      "name": "manifest",
+      "actual": "82F9E7B92837974001616B1D686B551D7778187383E7A4AF9EE3D5C81E9BD431",
+      "expected": "82F9E7B92837974001616B1D686B551D7778187383E7A4AF9EE3D5C81E9BD431",
+      "passed": true
+    },
+    {
+      "name": "probe.cs",
+      "actual": [
+        15934,
+        "FE0232CE0507AA55435CCD3B880E28F0D9ED05F79C1ECE4DAABD05F454AA2F5E"
+      ],
+      "expected": [
+        15934,
+        "FE0232CE0507AA55435CCD3B880E28F0D9ED05F79C1ECE4DAABD05F454AA2F5E"
+      ],
+      "passed": true
+    },
+    {
+      "name": "run-probe.ps1",
+      "actual": [
+        7627,
+        "B1F85467BCBD392A58B1EBA9E3663C2A0316B2D6925DC144DEFD657B7D4323F8"
+      ],
+      "expected": [
+        7627,
+        "B1F85467BCBD392A58B1EBA9E3663C2A0316B2D6925DC144DEFD657B7D4323F8"
+      ],
+      "passed": true
+    },
+    {
+      "name": "README.md",
+      "actual": [
+        11813,
+        "9283F6FA83B75EFB7802EC098B7D0DDD8A3BC7706BA12597CD5C7C083E6D08FF"
+      ],
+      "expected": [
+        11813,
+        "9283F6FA83B75EFB7802EC098B7D0DDD8A3BC7706BA12597CD5C7C083E6D08FF"
+      ],
+      "passed": true
+    },
+    {
+      "name": "CSharp_exact_R1",
+      "actual": "FE0232CE0507AA55435CCD3B880E28F0D9ED05F79C1ECE4DAABD05F454AA2F5E",
+      "expected": "FE0232CE0507AA55435CCD3B880E28F0D9ED05F79C1ECE4DAABD05F454AA2F5E",
+      "passed": true
+    },
+    {
+      "name": "input build-ci/20261105-managed-payload-abi-runtime-metadata-r1/runtime.json",
+      "actual": "45817E116A4E6F6F9C9AA5089D1773F3F8978442A369D1DAFFDCF6A03CFBB8D0",
+      "expected": "45817E116A4E6F6F9C9AA5089D1773F3F8978442A369D1DAFFDCF6A03CFBB8D0",
+      "passed": true
+    },
+    {
+      "name": "input build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/run-clock.ps1",
+      "actual": "BF117EAEA5AABCD40FFE30C785B75C875BAF92A9DA995B181B37DBB5FB75FEDB",
+      "expected": "BF117EAEA5AABCD40FFE30C785B75C875BAF92A9DA995B181B37DBB5FB75FEDB",
+      "passed": true
+    },
+    {
+      "name": "input size build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/run-clock.ps1",
+      "actual": 104099,
+      "expected": 104099,
+      "passed": true
+    },
+    {
+      "name": "input build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/source-manifest.json",
+      "actual": "91529AC11BB131BAE1B9083D95CE343877C5AF62AC50AF23628B63E1C1331B23",
+      "expected": "91529AC11BB131BAE1B9083D95CE343877C5AF62AC50AF23628B63E1C1331B23",
+      "passed": true
+    },
+    {
+      "name": "input size build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/source-manifest.json",
+      "actual": 497616,
+      "expected": 497616,
+      "passed": true
+    },
+    {
+      "name": "input build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "actual": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA",
+      "expected": "2DEF38D1EF1896BFC830E4DD3C369CAD11B0BEDFAFAEF9B3C45DBE202901FEFA",
+      "passed": true
+    },
+    {
+      "name": "input size build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Dictionary.cs",
+      "actual": 93117,
+      "expected": 93117,
+      "passed": true
+    },
+    {
+      "name": "input build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Hashtable.cs",
+      "actual": "BC06B72D387FAE36844C63ADA61D0AB5BC447E9710AA3891906EE4E923DE674C",
+      "expected": "BC06B72D387FAE36844C63ADA61D0AB5BC447E9710AA3891906EE4E923DE674C",
+      "passed": true
+    },
+    {
+      "name": "input size build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/Hashtable.cs",
+      "actual": 63165,
+      "expected": 63165,
+      "passed": true
+    },
+    {
+      "name": "input build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "actual": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4",
+      "expected": "498F12BD53366F09D1BABAB8F95AF01088643EF941D23CDEA31E6178A59773F4",
+      "passed": true
+    },
+    {
+      "name": "input size build-ci/20261105-clock-oracle-r9-numeric-independent-review/primary-sources/HashHelpers.cs",
+      "actual": 5167,
+      "expected": 5167,
+      "passed": true
+    },
+    {
+      "name": "runtime pin count",
+      "actual": 14,
+      "expected": 14,
+      "passed": true
+    },
+    {
+      "name": "runtime pwsh.exe",
+      "actual": [
+        301368,
+        "362A356CE7F0940EC74F73A8FC2C990A2CC24A38A11C90BBD8ECA947110AD139"
+      ],
+      "expected": [
+        301368,
+        "362A356CE7F0940EC74F73A8FC2C990A2CC24A38A11C90BBD8ECA947110AD139"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime pwsh.dll",
+      "actual": [
+        157496,
+        "3046ED02928F5D8F78BB3106A861984498D4DC5F80E69A1D5BC7EEB911F0FA90"
+      ],
+      "expected": [
+        157496,
+        "3046ED02928F5D8F78BB3106A861984498D4DC5F80E69A1D5BC7EEB911F0FA90"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime coreclr.dll",
+      "actual": [
+        4614440,
+        "C98C3078A4F2495DD7D3CED967C7A6981545194ED163454703580B740F435521"
+      ],
+      "expected": [
+        4614440,
+        "C98C3078A4F2495DD7D3CED967C7A6981545194ED163454703580B740F435521"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime clrjit.dll",
+      "actual": [
+        2092328,
+        "E7BF743E7BF9A01C8C2BCDC0D828212FD8DFC285BE9D4EC21962BECF456DF648"
+      ],
+      "expected": [
+        2092328,
+        "E7BF743E7BF9A01C8C2BCDC0D828212FD8DFC285BE9D4EC21962BECF456DF648"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime System.Private.CoreLib.dll",
+      "actual": [
+        16033616,
+        "ED80A1A5DD066C0407AD59686F9AF90A4F3E55DBF3E4C973B53CC8C9D0706F82"
+      ],
+      "expected": [
+        16033616,
+        "ED80A1A5DD066C0407AD59686F9AF90A4F3E55DBF3E4C973B53CC8C9D0706F82"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime pwsh.runtimeconfig.json",
+      "actual": [
+        790,
+        "BE41756D6ECCAC092DA616818C83F811C377ADDE6B3696864DD32220770B4D93"
+      ],
+      "expected": [
+        790,
+        "BE41756D6ECCAC092DA616818C83F811C377ADDE6B3696864DD32220770B4D93"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime System.Management.Automation.dll",
+      "actual": [
+        19646264,
+        "2D8AF026E589C5603629BFC3E7C57265B4167B12ECA3AE549C6A6C3CA7E4967B"
+      ],
+      "expected": [
+        19646264,
+        "2D8AF026E589C5603629BFC3E7C57265B4167B12ECA3AE549C6A6C3CA7E4967B"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime Microsoft.PowerShell.Commands.Utility.dll",
+      "actual": [
+        1652504,
+        "2F6201BB3CAF4C08158BE733E786DD85B11537694F7E6AB40356FC0727A3596F"
+      ],
+      "expected": [
+        1652504,
+        "2F6201BB3CAF4C08158BE733E786DD85B11537694F7E6AB40356FC0727A3596F"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime Microsoft.PowerShell.Commands.Management.dll",
+      "actual": [
+        1124152,
+        "40818818DD94A5FA1F53043E33D31D8312ADAD24EF61B06481DFAE4C45D6E677"
+      ],
+      "expected": [
+        1124152,
+        "40818818DD94A5FA1F53043E33D31D8312ADAD24EF61B06481DFAE4C45D6E677"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime Newtonsoft.Json.dll",
+      "actual": [
+        1824600,
+        "9AF3870D53662BA1C8E9B19EC8AD0020E815FFE9E916A1F3204AC6E206447F60"
+      ],
+      "expected": [
+        1824600,
+        "9AF3870D53662BA1C8E9B19EC8AD0020E815FFE9E916A1F3204AC6E206447F60"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime Modules/Microsoft.PowerShell.Management/Microsoft.PowerShell.Management.psd1",
+      "actual": [
+        16076,
+        "A73617CBA10DF0D2641DF909C6B8BD7981769B3FC78845976290093DF2941941"
+      ],
+      "expected": [
+        16076,
+        "A73617CBA10DF0D2641DF909C6B8BD7981769B3FC78845976290093DF2941941"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1",
+      "actual": [
+        16826,
+        "D103110AAE93CA1061FAB8ADD8F00EA6110740AC94B236654D0EFB0B08654AAA"
+      ],
+      "expected": [
+        16826,
+        "D103110AAE93CA1061FAB8ADD8F00EA6110740AC94B236654D0EFB0B08654AAA"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime Microsoft.CodeAnalysis.CSharp.dll",
+      "actual": [
+        18536312,
+        "A1CBB3E005E5F91CBED130EF7EEAA79204E6BB10E05C54CE4C384A81A7646627"
+      ],
+      "expected": [
+        18536312,
+        "A1CBB3E005E5F91CBED130EF7EEAA79204E6BB10E05C54CE4C384A81A7646627"
+      ],
+      "passed": true
+    },
+    {
+      "name": "runtime Microsoft.CodeAnalysis.dll",
+      "actual": [
+        8128376,
+        "A11461236D71889C0D7E440E9B08CB2E381F59A16A845648C3809855B6305DCD"
+      ],
+      "expected": [
+        8128376,
+        "A11461236D71889C0D7E440E9B08CB2E381F59A16A845648C3809855B6305DCD"
+      ],
+      "passed": true
+    },
+    {
+      "name": "Hashtable source choices",
+      "actual": [
+        3,
+        7,
+        7,
+        17
+      ],
+      "expected": [
+        3,
+        7,
+        7,
+        17
+      ],
+      "passed": true
+    },
+    {
+      "name": "cases",
+      "actual": 52,
+      "expected": 52,
+      "passed": true
+    },
+    {
+      "name": "allpasses_fixture_requests",
+      "actual": 764280,
+      "expected": 764280,
+      "passed": true
+    },
+    {
+      "name": "measurement rows",
+      "actual": 156,
+      "expected": 156,
+      "passed": true
+    },
+    {
+      "name": "derived rows",
+      "actual": 21,
+      "expected": 21,
+      "passed": true
+    },
+    {
+      "name": "all checks",
+      "actual": 574,
+      "expected": 574,
+      "passed": true
+    }
+  ],
+  "fixture_predictions": {
+    "Byte": [
+      32,
+      32,
+      48,
+      88,
+      464,
+      536
+    ],
+    "Char": [
+      32,
+      40,
+      64,
+      152,
+      896,
+      1048
+    ],
+    "Int": [
+      32,
+      56,
+      96,
+      280,
+      1768,
+      2072
+    ],
+    "Reference": [
+      32,
+      80,
+      160,
+      536,
+      3504,
+      4120
+    ],
+    "String": [
+      24,
+      40,
+      56,
+      152,
+      896,
+      1048
+    ],
+    "BucketInt": [
+      40,
+      56,
+      96,
+      176,
+      816,
+      7752
+    ],
+    "DictObject": [
+      216,
+      328,
+      608,
+      1168,
+      5648,
+      54200
+    ],
+    "DictString": [
+      216,
+      328,
+      608,
+      1168,
+      5648,
+      54200
+    ],
+    "Hashtable": [
+      168,
+      264,
+      264,
+      504
+    ]
+  },
+  "source_only": true,
+  "target_execution": false
+}
