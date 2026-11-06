@@ -93,7 +93,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 ## 2026-11-05 - Measure the selected managed allocation coefficients headlessly
 
 - Separate ABI probe R2 exited0 with574 checks/156 measurements, three repeats and zero stderr; its complete source/launcher froze at first green. Selected array/string/dictionary/Hashtable request coefficients match the pinned runtime/source predictions. This is not retained/peak/native/R10-fit evidence.
-- Archived the exact source, independent review, actual receipts and original raw stdout bytes under `docs/research/artifacts/2026-11-05-managed-payload-abi-probe-r2/`. The earlier ordinary exit2 before measurements is preserved; the corrected fixed Windows path comparison passed fresh review before execution.
+- Archived24 exact source/evidence files, including both empty stderr receipts and original raw stdout bytes, under `docs/research/artifacts/2026-11-05-managed-payload-abi-probe-r2/`. The earlier ordinary exit2 before measurements is preserved; the corrected fixed Windows path comparison passed fresh review before execution. Archive checkpoint CI42167560474 passed.
 - R10's complete runner scalar proposal5,543,964,320 is in independent review, with payload HOLD. A same-length fixed-literal source successor repairs its separately confirmed controller-path guard defect; all guards remain false and no target stage ran.
 - The R4 strict native observer compiled0; compiling all headers exposed C4324 in its inline result storage. Keep that actual raw failure pending while reviewing a minimal storage-order correction. Continue complete420-Site production census, source/ABI/native/whole proof and recipe/renderer/jobs/model, then linked/folder/piano; no GUI/device/input was used.
 
