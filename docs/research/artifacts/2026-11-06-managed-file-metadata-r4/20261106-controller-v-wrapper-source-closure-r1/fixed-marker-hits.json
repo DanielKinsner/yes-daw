@@ -1,0 +1,196 @@
+{
+  "candidate_raw_string_hits_only": [
+    {
+      "file": "System.Private.CoreLib.dll",
+      "raw_names_not_metadata": {
+        "StateMachineBox": [
+          "<System.Runtime.CompilerServices.IStateMachineBoxAwareAwaiter.AwaitUnsafeOnCompleted>b__5_0",
+          "<System.Runtime.CompilerServices.IStateMachineBoxAwareAwaiter.AwaitUnsafeOnCompleted>b__5_1",
+          "CreateDebugFinalizableAsyncStateMachineBox",
+          "CreateWeaklyTypedStateMachineBox",
+          "DebugFinalizableAsyncStateMachineBox`1",
+          "GetStateMachineBox",
+          "IAsyncStateMachineBox",
+          "IStateMachineBoxAwareAwaiter",
+          "SyncSuccessSentinelStateMachineBox",
+          "System.Runtime.CompilerServices.IAsyncStateMachineBox.GetStateMachineObject",
+          "System.Runtime.CompilerServices.IStateMachineBoxAwareAwaiter.AwaitUnsafeOnCompleted",
+          "s_invokeAsyncStateMachineBox"
+        ],
+        "AsyncStateMachineBox": [
+          "CreateDebugFinalizableAsyncStateMachineBox",
+          "DebugFinalizableAsyncStateMachineBox`1",
+          "IAsyncStateMachineBox",
+          "System.Runtime.CompilerServices.IAsyncStateMachineBox.GetStateMachineObject",
+          "s_invokeAsyncStateMachineBox"
+        ],
+        "Registrations": [
+          "\\System.Threading.CancellationTokenSource+Registrations+<WaitForCallbackToCompleteAsync>d__12",
+          "_linkingRegistrations"
+        ],
+        "CallbackNode": [
+          "CallbackNode"
+        ],
+        "ReadAtLeastAsyncCore": [
+          ",System.IO.Stream+<ReadAtLeastAsyncCore>d__49",
+          "<ReadAtLeastAsyncCore>d__49",
+          "ReadAtLeastAsyncCore"
+        ],
+        "ReadFromNonSeekableAsync": [
+          "<ReadFromNonSeekableAsync>d__36",
+          "OSystem.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36",
+          "ReadFromNonSeekableAsync"
+        ],
+        "InvokeAsync": [
+          "<0>__InvokeAsyncCallback",
+          "<InvokeAsync>d__7`1",
+          "<InvokeAsync>d__8`2",
+          "DSystem.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__7`1",
+          "DSystem.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2",
+          "InvokeAsync"
+        ],
+        "ValueTaskSourceAsTask": [
+          "ValueTaskSourceAsTask"
+        ],
+        "FileStreamStrategy": [
+          "AsyncWindowsFileStreamStrategy",
+          "BufferedFileStreamStrategy",
+          "CSystem.IO.Strategies.BufferedFileStreamStrategy+<DisposeAsync>d__27",
+          "DerivedFileStreamStrategy",
+          "FSystem.IO.Strategies.BufferedFileStreamStrategy+<CopyToAsyncCore>d__57",
+          "HSystem.IO.Strategies.BufferedFileStreamStrategy+<ReadAsyncSlowPath>d__37",
+          "ISystem.IO.Strategies.BufferedFileStreamStrategy+<FlushAsyncInternal>d__55",
+          "ISystem.IO.Strategies.BufferedFileStreamStrategy+<WriteAsyncSlowPath>d__48",
+          "NSystem.IO.Strategies.AsyncWindowsFileStreamStrategy+<AsyncModeCopyToAsync>d__5",
+          "NSystem.IO.Strategies.BufferedFileStreamStrategy+<WriteToNonSeekableAsync>d__47",
+          "OSFileStreamStrategy",
+          "OSystem.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36",
+          "SyncWindowsFileStreamStrategy"
+        ],
+        "SafeHandle": [
+          "ConvertSafeHandleToNative",
+          "Internal.Win32.SafeHandles",
+          "Microsoft.Win32.SafeHandles",
+          "SafeHandleAddRef",
+          "SafeHandleCleanupWorkListElement",
+          "SafeHandleMarshaller`1",
+          "SafeHandleMinusOneIsInvalid",
+          "SafeHandleRelease",
+          "SafeHandleZeroOrMinusOneIsInvalid",
+          "ThrowSafeHandleFieldChanged",
+          "VSystem.Runtime.InteropServices.Marshalling.SafeHandleMarshaller`1+ManagedToUnmanagedIn",
+          "WSystem.Runtime.InteropServices.Marshalling.SafeHandleMarshaller`1+ManagedToUnmanagedOut",
+          "WSystem.Runtime.InteropServices.Marshalling.SafeHandleMarshaller`1+ManagedToUnmanagedRef",
+          "aThreadPool.BindHandle(IntPtr) has been deprecated. Use ThreadPool.BindHandle(SafeHandle) instead.",
+          "get_ArgumentNull_SafeHandle",
+          "get_ComVariant_SafeHandle_In_Variant",
+          "get_Interop_Marshal_CannotCreateSafeHandleField",
+          "get_Interop_Marshal_SafeHandle_InvalidOperation"
+        ],
+        "SemaphoreSlim": [
+          "BSystem.Threading.SemaphoreSlim+<WaitUntilCountOrTimeoutAsync>d__33",
+          "SemaphoreSlim",
+          "get_SemaphoreSlim_Release_CountWrong",
+          "get_SemaphoreSlim_Wait_TimeSpanTimeoutWrong",
+          "get_SemaphoreSlim_Wait_TimeoutWrong",
+          "get_SemaphoreSlim_ctor_InitialCountWrong",
+          "get_SemaphoreSlim_ctor_MaxCountWrong"
+        ],
+        "Stopwatch": [
+          "Stopwatch"
+        ],
+        "ManualResetValueTaskSourceCore": [
+          "ManualResetValueTaskSourceCoreShared",
+          "ManualResetValueTaskSourceCore`1"
+        ],
+        "PaddedReference": [
+          "PaddedReference"
+        ]
+      }
+    },
+    {
+      "file": "System.Diagnostics.Process.dll",
+      "raw_names_not_metadata": {
+        "DictionaryWrapper": [
+          "KSystem.Collections.Specialized.StringDictionaryWrapper+<GetEnumerator>d__20",
+          "StringDictionaryWrapper"
+        ],
+        "SafeProcessHandle": [
+          "SafeProcessHandle"
+        ],
+        "SafeThreadHandle": [
+          "SafeThreadHandle"
+        ],
+        "ProcessStartInfo": [
+          "get_CantGetProcessStartInfo",
+          "get_CantSetProcessStartInfo"
+        ],
+        "ProcessWaitHandle": [
+          "ProcessWaitHandle"
+        ]
+      }
+    },
+    {
+      "file": "System.Security.Cryptography.dll",
+      "raw_names_not_metadata": {
+        "ConcurrencyBlock": [
+          "ConcurrencyBlock"
+        ],
+        "SafeBCryptHandle": [
+          "SafeBCryptHandle"
+        ],
+        "BCryptAlgorithmCache": [
+          "BCryptAlgorithmCache"
+        ],
+        "HashProviderCng": [
+          "HashProviderCng"
+        ],
+        "HashProvider": [
+          "CreateHashProvider",
+          "HSystem.Security.Cryptography.LiteHashProvider+<ProcessStreamAsync>d__9`1",
+          "HashProviderCng",
+          "HashProviderDispenser",
+          "ISystem.Security.Cryptography.LiteHashProvider+<ProcessStreamAsync>d__10`1",
+          "LiteHashProvider",
+          "OneShotHashProvider",
+          "SSystem.Security.Cryptography.LiteHashProvider+<ProcessStreamIndefiniteAsync>d__19`1"
+        ]
+      }
+    },
+    {
+      "file": "System.Console.dll",
+      "raw_names_not_metadata": {
+        "ConsoleEncoding": [
+          "GetSupportedConsoleEncoding",
+          "HandleSetConsoleEncodingError"
+        ],
+        "OSEncoding": [
+          "OSEncoding"
+        ],
+        "DecoderDBCS": [
+          "DecoderDBCS"
+        ]
+      }
+    },
+    {
+      "file": "System.Text.Encoding.CodePages.dll",
+      "raw_names_not_metadata": {
+        "DecoderNLS": [
+          "DecoderNLS"
+        ],
+        "DecoderDBCS": [],
+        "SBCSCodePageEncoding": [
+          "SBCSCodePageEncoding"
+        ],
+        "DBCSCodePageEncoding": [
+          "DBCSCodePageEncoding"
+        ]
+      }
+    }
+  ],
+  "dictionary_wrapper_primary": {
+    "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Collections/Specialized/DictionaryWrapper.cs",
+    "bytes": 3096,
+    "sha256": "B8E2B5381CF374C615F64C044DF2B5BB1E17FC3A44500331EFC4F7D53955CEEB"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "scope": "ONE_SEPARATE_PUBLIC_FIXED_FILE_METADATA_R4_ATTEMPT_ONLY",
+  "root_authorized": true,
+  "attempt_directory": "execution-r1",
+  "source_review_sha256": "F4C2A7CE2323413F1859E2DE022BA9394D953279EB74030DEAFDB19C83172709",
+  "launcher_review_sha256": "F6979E3FA0A27BF28E6C1E9A5099C1C2522EDDD446B245EE2335F7890BEE0414",
+  "manifest_sha256": "10E3854D27239A9BDD1BDF0F798C57578B6D629B4EA9DD7F52A30A8861A11E89",
+  "reader_sha256": "542BB4126F6812ED83BBD0819A6F1464B8ECD7FFAE99FF36B22D8428EC43521F",
+  "launcher_sha256": "ABE5C20945428F69D494339F94EBB8F058FC98D0C3FCC988F3E7C5B1A53DBE54",
+  "powershell_wrapper_sha256": "8069BD26AEBF064A57835D9852793A8F9266354DD1515FCA7C2E50535CFB53DC",
+  "purpose": "Compile and run only the reviewed reader to inspect public file TypeDef/base/field/signature declarations in eight pinned DLLs; complete output must pass all per-file identity and count checks.",
+  "constraints": {
+    "one_heavy_lane": true,
+    "verified_AMD64_console_host": true,
+    "create_no_window_and_hidden": true,
+    "stdin_null_and_redirected_output": true,
+    "primary_wait_seconds": 60,
+    "timeout_kill_and_reap": true,
+    "hard_end_to_end_60_second_claim": false,
+    "postcapture_output_admission_bytes": 524288,
+    "streaming_output_cap_claim": false,
+    "no_target_assembly_reflection_loading_or_inspected_type_invocation": true,
+    "no_live_values_offsets_sizes_or_allocation_probe": true,
+    "no_GUI_input_devices_or_intentional_crash": true,
+    "preserve_all_raw_results": true,
+    "freeze_complete_source_and_launchers_at_first_green": true
+  },
+  "clock_target_parser_import_helper_compiler_program_or_stage_authorized": false,
+  "clock_resource_fit_native_binding_or_execution_GO": false
+}

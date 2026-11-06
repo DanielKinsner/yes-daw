@@ -1,0 +1,289 @@
+{
+  "schema": "PUBLIC_FIXED_FILE_CONTROLLER_OWNER_METADATA_ARCHIVE_R4",
+  "scope": "Actual public-file declarations only; no object size/offset/allocation/source-binary association/whole resource fit or Clock execution GO",
+  "subject_manifest_sha256": "10E3854D27239A9BDD1BDF0F798C57578B6D629B4EA9DD7F52A30A8861A11E89",
+  "independent_review_sha256": "F4C2A7CE2323413F1859E2DE022BA9394D953279EB74030DEAFDB19C83172709",
+  "launcher_review_sha256": "F6979E3FA0A27BF28E6C1E9A5099C1C2522EDDD446B245EE2335F7890BEE0414",
+  "actual_receipt_sha256": "518D3BAA5C6679611A04B8F3F55B1711F9E3083E562E26528AB9ECB9C4D967FE",
+  "files": [
+    {
+      "file": "20261106-author-metadata-r4-root-launcher.py",
+      "original_path": "build-ci/20261106-author-metadata-r4-root-launcher.py",
+      "original_bytes": 4910,
+      "original_sha256": "A546087C4A3268BC97CE2F77C83B681BAFEDB1EBB8F0F01ABA04E88EF34631B4",
+      "bytes": 4910,
+      "sha256": "A546087C4A3268BC97CE2F77C83B681BAFEDB1EBB8F0F01ABA04E88EF34631B4",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-controller-v-wrapper-source-closure-r1/author-metadata-r4.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/author-metadata-r4.py",
+      "original_bytes": 12152,
+      "original_sha256": "D9AD67C30618F2E30D6941DDB88F23A282B7E49B3386D141CE7D0B99EE07AE3F",
+      "bytes": 12152,
+      "sha256": "D9AD67C30618F2E30D6941DDB88F23A282B7E49B3386D141CE7D0B99EE07AE3F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-controller-v-wrapper-source-closure-r1/candidate-name-hits.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/candidate-name-hits.json",
+      "original_bytes": 2887,
+      "original_sha256": "4C9910768F5EBC1701A875ECF8D7C19E1A9B488159C976BB0FA1633E19AD5142",
+      "bytes": 2887,
+      "sha256": "4C9910768F5EBC1701A875ECF8D7C19E1A9B488159C976BB0FA1633E19AD5142",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-controller-v-wrapper-source-closure-r1/fixed-marker-hits.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/fixed-marker-hits.json",
+      "original_bytes": 7484,
+      "original_sha256": "B40FBE317448329B7D3FDA2221AFCC1F1FEACDF9C1F66576E3B5499A4887A6BA",
+      "bytes": 7484,
+      "sha256": "B40FBE317448329B7D3FDA2221AFCC1F1FEACDF9C1F66576E3B5499A4887A6BA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-controller-v-wrapper-source-closure-r1/inspect-candidate-names.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/inspect-candidate-names.py",
+      "original_bytes": 2628,
+      "original_sha256": "8CBD5284D464ADCE4A404B0FA5D414AD822BF5C858457368081DB8D9DC974437",
+      "bytes": 2628,
+      "sha256": "8CBD5284D464ADCE4A404B0FA5D414AD822BF5C858457368081DB8D9DC974437",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-controller-v-wrapper-source-closure-r1/inspect-fixed-markers.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/inspect-fixed-markers.py",
+      "original_bytes": 2232,
+      "original_sha256": "A723E467AB2F562E3EAF317E53F8E01034000C07FF69AE995E8F4396C0A1BBBE",
+      "bytes": 2232,
+      "sha256": "A723E467AB2F562E3EAF317E53F8E01034000C07FF69AE995E8F4396C0A1BBBE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-controller-v-wrapper-source-closure-r1/metadata-r4-fixed-type-plan.json",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/metadata-r4-fixed-type-plan.json",
+      "original_bytes": 14408,
+      "original_sha256": "B74F42AA44CC32355CE27D92202AB9A0708854654C9CB1FA0A19321106819132",
+      "bytes": 14408,
+      "sha256": "B74F42AA44CC32355CE27D92202AB9A0708854654C9CB1FA0A19321106819132",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-controller-v-wrapper-source-closure-r1/plan-metadata-r4.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/plan-metadata-r4.py",
+      "original_bytes": 4039,
+      "original_sha256": "FFF707BC5A7C6F96AAC0A22DE3B6F40FAE7805CE8605BAF3B01FC25DCE45F2E0",
+      "bytes": 4039,
+      "sha256": "FFF707BC5A7C6F96AAC0A22DE3B6F40FAE7805CE8605BAF3B01FC25DCE45F2E0",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-controller-v-wrapper-source-closure-r1/review-root-launcher-r4.py",
+      "original_path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/review-root-launcher-r4.py",
+      "original_bytes": 14911,
+      "original_sha256": "810B4A10032FA2AA585E506FD7529BD4216D3F07F31143F15AF99BC2DECC184F",
+      "bytes": 14911,
+      "sha256": "810B4A10032FA2AA585E506FD7529BD4216D3F07F31143F15AF99BC2DECC184F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-independent-review-r4/check.py",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-independent-review-r4/check.py",
+      "original_bytes": 9068,
+      "original_sha256": "333E872551E37D436596229F902C0D2A10B8DE7E37927A703104F69059A0B6EB",
+      "bytes": 9068,
+      "sha256": "333E872551E37D436596229F902C0D2A10B8DE7E37927A703104F69059A0B6EB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-independent-review-r4/checks.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-independent-review-r4/checks.json",
+      "original_bytes": 23298,
+      "original_sha256": "3DBFFFA9C3A0B9A9491381E1BEC3FD5FC571A191517BA43894F023330595D169",
+      "bytes": 23298,
+      "sha256": "3DBFFFA9C3A0B9A9491381E1BEC3FD5FC571A191517BA43894F023330595D169",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-independent-review-r4/review.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-independent-review-r4/review.json",
+      "original_bytes": 10071,
+      "original_sha256": "F4C2A7CE2323413F1859E2DE022BA9394D953279EB74030DEAFDB19C83172709",
+      "bytes": 10071,
+      "sha256": "F4C2A7CE2323413F1859E2DE022BA9394D953279EB74030DEAFDB19C83172709",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-independent-review-r4/review.md",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-independent-review-r4/review.md",
+      "original_bytes": 2353,
+      "original_sha256": "ED4EEBE2D092C477B69C346BC0FBD68F61066EFD88719C2303BC784718636F83",
+      "bytes": 2353,
+      "sha256": "ED4EEBE2D092C477B69C346BC0FBD68F61066EFD88719C2303BC784718636F83",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-launcher-independent-review-r4/checks.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-launcher-independent-review-r4/checks.json",
+      "original_bytes": 22184,
+      "original_sha256": "5AB180CAF159C476FB06DDC1605046F25F69AE067F46CAAC1002901D10FC7B08",
+      "bytes": 22184,
+      "sha256": "5AB180CAF159C476FB06DDC1605046F25F69AE067F46CAAC1002901D10FC7B08",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-launcher-independent-review-r4/launcher.diff.original.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-launcher-independent-review-r4/launcher.diff",
+      "original_bytes": 6079,
+      "original_sha256": "B11FA6DAADCA6A7E9785D85975EB39AF6820CC6C10BF58D7912DA2AEF1976FD2",
+      "bytes": 8255,
+      "sha256": "803FE2009C45E3764217ADDB5DADA5ED3928336F583EB96CE74A6461A5EC9D45",
+      "transformation": "COMPLETE_RAW_DIFF_BASE64"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-launcher-independent-review-r4/review.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-launcher-independent-review-r4/review.json",
+      "original_bytes": 62879,
+      "original_sha256": "F6979E3FA0A27BF28E6C1E9A5099C1C2522EDDD446B245EE2335F7890BEE0414",
+      "bytes": 62879,
+      "sha256": "F6979E3FA0A27BF28E6C1E9A5099C1C2522EDDD446B245EE2335F7890BEE0414",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-launcher-independent-review-r4/review.md",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-launcher-independent-review-r4/review.md",
+      "original_bytes": 2415,
+      "original_sha256": "3BBE49A86B74739F7ACB1FF6BFBF06BB709F3C660C0B29BA5F57AF090D291DCC",
+      "bytes": 2415,
+      "sha256": "3BBE49A86B74739F7ACB1FF6BFBF06BB709F3C660C0B29BA5F57AF090D291DCC",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-launcher-independent-review-r4/source-pins.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-launcher-independent-review-r4/source-pins.json",
+      "original_bytes": 60276,
+      "original_sha256": "27FCB1D48FA05418AC91205F1551268FC96C2F7558237592B6DA63114AF390AE",
+      "bytes": 60276,
+      "sha256": "27FCB1D48FA05418AC91205F1551268FC96C2F7558237592B6DA63114AF390AE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/evidence/own-source-checks.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/evidence/own-source-checks.json",
+      "original_bytes": 19447,
+      "original_sha256": "AF60313AA6BD2CDAE2B80AD96CA6FA07F6C946CAF490CE78F0B020ABC8BA30CB",
+      "bytes": 19447,
+      "sha256": "AF60313AA6BD2CDAE2B80AD96CA6FA07F6C946CAF490CE78F0B020ABC8BA30CB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/evidence/reader.diff.original.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/evidence/reader.diff",
+      "original_bytes": 8813,
+      "original_sha256": "B8B9B1D860253AFA10F34BF0539164144E5332CF4356CEC0A4E9BA765836ACD4",
+      "bytes": 11899,
+      "sha256": "B3DFA1C12ABDF1B0FA2C2179431ADC8AC7DDFB8836C5D43B06CF88C779486BDC",
+      "transformation": "COMPLETE_RAW_DIFF_BASE64"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/execution-r1/first-green-whole-source-freeze.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/execution-r1/first-green-whole-source-freeze.json",
+      "original_bytes": 1302,
+      "original_sha256": "DB741A2CD67D42A5B7F3009A201C9CC50FC8A0E119E68C90EEA6DA7D86C5CC62",
+      "bytes": 1302,
+      "sha256": "DB741A2CD67D42A5B7F3009A201C9CC50FC8A0E119E68C90EEA6DA7D86C5CC62",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/execution-r1/inventory.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/execution-r1/inventory.json",
+      "original_bytes": 146324,
+      "original_sha256": "7C23E7BF82F9D293962C06BBD450BC4D9F7BBD74FF9E5344C8E4C88686B04D6D",
+      "bytes": 146324,
+      "sha256": "7C23E7BF82F9D293962C06BBD450BC4D9F7BBD74FF9E5344C8E4C88686B04D6D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/execution-r1/receipt.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/execution-r1/receipt.json",
+      "original_bytes": 1735,
+      "original_sha256": "518D3BAA5C6679611A04B8F3F55B1711F9E3083E562E26528AB9ECB9C4D967FE",
+      "bytes": 1735,
+      "sha256": "518D3BAA5C6679611A04B8F3F55B1711F9E3083E562E26528AB9ECB9C4D967FE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/execution-r1/stderr.log",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/execution-r1/stderr.log",
+      "original_bytes": 0,
+      "original_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/reader.cs",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/reader.cs",
+      "original_bytes": 26861,
+      "original_sha256": "542BB4126F6812ED83BBD0819A6F1464B8ECD7FFAE99FF36B22D8428EC43521F",
+      "bytes": 26861,
+      "sha256": "542BB4126F6812ED83BBD0819A6F1464B8ECD7FFAE99FF36B22D8428EC43521F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/README.md",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/README.md",
+      "original_bytes": 2279,
+      "original_sha256": "E3C32DAEB567D5FDF861F47501821D51BAEE76ECCDA38B9C2AA5133E96E8EFB2",
+      "bytes": 2279,
+      "sha256": "E3C32DAEB567D5FDF861F47501821D51BAEE76ECCDA38B9C2AA5133E96E8EFB2",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/root-attempt-authorization.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/root-attempt-authorization.json",
+      "original_bytes": 1731,
+      "original_sha256": "3153A095D97CCEBEBACC05F6D0900184B9AD74751AEFD6EA44C1E612C644C6E0",
+      "bytes": 1731,
+      "sha256": "3153A095D97CCEBEBACC05F6D0900184B9AD74751AEFD6EA44C1E612C644C6E0",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/root-launcher-proposal.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/root-launcher-proposal.json",
+      "original_bytes": 1251,
+      "original_sha256": "55A2973CD14F3168D84FFD9D7811C65184577D06DF375B58661AB457BA129FB3",
+      "bytes": 1251,
+      "sha256": "55A2973CD14F3168D84FFD9D7811C65184577D06DF375B58661AB457BA129FB3",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/run-reader.ps1",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/run-reader.ps1",
+      "original_bytes": 3147,
+      "original_sha256": "8069BD26AEBF064A57835D9852793A8F9266354DD1515FCA7C2E50535CFB53DC",
+      "bytes": 3147,
+      "sha256": "8069BD26AEBF064A57835D9852793A8F9266354DD1515FCA7C2E50535CFB53DC",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/run-reader.py",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/run-reader.py",
+      "original_bytes": 9190,
+      "original_sha256": "ABE5C20945428F69D494339F94EBB8F058FC98D0C3FCC988F3E7C5B1A53DBE54",
+      "bytes": 9190,
+      "sha256": "ABE5C20945428F69D494339F94EBB8F058FC98D0C3FCC988F3E7C5B1A53DBE54",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261106-managed-file-type-inventory-source-r4/source-pins.json",
+      "original_path": "build-ci/20261106-managed-file-type-inventory-source-r4/source-pins.json",
+      "original_bytes": 15489,
+      "original_sha256": "10E3854D27239A9BDD1BDF0F798C57578B6D629B4EA9DD7F52A30A8861A11E89",
+      "bytes": 15489,
+      "sha256": "10E3854D27239A9BDD1BDF0F798C57578B6D629B4EA9DD7F52A30A8861A11E89",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

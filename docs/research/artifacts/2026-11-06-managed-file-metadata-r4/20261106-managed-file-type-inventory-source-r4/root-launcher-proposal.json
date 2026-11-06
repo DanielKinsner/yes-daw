@@ -1,0 +1,23 @@
+{
+  "scope": "UNRUN_ROOT_LAUNCHER_SOURCE_PROPOSAL_PENDING_INDEPENDENT_REVIEW",
+  "subject_manifest_sha256": "10E3854D27239A9BDD1BDF0F798C57578B6D629B4EA9DD7F52A30A8861A11E89",
+  "subject_reader_sha256": "542BB4126F6812ED83BBD0819A6F1464B8ECD7FFAE99FF36B22D8428EC43521F",
+  "independent_source_review_sha256": "F4C2A7CE2323413F1859E2DE022BA9394D953279EB74030DEAFDB19C83172709",
+  "launcher_sha256": "ABE5C20945428F69D494339F94EBB8F058FC98D0C3FCC988F3E7C5B1A53DBE54",
+  "powershell_wrapper_sha256": "8069BD26AEBF064A57835D9852793A8F9266354DD1515FCA7C2E50535CFB53DC",
+  "predecessor_launcher_sha256": "1275FF05A85465C7FFC46C59D4579355A06C66FB7AE67D93406469630615A66B",
+  "changes": [
+    "R4 source/review/schema/count pins",
+    "Complete output uses (file,qualified_name) identity and validates each input pin/token/signature shape",
+    "Whole first-green freeze includes the two R4 author helpers"
+  ],
+  "unchanged": [
+    "Console AMD64 PE check",
+    "CreateNoWindow and SW_HIDE",
+    "stdin null and redirected output",
+    "60s timeout/kill/reap and error-mode restoration",
+    "Explicit environment key allowlist; no values persisted",
+    "167 default compiler reference pins before/after",
+    "No target Clock/parser/helper/stage GO"
+  ]
+}

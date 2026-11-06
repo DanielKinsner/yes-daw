@@ -1,0 +1,389 @@
+{
+  "status": "PROPOSED_NAMES_NOT_TYPEDEF_OR_ASSOCIATION_EVIDENCE",
+  "extra_types": {
+    "System.Private.CoreLib.dll": [
+      "System.IO.Stream",
+      "System.IO.FileStream",
+      "System.IO.StreamReader",
+      "System.IO.Strategies.FileStreamStrategy",
+      "System.IO.Strategies.OSFileStreamStrategy",
+      "System.IO.Strategies.SyncWindowsFileStreamStrategy",
+      "System.IO.Strategies.BufferedFileStreamStrategy",
+      "System.IO.Stream+<ReadAtLeastAsyncCore>d__49",
+      "System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36",
+      "System.Threading.AsyncOverSyncWithIoCancellation",
+      "System.Threading.AsyncOverSyncWithIoCancellation+SyncAsyncWorkItemRegistration",
+      "System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2",
+      "System.Threading.CancellationTokenSource",
+      "System.Threading.CancellationTokenSource+Registrations",
+      "System.Threading.CancellationTokenSource+CallbackNode",
+      "System.Threading.CancellationTokenRegistration",
+      "System.Threading.CancellationToken",
+      "System.Threading.SemaphoreSlim",
+      "System.Threading.SemaphoreSlim+TaskNode",
+      "System.Threading.Tasks.Task",
+      "System.Threading.Tasks.Task`1",
+      "System.Threading.Tasks.ValueTask`1",
+      "System.Threading.Tasks.ValueTask`1+ValueTaskSourceAsTask",
+      "System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1",
+      "System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox",
+      "System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox`1",
+      "System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1",
+      "System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1+AsyncStateMachineBox`1",
+      "System.Runtime.CompilerServices.AsyncValueTaskMethodBuilder`1",
+      "System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1",
+      "System.Runtime.InteropServices.SafeHandle",
+      "Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid",
+      "Microsoft.Win32.SafeHandles.SafeFileHandle",
+      "Microsoft.Win32.SafeHandles.SafeThreadHandle",
+      "System.Memory`1",
+      "System.ValueTuple`3",
+      "System.Text.Encoding",
+      "System.Text.Decoder",
+      "System.Text.DecoderNLS",
+      "System.Diagnostics.Stopwatch",
+      "System.MarshalByRefObject"
+    ],
+    "System.Diagnostics.Process.dll": [
+      "System.Diagnostics.Process",
+      "System.Diagnostics.ProcessStartInfo",
+      "System.Collections.Specialized.DictionaryWrapper",
+      "Microsoft.Win32.SafeHandles.SafeProcessHandle",
+      "Microsoft.Win32.SafeHandles.SafeThreadHandle",
+      "System.Text.ConsoleEncoding",
+      "System.Text.OSEncoding",
+      "System.Text.DecoderDBCS"
+    ],
+    "System.Security.Cryptography.dll": [
+      "System.Security.Cryptography.IncrementalHash",
+      "System.Security.Cryptography.HashProvider",
+      "System.Security.Cryptography.HashProviderCng",
+      "System.Security.Cryptography.ConcurrencyBlock",
+      "Microsoft.Win32.SafeHandles.SafeBCryptHandle",
+      "Microsoft.Win32.SafeHandles.SafeBCryptHashHandle",
+      "Microsoft.Win32.SafeHandles.SafeBCryptAlgorithmHandle"
+    ],
+    "System.Text.Encoding.CodePages.dll": [
+      "System.Text.EncodingNLS",
+      "System.Text.BaseCodePageEncoding",
+      "System.Text.SBCSCodePageEncoding",
+      "System.Text.DBCSCodePageEncoding",
+      "System.Text.DecoderNLS"
+    ],
+    "System.ComponentModel.Primitives.dll": [
+      "System.ComponentModel.Component"
+    ]
+  },
+  "raw_terminal_name_checks": [
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.IO.Stream",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.IO.FileStream",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.IO.StreamReader",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.IO.Strategies.FileStreamStrategy",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.IO.Strategies.OSFileStreamStrategy",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.IO.Strategies.SyncWindowsFileStreamStrategy",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.IO.Strategies.BufferedFileStreamStrategy",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.IO.Stream+<ReadAtLeastAsyncCore>d__49",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.AsyncOverSyncWithIoCancellation",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.AsyncOverSyncWithIoCancellation+SyncAsyncWorkItemRegistration",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.CancellationTokenSource",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.CancellationTokenSource+Registrations",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.CancellationTokenSource+CallbackNode",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.CancellationTokenRegistration",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.CancellationToken",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.SemaphoreSlim",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.SemaphoreSlim+TaskNode",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.Tasks.Task",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.Tasks.Task`1",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.Tasks.ValueTask`1",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.Tasks.ValueTask`1+ValueTaskSourceAsTask",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox`1",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1+AsyncStateMachineBox`1",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Runtime.CompilerServices.AsyncValueTaskMethodBuilder`1",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Runtime.InteropServices.SafeHandle",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "Microsoft.Win32.SafeHandles.SafeFileHandle",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "Microsoft.Win32.SafeHandles.SafeThreadHandle",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Memory`1",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.ValueTuple`3",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Text.Encoding",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Text.Decoder",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Text.DecoderNLS",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.Diagnostics.Stopwatch",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Private.CoreLib.dll",
+      "proposed_fixed_type": "System.MarshalByRefObject",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Diagnostics.Process.dll",
+      "proposed_fixed_type": "System.Diagnostics.Process",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Diagnostics.Process.dll",
+      "proposed_fixed_type": "System.Diagnostics.ProcessStartInfo",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Diagnostics.Process.dll",
+      "proposed_fixed_type": "System.Collections.Specialized.DictionaryWrapper",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Diagnostics.Process.dll",
+      "proposed_fixed_type": "Microsoft.Win32.SafeHandles.SafeProcessHandle",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Diagnostics.Process.dll",
+      "proposed_fixed_type": "Microsoft.Win32.SafeHandles.SafeThreadHandle",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Diagnostics.Process.dll",
+      "proposed_fixed_type": "System.Text.ConsoleEncoding",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Diagnostics.Process.dll",
+      "proposed_fixed_type": "System.Text.OSEncoding",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Diagnostics.Process.dll",
+      "proposed_fixed_type": "System.Text.DecoderDBCS",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Security.Cryptography.dll",
+      "proposed_fixed_type": "System.Security.Cryptography.IncrementalHash",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Security.Cryptography.dll",
+      "proposed_fixed_type": "System.Security.Cryptography.HashProvider",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Security.Cryptography.dll",
+      "proposed_fixed_type": "System.Security.Cryptography.HashProviderCng",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Security.Cryptography.dll",
+      "proposed_fixed_type": "System.Security.Cryptography.ConcurrencyBlock",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Security.Cryptography.dll",
+      "proposed_fixed_type": "Microsoft.Win32.SafeHandles.SafeBCryptHandle",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Security.Cryptography.dll",
+      "proposed_fixed_type": "Microsoft.Win32.SafeHandles.SafeBCryptHashHandle",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Security.Cryptography.dll",
+      "proposed_fixed_type": "Microsoft.Win32.SafeHandles.SafeBCryptAlgorithmHandle",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Text.Encoding.CodePages.dll",
+      "proposed_fixed_type": "System.Text.EncodingNLS",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Text.Encoding.CodePages.dll",
+      "proposed_fixed_type": "System.Text.BaseCodePageEncoding",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Text.Encoding.CodePages.dll",
+      "proposed_fixed_type": "System.Text.SBCSCodePageEncoding",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Text.Encoding.CodePages.dll",
+      "proposed_fixed_type": "System.Text.DBCSCodePageEncoding",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.Text.Encoding.CodePages.dll",
+      "proposed_fixed_type": "System.Text.DecoderNLS",
+      "raw_terminal_name_hit_only": true
+    },
+    {
+      "file": "System.ComponentModel.Primitives.dll",
+      "proposed_fixed_type": "System.ComponentModel.Component",
+      "raw_terminal_name_hit_only": true
+    }
+  ]
+}

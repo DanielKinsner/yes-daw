@@ -1,0 +1,208 @@
+{
+  "schema": "FIXED_PUBLIC_FILE_METADATA_INVENTORY_R4_INDEPENDENT_WHOLE_SOURCE_REVIEW",
+  "verdict": "ACCEPT_SOURCE_ONLY_PUBLIC_FILE_METADATA_R4_NOT_EXECUTION_OR_LAYOUT_QUALIFICATION",
+  "checks": 247,
+  "subject_manifest_sha256": "10E3854D27239A9BDD1BDF0F798C57578B6D629B4EA9DD7F52A30A8861A11E89",
+  "reader_sha256": "542BB4126F6812ED83BBD0819A6F1464B8ECD7FFAE99FF36B22D8428EC43521F",
+  "whole_reader_bytes": 26861,
+  "whole_reader_lines": 468,
+  "verified_files": [
+    {
+      "path": "build-ci/20261106-managed-file-type-inventory-source-r4/source-pins.json",
+      "bytes": 15489,
+      "sha256": "10E3854D27239A9BDD1BDF0F798C57578B6D629B4EA9DD7F52A30A8861A11E89"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r3/source-pins.json",
+      "bytes": 9455,
+      "sha256": "3A2060A1F51D275B2B6A160C1899DDDA55680CCC0081264484984E856F377CC2"
+    },
+    {
+      "path": "build-ci/20261106-managed-file-type-inventory-source-r4/reader.cs",
+      "bytes": 26861,
+      "sha256": "542BB4126F6812ED83BBD0819A6F1464B8ECD7FFAE99FF36B22D8428EC43521F"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r3/reader.cs",
+      "bytes": 22493,
+      "sha256": "7A8CCCE39C75E2C0030D01A864E2BFD55FDB81E5EA2B6A9644A8EF8B3B5B7F51"
+    },
+    {
+      "path": "build-ci/20261106-managed-file-type-inventory-source-r4/run-reader.ps1",
+      "bytes": 3147,
+      "sha256": "8069BD26AEBF064A57835D9852793A8F9266354DD1515FCA7C2E50535CFB53DC"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r3/run-reader.ps1",
+      "bytes": 3147,
+      "sha256": "B7A3D20CE320BE8B1B53DA3D731EDCD8B5207A9935955278B781FA74281EA1C6"
+    },
+    {
+      "path": "build-ci/20261106-managed-file-type-inventory-source-r4/README.md",
+      "bytes": 2279,
+      "sha256": "E3C32DAEB567D5FDF861F47501821D51BAEE76ECCDA38B9C2AA5133E96E8EFB2"
+    },
+    {
+      "path": "build-ci/20261106-managed-file-type-inventory-source-r4/evidence/own-source-checks.json",
+      "bytes": 19447,
+      "sha256": "AF60313AA6BD2CDAE2B80AD96CA6FA07F6C946CAF490CE78F0B020ABC8BA30CB"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-independent-review-r3/review.json",
+      "bytes": 10644,
+      "sha256": "5E870B52977ED4F984953DF2E78CEDD012BC7C62554398D768F9F959D1271EBD"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/Newtonsoft.Json.dll",
+      "bytes": 1824600,
+      "sha256": "9AF3870D53662BA1C8E9B19EC8AD0020E815FFE9E916A1F3204AC6E206447F60"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Management.Automation.dll",
+      "bytes": 19646264,
+      "sha256": "2D8AF026E589C5603629BFC3E7C57265B4167B12ECA3AE549C6A6C3CA7E4967B"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Collections.Specialized.dll",
+      "bytes": 104232,
+      "sha256": "61702E1173C49F32E7B1804667A249F8709680F01859D46CF30E74197FEDC1C5"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Private.CoreLib.dll",
+      "bytes": 16033616,
+      "sha256": "ED80A1A5DD066C0407AD59686F9AF90A4F3E55DBF3E4C973B53CC8C9D0706F82"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Diagnostics.Process.dll",
+      "bytes": 329512,
+      "sha256": "2B4871E02B366113C6CCF3B1436FADDE5E69FC0A3E3AC421E2FA0F7AF8C2BC3B"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Security.Cryptography.dll",
+      "bytes": 2549584,
+      "sha256": "BEE61E6BDEFF9FB0C4F3CBF9D48E9D1D97D12A8BB85D1EEAB9178E818B582EEE"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Text.Encoding.CodePages.dll",
+      "bytes": 862032,
+      "sha256": "56582910B3C0D17F10DC2EAFC8E5746C6F23B57AF56D7F0D4CD208F06ECE1E28"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.ComponentModel.Primitives.dll",
+      "bytes": 79696,
+      "sha256": "B671AE0E9463F65D2AD08366C890043FD570F7D3149BB57BC16B8D427D9684F5"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Reflection.Metadata.dll",
+      "bytes": 1156904,
+      "sha256": "97152D5C07E1E5D7F080F871EFF211CCDBECB2496E4EB1B086005CBD3656D431"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Collections.Immutable.dll",
+      "bytes": 976680,
+      "sha256": "623AD5FA5AC38C460DF0073F37FBB649E219AC486C926B822F77EBF02676D56C"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Text.Json.dll",
+      "bytes": 1890088,
+      "sha256": "ED5F0F3773C89948471E3691F31963EA00D3577E17296AC4DFB97772E78B6FA3"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Text.Encodings.Web.dll",
+      "bytes": 124712,
+      "sha256": "2C459F175331339B8580DEC1842879B3F0532100FA426B97A1B74E1B5DEE95D7"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Runtime.dll",
+      "bytes": 44840,
+      "sha256": "EF6D37D9334FCDF7C7E4B9590B730EB5BA623192D47F0CBE4EC478962625E586"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Console.dll",
+      "bytes": 169768,
+      "sha256": "A50D6F54E509342C49B6B7C8D72684F68701FC97FADE19956D4618A4A30E84FA"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Collections.dll",
+      "bytes": 296744,
+      "sha256": "5AEA9C285F011D1E83F05834E12632EE5EBF65DA1D546E696F525AF47101A3B0"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Runtime.Extensions.dll",
+      "bytes": 17744,
+      "sha256": "633F210388E326F0A2FBA3148312FB2900A9E0BA32F08015BB606ABC44A3D634"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.IO.dll",
+      "bytes": 15656,
+      "sha256": "7A820716EE9AB010EA624B9448EA1ACB4C78B0F79DFC9D98DB01B7F99C610B6A"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Memory.dll",
+      "bytes": 161576,
+      "sha256": "58A4DC8A9EFAC1FE0EE67138B0DDA35B2B812ADDC14C5D8251CC222B278A5C2D"
+    },
+    {
+      "path": "C:/Users/SM - Dan/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Buffers.dll",
+      "bytes": 15144,
+      "sha256": "7EFC8DFEF9548771EC328610DE7B8E5C4308A8EA6B1CA73021F336FC00653176"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-runtime-metadata-r1/runtime.json",
+      "bytes": 4431,
+      "sha256": "45817E116A4E6F6F9C9AA5089D1773F3F8978442A369D1DAFFDCF6A03CFBB8D0"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/source-pins.json",
+      "bytes": 8306,
+      "sha256": "82F9E7B92837974001616B1D686B551D7778187383E7A4AF9EE3D5C81E9BD431"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/source-manifest.json",
+      "bytes": 497616,
+      "sha256": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r1/reader.cs",
+      "bytes": 18034,
+      "sha256": "E9B1CC2AC4D5B1B3C8D1DE955A30A938E95EADB1FA92C8757350DB07BADACC74"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r1/source-pins.json",
+      "bytes": 7291,
+      "sha256": "8DB54EA7407FA296E658221580644825B532959387EDA287AC75311A5834318C"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r1/execution-r2/inventory.json",
+      "bytes": 35291,
+      "sha256": "B50DB68E7E10D67E12D3380FCD5D528C02F80F83155F3593E8C88392227C37FD"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/metadata-r4-fixed-type-plan.json",
+      "bytes": 14408,
+      "sha256": "B74F42AA44CC32355CE27D92202AB9A0708854654C9CB1FA0A19321106819132"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/candidate-name-hits.json",
+      "bytes": 2887,
+      "sha256": "4C9910768F5EBC1701A875ECF8D7C19E1A9B488159C976BB0FA1633E19AD5142"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/fixed-marker-hits.json",
+      "bytes": 7484,
+      "sha256": "B40FBE317448329B7D3FDA2221AFCC1F1FEACDF9C1F66576E3B5499A4887A6BA"
+    },
+    {
+      "path": "build-ci/20261106-managed-file-type-inventory-source-r4/evidence/reader.diff",
+      "bytes": 8813,
+      "sha256": "B8B9B1D860253AFA10F34BF0539164144E5332CF4356CEC0A4E9BA765836ACD4"
+    },
+    {
+      "path": "build-ci/20261106-controller-v-wrapper-source-closure-r1/author-metadata-r4.py",
+      "bytes": 12152,
+      "sha256": "D9AD67C30618F2E30D6941DDB88F23A282B7E49B3386D141CE7D0B99EE07AE3F"
+    }
+  ],
+  "scope": "Eight pinned files;84 fixed required names plus unchanged one generated and0..3 optional. Public file declarations only, no target assembly/code/live values or resource fit. Root must separately review its hidden launcher and admit one purpose attempt; no Clock GO.",
+  "transport_note": "Expected output identity must use (file,qualified_name): same qualified names can appear in multiple pinned assemblies; a flat name set would reject legitimate complete output."
+}

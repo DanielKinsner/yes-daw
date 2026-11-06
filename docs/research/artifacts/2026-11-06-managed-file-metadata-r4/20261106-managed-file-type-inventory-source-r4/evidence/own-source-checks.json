@@ -1,0 +1,615 @@
+{
+  "schema": "METADATA_R4_OWN_SOURCE_CHECKS_V1",
+  "status": "PASS_SOURCE_FILE_ONLY_UNCOMPILED_UNRUN",
+  "checks": [
+    {
+      "id": "NEW_OUTPUT_ABSENT",
+      "pass": true
+    },
+    {
+      "id": "R3_READER_SEAL",
+      "pass": true
+    },
+    {
+      "id": "R3_MANIFEST_SEAL",
+      "pass": true
+    },
+    {
+      "id": "R3_FOUR_INPUT_GROUPS",
+      "pass": true
+    },
+    {
+      "id": "R3_REQUIRED_TYPES_22",
+      "pass": true
+    },
+    {
+      "id": "R4_REQUIRED_TYPES_84",
+      "pass": true
+    },
+    {
+      "id": "R4_INPUT_FILES_8",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PIN_Newtonsoft.Json.dll",
+      "pass": true
+    },
+    {
+      "id": "UNIQUE_TYPE_NAMES_Newtonsoft.Json.dll",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JToken",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JContainer",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JObject",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JArray",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JProperty",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JProperty+JPropertyList",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JValue",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JPropertyKeyedCollection",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.Linq.JTokenWriter",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.JsonReader",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextReader",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.JsonWriter",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.JsonTextWriter",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.JsonPosition",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.Utilities.StringBuffer",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_Newtonsoft.Json.dll_Newtonsoft.Json.Utilities.StringReference",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PIN_System.Management.Automation.dll",
+      "pass": true
+    },
+    {
+      "id": "UNIQUE_TYPE_NAMES_System.Management.Automation.dll",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Management.Automation.dll_System.Management.Automation.OrderedHashtable",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PIN_System.Collections.Specialized.dll",
+      "pass": true
+    },
+    {
+      "id": "UNIQUE_TYPE_NAMES_System.Collections.Specialized.dll",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Collections.Specialized.dll_System.Collections.Specialized.OrderedDictionary",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PIN_System.Private.CoreLib.dll",
+      "pass": true
+    },
+    {
+      "id": "UNIQUE_TYPE_NAMES_System.Private.CoreLib.dll",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Tuple`5",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Collections.ArrayList",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Collections.DictionaryEntry",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Tuple`2",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.IO.Stream",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.IO.FileStream",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.IO.StreamReader",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.IO.Strategies.FileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.IO.Strategies.OSFileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.IO.Strategies.SyncWindowsFileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.IO.Stream+<ReadAtLeastAsyncCore>d__49",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+SyncAsyncWorkItemRegistration",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+Registrations",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.CancellationTokenSource+CallbackNode",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.CancellationTokenRegistration",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.CancellationToken",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.SemaphoreSlim+TaskNode",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.Tasks.Task",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.Tasks.Task`1",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.Tasks.ValueTask`1+ValueTaskSourceAsTask",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox`1",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1+AsyncStateMachineBox`1",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Runtime.CompilerServices.AsyncValueTaskMethodBuilder`1",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Runtime.InteropServices.SafeHandle",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeFileHandle",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_Microsoft.Win32.SafeHandles.SafeThreadHandle",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Memory`1",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.ValueTuple`3",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Text.Encoding",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Text.Decoder",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Text.DecoderNLS",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.Diagnostics.Stopwatch",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Private.CoreLib.dll_System.MarshalByRefObject",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PIN_System.Diagnostics.Process.dll",
+      "pass": true
+    },
+    {
+      "id": "UNIQUE_TYPE_NAMES_System.Diagnostics.Process.dll",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Diagnostics.Process.dll_System.Diagnostics.Process",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Diagnostics.Process.dll_System.Diagnostics.ProcessStartInfo",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Diagnostics.Process.dll_System.Collections.Specialized.DictionaryWrapper",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Diagnostics.Process.dll_Microsoft.Win32.SafeHandles.SafeProcessHandle",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Diagnostics.Process.dll_Microsoft.Win32.SafeHandles.SafeThreadHandle",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Diagnostics.Process.dll_System.Text.ConsoleEncoding",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Diagnostics.Process.dll_System.Text.OSEncoding",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Diagnostics.Process.dll_System.Text.DecoderDBCS",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PIN_System.Security.Cryptography.dll",
+      "pass": true
+    },
+    {
+      "id": "UNIQUE_TYPE_NAMES_System.Security.Cryptography.dll",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Security.Cryptography.dll_System.Security.Cryptography.IncrementalHash",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Security.Cryptography.dll_System.Security.Cryptography.HashProvider",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Security.Cryptography.dll_System.Security.Cryptography.HashProviderCng",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Security.Cryptography.dll_System.Security.Cryptography.ConcurrencyBlock",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Security.Cryptography.dll_Microsoft.Win32.SafeHandles.SafeBCryptHandle",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Security.Cryptography.dll_Microsoft.Win32.SafeHandles.SafeBCryptHashHandle",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Security.Cryptography.dll_Microsoft.Win32.SafeHandles.SafeBCryptAlgorithmHandle",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PIN_System.Text.Encoding.CodePages.dll",
+      "pass": true
+    },
+    {
+      "id": "UNIQUE_TYPE_NAMES_System.Text.Encoding.CodePages.dll",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Text.Encoding.CodePages.dll_System.Text.EncodingNLS",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Text.Encoding.CodePages.dll_System.Text.BaseCodePageEncoding",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Text.Encoding.CodePages.dll_System.Text.SBCSCodePageEncoding",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Text.Encoding.CodePages.dll_System.Text.DBCSCodePageEncoding",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.Text.Encoding.CodePages.dll_System.Text.DecoderNLS",
+      "pass": true
+    },
+    {
+      "id": "INPUT_PIN_System.ComponentModel.Primitives.dll",
+      "pass": true
+    },
+    {
+      "id": "UNIQUE_TYPE_NAMES_System.ComponentModel.Primitives.dll",
+      "pass": true
+    },
+    {
+      "id": "RAW_CANDIDATE_NAME_ONLY_System.ComponentModel.Primitives.dll_System.ComponentModel.Component",
+      "pass": true
+    },
+    {
+      "id": "PRESERVED_R3_INPUT_Newtonsoft.Json.dll",
+      "pass": true
+    },
+    {
+      "id": "PRESERVED_R3_INPUT_System.Management.Automation.dll",
+      "pass": true
+    },
+    {
+      "id": "PRESERVED_R3_INPUT_System.Collections.Specialized.dll",
+      "pass": true
+    },
+    {
+      "id": "PRESERVED_R3_INPUT_System.Private.CoreLib.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.Reflection.Metadata.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.Collections.Immutable.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.Text.Json.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.Text.Encodings.Web.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.Runtime.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.Console.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.Collections.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.Security.Cryptography.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.Runtime.Extensions.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.IO.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.Memory.dll",
+      "pass": true
+    },
+    {
+      "id": "DEPENDENCY_PIN_System.Buffers.dll",
+      "pass": true
+    },
+    {
+      "id": "EXACT_LITERAL_CHANGE_FIXED_PUBLIC_FILE_METADATA_TYPE_INVENTORY_V3",
+      "pass": true
+    },
+    {
+      "id": "EXACT_LITERAL_CHANGE_json.WriteNumber(\"required_named_types\", 22);",
+      "pass": true
+    },
+    {
+      "id": "EXACT_LITERAL_CHANGE_if (requiredCount != 22 ||",
+      "pass": true
+    },
+    {
+      "id": "EXACT_LITERAL_CHANGE_|| count < 23 || count > 26)",
+      "pass": true
+    },
+    {
+      "id": "WHOLE_DECODER_AND_CONTROL_LOGIC_BYTE_IDENTICAL_EXCEPT_INPUT_SCHEMA_COUNTS",
+      "pass": true
+    },
+    {
+      "id": "READER_UTF8_LF",
+      "pass": true
+    },
+    {
+      "id": "LAUNCHER_EXACT_PIN_SUBSTITUTION_3A2060A1F51D275B2B6A160C1899DDDA55680CCC0081264484984E856F377CC2",
+      "pass": true
+    },
+    {
+      "id": "LAUNCHER_EXACT_PIN_SUBSTITUTION_22493",
+      "pass": true
+    },
+    {
+      "id": "LAUNCHER_EXACT_PIN_SUBSTITUTION_7A8CCCE39C75E2C0030D01A864E2BFD55FDB81E5EA2B6A9644A8EF8B3B5B7F51",
+      "pass": true
+    },
+    {
+      "id": "LAUNCHER_LOGIC_IDENTICAL",
+      "pass": true
+    },
+    {
+      "id": "UTF8_LF_reader.cs",
+      "pass": true
+    },
+    {
+      "id": "UTF8_LF_run-reader.ps1",
+      "pass": true
+    },
+    {
+      "id": "UTF8_LF_README.md",
+      "pass": true
+    },
+    {
+      "id": "UTF8_LF_source-pins.json",
+      "pass": true
+    },
+    {
+      "id": "R3_READER_PRESERVED",
+      "pass": true
+    },
+    {
+      "id": "R3_MANIFEST_PRESERVED",
+      "pass": true
+    }
+  ],
+  "check_count": 139,
+  "required_type_count": 84,
+  "generated_jobject_count": 1,
+  "optional_count": 3,
+  "reported_min": 85,
+  "reported_max": 88,
+  "verified_files": [
+    {
+      "path": "build-ci/20261106-managed-file-type-inventory-source-r4/reader.cs",
+      "bytes": 26861,
+      "sha256": "542BB4126F6812ED83BBD0819A6F1464B8ECD7FFAE99FF36B22D8428EC43521F"
+    },
+    {
+      "path": "build-ci/20261106-managed-file-type-inventory-source-r4/run-reader.ps1",
+      "bytes": 3147,
+      "sha256": "8069BD26AEBF064A57835D9852793A8F9266354DD1515FCA7C2E50535CFB53DC"
+    },
+    {
+      "path": "build-ci/20261106-managed-file-type-inventory-source-r4/README.md",
+      "bytes": 2279,
+      "sha256": "E3C32DAEB567D5FDF861F47501821D51BAEE76ECCDA38B9C2AA5133E96E8EFB2"
+    },
+    {
+      "path": "build-ci/20261106-managed-file-type-inventory-source-r4/source-pins.json",
+      "bytes": 15489,
+      "sha256": "10E3854D27239A9BDD1BDF0F798C57578B6D629B4EA9DD7F52A30A8861A11E89"
+    },
+    {
+      "path": "build-ci/20261106-managed-file-type-inventory-source-r4/evidence/reader.diff",
+      "bytes": 8813,
+      "sha256": "B8B9B1D860253AFA10F34BF0539164144E5332CF4356CEC0A4E9BA765836ACD4"
+    }
+  ],
+  "remaining_qualifications": [
+    "Fixed TypeDef names and declaring assembly association are not established by the raw-name authoring hits; the later same-handle metadata reader must independently satisfy every required name or fail.",
+    "No live managed object size, generic instantiation layout, field offset, alignment, padding, native wrapper size, allocation observation or CLR/PS selected-source association is provided by this packet.",
+    "ExecutionContext, continuation/delegate/fault and general exception graphs, task diagnostic/debug variants and thread-pool/native queue ownership remain separate qualification obligations; no recursive closure is claimed.",
+    "Other CodePages provider encoding classes, fallback buffers and native code-page table ownership remain conditional; the selected code page is neither queried nor assumed.",
+    "Pooled per-core cache arrays and per-thread cache ownership require their own bounds; metadata declaration output alone neither bounds processor/thread counts nor guarantees cache reuse or physical reclamation.",
+    "The new three generated state-machine names are fixed candidate requests, not new discovery logic; the existing exactly-one JObject iterator discovery is unchanged."
+  ],
+  "subject_preservation": [
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r3/reader.cs",
+      "bytes": 22493,
+      "sha256": "7A8CCCE39C75E2C0030D01A864E2BFD55FDB81E5EA2B6A9644A8EF8B3B5B7F51"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r3/source-pins.json",
+      "bytes": 9455,
+      "sha256": "3A2060A1F51D275B2B6A160C1899DDDA55680CCC0081264484984E856F377CC2"
+    }
+  ]
+}

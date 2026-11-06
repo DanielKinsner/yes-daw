@@ -89,6 +89,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    its whole functional review passed1,491 checks; fresh complete scalar/resource censuses are in progress
    and all target execution guards remain false. Parser/source checks are not target runtime success.
    The fixed-key R12 dictionary theorem passed228 independent source checks; whole resources remain held.
+   Separate metadata reader R4 passed for88 types/391 declared fields; actual object sizes remain unmeasured.
    The narrow candidate observation/restoration lemma passed13,368 independent checks; actual errno,
    floor/provider/interval and whole runtime/resource qualification remain pending.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
@@ -111,6 +112,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Read genuine controller wrapper field declarations headlessly
+
+- Separate metadata reader R4 exited0/stderr0 in1.014s, validating88 types/391 declared instance fields across eight pinned DLLs. Whole source review passed247 checks; fresh root-launcher review passed307 before the separately admitted purpose attempt.
+- Archived31 complete source/author/review/authorization/raw records. Per-file type identity preserves equal names across DLLs; whole source/launchers froze at first green and all pre/post pins matched.
+- This is file-declaration evidence, with no live size/offset/allocation/source-binary/resource-fit or Clock execution credit. Complete census/resource work remains active; no DAW window, desktop input or audio/MIDI device ran.
 
 ## 2026-11-06 - Bound fixed-key dictionary growth without target execution
 

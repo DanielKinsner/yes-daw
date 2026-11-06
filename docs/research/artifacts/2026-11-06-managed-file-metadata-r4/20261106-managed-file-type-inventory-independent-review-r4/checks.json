@@ -1,0 +1,990 @@
+[
+  {
+    "check": "hash:source-pins.json",
+    "passed": true
+  },
+  {
+    "check": "length:source-pins.json",
+    "passed": true
+  },
+  {
+    "check": "hash:source-pins.json",
+    "passed": true
+  },
+  {
+    "check": "length:source-pins.json",
+    "passed": true
+  },
+  {
+    "check": "hash:reader.cs",
+    "passed": true
+  },
+  {
+    "check": "length:reader.cs",
+    "passed": true
+  },
+  {
+    "check": "hash:reader.cs",
+    "passed": true
+  },
+  {
+    "check": "length:reader.cs",
+    "passed": true
+  },
+  {
+    "check": "hash:run-reader.ps1",
+    "passed": true
+  },
+  {
+    "check": "length:run-reader.ps1",
+    "passed": true
+  },
+  {
+    "check": "hash:README.md",
+    "passed": true
+  },
+  {
+    "check": "hash:own-source-checks.json",
+    "passed": true
+  },
+  {
+    "check": "hash:review.json",
+    "passed": true
+  },
+  {
+    "check": "prior-verdict",
+    "passed": true
+  },
+  {
+    "check": "hash:Newtonsoft.Json.dll",
+    "passed": true
+  },
+  {
+    "check": "length:Newtonsoft.Json.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Management.Automation.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Management.Automation.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Collections.Specialized.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Collections.Specialized.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Private.CoreLib.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Private.CoreLib.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Diagnostics.Process.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Diagnostics.Process.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Security.Cryptography.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Security.Cryptography.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Text.Encoding.CodePages.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Text.Encoding.CodePages.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.ComponentModel.Primitives.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.ComponentModel.Primitives.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Reflection.Metadata.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Reflection.Metadata.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Collections.Immutable.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Collections.Immutable.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Text.Json.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Text.Json.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Text.Encodings.Web.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Text.Encodings.Web.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Runtime.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Runtime.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Console.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Console.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Collections.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Collections.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Security.Cryptography.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Security.Cryptography.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Runtime.Extensions.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Runtime.Extensions.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.IO.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.IO.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Memory.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Memory.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:System.Buffers.dll",
+    "passed": true
+  },
+  {
+    "check": "length:System.Buffers.dll",
+    "passed": true
+  },
+  {
+    "check": "hash:runtime.json",
+    "passed": true
+  },
+  {
+    "check": "length:runtime.json",
+    "passed": true
+  },
+  {
+    "check": "hash:source-pins.json",
+    "passed": true
+  },
+  {
+    "check": "length:source-pins.json",
+    "passed": true
+  },
+  {
+    "check": "hash:source-manifest.json",
+    "passed": true
+  },
+  {
+    "check": "length:source-manifest.json",
+    "passed": true
+  },
+  {
+    "check": "hash:reader.cs",
+    "passed": true
+  },
+  {
+    "check": "length:reader.cs",
+    "passed": true
+  },
+  {
+    "check": "hash:source-pins.json",
+    "passed": true
+  },
+  {
+    "check": "length:source-pins.json",
+    "passed": true
+  },
+  {
+    "check": "hash:inventory.json",
+    "passed": true
+  },
+  {
+    "check": "length:inventory.json",
+    "passed": true
+  },
+  {
+    "check": "hash:reader.cs",
+    "passed": true
+  },
+  {
+    "check": "length:reader.cs",
+    "passed": true
+  },
+  {
+    "check": "hash:metadata-r4-fixed-type-plan.json",
+    "passed": true
+  },
+  {
+    "check": "length:metadata-r4-fixed-type-plan.json",
+    "passed": true
+  },
+  {
+    "check": "hash:candidate-name-hits.json",
+    "passed": true
+  },
+  {
+    "check": "length:candidate-name-hits.json",
+    "passed": true
+  },
+  {
+    "check": "hash:fixed-marker-hits.json",
+    "passed": true
+  },
+  {
+    "check": "length:fixed-marker-hits.json",
+    "passed": true
+  },
+  {
+    "check": "hash:reader.cs",
+    "passed": true
+  },
+  {
+    "check": "length:reader.cs",
+    "passed": true
+  },
+  {
+    "check": "hash:README.md",
+    "passed": true
+  },
+  {
+    "check": "length:README.md",
+    "passed": true
+  },
+  {
+    "check": "hash:reader.diff",
+    "passed": true
+  },
+  {
+    "check": "length:reader.diff",
+    "passed": true
+  },
+  {
+    "check": "hash:author-metadata-r4.py",
+    "passed": true
+  },
+  {
+    "check": "length:author-metadata-r4.py",
+    "passed": true
+  },
+  {
+    "check": "original-target-pins",
+    "passed": true
+  },
+  {
+    "check": "original-dependency-pins",
+    "passed": true
+  },
+  {
+    "check": "exact-eight-inputs",
+    "passed": true
+  },
+  {
+    "check": "all-targets-in-fixed-runtime",
+    "passed": true
+  },
+  {
+    "check": "whole-prefix-identical",
+    "passed": true
+  },
+  {
+    "check": "one-literal:FIXED_PUBLIC_FILE_METADATA_TYPE_INVENTORY_V4",
+    "passed": true
+  },
+  {
+    "check": "one-literal:json.WriteNumber(\"required_named_types\", 84);",
+    "passed": true
+  },
+  {
+    "check": "one-literal:if (requiredCount != 84 ||",
+    "passed": true
+  },
+  {
+    "check": "one-literal:|| count < 85 || count > 88)",
+    "passed": true
+  },
+  {
+    "check": "whole-decoder-control-and-output-identical",
+    "passed": true
+  },
+  {
+    "check": "unique-file:Newtonsoft.Json.dll",
+    "passed": true
+  },
+  {
+    "check": "literal-pin:Newtonsoft.Json.dll",
+    "passed": true
+  },
+  {
+    "check": "unique-types-in-file:Newtonsoft.Json.dll",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.Linq.JToken",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.Linq.JContainer",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.Linq.JObject",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.Linq.JArray",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.Linq.JProperty",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.Linq.JProperty+JPropertyList",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.Linq.JValue",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.Linq.JPropertyKeyedCollection",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.Linq.JTokenWriter",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.JsonReader",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.JsonTextReader",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.JsonWriter",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.JsonTextWriter",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.JsonPosition",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.Utilities.StringBuffer",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:Newtonsoft.Json.dll:Newtonsoft.Json.Utilities.StringReference",
+    "passed": true
+  },
+  {
+    "check": "unique-file:System.Management.Automation.dll",
+    "passed": true
+  },
+  {
+    "check": "literal-pin:System.Management.Automation.dll",
+    "passed": true
+  },
+  {
+    "check": "unique-types-in-file:System.Management.Automation.dll",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Management.Automation.dll:System.Management.Automation.OrderedHashtable",
+    "passed": true
+  },
+  {
+    "check": "unique-file:System.Collections.Specialized.dll",
+    "passed": true
+  },
+  {
+    "check": "literal-pin:System.Collections.Specialized.dll",
+    "passed": true
+  },
+  {
+    "check": "unique-types-in-file:System.Collections.Specialized.dll",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Collections.Specialized.dll:System.Collections.Specialized.OrderedDictionary",
+    "passed": true
+  },
+  {
+    "check": "unique-file:System.Private.CoreLib.dll",
+    "passed": true
+  },
+  {
+    "check": "literal-pin:System.Private.CoreLib.dll",
+    "passed": true
+  },
+  {
+    "check": "unique-types-in-file:System.Private.CoreLib.dll",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Tuple`5",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Collections.ArrayList",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Collections.DictionaryEntry",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Tuple`2",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.IO.Stream",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.IO.FileStream",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.IO.StreamReader",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.IO.Strategies.FileStreamStrategy",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.IO.Strategies.OSFileStreamStrategy",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.IO.Strategies.SyncWindowsFileStreamStrategy",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.IO.Strategies.BufferedFileStreamStrategy",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.IO.Stream+<ReadAtLeastAsyncCore>d__49",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.IO.Strategies.BufferedFileStreamStrategy+<ReadFromNonSeekableAsync>d__36",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.AsyncOverSyncWithIoCancellation",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.AsyncOverSyncWithIoCancellation+SyncAsyncWorkItemRegistration",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.AsyncOverSyncWithIoCancellation+<InvokeAsync>d__8`2",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.CancellationTokenSource",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.CancellationTokenSource+Registrations",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.CancellationTokenSource+CallbackNode",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.CancellationTokenRegistration",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.CancellationToken",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.SemaphoreSlim",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.SemaphoreSlim+TaskNode",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.Tasks.Task",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.Tasks.Task`1",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.Tasks.ValueTask`1",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.Tasks.ValueTask`1+ValueTaskSourceAsTask",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1+StateMachineBox`1",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1+AsyncStateMachineBox`1",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Runtime.CompilerServices.AsyncValueTaskMethodBuilder`1",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Runtime.InteropServices.SafeHandle",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:Microsoft.Win32.SafeHandles.SafeFileHandle",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:Microsoft.Win32.SafeHandles.SafeThreadHandle",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Memory`1",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.ValueTuple`3",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Text.Encoding",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Text.Decoder",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Text.DecoderNLS",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.Diagnostics.Stopwatch",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Private.CoreLib.dll:System.MarshalByRefObject",
+    "passed": true
+  },
+  {
+    "check": "unique-file:System.Diagnostics.Process.dll",
+    "passed": true
+  },
+  {
+    "check": "literal-pin:System.Diagnostics.Process.dll",
+    "passed": true
+  },
+  {
+    "check": "unique-types-in-file:System.Diagnostics.Process.dll",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Diagnostics.Process.dll:System.Diagnostics.Process",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Diagnostics.Process.dll:System.Diagnostics.ProcessStartInfo",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Diagnostics.Process.dll:System.Collections.Specialized.DictionaryWrapper",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Diagnostics.Process.dll:Microsoft.Win32.SafeHandles.SafeProcessHandle",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Diagnostics.Process.dll:Microsoft.Win32.SafeHandles.SafeThreadHandle",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Diagnostics.Process.dll:System.Text.ConsoleEncoding",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Diagnostics.Process.dll:System.Text.OSEncoding",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Diagnostics.Process.dll:System.Text.DecoderDBCS",
+    "passed": true
+  },
+  {
+    "check": "unique-file:System.Security.Cryptography.dll",
+    "passed": true
+  },
+  {
+    "check": "literal-pin:System.Security.Cryptography.dll",
+    "passed": true
+  },
+  {
+    "check": "unique-types-in-file:System.Security.Cryptography.dll",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Security.Cryptography.dll:System.Security.Cryptography.IncrementalHash",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Security.Cryptography.dll:System.Security.Cryptography.HashProvider",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Security.Cryptography.dll:System.Security.Cryptography.HashProviderCng",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Security.Cryptography.dll:System.Security.Cryptography.ConcurrencyBlock",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Security.Cryptography.dll:Microsoft.Win32.SafeHandles.SafeBCryptHandle",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Security.Cryptography.dll:Microsoft.Win32.SafeHandles.SafeBCryptHashHandle",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Security.Cryptography.dll:Microsoft.Win32.SafeHandles.SafeBCryptAlgorithmHandle",
+    "passed": true
+  },
+  {
+    "check": "unique-file:System.Text.Encoding.CodePages.dll",
+    "passed": true
+  },
+  {
+    "check": "literal-pin:System.Text.Encoding.CodePages.dll",
+    "passed": true
+  },
+  {
+    "check": "unique-types-in-file:System.Text.Encoding.CodePages.dll",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Text.Encoding.CodePages.dll:System.Text.EncodingNLS",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Text.Encoding.CodePages.dll:System.Text.BaseCodePageEncoding",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Text.Encoding.CodePages.dll:System.Text.SBCSCodePageEncoding",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Text.Encoding.CodePages.dll:System.Text.DBCSCodePageEncoding",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.Text.Encoding.CodePages.dll:System.Text.DecoderNLS",
+    "passed": true
+  },
+  {
+    "check": "unique-file:System.ComponentModel.Primitives.dll",
+    "passed": true
+  },
+  {
+    "check": "literal-pin:System.ComponentModel.Primitives.dll",
+    "passed": true
+  },
+  {
+    "check": "unique-types-in-file:System.ComponentModel.Primitives.dll",
+    "passed": true
+  },
+  {
+    "check": "fixed-name:System.ComponentModel.Primitives.dll:System.ComponentModel.Component",
+    "passed": true
+  },
+  {
+    "check": "all-inputs-parsed",
+    "passed": true
+  },
+  {
+    "check": "literal-manifest-agreement",
+    "passed": true
+  },
+  {
+    "check": "84-required",
+    "passed": true
+  },
+  {
+    "check": "old-type-prefix:Newtonsoft.Json.dll",
+    "passed": true
+  },
+  {
+    "check": "old-type-prefix:System.Management.Automation.dll",
+    "passed": true
+  },
+  {
+    "check": "old-type-prefix:System.Collections.Specialized.dll",
+    "passed": true
+  },
+  {
+    "check": "old-type-prefix:System.Private.CoreLib.dll",
+    "passed": true
+  },
+  {
+    "check": "22-original-62-added",
+    "passed": true
+  },
+  {
+    "check": "all-count-gates",
+    "passed": true
+  },
+  {
+    "check": "optional-unchanged",
+    "passed": true
+  },
+  {
+    "check": "wrapper-one-substitution:3A2060A1F51D275B2B6A160C1899DDDA55680CCC0081264484984E856F377CC2",
+    "passed": true
+  },
+  {
+    "check": "wrapper-one-substitution:22493",
+    "passed": true
+  },
+  {
+    "check": "wrapper-one-substitution:7A8CCCE39C75E2C0030D01A864E2BFD55FDB81E5EA2B6A9644A8EF8B3B5B7F51",
+    "passed": true
+  },
+  {
+    "check": "whole-powershell-wrapper-identical-except-three-pins",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:FileAccess.Read, FileShare.Read",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:SHA256.HashData(file)",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:file.Position = 0;",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:PEStreamOptions.PrefetchMetadata | PEStreamOptions.LeaveOpen",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:if (!pe.HasMetadata)",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:if (!reader.IsAssembly)",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:REQUESTED_TYPE_MISSING",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:DUPLICATE_REQUESTED_TYPE",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:AMBIGUOUS_ENUMERATOR_NESTED_NAME",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:GENERIC_PARAMETER_GAP",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:TYPE_NESTING_CYCLE",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:TYPE_REFERENCE_CYCLE",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:TYPE_SPECIFICATION_CYCLE",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:if ((field.Attributes & FieldAttributes.Static) != 0) continue;",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:field.DecodeSignature(provider, context)",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:buffer.WriteByte(10);",
+    "passed": true
+  },
+  {
+    "check": "whole-reviewed-boundary:return buffer.ToArray();",
+    "passed": true
+  },
+  {
+    "check": "no-target-execution-or-live-values:Assembly.Load",
+    "passed": true
+  },
+  {
+    "check": "no-target-execution-or-live-values:Assembly.LoadFrom",
+    "passed": true
+  },
+  {
+    "check": "no-target-execution-or-live-values:GetMethodBody",
+    "passed": true
+  },
+  {
+    "check": "no-target-execution-or-live-values:Activator.",
+    "passed": true
+  },
+  {
+    "check": "no-target-execution-or-live-values:DllImport",
+    "passed": true
+  },
+  {
+    "check": "no-target-execution-or-live-values:GetField(",
+    "passed": true
+  },
+  {
+    "check": "no-target-execution-or-live-values:MethodInfo",
+    "passed": true
+  },
+  {
+    "check": "no-target-execution-or-live-values:Marshal.OffsetOf",
+    "passed": true
+  },
+  {
+    "check": "no-target-execution-or-live-values:Unsafe.SizeOf",
+    "passed": true
+  },
+  {
+    "check": "no-target-execution-or-live-values:Process.Start",
+    "passed": true
+  },
+  {
+    "check": "no-target-execution-or-live-values:Environment.GetEnvironmentVariable",
+    "passed": true
+  },
+  {
+    "check": "complete-output-before-write",
+    "passed": true
+  },
+  {
+    "check": "arguments-refused",
+    "passed": true
+  },
+  {
+    "check": "source-files-LF",
+    "passed": true
+  },
+  {
+    "check": "no-root-launcher-or-attempt-yet",
+    "passed": true
+  },
+  {
+    "check": "qualifications-explicit",
+    "passed": true
+  }
+]
