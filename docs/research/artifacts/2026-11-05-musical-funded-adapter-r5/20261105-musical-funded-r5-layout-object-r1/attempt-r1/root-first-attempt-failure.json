@@ -1,0 +1,9 @@
+{
+  "status": "PRESERVED_PRECOMPILER_LAUNCHER_SOURCE_PIN_FAILURE",
+  "raw_tool_shell_exit": 1,
+  "compiler_invoked": false,
+  "target_executed": false,
+  "failed_wrapper_sha256": "E967B30A34B27D2E5CF42CBC811F608AE1558E838A12C521AE4CDBBB0EC00534",
+  "cause": "Path.Join intentionally concatenated an absolute SDK source pin after the repo directory. Corrected wrapper preserves fully qualified pin paths and joins only relative paths. Engine candidate/layout.cpp unchanged.",
+  "replacement_wrapper_sha256": "D7EA0E2214D555F9F4365DDF4D76DB38FBE7B388BDB0BDA10163CC0405C57508"
+}

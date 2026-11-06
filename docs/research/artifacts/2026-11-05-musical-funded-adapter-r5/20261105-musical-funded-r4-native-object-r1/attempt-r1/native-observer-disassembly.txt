@@ -1,0 +1,443 @@
+
+Dump of file C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261105-musical-funded-r4-native-object-r1\attempt-r1\native-observer.obj
+
+File Type: COFF OBJECT
+
+?control@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeControl@234@XZ (private: static struct yesdaw::app::musical_origin_source_r8::NativeControl __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::control(void)):
+  0000000000000000: 0F 57 C0           xorps       xmm0,xmm0
+  0000000000000003: 0F 11 01           movups      xmmword ptr [rcx],xmm0
+  0000000000000006: C6 01 01           mov         byte ptr [rcx],1
+  0000000000000009: 48 C7 41 08 9C D8  mov         qword ptr [rcx+8],0B96D89Ch
+                    96 0B
+  0000000000000011: 0F AE 5C 24 08     stmxcsr     dword ptr [rsp+8]
+  0000000000000016: 8B 44 24 08        mov         eax,dword ptr [rsp+8]
+  000000000000001A: 48 83 E0 C0        and         rax,0FFFFFFFFFFFFFFC0h
+  000000000000001E: 48 89 41 10        mov         qword ptr [rcx+10h],rax
+  0000000000000022: 48 8B C1           mov         rax,rcx
+  0000000000000025: C3                 ret
+
+?getterAnchorModule@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeModule@234@XZ (private: static struct yesdaw::app::musical_origin_source_r8::NativeModule __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::getterAnchorModule(void)):
+  0000000000000000: 40 53              push        rbx
+  0000000000000002: 48 83 EC 20        sub         rsp,20h
+  0000000000000006: 48 8B 15 00 00 00  mov         rdx,qword ptr [__imp__get_FMA3_enable]
+                    00
+  000000000000000D: 4C 8D 44 24 30     lea         r8,[rsp+30h]
+  0000000000000012: 33 C0              xor         eax,eax
+  0000000000000014: 0F 57 C0           xorps       xmm0,xmm0
+  0000000000000017: 0F 11 01           movups      xmmword ptr [rcx],xmm0
+  000000000000001A: 48 89 41 10        mov         qword ptr [rcx+10h],rax
+  000000000000001E: 48 8B D9           mov         rbx,rcx
+  0000000000000021: B9 06 00 00 00     mov         ecx,6
+  0000000000000026: 48 89 44 24 30     mov         qword ptr [rsp+30h],rax
+  000000000000002B: FF 15 00 00 00 00  call        qword ptr [__imp_GetModuleHandleExW]
+  0000000000000031: 85 C0              test        eax,eax
+  0000000000000033: 0F 95 C0           setne       al
+  0000000000000036: 88 03              mov         byte ptr [rbx],al
+  0000000000000038: 48 8B 44 24 30     mov         rax,qword ptr [rsp+30h]
+  000000000000003D: 48 89 43 08        mov         qword ptr [rbx+8],rax
+  0000000000000041: 48 8B 05 00 00 00  mov         rax,qword ptr [__imp__get_FMA3_enable]
+                    00
+  0000000000000048: 48 89 43 10        mov         qword ptr [rbx+10h],rax
+  000000000000004C: 48 8B C3           mov         rax,rbx
+  000000000000004F: 48 83 C4 20        add         rsp,20h
+  0000000000000053: 5B                 pop         rbx
+  0000000000000054: C3                 ret
+
+RELOCATIONS #6
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000009  REL32                      00000000        1D  __imp__get_FMA3_enable
+ 0000002D  REL32                      00000000        2E  __imp_GetModuleHandleExW
+ 00000044  REL32                      00000000        1D  __imp__get_FMA3_enable
+
+?logAnchorModule@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeModule@234@XZ (private: static struct yesdaw::app::musical_origin_source_r8::NativeModule __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::logAnchorModule(void)):
+  0000000000000000: 40 53              push        rbx
+  0000000000000002: 48 83 EC 20        sub         rsp,20h
+  0000000000000006: 48 8B 15 00 00 00  mov         rdx,qword ptr [__imp_log1p]
+                    00
+  000000000000000D: 4C 8D 44 24 30     lea         r8,[rsp+30h]
+  0000000000000012: 33 C0              xor         eax,eax
+  0000000000000014: 0F 57 C0           xorps       xmm0,xmm0
+  0000000000000017: 0F 11 01           movups      xmmword ptr [rcx],xmm0
+  000000000000001A: 48 89 41 10        mov         qword ptr [rcx+10h],rax
+  000000000000001E: 48 8B D9           mov         rbx,rcx
+  0000000000000021: B9 06 00 00 00     mov         ecx,6
+  0000000000000026: 48 89 44 24 30     mov         qword ptr [rsp+30h],rax
+  000000000000002B: FF 15 00 00 00 00  call        qword ptr [__imp_GetModuleHandleExW]
+  0000000000000031: 85 C0              test        eax,eax
+  0000000000000033: 0F 95 C0           setne       al
+  0000000000000036: 88 03              mov         byte ptr [rbx],al
+  0000000000000038: 48 8B 44 24 30     mov         rax,qword ptr [rsp+30h]
+  000000000000003D: 48 89 43 08        mov         qword ptr [rbx+8],rax
+  0000000000000041: 48 8B 05 00 00 00  mov         rax,qword ptr [__imp_log1p]
+                    00
+  0000000000000048: 48 89 43 10        mov         qword ptr [rbx+10h],rax
+  000000000000004C: 48 8B C3           mov         rax,rbx
+  000000000000004F: 48 83 C4 20        add         rsp,20h
+  0000000000000053: 5B                 pop         rbx
+  0000000000000054: C3                 ret
+
+RELOCATIONS #7
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000009  REL32                      00000000        1C  __imp_log1p
+ 0000002D  REL32                      00000000        2E  __imp_GetModuleHandleExW
+ 00000044  REL32                      00000000        1C  __imp_log1p
+
+?moduleInfo@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeImage@234@_K@Z (private: static struct yesdaw::app::musical_origin_source_r8::NativeImage __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::moduleInfo(unsigned __int64)):
+  0000000000000000: 48 89 5C 24 08     mov         qword ptr [rsp+8],rbx
+  0000000000000005: 57                 push        rdi
+  0000000000000006: 48 83 EC 40        sub         rsp,40h
+  000000000000000A: 0F 57 C0           xorps       xmm0,xmm0
+  000000000000000D: 33 C0              xor         eax,eax
+  000000000000000F: 0F 11 01           movups      xmmword ptr [rcx],xmm0
+  0000000000000012: 48 89 41 10        mov         qword ptr [rcx+10h],rax
+  0000000000000016: 48 8B DA           mov         rbx,rdx
+  0000000000000019: 48 8B F9           mov         rdi,rcx
+  000000000000001C: 48 89 44 24 30     mov         qword ptr [rsp+30h],rax
+  0000000000000021: 0F 11 44 24 20     movups      xmmword ptr [rsp+20h],xmm0
+  0000000000000026: FF 15 00 00 00 00  call        qword ptr [__imp_GetCurrentProcess]
+  000000000000002C: 41 B9 18 00 00 00  mov         r9d,18h
+  0000000000000032: 4C 8D 44 24 20     lea         r8,[rsp+20h]
+  0000000000000037: 48 8B C8           mov         rcx,rax
+  000000000000003A: 48 8B D3           mov         rdx,rbx
+  000000000000003D: E8 00 00 00 00     call        K32GetModuleInformation
+  0000000000000042: 48 8B 5C 24 50     mov         rbx,qword ptr [rsp+50h]
+  0000000000000047: 85 C0              test        eax,eax
+  0000000000000049: 0F 95 C0           setne       al
+  000000000000004C: 88 07              mov         byte ptr [rdi],al
+  000000000000004E: 48 8B 44 24 20     mov         rax,qword ptr [rsp+20h]
+  0000000000000053: 48 89 47 08        mov         qword ptr [rdi+8],rax
+  0000000000000057: 8B 44 24 28        mov         eax,dword ptr [rsp+28h]
+  000000000000005B: 48 89 47 10        mov         qword ptr [rdi+10h],rax
+  000000000000005F: 48 8B C7           mov         rax,rdi
+  0000000000000062: 48 83 C4 40        add         rsp,40h
+  0000000000000066: 5F                 pop         rdi
+  0000000000000067: C3                 ret
+
+RELOCATIONS #8
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000028  REL32                      00000000        2C  __imp_GetCurrentProcess
+ 0000003E  REL32                      00000000        2F  K32GetModuleInformation
+
+?page@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativePage@234@_K@Z (private: static struct yesdaw::app::musical_origin_source_r8::NativePage __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::page(unsigned __int64)):
+  0000000000000000: 40 53              push        rbx
+  0000000000000002: 48 83 EC 50        sub         rsp,50h
+  0000000000000006: 48 8B D9           mov         rbx,rcx
+  0000000000000009: 0F 57 C0           xorps       xmm0,xmm0
+  000000000000000C: 33 C9              xor         ecx,ecx
+  000000000000000E: 48 8B C2           mov         rax,rdx
+  0000000000000011: 41 B8 30 00 00 00  mov         r8d,30h
+  0000000000000017: 48 8D 54 24 20     lea         rdx,[rsp+20h]
+  000000000000001C: 0F 11 44 24 20     movups      xmmword ptr [rsp+20h],xmm0
+  0000000000000021: 0F 11 03           movups      xmmword ptr [rbx],xmm0
+  0000000000000024: 0F 11 43 10        movups      xmmword ptr [rbx+10h],xmm0
+  0000000000000028: 0F 11 43 20        movups      xmmword ptr [rbx+20h],xmm0
+  000000000000002C: 48 89 4B 30        mov         qword ptr [rbx+30h],rcx
+  0000000000000030: 48 8B C8           mov         rcx,rax
+  0000000000000033: 0F 11 44 24 30     movups      xmmword ptr [rsp+30h],xmm0
+  0000000000000038: 0F 11 44 24 40     movups      xmmword ptr [rsp+40h],xmm0
+  000000000000003D: FF 15 00 00 00 00  call        qword ptr [__imp_VirtualQuery]
+  0000000000000043: 48 89 03           mov         qword ptr [rbx],rax
+  0000000000000046: 48 8B 44 24 20     mov         rax,qword ptr [rsp+20h]
+  000000000000004B: 48 89 43 18        mov         qword ptr [rbx+18h],rax
+  000000000000004F: 48 8B 44 24 28     mov         rax,qword ptr [rsp+28h]
+  0000000000000054: 48 89 43 20        mov         qword ptr [rbx+20h],rax
+  0000000000000058: 48 8B 44 24 38     mov         rax,qword ptr [rsp+38h]
+  000000000000005D: 48 89 43 10        mov         qword ptr [rbx+10h],rax
+  0000000000000061: 8B 44 24 40        mov         eax,dword ptr [rsp+40h]
+  0000000000000065: 89 43 28           mov         dword ptr [rbx+28h],eax
+  0000000000000068: 8B 44 24 48        mov         eax,dword ptr [rsp+48h]
+  000000000000006C: 89 43 2C           mov         dword ptr [rbx+2Ch],eax
+  000000000000006F: 8B 44 24 44        mov         eax,dword ptr [rsp+44h]
+  0000000000000073: 89 43 30           mov         dword ptr [rbx+30h],eax
+  0000000000000076: 48 8B C3           mov         rax,rbx
+  0000000000000079: 48 C7 43 08 30 00  mov         qword ptr [rbx+8],30h
+                    00 00
+  0000000000000081: 48 83 C4 50        add         rsp,50h
+  0000000000000085: 5B                 pop         rbx
+  0000000000000086: C3                 ret
+
+RELOCATIONS #9
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 0000003F  REL32                      00000000        2D  __imp_VirtualQuery
+
+?read@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeSnapshot@234@XZ (private: static struct yesdaw::app::musical_origin_source_r8::NativeSnapshot __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::read(void)):
+  0000000000000000: 48 89 5C 24 10     mov         qword ptr [rsp+10h],rbx
+  0000000000000005: 57                 push        rdi
+  0000000000000006: 48 83 EC 20        sub         rsp,20h
+  000000000000000A: 0F 57 C0           xorps       xmm0,xmm0
+  000000000000000D: 48 8B F9           mov         rdi,rcx
+  0000000000000010: 0F 11 01           movups      xmmword ptr [rcx],xmm0
+  0000000000000013: 0F 11 41 10        movups      xmmword ptr [rcx+10h],xmm0
+  0000000000000017: 0F 11 41 20        movups      xmmword ptr [rcx+20h],xmm0
+  000000000000001B: 0F 11 41 30        movups      xmmword ptr [rcx+30h],xmm0
+  000000000000001F: 0F 11 41 40        movups      xmmword ptr [rcx+40h],xmm0
+  0000000000000023: FF 15 00 00 00 00  call        qword ptr [__imp__errno]
+  0000000000000029: 8B 10              mov         edx,dword ptr [rax]
+  000000000000002B: 89 57 38           mov         dword ptr [rdi+38h],edx
+  000000000000002E: FF 15 00 00 00 00  call        qword ptr [__imp_fegetround]
+  0000000000000034: B9 1F 00 00 00     mov         ecx,1Fh
+  0000000000000039: 89 47 30           mov         dword ptr [rdi+30h],eax
+  000000000000003C: FF 15 00 00 00 00  call        qword ptr [__imp_fetestexcept]
+  0000000000000042: 48 8D 4F 40        lea         rcx,[rdi+40h]
+  0000000000000046: BA 1F 00 00 00     mov         edx,1Fh
+  000000000000004B: 89 47 34           mov         dword ptr [rdi+34h],eax
+  000000000000004E: FF 15 00 00 00 00  call        qword ptr [__imp_fegetexceptflag]
+  0000000000000054: 89 47 2C           mov         dword ptr [rdi+2Ch],eax
+  0000000000000057: E8 00 00 00 00     call        ?get_new_handler@std@@YAP6AXXZXZ
+  000000000000005C: 48 89 47 48        mov         qword ptr [rdi+48h],rax
+  0000000000000060: 0F AE 5C 24 30     stmxcsr     dword ptr [rsp+30h]
+  0000000000000065: 8B 5C 24 30        mov         ebx,dword ptr [rsp+30h]
+  0000000000000069: 48 8D 4C 24 30     lea         rcx,[rsp+30h]
+  000000000000006E: 45 33 C0           xor         r8d,r8d
+  0000000000000071: C7 44 24 30 00 00  mov         dword ptr [rsp+30h],0
+                    00 00
+  0000000000000079: 33 D2              xor         edx,edx
+  000000000000007B: FF 15 00 00 00 00  call        qword ptr [__imp__controlfp_s]
+  0000000000000081: 89 47 28           mov         dword ptr [rdi+28h],eax
+  0000000000000084: C6 07 01           mov         byte ptr [rdi],1
+  0000000000000087: 48 C7 47 08 9C D8  mov         qword ptr [rdi+8],0B96D89Ch
+                    96 0B
+  000000000000008F: FF 15 00 00 00 00  call        qword ptr [__imp__get_FMA3_enable]
+  0000000000000095: 89 47 3C           mov         dword ptr [rdi+3Ch],eax
+  0000000000000098: 8B C3              mov         eax,ebx
+  000000000000009A: 48 83 E0 C0        and         rax,0FFFFFFFFFFFFFFC0h
+  000000000000009E: 48 89 47 10        mov         qword ptr [rdi+10h],rax
+  00000000000000A2: 83 E3 3F           and         ebx,3Fh
+  00000000000000A5: 8B 44 24 30        mov         eax,dword ptr [rsp+30h]
+  00000000000000A9: 48 89 47 20        mov         qword ptr [rdi+20h],rax
+  00000000000000AD: 48 8B C7           mov         rax,rdi
+  00000000000000B0: 48 89 5F 18        mov         qword ptr [rdi+18h],rbx
+  00000000000000B4: 48 8B 5C 24 38     mov         rbx,qword ptr [rsp+38h]
+  00000000000000B9: 48 83 C4 20        add         rsp,20h
+  00000000000000BD: 5F                 pop         rdi
+  00000000000000BE: C3                 ret
+
+RELOCATIONS #A
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000025  REL32                      00000000        1B  __imp__errno
+ 00000030  REL32                      00000000        1F  __imp_fegetround
+ 0000003E  REL32                      00000000        21  __imp_fetestexcept
+ 00000050  REL32                      00000000        22  __imp_fegetexceptflag
+ 00000058  REL32                      00000000        24  ?get_new_handler@std@@YAP6AXXZXZ (void (__cdecl*__cdecl std::get_new_handler(void))(void))
+ 0000007D  REL32                      00000000        1E  __imp__controlfp_s
+ 00000091  REL32                      00000000        1D  __imp__get_FMA3_enable
+
+?restoreStatus@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA_NAEBUNativeSnapshot@234@@Z (private: static bool __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::restoreStatus(struct yesdaw::app::musical_origin_source_r8::NativeSnapshot const &)):
+  0000000000000000: 48 89 5C 24 10     mov         qword ptr [rsp+10h],rbx
+  0000000000000005: 48 89 6C 24 18     mov         qword ptr [rsp+18h],rbp
+  000000000000000A: 48 89 74 24 20     mov         qword ptr [rsp+20h],rsi
+  000000000000000F: 57                 push        rdi
+  0000000000000010: 48 83 EC 20        sub         rsp,20h
+  0000000000000014: 48 8B D9           mov         rbx,rcx
+  0000000000000017: B9 1F 00 00 00     mov         ecx,1Fh
+  000000000000001C: FF 15 00 00 00 00  call        qword ptr [__imp_feclearexcept]
+  0000000000000022: 48 8D 4B 40        lea         rcx,[rbx+40h]
+  0000000000000026: BA 1F 00 00 00     mov         edx,1Fh
+  000000000000002B: 8B E8              mov         ebp,eax
+  000000000000002D: FF 15 00 00 00 00  call        qword ptr [__imp_fesetexceptflag]
+  0000000000000033: 8B F0              mov         esi,eax
+  0000000000000035: 0F AE 5C 24 30     stmxcsr     dword ptr [rsp+30h]
+  000000000000003A: 8B 54 24 30        mov         edx,dword ptr [rsp+30h]
+  000000000000003E: 44 8B 43 18        mov         r8d,dword ptr [rbx+18h]
+  0000000000000042: 83 E2 C0           and         edx,0FFFFFFC0h
+  0000000000000045: 41 83 E0 3F        and         r8d,3Fh
+  0000000000000049: 44 0B C2           or          r8d,edx
+  000000000000004C: 44 89 44 24 30     mov         dword ptr [rsp+30h],r8d
+  0000000000000051: 0F AE 54 24 30     ldmxcsr     dword ptr [rsp+30h]
+  0000000000000056: 0F AE 5C 24 30     stmxcsr     dword ptr [rsp+30h]
+  000000000000005B: 8B 4C 24 30        mov         ecx,dword ptr [rsp+30h]
+  000000000000005F: 83 E1 3F           and         ecx,3Fh
+  0000000000000062: 48 3B 4B 18        cmp         rcx,qword ptr [rbx+18h]
+  0000000000000066: 8B 5B 38           mov         ebx,dword ptr [rbx+38h]
+  0000000000000069: 40 0F 94 C7        sete        dil
+  000000000000006D: FF 15 00 00 00 00  call        qword ptr [__imp__errno]
+  0000000000000073: 85 F6              test        esi,esi
+  0000000000000075: 48 8B 74 24 48     mov         rsi,qword ptr [rsp+48h]
+  000000000000007A: 89 18              mov         dword ptr [rax],ebx
+  000000000000007C: 0F 94 C0           sete        al
+  000000000000007F: 48 8B 5C 24 38     mov         rbx,qword ptr [rsp+38h]
+  0000000000000084: 85 ED              test        ebp,ebp
+  0000000000000086: 48 8B 6C 24 40     mov         rbp,qword ptr [rsp+40h]
+  000000000000008B: 0F 94 C1           sete        cl
+  000000000000008E: 22 C1              and         al,cl
+  0000000000000090: 40 22 C7           and         al,dil
+  0000000000000093: 48 83 C4 20        add         rsp,20h
+  0000000000000097: 5F                 pop         rdi
+  0000000000000098: C3                 ret
+
+RELOCATIONS #B
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 0000001E  REL32                      00000000        20  __imp_feclearexcept
+ 0000002F  REL32                      00000000        23  __imp_fesetexceptflag
+ 0000006F  REL32                      00000000        1B  __imp__errno
+
+RELOCATIONS #D
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000000  ADDR32NB                   00000000        30  $LN6
+ 00000004  ADDR32NB                   00000055        30  $LN6
+ 00000008  ADDR32NB                   00000000        38  $unwind$?logAnchorModule@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeModule@234@XZ
+
+RELOCATIONS #F
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000000  ADDR32NB                   00000000        31  $LN6
+ 00000004  ADDR32NB                   00000055        31  $LN6
+ 00000008  ADDR32NB                   00000000        3E  $unwind$?getterAnchorModule@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeModule@234@XZ
+
+RELOCATIONS #11
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000000  ADDR32NB                   00000000        32  $LN6
+ 00000004  ADDR32NB                   00000068        32  $LN6
+ 00000008  ADDR32NB                   00000000        44  $unwind$?moduleInfo@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeImage@234@_K@Z
+
+RELOCATIONS #13
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000000  ADDR32NB                   00000000        33  $LN6
+ 00000004  ADDR32NB                   00000087        33  $LN6
+ 00000008  ADDR32NB                   00000000        4A  $unwind$?page@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativePage@234@_K@Z
+
+RELOCATIONS #15
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000000  ADDR32NB                   00000000        34  $LN6
+ 00000004  ADDR32NB                   000000BF        34  $LN6
+ 00000008  ADDR32NB                   00000000        50  $unwind$?read@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeSnapshot@234@XZ
+
+RELOCATIONS #17
+                                                Symbol    Symbol
+ Offset    Type              Applied To         Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000000  ADDR32NB                   00000000        35  $LN6
+ 00000004  ADDR32NB                   00000099        35  $LN6
+ 00000008  ADDR32NB                   00000000        56  $unwind$?restoreStatus@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA_NAEBUNativeSnapshot@234@@Z
+
+COFF SYMBOL TABLE
+000 0105899C ABS    notype       Static       | @comp.id
+001 80010190 ABS    notype       Static       | @feat.00
+002 00000003 ABS    notype       Static       | @vol.md
+003 00000000 SECT1  notype       Static       | .drectve
+    Section length  178, #relocs    0, #linenums    0, checksum        0
+005 00000000 SECT2  notype       Static       | .debug$S
+    Section length   D0, #relocs    0, #linenums    0, checksum        0
+007 00000000 SECT3  notype       Static       | .bss
+    Section length    4, #relocs    0, #linenums    0, checksum        0, selection    2 (pick any)
+009 00000000 SECT3  notype       External     | _Avx2WmemEnabledWeakValue
+00A 00000000 SECT4  notype       Static       | .rdata
+    Section length    8, #relocs    0, #linenums    0, checksum 7F9C6E86, selection    2 (pick any)
+00C 00000000 SECT4  notype       External     | _Fenv1
+00D 00000000 SECT5  notype       Static       | .text$mn
+    Section length   26, #relocs    0, #linenums    0, checksum  EAF042B, selection    1 (pick no duplicates)
+00F 00000000 SECT6  notype       Static       | .text$mn
+    Section length   55, #relocs    3, #linenums    0, checksum 35FE0455, selection    1 (pick no duplicates)
+011 00000000 SECT7  notype       Static       | .text$mn
+    Section length   55, #relocs    3, #linenums    0, checksum 35FE0455, selection    1 (pick no duplicates)
+013 00000000 SECT8  notype       Static       | .text$mn
+    Section length   68, #relocs    2, #linenums    0, checksum  C27E86A, selection    1 (pick no duplicates)
+015 00000000 SECT9  notype       Static       | .text$mn
+    Section length   87, #relocs    1, #linenums    0, checksum 8E9FD945, selection    1 (pick no duplicates)
+017 00000000 SECTA  notype       Static       | .text$mn
+    Section length   BF, #relocs    7, #linenums    0, checksum 28DB5D77, selection    1 (pick no duplicates)
+019 00000000 SECTB  notype       Static       | .text$mn
+    Section length   99, #relocs    3, #linenums    0, checksum 33CEF502, selection    1 (pick no duplicates)
+01B 00000000 UNDEF  notype       External     | __imp__errno
+01C 00000000 UNDEF  notype       External     | __imp_log1p
+01D 00000000 UNDEF  notype       External     | __imp__get_FMA3_enable
+01E 00000000 UNDEF  notype       External     | __imp__controlfp_s
+01F 00000000 UNDEF  notype       External     | __imp_fegetround
+020 00000000 UNDEF  notype       External     | __imp_feclearexcept
+021 00000000 UNDEF  notype       External     | __imp_fetestexcept
+022 00000000 UNDEF  notype       External     | __imp_fegetexceptflag
+023 00000000 UNDEF  notype       External     | __imp_fesetexceptflag
+024 00000000 UNDEF  notype ()    External     | ?get_new_handler@std@@YAP6AXXZXZ (void (__cdecl*__cdecl std::get_new_handler(void))(void))
+025 00000000 SECT5  notype ()    External     | ?control@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeControl@234@XZ (private: static struct yesdaw::app::musical_origin_source_r8::NativeControl __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::control(void))
+026 00000000 SECT7  notype ()    External     | ?logAnchorModule@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeModule@234@XZ (private: static struct yesdaw::app::musical_origin_source_r8::NativeModule __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::logAnchorModule(void))
+027 00000000 SECT6  notype ()    External     | ?getterAnchorModule@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeModule@234@XZ (private: static struct yesdaw::app::musical_origin_source_r8::NativeModule __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::getterAnchorModule(void))
+028 00000000 SECT8  notype ()    External     | ?moduleInfo@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeImage@234@_K@Z (private: static struct yesdaw::app::musical_origin_source_r8::NativeImage __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::moduleInfo(unsigned __int64))
+029 00000000 SECT9  notype ()    External     | ?page@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativePage@234@_K@Z (private: static struct yesdaw::app::musical_origin_source_r8::NativePage __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::page(unsigned __int64))
+02A 00000000 SECTA  notype ()    External     | ?read@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeSnapshot@234@XZ (private: static struct yesdaw::app::musical_origin_source_r8::NativeSnapshot __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::read(void))
+02B 00000000 SECTB  notype ()    External     | ?restoreStatus@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA_NAEBUNativeSnapshot@234@@Z (private: static bool __cdecl yesdaw::app::musical_origin_source_r8::NativeObserver::restoreStatus(struct yesdaw::app::musical_origin_source_r8::NativeSnapshot const &))
+02C 00000000 UNDEF  notype       External     | __imp_GetCurrentProcess
+02D 00000000 UNDEF  notype       External     | __imp_VirtualQuery
+02E 00000000 UNDEF  notype       External     | __imp_GetModuleHandleExW
+02F 00000000 UNDEF  notype ()    External     | K32GetModuleInformation
+030 00000000 SECT7  notype       Label        | $LN6
+031 00000000 SECT6  notype       Label        | $LN6
+032 00000000 SECT8  notype       Label        | $LN6
+033 00000000 SECT9  notype       Label        | $LN6
+034 00000000 SECTA  notype       Label        | $LN6
+035 00000000 SECTB  notype       Label        | $LN6
+036 00000000 SECTC  notype       Static       | .xdata
+    Section length    8, #relocs    0, #linenums    0, checksum F4D9A8A3, selection    5 (pick associative Section 0x7)
+038 00000000 SECTC  notype       Static       | $unwind$?logAnchorModule@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeModule@234@XZ
+039 00000000 SECTD  notype       Static       | .pdata
+    Section length    C, #relocs    3, #linenums    0, checksum 1DC6FDA2, selection    5 (pick associative Section 0x7)
+03B 00000000 SECTD  notype       Static       | $pdata$?logAnchorModule@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeModule@234@XZ
+03C 00000000 SECTE  notype       Static       | .xdata
+    Section length    8, #relocs    0, #linenums    0, checksum F4D9A8A3, selection    5 (pick associative Section 0x6)
+03E 00000000 SECTE  notype       Static       | $unwind$?getterAnchorModule@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeModule@234@XZ
+03F 00000000 SECTF  notype       Static       | .pdata
+    Section length    C, #relocs    3, #linenums    0, checksum 1DC6FDA2, selection    5 (pick associative Section 0x6)
+041 00000000 SECTF  notype       Static       | $pdata$?getterAnchorModule@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeModule@234@XZ
+042 00000000 SECT10 notype       Static       | .xdata
+    Section length    C, #relocs    0, #linenums    0, checksum 2201809E, selection    5 (pick associative Section 0x8)
+044 00000000 SECT10 notype       Static       | $unwind$?moduleInfo@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeImage@234@_K@Z
+045 00000000 SECT11 notype       Static       | .pdata
+    Section length    C, #relocs    3, #linenums    0, checksum  30EBB0E, selection    5 (pick associative Section 0x8)
+047 00000000 SECT11 notype       Static       | $pdata$?moduleInfo@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeImage@234@_K@Z
+048 00000000 SECT12 notype       Static       | .xdata
+    Section length    8, #relocs    0, #linenums    0, checksum 2DA1F5C3, selection    5 (pick associative Section 0x9)
+04A 00000000 SECT12 notype       Static       | $unwind$?page@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativePage@234@_K@Z
+04B 00000000 SECT13 notype       Static       | .pdata
+    Section length    C, #relocs    3, #linenums    0, checksum 59FE8CC3, selection    5 (pick associative Section 0x9)
+04D 00000000 SECT13 notype       Static       | $pdata$?page@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativePage@234@_K@Z
+04E 00000000 SECT14 notype       Static       | .xdata
+    Section length    C, #relocs    0, #linenums    0, checksum EE051E80, selection    5 (pick associative Section 0xA)
+050 00000000 SECT14 notype       Static       | $unwind$?read@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeSnapshot@234@XZ
+051 00000000 SECT15 notype       Static       | .pdata
+    Section length    C, #relocs    3, #linenums    0, checksum  FD6C40B, selection    5 (pick associative Section 0xA)
+053 00000000 SECT15 notype       Static       | $pdata$?read@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA?AUNativeSnapshot@234@XZ
+054 00000000 SECT16 notype       Static       | .xdata
+    Section length   14, #relocs    0, #linenums    0, checksum 533B2AD9, selection    5 (pick associative Section 0xB)
+056 00000000 SECT16 notype       Static       | $unwind$?restoreStatus@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA_NAEBUNativeSnapshot@234@@Z
+057 00000000 SECT17 notype       Static       | .pdata
+    Section length    C, #relocs    3, #linenums    0, checksum 30CFAFDA, selection    5 (pick associative Section 0xB)
+059 00000000 SECT17 notype       Static       | $pdata$?restoreStatus@NativeObserver@musical_origin_source_r8@app@yesdaw@@CA_NAEBUNativeSnapshot@234@@Z
+05A 00000000 SECT18 notype       Static       | .voltbl
+    Section length    1, #relocs    0, #linenums    0, checksum 7F6A0DBB, selection    5 (pick associative Section 0xB)
+05C 00000000 SECT18 notype       Static       | _volmd
+05D 00000000 SECT19 notype       Static       | .chks64
+    Section length   C8, #relocs    0, #linenums    0, checksum        0
+
+String Table Size = 0x859 bytes
+
+  Summary
+
+           4 .bss
+          C8 .chks64
+          D0 .debug$S
+         178 .drectve
+          48 .pdata
+           8 .rdata
+         317 .text$mn
+           1 .voltbl
+          44 .xdata

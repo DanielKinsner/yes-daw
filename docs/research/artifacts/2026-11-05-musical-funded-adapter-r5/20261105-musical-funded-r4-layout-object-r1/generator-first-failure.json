@@ -1,0 +1,5 @@
+{
+  "target_executed": false,
+  "compiler_invoked": false,
+  "failure": "Initial wrapper generator assertion counted both its hash-source argument and compiler argument use; no wrapper file had been written. A following invocation failed because wrapper was absent. Preserved source-plan and layout.cpp unchanged; corrected generator membership check only."
+}

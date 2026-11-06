@@ -1,0 +1,88 @@
+{
+  "schema": "YESDAW_R5_PUBLIC_LAYOUT_TABLE_ORIGIN_INDEPENDENT_REVIEW_PINS_V1",
+  "date": "2026-11-05",
+  "verdict": "ACCEPT_CURRENT_SELECTED_37_TYPE_OBJECT_CONSTANT_RECORD_ONLY",
+  "inputs": [
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/layout-record.json",
+      "bytes": 4007,
+      "sha256": "659C9A8420D93C3517D2D997403BC6BF0347A5DD428BBCBA51D6F9657CA55338"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/first-green-layout-source-freeze.json",
+      "bytes": 906,
+      "sha256": "BF014A494F64412C1A8D5E47356CD5DC00E69312C65DBF17EBC0D417404D7C2A"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/source-plan.json",
+      "bytes": 1454,
+      "sha256": "90827377C25FAC839F1823906CEDDAF562FA71484EE1955D93956361A6F00A46"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/layout.cpp",
+      "bytes": 2277,
+      "sha256": "8F79DC780EE8CAD8CB45C44EE89A4BE7877AE251E0CF6EA56317FCFC07D8EDA9"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/extract-layout.py",
+      "bytes": 4880,
+      "sha256": "39D2E866784A05540B438C0857708DEAD898ED3DE04C77BAC74BF0BF451FD22C"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/extract-layout-first-failed.py",
+      "bytes": 4850,
+      "sha256": "433237CF47B5D39D27663FFE4BEDF7ADCFD15B7737C79A637794C2336064C205"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/extractor-first-failure.json",
+      "bytes": 743,
+      "sha256": "8E0372F321F553511DDCE516E6300EB98C41BE40ABCA2395AA8496597FDB156C"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/compile-only.ps1",
+      "bytes": 3573,
+      "sha256": "E967B30A34B27D2E5CF42CBC811F608AE1558E838A12C521AE4CDBBB0EC00534"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/compile-only-r2.ps1",
+      "bytes": 3652,
+      "sha256": "D7EA0E2214D555F9F4365DDF4D76DB38FBE7B388BDB0BDA10163CC0405C57508"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/attempt-r2/receipt.json",
+      "bytes": 1539,
+      "sha256": "BF9C9802A63840CD679126E60888D14568091FA9D91EA4023DA6D75FD3983B2B"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/attempt-r2/layout.obj",
+      "bytes": 2434,
+      "sha256": "C47E64D92D886D169A9D0057CB0E356D53EB8C24C0BE3A249AE5C4633D4987CE"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r5-source-correspondence-independent-review/review.json",
+      "bytes": 148082,
+      "sha256": "D9D042B906EBF51645BA5B7F6A559F70E42D5DE69A8FE824244F4A32A0C0AFEB"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r5-source-correspondence-independent-review/source-pins.json",
+      "bytes": 22928,
+      "sha256": "092AF28BA52755FBF576919376F7EA77D559FCEEE389FCF881A8D68A016D99C7"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/source-pins.json",
+      "bytes": 56208,
+      "sha256": "F55E268E0D24859E3305C8C75CB6EF2D0948C719C4B63AD665BCC02B0A11CC84"
+    }
+  ],
+  "input_count": 14,
+  "all_inputs_preserved_after_write": true,
+  "outputs": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r5-source-correspondence-independent-review/layout-origin-supplement-r1/review.json",
+      "bytes": 19088,
+      "sha256": "AF9A22E4D9F5C7BBAA0D11BD5DA476B8C0D706C40E51AA88DB2F5740CF40DB88"
+    }
+  ],
+  "check_count": 83,
+  "scope": "Independent file-only integrity and table-origin check of the frozen current R5 selected-compiler constant layout record. This supplement does not change the sealed whole source/census correspondence review and does not execute any extractor, object, compiler, program or target helper."
+}

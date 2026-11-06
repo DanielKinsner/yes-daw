@@ -1,0 +1,111 @@
+{
+  "schema": "YESDAW_R4_CONTROL_OWNER_PADDING_REPAIR_REVIEW_PINS_V1",
+  "date": "2026-11-05",
+  "status": "ACCEPT_EXACT_MINIMAL_DECLARATION_MOVE_SOURCE_ONLY",
+  "scope": "Independent narrow source critic of the parent-proposed member-order repair. This is not a whole R4 review, execution authorization, compiler-success statement, actual layout measurement, census acceptance, payload proof or native binding.",
+  "inputs": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/formation-r8.h",
+      "bytes": 81190,
+      "sha256": "1308DC2CAA05644FF2AD72FE5EF10EE620A636E2EEC1D1747C8C154769FADEBA"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/worker-result.h",
+      "bytes": 9148,
+      "sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/legacy-adapter.h",
+      "bytes": 28646,
+      "sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/window-query.h",
+      "bytes": 48648,
+      "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-profile.h",
+      "bytes": 6189,
+      "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-observer.cpp",
+      "bytes": 7067,
+      "sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-correspondence.md",
+      "bytes": 32604,
+      "sha256": "E38A5D1029E2F013A88EB6908C75553C791678F3D5B1605BD0AB15E80706279D"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/README.md",
+      "bytes": 6039,
+      "sha256": "7C37A469A5696D20376CDAEC5A5C227B14D8467316C1A1BC1FEDA94515D08F2F"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-pins.json",
+      "bytes": 52105,
+      "sha256": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r4-layout-object-r1/source-plan.json",
+      "bytes": 1366,
+      "sha256": "225A14A5818062446FBB1776C9D7CE92ACE0C001BC078C9AD3EE27B31E837F58"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r4-layout-object-r1/layout.cpp",
+      "bytes": 2277,
+      "sha256": "FC50B293C2EDE009825392CEB812E84FEF967630C381D3E4875113DF303E9D7A"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r4-layout-object-r1/compile-only.ps1",
+      "bytes": 3195,
+      "sha256": "5FAE295B54BF846CAACF8D4366EE716D70BF0CCADE39A24E23CD48247F5D9CED"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r4-layout-object-r1/attempt-r1/receipt.json",
+      "bytes": 1451,
+      "sha256": "9617A62C5D38D56A9D8BEDA3337D9E1F13AC5DA71B532572E048C14035637609"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-r4-layout-object-r1/attempt-r1/compile.log",
+      "bytes": 443,
+      "sha256": "EBB4AA315A1D630C28845BA249821D2FCD6C7F0A85FF40B3C58B8E8543381E76"
+    },
+    {
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/atomic",
+      "bytes": 125337,
+      "sha256": "76A3E00E57E342F26EB5DB7A0E38002B0F5DB850AC2FE33D026733BF8217B4B4"
+    }
+  ],
+  "input_count": 15,
+  "all_inputs_rehashed_after_write": true,
+  "outputs": [
+    {
+      "path": "build-ci/20261105-musical-funded-r4-padding-repair-independent-review-r1/review.json",
+      "bytes": 12224,
+      "sha256": "E1ACF702B2C564B3E86B29203057D2578917576D1CE2534973534C514A6AC6B1"
+    }
+  ],
+  "check_count": 26,
+  "conditional_virtual_header_sha256": "DCCF77D0F7F7B781D3E7731B721C7CBA5D377489780B68516C8B931D950542B2",
+  "execution": {
+    "target_parser_AST_import": false,
+    "target_helper": false,
+    "compiler": false,
+    "linker": false,
+    "target_program": false,
+    "test_or_stage": false,
+    "GUI_or_audio": false,
+    "Git_CI": false,
+    "allowed_operations": [
+      "Ordinary source/text/JSON reads",
+      "SHA256 and byte/line checks",
+      "In-memory candidate byte transformation, never written to a subject",
+      "Small file-only integer algebra substitutions",
+      "Read official Microsoft C4324 documentation"
+    ]
+  }
+}

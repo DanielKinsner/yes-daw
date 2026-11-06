@@ -1,0 +1,203 @@
+{
+  "schema": "R5_PUBLIC_TYPE_COMPILER_CONSTANT_LAYOUT_R1",
+  "scope": "Actual selected MSVC object constants only; no target execution or hardware claim",
+  "compile_raw_exit": 0,
+  "object_sha256": "C47E64D92D886D169A9D0057CB0E356D53EB8C24C0BE3A249AE5C4633D4987CE",
+  "source_sha256": "8F79DC780EE8CAD8CB45C44EE89A4BE7877AE251E0CF6EA56317FCFC07D8EDA9",
+  "source_plan_sha256": "90827377C25FAC839F1823906CEDDAF562FA71484EE1955D93956361A6F00A46",
+  "source_manifest_sha256": "F55E268E0D24859E3305C8C75CB6EF2D0948C719C4B63AD665BCC02B0A11CC84",
+  "extractor_sha256": "39D2E866784A05540B438C0857708DEAD898ED3DE04C77BAC74BF0BF451FD22C",
+  "coff_machine": "AMD64",
+  "table_section": ".rdata",
+  "table_relocations": 0,
+  "emitted_instruction_bytes": 72,
+  "types": [
+    {
+      "type": "Bounds",
+      "sizeof": 3544,
+      "alignof": 8
+    },
+    {
+      "type": "LegacyRaw",
+      "sizeof": 736,
+      "alignof": 8
+    },
+    {
+      "type": "LegacyObservation",
+      "sizeof": 32,
+      "alignof": 8
+    },
+    {
+      "type": "LegacyReadout",
+      "sizeof": 856,
+      "alignof": 8
+    },
+    {
+      "type": "Raw",
+      "sizeof": 4264,
+      "alignof": 8
+    },
+    {
+      "type": "Slice",
+      "sizeof": 16,
+      "alignof": 8
+    },
+    {
+      "type": "Canonical",
+      "sizeof": 144,
+      "alignof": 8
+    },
+    {
+      "type": "Snapshot",
+      "sizeof": 128,
+      "alignof": 8
+    },
+    {
+      "type": "FormationReceipt",
+      "sizeof": 4408,
+      "alignof": 8
+    },
+    {
+      "type": "RootCensus",
+      "sizeof": 4288,
+      "alignof": 8
+    },
+    {
+      "type": "Readout",
+      "sizeof": 4416,
+      "alignof": 8
+    },
+    {
+      "type": "Parents",
+      "sizeof": 32,
+      "alignof": 8
+    },
+    {
+      "type": "CapturedMetadata",
+      "sizeof": 384,
+      "alignof": 8
+    },
+    {
+      "type": "LegacyPreparationOptions",
+      "sizeof": 72,
+      "alignof": 8
+    },
+    {
+      "type": "CapturedIntent",
+      "sizeof": 80,
+      "alignof": 8
+    },
+    {
+      "type": "MusicalPreparationRequestState",
+      "sizeof": 5232,
+      "alignof": 8
+    },
+    {
+      "type": "Ledger",
+      "sizeof": 1,
+      "alignof": 1
+    },
+    {
+      "type": "Formed",
+      "sizeof": 8712,
+      "alignof": 8
+    },
+    {
+      "type": "Formation",
+      "sizeof": 1,
+      "alignof": 1
+    },
+    {
+      "type": "Exchange",
+      "sizeof": 1,
+      "alignof": 1
+    },
+    {
+      "type": "WorkerLegacyResult",
+      "sizeof": 888,
+      "alignof": 8
+    },
+    {
+      "type": "ControlRequestOwner",
+      "sizeof": 9600,
+      "alignof": 8
+    },
+    {
+      "type": "RetainedOriginOwner",
+      "sizeof": 16,
+      "alignof": 8
+    },
+    {
+      "type": "OwnerSlot",
+      "sizeof": 9600,
+      "alignof": 8
+    },
+    {
+      "type": "ApplicationRequests",
+      "sizeof": 19232,
+      "alignof": 8
+    },
+    {
+      "type": "WorkerArtifacts",
+      "sizeof": 120,
+      "alignof": 8
+    },
+    {
+      "type": "ActionVector",
+      "sizeof": 80,
+      "alignof": 8
+    },
+    {
+      "type": "QueryAccounting",
+      "sizeof": 1,
+      "alignof": 1
+    },
+    {
+      "type": "FundedNativeSession",
+      "sizeof": 184,
+      "alignof": 8
+    },
+    {
+      "type": "QueryCallResult",
+      "sizeof": 2,
+      "alignof": 1
+    },
+    {
+      "type": "FundedWindowQuery",
+      "sizeof": 1,
+      "alignof": 1
+    },
+    {
+      "type": "NativeBuildIdentity",
+      "sizeof": 48,
+      "alignof": 8
+    },
+    {
+      "type": "NativeSnapshot",
+      "sizeof": 80,
+      "alignof": 8
+    },
+    {
+      "type": "NativeControl",
+      "sizeof": 24,
+      "alignof": 8
+    },
+    {
+      "type": "NativeModule",
+      "sizeof": 24,
+      "alignof": 8
+    },
+    {
+      "type": "NativeImage",
+      "sizeof": 24,
+      "alignof": 8
+    },
+    {
+      "type": "NativePage",
+      "sizeof": 56,
+      "alignof": 8
+    }
+  ],
+  "target_executed": false,
+  "not_claimed": "No offsets, allocation/retained peaks, prices, cap fit, native/forward/whole API proof or query GO"
+}

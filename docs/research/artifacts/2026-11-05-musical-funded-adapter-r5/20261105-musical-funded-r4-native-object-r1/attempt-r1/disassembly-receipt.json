@@ -1,0 +1,17 @@
+{
+  "scope": "Read exact compiled object only; no linker or target execution",
+  "command": [
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\dumpbin.exe",
+    "/nologo",
+    "/symbols",
+    "/relocations",
+    "/disasm",
+    "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-r4-native-object-r1\\attempt-r1\\native-observer.obj"
+  ],
+  "tool_sha256": "12A1CD87238BD66DFDB788B4FCDCB91CE4B3F81236AAB12A7A29E5AE1D85AF50",
+  "raw_exit": 0,
+  "stdout_sha256": "87A6ABF051A30213FF5AF2E93E9A404AB05566A013A2B5780F63D26BD42A4013",
+  "stdout_bytes": 32393,
+  "stderr_bytes": 0,
+  "object_sha256": "1C30CF75472FA04AD735F46BAD8B4919230549DB617C0FC2635FE49F4241CE21"
+}

@@ -1,0 +1,3 @@
+layout.cpp
+C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261105-musical-funded-legacy-adapter-source-r4\formation-r8.h(1345): error C2220: the following warning is treated as an error
+C:\Users\SM - Dan\Documents\GitHub\yes-daw\build-ci\20261105-musical-funded-legacy-adapter-source-r4\formation-r8.h(1345): warning C4324: 'yesdaw::app::musical_origin_source_r8::ControlRequestOwner': structure was padded due to alignment specifier

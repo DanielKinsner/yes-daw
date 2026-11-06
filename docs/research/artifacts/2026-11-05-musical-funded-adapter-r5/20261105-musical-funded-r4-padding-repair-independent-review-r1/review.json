@@ -1,0 +1,226 @@
+{
+  "schema": "YESDAW_R4_CONTROL_OWNER_PADDING_REPAIR_SOURCE_CRITIC_V1",
+  "date": "2026-11-05",
+  "reviewer": "/root/clock_r9_numeric_review",
+  "verdict": "ACCEPT_EXACT_MINIMAL_DECLARATION_MOVE_SOURCE_ONLY",
+  "scope": "Independent narrow source critic of the parent-proposed member-order repair. This is not a whole R4 review, execution authorization, compiler-success statement, actual layout measurement, census acceptance, payload proof or native binding.",
+  "subject_manifest_sha256": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077",
+  "source_preservation": "All nine sealed R4 artifacts and existing failed compile evidence preserved. No subject source is written. Only this new two-file review packet is created.",
+  "approved_change": {
+    "source": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/formation-r8.h",
+    "old_lines": [
+      1342,
+      1345
+    ],
+    "old_exact": "    RootCensus failureTail_;\n    Exchange exchange_;\n    bool armed_, terminalAcquired_, resultLive_;\n    alignas (WorkerLegacyResult) std::byte resultBytes_[sizeof (WorkerLegacyResult)];\n",
+    "new_exact": "    RootCensus failureTail_;\n    alignas (WorkerLegacyResult) std::byte resultBytes_[sizeof (WorkerLegacyResult)];\n    Exchange exchange_;\n    bool armed_, terminalAcquired_, resultLive_;\n",
+    "meaning": "Move the identical aligned raw result byte-array declaration immediately after failureTail_ and before Exchange and its three bool members. No other source repair or warning suppression is approved by this narrow review.",
+    "virtual_changed_header_bytes": 81190,
+    "virtual_changed_header_sha256": "DCCF77D0F7F7B781D3E7731B721C7CBA5D377489780B68516C8B931D950542B2",
+    "virtual_hash_scope": "Exact one-region declaration move only. A future successor may additionally need separate metadata/lineage edits and must pin its actual bytes."
+  },
+  "source_reasoning": [
+    {
+      "lines": "formation-r8.h:1340-1353",
+      "finding": "Raw byte storage still has no initializer. Moving it earlier introduces no value initialization, byte clearing, WorkerLegacyResult construction, allocation, owning copy, callback or runtime branch. state_, receipt_, failureTail_, Exchange initialization and all three bool initializations keep their mutual order."
+    },
+    {
+      "lines": "formation-r8.h:1313-1330,1346-1347,1419-1428; worker-result.h:89-99",
+      "finding": "WorkerLegacyResult lifetime still begins only at the existing sponsored placement-new. The accessor still uses the actual array address and launder. Its separate PlanOwner lifetime still starts in the Cell constructor; no owning member was introduced."
+    },
+    {
+      "lines": "formation-r8.h:1379-1410,1437-1441; worker-result.h:136-165",
+      "finding": "Actual result destruction remains explicitly funded and performed before Control drops its origin. Reordering the trivial raw byte array relative to bool/Exchange member teardown cannot introduce a second result or PlanOwner destructor. The selected MSVC atomic<Signal> source base has only scalar storage and an implicit trivial destructor."
+    },
+    {
+      "lines": "formation-r8.h:1586-1641,1719-1722",
+      "finding": "OwnerSlot continues to request sizeof(ControlRequestOwner) with alignas(ControlRequestOwner); ApplicationRequests placement and explicit erase semantics remain unchanged. No field offset, serialized object representation, bulk object copy or offsetof assumption occurs in the six R4 C++ artifacts."
+    }
+  ],
+  "layout_projection": {
+    "status": "CONDITIONAL_SOURCE_ARITHMETIC_ONLY_NOT_MEASURED",
+    "assumptions": [
+      "Selected x64 pointer/U64 alignment8; preceding state_/FormationReceipt/RootCensus prefix extent P is divisible by8.",
+      "WorkerLegacyResult alignment8 and extent W divisible by8.",
+      "Exchange source projects to size1/align1 for the fixed uint8_t Signal under the selected MSVC atomic header; the three bools add3 bytes."
+    ],
+    "old_result_offset": "align_up(P+4,8)=P+8",
+    "new_result_offset": "P",
+    "old_size": "P+W+8",
+    "new_size": "align_up(P+W+4,8)=P+W+8",
+    "conclusion": "The projected same four bytes move from before the explicit aligned array to the final natural class tail. Projected size/alignment and the OwnerSlot/ApplicationRequests byte extents do not change; resultBytes_, Exchange and bool field offsets do change. This is no measured size saving and provides no peak/reclamation/cap-fit credit."
+  },
+  "warning_gate": {
+    "fact": "The archived whole-header compile attempt failed raw2 with C4324 at the current aligned member. It does not provide actual owner size/alignment or a successful full-header object.",
+    "primary_source": {
+      "title": "Microsoft C4324 documentation",
+      "url": "https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-4-c4324?view=msvc-170",
+      "source_support": "The diagnostic describes padding caused by an alignment specifier, including padding at a class end; its example also distinguishes matching natural alignment. It is not a proof that this particular proposed member order is warning-free."
+    },
+    "remaining_risk": "The proposal removes the explicit member alignment gap, but the selected projection still has four bytes of final class padding. Compiler treatment of this exact revised class is not proved by source inspection. No claim that /W4 /WX now passes is accepted.",
+    "required_follow_up": "Seal an ordinary source successor and perform a fresh independently gated full-header compile-only probe under the same pinned compiler and /W4 /WX flags. If C4324 or another required warning remains, preserve its raw evidence and reconsider member ordering under a fresh supported hypothesis. Do not suppress the warning or relax /WX."
+  },
+  "census_and_model_delta": {
+    "source_actions": "No new field, operator, field copy, initialization write, branch, call, cast, placement operation, result/PlanOwner construction/destruction, payment site or lifetime event. Existing body/constructor/destructor field-copy schedules and action multiplicities are unchanged for this exact declaration-only move.",
+    "what_must_refresh": [
+      "Current successor source/dependency hashes, path/lineage metadata and line/field-order references.",
+      "Fresh census author acknowledgement of the exact declaration-only delta; this critic does not certify the ongoing complete R4 census.",
+      "Selected native layout/source identity for the successor and any actual field-offset profile. The previous sealed R4 source/census cannot be rewritten or treated as the successor identity."
+    ],
+    "what_does_not_follow": [
+      "No binding of Catalogue/NativeBinding Data, prices, envelopes or forward proof.",
+      "No new GO, execution admission, hardware or GUI credit.",
+      "No completed typed/native ABI, source scalar, complete lifetime payload or 32MiB/other-cap fit assertion."
+    ]
+  },
+  "checks": [
+    {
+      "id": "sealed_manifest",
+      "result": "PASS",
+      "evidence": "Current manifest matches parent seal."
+    },
+    {
+      "id": "sealed_output_formation-r8.h",
+      "result": "PASS",
+      "evidence": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/formation-r8.h"
+    },
+    {
+      "id": "sealed_output_worker-result.h",
+      "result": "PASS",
+      "evidence": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/worker-result.h"
+    },
+    {
+      "id": "sealed_output_legacy-adapter.h",
+      "result": "PASS",
+      "evidence": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/legacy-adapter.h"
+    },
+    {
+      "id": "sealed_output_window-query.h",
+      "result": "PASS",
+      "evidence": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/window-query.h"
+    },
+    {
+      "id": "sealed_output_native-profile.h",
+      "result": "PASS",
+      "evidence": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-profile.h"
+    },
+    {
+      "id": "sealed_output_native-observer.cpp",
+      "result": "PASS",
+      "evidence": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-observer.cpp"
+    },
+    {
+      "id": "sealed_output_source-correspondence.md",
+      "result": "PASS",
+      "evidence": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-correspondence.md"
+    },
+    {
+      "id": "sealed_output_README.md",
+      "result": "PASS",
+      "evidence": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/README.md"
+    },
+    {
+      "id": "single_exact_declaration_region",
+      "result": "PASS",
+      "evidence": "formation-r8.h:1340-1345"
+    },
+    {
+      "id": "same_header_length",
+      "result": "PASS",
+      "evidence": "Virtual declaration move; no successor is written."
+    },
+    {
+      "id": "same_header_line_count",
+      "result": "PASS",
+      "evidence": "1800 lines retained by virtual change."
+    },
+    {
+      "id": "same_raw_storage_declaration",
+      "result": "PASS",
+      "evidence": "Exact extent/alignment; no braces, DMI, padding member or replacement owner."
+    },
+    {
+      "id": "raw_storage_not_in_ctor_init_list",
+      "result": "PASS",
+      "evidence": "formation-r8.h:1348-1353; all explicitly initialized members keep relative order."
+    },
+    {
+      "id": "exchange_unchanged",
+      "result": "PASS",
+      "evidence": "formation-r8.h:1303; selected atomic<Signal> has only the one-byte value storage in its source base chain, not a new owner."
+    },
+    {
+      "id": "placement_new_unchanged",
+      "result": "PASS",
+      "evidence": "formation-r8.h:1419-1428; existing sponsored placement construction remains after resultLive_ refusal."
+    },
+    {
+      "id": "launder_accessor_unchanged",
+      "result": "PASS",
+      "evidence": "formation-r8.h:1346-1347; compiler uses the current field address, no numeric offset."
+    },
+    {
+      "id": "two_explicit_cell_destructions",
+      "result": "PASS",
+      "evidence": "formation-r8.h:1392-1398 and1437-1441; resultLive_ false is written before both explicit calls."
+    },
+    {
+      "id": "owner_copy_move_deleted",
+      "result": "PASS",
+      "evidence": "formation-r8.h:1455-1457; the byte array is not copied into another live owner."
+    },
+    {
+      "id": "slot_extent_tracks_owner",
+      "result": "PASS",
+      "evidence": "formation-r8.h:1586-1592; selected ABI must be re-observed, not hard-coded."
+    },
+    {
+      "id": "slot_explicit_lifetime",
+      "result": "PASS",
+      "evidence": "formation-r8.h:1615-1641 and1719-1722; outer placement/destruction protocol retained."
+    },
+    {
+      "id": "worker_plan_lifetime_retained",
+      "result": "PASS",
+      "evidence": "worker-result.h:89-99 and136-165; no direct PlanOwner member or implicit second destructor."
+    },
+    {
+      "id": "no_numeric_layout_contract_in_subject",
+      "result": "PASS",
+      "evidence": "All six R4 C++ source/header artifacts searched; no offsetof contract. All resultBytes_ uses are its declaration, launder and placement-new paths."
+    },
+    {
+      "id": "raw_compile_failure",
+      "result": "PASS",
+      "evidence": "Attempt receipt reports compile raw exit2 / wrapper exit1; no inferred object/layout success."
+    },
+    {
+      "id": "exact_warning",
+      "result": "PASS",
+      "evidence": "compile.log points at formation-r8.h:1345 under /W4 /WX."
+    },
+    {
+      "id": "conditional_padding_equation",
+      "result": "PASS",
+      "evidence": "For P,W divisible by8: old end=align_up(P+4,8)+W=P+W+8; new end=align_up(P+W+4,8)=P+W+8. 144 file-only substitutions; not target observations."
+    }
+  ],
+  "check_count": 26,
+  "execution": {
+    "target_parser_AST_import": false,
+    "target_helper": false,
+    "compiler": false,
+    "linker": false,
+    "target_program": false,
+    "test_or_stage": false,
+    "GUI_or_audio": false,
+    "Git_CI": false,
+    "allowed_operations": [
+      "Ordinary source/text/JSON reads",
+      "SHA256 and byte/line checks",
+      "In-memory candidate byte transformation, never written to a subject",
+      "Small file-only integer algebra substitutions",
+      "Read official Microsoft C4324 documentation"
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "exit": 0,
+  "scope": "Compile exact reviewed R4 native observer to an unresolved object only; no link, execution, data binding or runtime/native qualification",
+  "stages": {
+    "environment": {
+      "seconds": 1.2900247,
+      "raw_exit": 0
+    },
+    "compile": {
+      "seconds": 0.5719211,
+      "raw_exit": 0
+    }
+  },
+  "commands": {
+    "compile": {
+      "file": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "args": [
+        "/nologo",
+        "/DWIN32",
+        "/D_WINDOWS",
+        "/EHsc",
+        "/O2",
+        "/Ob2",
+        "/DNDEBUG",
+        "/std:c++20",
+        "/MD",
+        "/W4",
+        "/WX",
+        "/fp:strict",
+        "/c",
+        "/FoC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-r4-native-object-r1\\attempt-r1\\native-observer.obj",
+        "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-legacy-adapter-source-r4\\native-observer.cpp"
+      ]
+    }
+  },
+  "desktop_input": false,
+  "native_windows": false,
+  "audio_device": false,
+  "target_executed": false,
+  "source_manifest": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077",
+  "whole_review": "5ED50401AF5207DD32F5E9F854C76A72CF26D40CAFBDA0EC2597ACF7487C108D",
+  "compiler_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "object_sha256": "1C30CF75472FA04AD735F46BAD8B4919230549DB617C0FC2635FE49F4241CE21"
+}

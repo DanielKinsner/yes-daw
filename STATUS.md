@@ -50,7 +50,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Active: Musical audio tempo-follow. Window/channel planning and pure history foundations are pushed; audible
    tempo-follow is not enabled. The request-owner prototype now passes135,111 headless checks and eight biting
    mutants; the source/evidence archive is `docs/research/artifacts/2026-11-05-musical-origin-formation-r4/`.
-   The combined funded adapter/native-guard R4 source passed whole review; all420 source Sites need the
+   The combined funded adapter/native-guard R5 source passed whole correspondence review; all420 source Sites need the
    independent census, immutable binding and whole combined proof. Recipe/resource/renderer and model/job
    integration remain unfinished. A finite native timing probe
    passed both compiler profiles: each checked22,284 queries over96maps and six rates; archived source/results
@@ -63,12 +63,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    is accepted. Independent R9 review conditionally accepts5,041,187,603 runner operations; the exact
    clone-capacity correction also passed review. Payload remains on hold, with no execution GO. R10 is
    a separate unrun source successor for path-string reuse and byte-validated whitespace compaction;
-   its new runner scalar proposal5,543,964,320 awaits independent numeric review, with payload HOLD.
-   Source inspection found an exact-controller path separator defect in R10; a narrow source successor
-   is required before any execution GO. The separate reviewed ABI probe R2 passed574 checks/156
-   measurements and froze its whole source; no R10 payload fit or GO follows. The exact R4 strict
-   native observer compiles warning-free to an object. A full-header compile found C4324 at the
-   inline result cell; a narrow source repair is being reviewed. No combined adapter was executed.
+   its runner scalar upper5,543,964,320 is conditionally accepted, with payload HOLD. The separately
+   reviewed R10 native-path correction R3 repairs the controller guard; all execution guards stay false.
+   The separate ABI probe R2 passed574 checks/156 measurements and froze its whole source; no R10 fit
+   or GO follows. The exact strict native observer compiles warning-free. R5's minimal inline-result
+   declaration reorder repairs the full-header C4324 failure without suppression;37 selected public
+   type layouts were independently checked from compiler constants. No combined adapter was executed.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -89,6 +89,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Repair the planner prototype's warning and verify its selected layout
+
+- R5 moves only the existing raw result-cell declaration; an independent critic accepted the lifetime/initialization order. Full-header MSVC /W4 /WX compilation then passed0 without suppression, preserving the original R4 C4324 failure. Whole source correspondence passed507 checks; all420 Sites/190 old packets/78 compositions remain exact.
+- A compiled constant table and independent bytewise COFF review passed83 file/data checks for37 public size/alignment pairs. Current State5232/8, Control/Slot9600/8 and ApplicationRequests19232/8 are actual selected compiler constants, not old-layout equality, offsets, allocation/retained peaks or cap fit. No target program was linked or run.
+- Archived44 exact source/evidence files under `docs/research/artifacts/2026-11-05-musical-funded-adapter-r5/`, including initial generator/launcher/extractor failures and original raw bytes. The separate strict native-observer object compiled0; its file-only inspection grants no combined native/whole qualification. Frozen layout sources/tools and all protected predecessors stay exact.
+- Next: finish/review complete420-Site production census and literal/resource/native/whole proof, then recipe/renderer/jobs/model. Separate R10 scalar and same-length path-repair correspondence are accepted conditionally; payload/typed binding/GO remain held. The authored14-key nonsecret controller environment is only a proposal until startup/import extents close. No GUI/device/input was used.
 
 ## 2026-11-05 - Measure the selected managed allocation coefficients headlessly
 

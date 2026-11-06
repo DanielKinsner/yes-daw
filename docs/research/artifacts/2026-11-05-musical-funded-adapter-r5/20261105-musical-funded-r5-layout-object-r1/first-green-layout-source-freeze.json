@@ -1,0 +1,29 @@
+{
+  "scope": "Whole compile-only layout source, plan, both wrappers, extractor and resulting table record",
+  "files": [
+    {
+      "path": "layout.cpp",
+      "sha256": "8F79DC780EE8CAD8CB45C44EE89A4BE7877AE251E0CF6EA56317FCFC07D8EDA9"
+    },
+    {
+      "path": "source-plan.json",
+      "sha256": "90827377C25FAC839F1823906CEDDAF562FA71484EE1955D93956361A6F00A46"
+    },
+    {
+      "path": "compile-only.ps1",
+      "sha256": "E967B30A34B27D2E5CF42CBC811F608AE1558E838A12C521AE4CDBBB0EC00534"
+    },
+    {
+      "path": "compile-only-r2.ps1",
+      "sha256": "D7EA0E2214D555F9F4365DDF4D76DB38FBE7B388BDB0BDA10163CC0405C57508"
+    },
+    {
+      "path": "extract-layout.py",
+      "sha256": "39D2E866784A05540B438C0857708DEAD898ED3DE04C77BAC74BF0BF451FD22C"
+    },
+    {
+      "path": "layout-record.json",
+      "sha256": "659C9A8420D93C3517D2D997403BC6BF0347A5DD428BBCBA51D6F9657CA55338"
+    }
+  ]
+}

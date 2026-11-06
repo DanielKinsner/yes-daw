@@ -1,0 +1,8 @@
+{
+  "scope": "Static extractor assumption correction only; candidate and compiled object unchanged",
+  "first_extractor_raw_exit": 1,
+  "first_extractor_sha256": "433237CF47B5D39D27663FFE4BEDF7ADCFD15B7737C79A637794C2336064C205",
+  "cause": "The compiler emitted72bytes of a vector-constructor iterator helper from included headers, despite only constexpr data being requested. No target program was linked or executed. Absence of all unrelated text is unnecessary to read the constinit relocation-free rdata table.",
+  "observed_symbol": "??_H@YAXPEAX_K1P6APEAX0@Z@Z",
+  "correction": "Record actual total emitted instruction bytes; retain table-specific read-only/no-relocation and no-CRT-initializer checks. No pricing or runtime claim."
+}

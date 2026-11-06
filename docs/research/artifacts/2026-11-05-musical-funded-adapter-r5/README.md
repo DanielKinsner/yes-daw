@@ -1,0 +1,13 @@
+# Funded adapter R5: warning repair and selected layout checkpoint
+
+The full R4-header compile failed ordinarily with MSVC C4324 under /W4 /WX. R5 moves the existing uninitialized aligned result byte-storage declaration before Exchange and its three flags. No field, initializer, Site, payment, owner operation or algorithm is added. The exact small repair passed an independent critic, then the full-header compilation passed with the same warning policy and no suppression.
+
+Independent whole R5 correspondence passed507 checks, preserving all89 current and78 predecessor pin records,420 Sites,190 old packets,78 compositions and the original three builder chain. Five C++ files are byte-exact; the formation header differs only by the declaration move. Actual initialization order, placement lifetime and paid physical destruction remain unchanged. These are conditional source facts, not numerical prices or runtime admission.
+
+A compile-only constant table records37 public sizeof/alignof pairs. An independent bytewise COFF decoder passed83 file/data checks and confirmed the exact608-byte read-only, relocation-free table. Selected State is5232 bytes, Control/Slot9600 and ApplicationRequests19232, all aligned8. This does not measure offsets, prove equality with old R4 layouts, qualify allocations/retained peaks or grant fit. The object also contains72 bytes of an unused compiler helper; nothing was linked or executed.
+
+The exact strict native-observer source compiled separately and its seven function bodies were inspected as file data. Imported addresses and named call order correspond to source. Its object alone does not qualify loaded modules, SDK behavior, combined caller/codegen, native intervals or the whole API.
+
+All original failures are preserved, including the initial source-wrapper generator assertion, precompiler absolute-pin path join, and the extractor's incorrect assumption that the object would contain no unrelated text. Those tools were corrected before their first successful check; whole layout source, wrappers and extractor froze at first green. No frozen oracle or original R4 source was edited. Original raw CRLF logs and diff context bytes are preserved through archive-manifest.json/base64 representations.
+
+This archive contains sources/evidence only, with no objects, executables, bound profile bytes or prices. Complete independent production census/cap fit, immutable data, native/forward proof and whole combined tests remain pending before public recipe, DSP/resources, jobs/model and Ready integration. Musical audio remains unactivated. No window, device or desktop input was used.

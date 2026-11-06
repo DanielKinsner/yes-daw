@@ -1,0 +1,93 @@
+{
+  "schema": "R4_NATIVE_OBSERVER_ACTUAL_OBJECT_INSPECTION_R1",
+  "scope": "Exact reviewed R4 source compiled strict to object; file-only source-correspondence assertions. No target link/run/whole native admission.",
+  "compile_raw_exit": 0,
+  "disassembly_raw_exit": 0,
+  "object_sha256": "1C30CF75472FA04AD735F46BAD8B4919230549DB617C0FC2635FE49F4241CE21",
+  "source_manifest_sha256": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077",
+  "source_whole_review_sha256": "5ED50401AF5207DD32F5E9F854C76A72CF26D40CAFBDA0EC2597ACF7487C108D",
+  "compiler_options": [
+    "/nologo",
+    "/DWIN32",
+    "/D_WINDOWS",
+    "/EHsc",
+    "/O2",
+    "/Ob2",
+    "/DNDEBUG",
+    "/std:c++20",
+    "/MD",
+    "/W4",
+    "/WX",
+    "/fp:strict",
+    "/c",
+    "/FoC:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-r4-native-object-r1\\attempt-r1\\native-observer.obj",
+    "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-musical-funded-legacy-adapter-source-r4\\native-observer.cpp"
+  ],
+  "seven_visible_functions": {
+    "control": {
+      "calls": [],
+      "conditional_or_unconditional_jumps": 0
+    },
+    "getterAnchorModule": {
+      "calls": [
+        "qword ptr [__imp_GetModuleHandleExW]"
+      ],
+      "conditional_or_unconditional_jumps": 0
+    },
+    "logAnchorModule": {
+      "calls": [
+        "qword ptr [__imp_GetModuleHandleExW]"
+      ],
+      "conditional_or_unconditional_jumps": 0
+    },
+    "moduleInfo": {
+      "calls": [
+        "qword ptr [__imp_GetCurrentProcess]",
+        "K32GetModuleInformation"
+      ],
+      "conditional_or_unconditional_jumps": 0
+    },
+    "page": {
+      "calls": [
+        "qword ptr [__imp_VirtualQuery]"
+      ],
+      "conditional_or_unconditional_jumps": 0
+    },
+    "read": {
+      "calls": [
+        "qword ptr [__imp__errno]",
+        "qword ptr [__imp_fegetround]",
+        "qword ptr [__imp_fetestexcept]",
+        "qword ptr [__imp_fegetexceptflag]",
+        "?get_new_handler@std@@YAP6AXXZXZ",
+        "qword ptr [__imp__controlfp_s]",
+        "qword ptr [__imp__get_FMA3_enable]"
+      ],
+      "conditional_or_unconditional_jumps": 0
+    },
+    "restoreStatus": {
+      "calls": [
+        "qword ptr [__imp_feclearexcept]",
+        "qword ptr [__imp_fesetexceptflag]",
+        "qword ptr [__imp__errno]"
+      ],
+      "conditional_or_unconditional_jumps": 0
+    }
+  },
+  "observations": [
+    "control emits raw stmxcsr with status mask removed; no call.",
+    "Both anchors load selected actual import pointers, then call only GetModuleHandleExW with flags6; neither invokes math/getter.",
+    "moduleInfo emits selected K32GetModuleInformation after fixed scratch initialization.",
+    "page uses48-byte native MBI and expected-size48; no variable walk.",
+    "read is the seven fixed named observation calls with actual MXCSR and result stores.",
+    "restoreStatus calls clear/set withFE_ALL_EXCEPT31, merges only low6MXCSR status bits with current controls, rereads low6, stores targeterrno and returns allthree success comparisons."
+  ],
+  "limits": [
+    "Calls remain unresolved object relocations; this does not identify actual loaded SDK image bytes or behavior.",
+    "No app/combined caller identity, actual replay/query instruction equivalence, status runtime assertion, dispatch interval, price, resource or all-input binding credit.",
+    "No R4 target function was executed. Compilation success does not freeze any unrun whole API proof."
+  ],
+  "target_executed": false,
+  "data_bound": false,
+  "GUI_or_devices": false
+}

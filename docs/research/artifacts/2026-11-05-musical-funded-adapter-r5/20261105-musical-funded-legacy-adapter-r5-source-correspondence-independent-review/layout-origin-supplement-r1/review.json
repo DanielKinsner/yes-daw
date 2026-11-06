@@ -1,0 +1,850 @@
+{
+  "schema": "YESDAW_R5_PUBLIC_LAYOUT_TABLE_ORIGIN_INDEPENDENT_DATA_REVIEW_V1",
+  "date": "2026-11-05",
+  "reviewer": "/root/clock_r9_numeric_review",
+  "verdict": "ACCEPT_CURRENT_SELECTED_37_TYPE_OBJECT_CONSTANT_RECORD_ONLY",
+  "scope": "Independent file-only integrity and table-origin check of the frozen current R5 selected-compiler constant layout record. This supplement does not change the sealed whole source/census correspondence review and does not execute any extractor, object, compiler, program or target helper.",
+  "layout_record": {
+    "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/layout-record.json",
+    "bytes": 4007,
+    "sha256": "659C9A8420D93C3517D2D997403BC6BF0347A5DD428BBCBA51D6F9657CA55338"
+  },
+  "object": {
+    "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/attempt-r2/layout.obj",
+    "bytes": 2434,
+    "sha256": "C47E64D92D886D169A9D0057CB0E356D53EB8C24C0BE3A249AE5C4633D4987CE"
+  },
+  "primary_format_reference": {
+    "title": "Microsoft PE/COFF Format",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/debug/pe-format",
+    "use": "COFF header and section layout,18-byte symbol records and auxiliary skipping, string-table names and external-symbol section-relative offsets."
+  },
+  "method": "Read bytes with bounded little-endian integer slices; resolve the unique exact external symbol through the COFF symbol table independently of the subject extractor; select its actual section, validate permissions/relocations/extent, and decode magic,count and37 size/alignment pairs. Subject extractor read as text only.",
+  "COFF": {
+    "bytes": 2434,
+    "machine": "AMD64",
+    "sections": [
+      {
+        "index": 1,
+        "name": ".drectve",
+        "raw_size": 375,
+        "raw_at": 380,
+        "relocations": 0,
+        "flags": 1051136
+      },
+      {
+        "index": 2,
+        "name": ".debug$S",
+        "raw_size": 200,
+        "raw_at": 755,
+        "relocations": 0,
+        "flags": 1108344896
+      },
+      {
+        "index": 3,
+        "name": ".rdata",
+        "raw_size": 8,
+        "raw_at": 955,
+        "relocations": 0,
+        "flags": 1077940288
+      },
+      {
+        "index": 4,
+        "name": ".rdata",
+        "raw_size": 608,
+        "raw_at": 963,
+        "relocations": 0,
+        "flags": 1078984768
+      },
+      {
+        "index": 5,
+        "name": ".bss",
+        "raw_size": 4,
+        "raw_at": 0,
+        "relocations": 0,
+        "flags": 3224375424
+      },
+      {
+        "index": 6,
+        "name": ".text$mn",
+        "raw_size": 72,
+        "raw_at": 1571,
+        "relocations": 0,
+        "flags": 1615859744
+      },
+      {
+        "index": 7,
+        "name": ".xdata",
+        "raw_size": 20,
+        "raw_at": 1643,
+        "relocations": 0,
+        "flags": 1076891712
+      },
+      {
+        "index": 8,
+        "name": ".pdata",
+        "raw_size": 12,
+        "raw_at": 1663,
+        "relocations": 3,
+        "flags": 1076891712
+      },
+      {
+        "index": 9,
+        "name": ".chks64",
+        "raw_size": 72,
+        "raw_at": 1705,
+        "relocations": 0,
+        "flags": 2560
+      }
+    ],
+    "symbol_table_entries_including_aux": 28,
+    "non_aux_symbols": 19,
+    "table_symbol": {
+      "name": "yesdaw_r4_public_layout",
+      "value": 0,
+      "section": 4,
+      "type": 0,
+      "storage_class": 2,
+      "aux_count": 0
+    },
+    "table_byte_count": 608,
+    "table_sha256": "A3AD62894C2945DAB8522FEEA74941E199BC1A63C9D476E7F483292A74A886B1",
+    "table_section_readonly": true,
+    "table_relocations": 0,
+    "all_object_relocations": 3,
+    "emitted_instruction_bytes": 72,
+    "CRT_initializer_sections": 0
+  },
+  "rows": [
+    {
+      "type": "Bounds",
+      "sizeof": 3544,
+      "alignof": 8
+    },
+    {
+      "type": "LegacyRaw",
+      "sizeof": 736,
+      "alignof": 8
+    },
+    {
+      "type": "LegacyObservation",
+      "sizeof": 32,
+      "alignof": 8
+    },
+    {
+      "type": "LegacyReadout",
+      "sizeof": 856,
+      "alignof": 8
+    },
+    {
+      "type": "Raw",
+      "sizeof": 4264,
+      "alignof": 8
+    },
+    {
+      "type": "Slice",
+      "sizeof": 16,
+      "alignof": 8
+    },
+    {
+      "type": "Canonical",
+      "sizeof": 144,
+      "alignof": 8
+    },
+    {
+      "type": "Snapshot",
+      "sizeof": 128,
+      "alignof": 8
+    },
+    {
+      "type": "FormationReceipt",
+      "sizeof": 4408,
+      "alignof": 8
+    },
+    {
+      "type": "RootCensus",
+      "sizeof": 4288,
+      "alignof": 8
+    },
+    {
+      "type": "Readout",
+      "sizeof": 4416,
+      "alignof": 8
+    },
+    {
+      "type": "Parents",
+      "sizeof": 32,
+      "alignof": 8
+    },
+    {
+      "type": "CapturedMetadata",
+      "sizeof": 384,
+      "alignof": 8
+    },
+    {
+      "type": "LegacyPreparationOptions",
+      "sizeof": 72,
+      "alignof": 8
+    },
+    {
+      "type": "CapturedIntent",
+      "sizeof": 80,
+      "alignof": 8
+    },
+    {
+      "type": "MusicalPreparationRequestState",
+      "sizeof": 5232,
+      "alignof": 8
+    },
+    {
+      "type": "Ledger",
+      "sizeof": 1,
+      "alignof": 1
+    },
+    {
+      "type": "Formed",
+      "sizeof": 8712,
+      "alignof": 8
+    },
+    {
+      "type": "Formation",
+      "sizeof": 1,
+      "alignof": 1
+    },
+    {
+      "type": "Exchange",
+      "sizeof": 1,
+      "alignof": 1
+    },
+    {
+      "type": "WorkerLegacyResult",
+      "sizeof": 888,
+      "alignof": 8
+    },
+    {
+      "type": "ControlRequestOwner",
+      "sizeof": 9600,
+      "alignof": 8
+    },
+    {
+      "type": "RetainedOriginOwner",
+      "sizeof": 16,
+      "alignof": 8
+    },
+    {
+      "type": "OwnerSlot",
+      "sizeof": 9600,
+      "alignof": 8
+    },
+    {
+      "type": "ApplicationRequests",
+      "sizeof": 19232,
+      "alignof": 8
+    },
+    {
+      "type": "WorkerArtifacts",
+      "sizeof": 120,
+      "alignof": 8
+    },
+    {
+      "type": "ActionVector",
+      "sizeof": 80,
+      "alignof": 8
+    },
+    {
+      "type": "QueryAccounting",
+      "sizeof": 1,
+      "alignof": 1
+    },
+    {
+      "type": "FundedNativeSession",
+      "sizeof": 184,
+      "alignof": 8
+    },
+    {
+      "type": "QueryCallResult",
+      "sizeof": 2,
+      "alignof": 1
+    },
+    {
+      "type": "FundedWindowQuery",
+      "sizeof": 1,
+      "alignof": 1
+    },
+    {
+      "type": "NativeBuildIdentity",
+      "sizeof": 48,
+      "alignof": 8
+    },
+    {
+      "type": "NativeSnapshot",
+      "sizeof": 80,
+      "alignof": 8
+    },
+    {
+      "type": "NativeControl",
+      "sizeof": 24,
+      "alignof": 8
+    },
+    {
+      "type": "NativeModule",
+      "sizeof": 24,
+      "alignof": 8
+    },
+    {
+      "type": "NativeImage",
+      "sizeof": 24,
+      "alignof": 8
+    },
+    {
+      "type": "NativePage",
+      "sizeof": 56,
+      "alignof": 8
+    }
+  ],
+  "first_pass_preservation": {
+    "six_frozen_files_match": true,
+    "failed_extractor_hash_matches_failure_record": true,
+    "ordinary_initial_extractor_failure": "The first script incorrectly required no instruction-bearing .text section; its raw1 record and script are preserved. The correction records actual72 code bytes and leaves table-specific/read-only/no-relocation/no-CRT-initializer checks in place. The actual object includes the separately named helper; absence of all emitted instructions is not required for data extraction.",
+    "R4_R5_compile_and_launcher_failures": "Preserved and separately pinned by the parent whole-source correspondence review; this supplement does not relabel them."
+  },
+  "selected_values_scope": "Values such as State5232/8,Control9600/8,OwnerSlot9600/8 andApplicationRequests19232/8 are current selected-profile object constants only. There is no old R4 whole-header successful size table, and no field offset is present here.",
+  "not_granted": [
+    "No R4/R5 size or offset equality.",
+    "No complete scalar U/census, typed binding, price/envelope/source or payload/cap fit.",
+    "No actual constructor, object/program/test/stage/GUI/audio execution, link or runtime allocation/overlap observation.",
+    "No native-module/dependency/dispatch/CRT/control/handler/interval or all-input forward proof.",
+    "No immutable Catalogue/Data definition, separate GO, actual whole API/query/renderer/Ready admission."
+  ],
+  "checks": [
+    {
+      "id": "exact_layout_record_seal",
+      "result": "PASS"
+    },
+    {
+      "id": "freeze:layout.cpp",
+      "result": "PASS"
+    },
+    {
+      "id": "freeze:source-plan.json",
+      "result": "PASS"
+    },
+    {
+      "id": "freeze:compile-only.ps1",
+      "result": "PASS"
+    },
+    {
+      "id": "freeze:compile-only-r2.ps1",
+      "result": "PASS"
+    },
+    {
+      "id": "freeze:extract-layout.py",
+      "result": "PASS"
+    },
+    {
+      "id": "freeze:layout-record.json",
+      "result": "PASS"
+    },
+    {
+      "id": "six_first_pass_freeze_records",
+      "result": "PASS"
+    },
+    {
+      "id": "old_extractor_preserved",
+      "result": "PASS"
+    },
+    {
+      "id": "failed_extractor_status",
+      "result": "PASS"
+    },
+    {
+      "id": "object_seal",
+      "result": "PASS"
+    },
+    {
+      "id": "plan_seal",
+      "result": "PASS"
+    },
+    {
+      "id": "source_seal",
+      "result": "PASS"
+    },
+    {
+      "id": "R5_manifest_seal",
+      "result": "PASS"
+    },
+    {
+      "id": "extractor_seal",
+      "result": "PASS"
+    },
+    {
+      "id": "reported_compile_succeeded",
+      "result": "PASS"
+    },
+    {
+      "id": "no_target_execution_recorded",
+      "result": "PASS"
+    },
+    {
+      "id": "COFF_AMD64_no_optional_header",
+      "result": "PASS"
+    },
+    {
+      "id": "COFF_section_directory_extent",
+      "result": "PASS"
+    },
+    {
+      "id": "COFF_symbol_string_table_extents",
+      "result": "PASS"
+    },
+    {
+      "id": "section_extent:1",
+      "result": "PASS"
+    },
+    {
+      "id": "section_extent:2",
+      "result": "PASS"
+    },
+    {
+      "id": "section_extent:3",
+      "result": "PASS"
+    },
+    {
+      "id": "section_extent:4",
+      "result": "PASS"
+    },
+    {
+      "id": "section_extent:5",
+      "result": "PASS"
+    },
+    {
+      "id": "section_extent:6",
+      "result": "PASS"
+    },
+    {
+      "id": "section_extent:7",
+      "result": "PASS"
+    },
+    {
+      "id": "section_extent:8",
+      "result": "PASS"
+    },
+    {
+      "id": "section_extent:9",
+      "result": "PASS"
+    },
+    {
+      "id": "symbol_auxiliary_skip_ends_exactly",
+      "result": "PASS"
+    },
+    {
+      "id": "unique_exact_external_table_symbol",
+      "result": "PASS"
+    },
+    {
+      "id": "correct_duplicate_rdata_selected_by_symbol",
+      "result": "PASS",
+      "evidence": "A separate8-byte .rdata is section3; the exact external symbol selects section4, not the first section with this name."
+    },
+    {
+      "id": "table_readonly_initialized_noncode",
+      "result": "PASS"
+    },
+    {
+      "id": "table_has_zero_relocations",
+      "result": "PASS"
+    },
+    {
+      "id": "source_plan_37_types",
+      "result": "PASS"
+    },
+    {
+      "id": "source_pair_order_exact",
+      "result": "PASS"
+    },
+    {
+      "id": "source_external_constinit_table",
+      "result": "PASS"
+    },
+    {
+      "id": "table_extent_exact608",
+      "result": "PASS"
+    },
+    {
+      "id": "table_magic_and_count",
+      "result": "PASS"
+    },
+    {
+      "id": "layout_pair:Bounds",
+      "result": "PASS",
+      "evidence": {
+        "type": "Bounds",
+        "sizeof": 3544,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:LegacyRaw",
+      "result": "PASS",
+      "evidence": {
+        "type": "LegacyRaw",
+        "sizeof": 736,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:LegacyObservation",
+      "result": "PASS",
+      "evidence": {
+        "type": "LegacyObservation",
+        "sizeof": 32,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:LegacyReadout",
+      "result": "PASS",
+      "evidence": {
+        "type": "LegacyReadout",
+        "sizeof": 856,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:Raw",
+      "result": "PASS",
+      "evidence": {
+        "type": "Raw",
+        "sizeof": 4264,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:Slice",
+      "result": "PASS",
+      "evidence": {
+        "type": "Slice",
+        "sizeof": 16,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:Canonical",
+      "result": "PASS",
+      "evidence": {
+        "type": "Canonical",
+        "sizeof": 144,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:Snapshot",
+      "result": "PASS",
+      "evidence": {
+        "type": "Snapshot",
+        "sizeof": 128,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:FormationReceipt",
+      "result": "PASS",
+      "evidence": {
+        "type": "FormationReceipt",
+        "sizeof": 4408,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:RootCensus",
+      "result": "PASS",
+      "evidence": {
+        "type": "RootCensus",
+        "sizeof": 4288,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:Readout",
+      "result": "PASS",
+      "evidence": {
+        "type": "Readout",
+        "sizeof": 4416,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:Parents",
+      "result": "PASS",
+      "evidence": {
+        "type": "Parents",
+        "sizeof": 32,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:CapturedMetadata",
+      "result": "PASS",
+      "evidence": {
+        "type": "CapturedMetadata",
+        "sizeof": 384,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:LegacyPreparationOptions",
+      "result": "PASS",
+      "evidence": {
+        "type": "LegacyPreparationOptions",
+        "sizeof": 72,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:CapturedIntent",
+      "result": "PASS",
+      "evidence": {
+        "type": "CapturedIntent",
+        "sizeof": 80,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:MusicalPreparationRequestState",
+      "result": "PASS",
+      "evidence": {
+        "type": "MusicalPreparationRequestState",
+        "sizeof": 5232,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:Ledger",
+      "result": "PASS",
+      "evidence": {
+        "type": "Ledger",
+        "sizeof": 1,
+        "alignof": 1
+      }
+    },
+    {
+      "id": "layout_pair:Formed",
+      "result": "PASS",
+      "evidence": {
+        "type": "Formed",
+        "sizeof": 8712,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:Formation",
+      "result": "PASS",
+      "evidence": {
+        "type": "Formation",
+        "sizeof": 1,
+        "alignof": 1
+      }
+    },
+    {
+      "id": "layout_pair:Exchange",
+      "result": "PASS",
+      "evidence": {
+        "type": "Exchange",
+        "sizeof": 1,
+        "alignof": 1
+      }
+    },
+    {
+      "id": "layout_pair:WorkerLegacyResult",
+      "result": "PASS",
+      "evidence": {
+        "type": "WorkerLegacyResult",
+        "sizeof": 888,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:ControlRequestOwner",
+      "result": "PASS",
+      "evidence": {
+        "type": "ControlRequestOwner",
+        "sizeof": 9600,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:RetainedOriginOwner",
+      "result": "PASS",
+      "evidence": {
+        "type": "RetainedOriginOwner",
+        "sizeof": 16,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:OwnerSlot",
+      "result": "PASS",
+      "evidence": {
+        "type": "OwnerSlot",
+        "sizeof": 9600,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:ApplicationRequests",
+      "result": "PASS",
+      "evidence": {
+        "type": "ApplicationRequests",
+        "sizeof": 19232,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:WorkerArtifacts",
+      "result": "PASS",
+      "evidence": {
+        "type": "WorkerArtifacts",
+        "sizeof": 120,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:ActionVector",
+      "result": "PASS",
+      "evidence": {
+        "type": "ActionVector",
+        "sizeof": 80,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:QueryAccounting",
+      "result": "PASS",
+      "evidence": {
+        "type": "QueryAccounting",
+        "sizeof": 1,
+        "alignof": 1
+      }
+    },
+    {
+      "id": "layout_pair:FundedNativeSession",
+      "result": "PASS",
+      "evidence": {
+        "type": "FundedNativeSession",
+        "sizeof": 184,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:QueryCallResult",
+      "result": "PASS",
+      "evidence": {
+        "type": "QueryCallResult",
+        "sizeof": 2,
+        "alignof": 1
+      }
+    },
+    {
+      "id": "layout_pair:FundedWindowQuery",
+      "result": "PASS",
+      "evidence": {
+        "type": "FundedWindowQuery",
+        "sizeof": 1,
+        "alignof": 1
+      }
+    },
+    {
+      "id": "layout_pair:NativeBuildIdentity",
+      "result": "PASS",
+      "evidence": {
+        "type": "NativeBuildIdentity",
+        "sizeof": 48,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:NativeSnapshot",
+      "result": "PASS",
+      "evidence": {
+        "type": "NativeSnapshot",
+        "sizeof": 80,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:NativeControl",
+      "result": "PASS",
+      "evidence": {
+        "type": "NativeControl",
+        "sizeof": 24,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:NativeModule",
+      "result": "PASS",
+      "evidence": {
+        "type": "NativeModule",
+        "sizeof": 24,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:NativeImage",
+      "result": "PASS",
+      "evidence": {
+        "type": "NativeImage",
+        "sizeof": 24,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "layout_pair:NativePage",
+      "result": "PASS",
+      "evidence": {
+        "type": "NativePage",
+        "sizeof": 56,
+        "alignof": 8
+      }
+    },
+    {
+      "id": "all37_rows_exact",
+      "result": "PASS"
+    },
+    {
+      "id": "actual_instruction_extent72",
+      "result": "PASS"
+    },
+    {
+      "id": "no_CRT_initializer_section",
+      "result": "PASS"
+    },
+    {
+      "id": "reported_unused_helper_symbol_present",
+      "result": "PASS"
+    },
+    {
+      "id": "non_table_relocations_are_not_conflated",
+      "result": "PASS",
+      "evidence": "Only the608-byte table section is certified relocation-free; the object as a whole is not."
+    },
+    {
+      "id": "whole_source_review_preserved",
+      "result": "PASS"
+    },
+    {
+      "id": "whole_source_pins_preserved",
+      "result": "PASS"
+    }
+  ],
+  "check_count": 83,
+  "operations": {
+    "ordinary_file_reads_hash_JSON_CO‌FF_data_decode_only": true,
+    "subject_extractor_run_or_import": false,
+    "target_parser_AST_import_helper": false,
+    "compile_link_program_test_stage": false,
+    "native_API_GUI_audio": false,
+    "Git_CI": false,
+    "subject_edits": false
+  }
+}

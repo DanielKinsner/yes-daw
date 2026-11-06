@@ -1,0 +1,4587 @@
+{
+  "schema": "YESDAW_FUNDED_LEGACY_ADAPTER_R5_WHOLE_SOURCE_CENSUS_CORRESPONDENCE_REVIEW_V1",
+  "date": "2026-11-05",
+  "reviewer": "/root/clock_r9_numeric_review",
+  "verdict": "ACCEPT_WHOLE_R5_CONDITIONAL_SOURCE_AND_DECLARATION_ONLY_CENSUS_CORRESPONDENCE",
+  "meaning": "All nine R5 source packet artifacts correspond to the accepted whole R4 conditional algorithm plus exactly the reviewed raw-storage declaration move. No new abstract source action or ownership/payment change is introduced. This accepts correspondence for fresh independent complete census review; it does not accept a numerical R4 census proposal or transfer any price, source fit, ABI, native/forward, whole API or execution/GO result.",
+  "R5_manifest": {
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/source-pins.json",
+    "bytes": 56208,
+    "sha256": "F55E268E0D24859E3305C8C75CB6EF2D0948C719C4B63AD665BCC02B0A11CC84"
+  },
+  "R4_manifest": {
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-pins.json",
+    "bytes": 52105,
+    "sha256": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077"
+  },
+  "historical_whole_R4_review": {
+    "path": "build-ci/20261105-musical-funded-legacy-adapter-r4-independent-review/review.json",
+    "bytes": 24028,
+    "sha256": "5ED50401AF5207DD32F5E9F854C76A72CF26D40CAFBDA0EC2597ACF7487C108D"
+  },
+  "narrow_reorder_review": {
+    "path": "build-ci/20261105-musical-funded-r4-padding-repair-independent-review-r1/review.json",
+    "bytes": 12224,
+    "sha256": "E1ACF702B2C564B3E86B29203057D2578917576D1CE2534973534C514A6AC6B1"
+  },
+  "method": "Complete raw-byte comparison of all six C++ artifacts to independently accepted sealed R4, exact in-memory inverse of the sole declaration move, complete appended documentation and manifest delta review, all direct pins rehashed, direct source inventory and reinspection of initialization/placement/destruction/chain/callee payment boundaries. The unchanged algorithm bodies are established by whole-file correspondence, not re-certified by finite execution.",
+  "owned_packet_files": [
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/formation-r8.h",
+      "bytes": 81190,
+      "sha256": "DCCF77D0F7F7B781D3E7731B721C7CBA5D377489780B68516C8B931D950542B2"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/worker-result.h",
+      "bytes": 9148,
+      "sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/legacy-adapter.h",
+      "bytes": 28646,
+      "sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/window-query.h",
+      "bytes": 48648,
+      "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-profile.h",
+      "bytes": 6189,
+      "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-observer.cpp",
+      "bytes": 7067,
+      "sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/source-correspondence.md",
+      "bytes": 33681,
+      "sha256": "84F32C8BA9EA4A4F3AE093090FA87AD968DFD132542387B66BE06002CB148893"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/README.md",
+      "bytes": 7116,
+      "sha256": "5D1976DE0D8C8A9FE25DB2570CA2FA0CA71659502B044B88E82F7AB614AC1C2F"
+    },
+    {
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/source-pins.json",
+      "bytes": 56208,
+      "sha256": "F55E268E0D24859E3305C8C75CB6EF2D0948C719C4B63AD665BCC02B0A11CC84"
+    }
+  ],
+  "source_comparisons": [
+    {
+      "name": "formation-r8.h",
+      "R4": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/formation-r8.h",
+        "bytes": 81190,
+        "sha256": "1308DC2CAA05644FF2AD72FE5EF10EE620A636E2EEC1D1747C8C154769FADEBA"
+      },
+      "R5": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/formation-r8.h",
+        "bytes": 81190,
+        "sha256": "DCCF77D0F7F7B781D3E7731B721C7CBA5D377489780B68516C8B931D950542B2"
+      },
+      "byte_identical": false,
+      "entire_file_equal_after_exact_approved_inverse": true
+    },
+    {
+      "name": "worker-result.h",
+      "R4": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/worker-result.h",
+        "bytes": 9148,
+        "sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754"
+      },
+      "R5": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/worker-result.h",
+        "bytes": 9148,
+        "sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754"
+      },
+      "byte_identical": true,
+      "entire_file_equal_after_exact_approved_inverse": true
+    },
+    {
+      "name": "legacy-adapter.h",
+      "R4": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/legacy-adapter.h",
+        "bytes": 28646,
+        "sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E"
+      },
+      "R5": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/legacy-adapter.h",
+        "bytes": 28646,
+        "sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E"
+      },
+      "byte_identical": true,
+      "entire_file_equal_after_exact_approved_inverse": true
+    },
+    {
+      "name": "window-query.h",
+      "R4": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/window-query.h",
+        "bytes": 48648,
+        "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8"
+      },
+      "R5": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/window-query.h",
+        "bytes": 48648,
+        "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8"
+      },
+      "byte_identical": true,
+      "entire_file_equal_after_exact_approved_inverse": true
+    },
+    {
+      "name": "native-profile.h",
+      "R4": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-profile.h",
+        "bytes": 6189,
+        "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9"
+      },
+      "R5": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-profile.h",
+        "bytes": 6189,
+        "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9"
+      },
+      "byte_identical": true,
+      "entire_file_equal_after_exact_approved_inverse": true
+    },
+    {
+      "name": "native-observer.cpp",
+      "R4": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-observer.cpp",
+        "bytes": 7067,
+        "sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714"
+      },
+      "R5": {
+        "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-observer.cpp",
+        "bytes": 7067,
+        "sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714"
+      },
+      "byte_identical": true,
+      "entire_file_equal_after_exact_approved_inverse": true
+    }
+  ],
+  "documentation": {
+    "R4_prefixes_byte_exact": true,
+    "same_append_bytes": 1077,
+    "scope": "Both appends accurately retain source-only conditional/census/native/forward/whole holds. UNCOMPILED fields in the sealed source-preparation snapshot predate the separate compile receipt; no source packet is rewritten to add later evidence."
+  },
+  "manifest_review": {
+    "direct_records": {
+      "inputs": 71,
+      "protected_artifacts": 10,
+      "outputs": 8,
+      "total": 89
+    },
+    "all_match": true,
+    "all60_R4_inputs_and_ten_protected_identities_preserved": true,
+    "all78_R4_direct_records_independently_match": true,
+    "changed_top_level_fields": [
+      "schema",
+      "author_role",
+      "status",
+      "authority",
+      "inputs",
+      "outputs",
+      "remaining",
+      "R5_delta"
+    ],
+    "new_output_paths_and_hashes_match": true,
+    "old_R4_whole_review_done_false": "Inherited historical source-preparation metadata, not an assertion overriding the separately sealed accepted whole R4 review. R5 requires and receives this fresh correspondence review."
+  },
+  "inventory": {
+    "ordered_Sites": 420,
+    "ordered_Site_list_sha256": "3EA34DEA113CAC88F596DFD2F64CD8F79994CD190CA39E01B4074F3571A51286",
+    "new_R5_Sites": 0,
+    "old_packet_IDs": 190,
+    "old_packet_order_matches_catalogue": true,
+    "old_catalogue_component_sums_checked": 190,
+    "old_catalogue_compositions_recomputed": 78,
+    "old_catalogue_case_templates": 13,
+    "native_fact_IDs": 17,
+    "original_builder_calls": {
+      "Clock": 1,
+      "Request": 1,
+      "Plan": 1
+    },
+    "old_calls": {
+      "append": 1,
+      "resolve": 1
+    },
+    "quote_terms": 12,
+    "same_private_namespace": "yesdaw::app::musical_origin_source_r8",
+    "namespace_scope": "Intentional prototype identity; only one selected source revision may enter a candidate. Source/dependency hashes identify that revision; do not link R4 and R5 definitions together."
+  },
+  "reviewed_properties": [
+    {
+      "id": "actual_initialization",
+      "anchors": [
+        "formation-r8.h:1340",
+        "formation-r8.h:1348",
+        "formation-r8.h:1303"
+      ],
+      "conclusion": "resultBytes_ remains the identical uninitialized std::byte array with identical alignas and extent. State pointer, receipt/failureTail copies, Exchange atomic DMI and three bool initializations keep their mutual order. The earlier raw-array lifetime adds no initialization write or runtime action."
+    },
+    {
+      "id": "physical_result_lifetime",
+      "anchors": [
+        "formation-r8.h:1346",
+        "formation-r8.h:1392",
+        "formation-r8.h:1419",
+        "formation-r8.h:1437",
+        "worker-result.h:89",
+        "worker-result.h:136",
+        "worker-result.h:166"
+      ],
+      "conclusion": "Same sponsored placement construction, launder access, resultLive_ transitions, explicit pre-drop destruction and separate PlanOwner lifetime. Moving trivial byte storage relative to trivial bool/selected Exchange teardown creates no second owning destructor. Actual terminal acquire, finite take and no freed-State tail access remain unchanged."
+    },
+    {
+      "id": "all_ownership_schedules",
+      "anchors": [
+        "formation-r8.h:662",
+        "formation-r8.h:817",
+        "formation-r8.h:1460",
+        "formation-r8.h:1586",
+        "formation-r8.h:1626",
+        "formation-r8.h:1764",
+        "worker-result.h:12",
+        "worker-result.h:65"
+      ],
+      "conclusion": "Complete corresponding source retains State without worker/result reverse ownership, worker-local staging, one same-origin detached Result, maximum3 live origin references and sequential Result-drop then Retained/Reader possibility. Outer slots remain raw and explicitly constructed/destroyed. These facts do not certify numeric complete lifetime coverage."
+    },
+    {
+      "id": "all_paid_boundaries",
+      "anchors": [
+        "legacy-adapter.h:213",
+        "legacy-adapter.h:239",
+        "legacy-adapter.h:342",
+        "legacy-adapter.h:424",
+        "legacy-adapter.h:489",
+        "legacy-adapter.h:530",
+        "window-query.h:256",
+        "window-query.h:283",
+        "window-query.h:765",
+        "window-query.h:991"
+      ],
+      "conclusion": "No actual paid Site/call/body changes. LegacyChainCaller still precedes chain/Common and limit DMIs; per-stage callers still precede PreparedAttempt DMIs; Arm/Take still sponsor nested status DMIs. Protected exact old-callee amount remains same-origin, branchless commit remains immediately before guaranteed actual old entry. No copied price/slack claim is made."
+    },
+    {
+      "id": "complete_algorithm_correspondence",
+      "anchors": [
+        "formation-r8.h:911",
+        "legacy-adapter.h:143",
+        "legacy-adapter.h:489",
+        "window-query.h:334",
+        "window-query.h:470",
+        "window-query.h:603",
+        "window-query.h:669",
+        "window-query.h:680",
+        "window-query.h:733",
+        "window-query.h:790",
+        "window-query.h:927",
+        "native-profile.h:77",
+        "native-observer.cpp:30"
+      ],
+      "conclusion": "All corresponding root/capture/quote/three-builder/guard/refusal/error/cancellation/cleanup, native bootstrap and region/access walks, selector/restoration, monotone prefix and endpoint prediction, exact old-callee composition and reconciliation bodies are preserved in full. Five files are byte-identical; formation differs only in field order. Existing conditional functional acceptance corresponds to R5 without broadening its proof domain."
+    },
+    {
+      "id": "no_binding",
+      "anchors": [
+        "formation-r8.h:537",
+        "window-query.h:206",
+        "native-profile.h:77"
+      ],
+      "conclusion": "Catalogue::reviewedData_, OldQueryCatalogue::data_, NativeBinding::data_ still have declarations without definitions. No new field, Site, initializer, factory, public override, runtime cache, union redesign, warning suppression, source budget change or execution gate is added."
+    }
+  ],
+  "source_census_correspondence": {
+    "result": "DECLARATION_ONLY_ABSTRACT_SOURCE_DELTA_ZERO",
+    "basis": "Exact entire-file identity after inverse member move; constructor initializer list, all bodies, field-copy definitions, raw field inventory, all420 Sites and all actual call boundaries unchanged. Only physical declaration order and resulting offsets may differ.",
+    "not_a_numeric_accept": "The complete R4 census is a separate ongoing proposal not read/accepted as numerical current proof here. No old scalar price, coefficient, aggregate allowance, layout, root envelope or cap-fit credit is borrowed. The author/reviewer must bind the fresh proposal to selected R5 hashes and close all complete lifetime/admin/error/native resource terms.",
+    "layout": "No sizeof/alignof equality is inferred from reordered declarations or compile success. The object is hash-verified but not decoded here; actual37-entry selected-profile decode and any field-offset proof remain separate records. Old R4 full-header compile failed, so there is no old measured whole-layout table to compare.",
+    "source_hash_rebinding": "Accepted correspondence does not make R4 and R5 byte identities interchangeable. Current selected profile/census/source dependencies and field-order references must explicitly identify R5."
+  },
+  "existing_compile_evidence": {
+    "receipt": {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/attempt-r2/receipt.json",
+      "bytes": 1539,
+      "sha256": "BF9C9802A63840CD679126E60888D14568091FA9D91EA4023DA6D75FD3983B2B"
+    },
+    "object": {
+      "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/attempt-r2/layout.obj",
+      "bytes": 2434,
+      "sha256": "C47E64D92D886D169A9D0057CB0E356D53EB8C24C0BE3A249AE5C4633D4987CE"
+    },
+    "reported_environment_raw_exit": 0,
+    "reported_compile_raw_exit": 0,
+    "required_flags": [
+      "/W4",
+      "/WX",
+      "/c",
+      "/fp:strict",
+      "/std:c++20"
+    ],
+    "input_binding": "Receipt pins exact R5 manifest, unchanged native profile/observer and pinned compiler; layout.cpp includes R5 legacy-adapter.h and its source hash matches the37-type plan. No new warning suppression exists in the R5 source change.",
+    "historical_label_clarifier": "The receipt scope and C table symbol retain R4 labels; source include, manifest hash and actual code identify R5. The whole_review receipt field remains historical R4 review, not a claim that it was a fresh R5 review.",
+    "preserved_failures": [
+      {
+        "path": "build-ci/20261105-musical-funded-r4-layout-object-r1/attempt-r1/compile.log",
+        "bytes": 443,
+        "sha256": "EBB4AA315A1D630C28845BA249821D2FCD6C7F0A85FF40B3C58B8E8543381E76"
+      },
+      {
+        "path": "build-ci/20261105-musical-funded-r4-layout-object-r1/attempt-r1/receipt.json",
+        "bytes": 1451,
+        "sha256": "9617A62C5D38D56A9D8BEDA3337D9E1F13AC5DA71B532572E048C14035637609"
+      },
+      {
+        "path": "build-ci/20261105-musical-funded-r5-layout-object-r1/attempt-r1/root-first-attempt-failure.json",
+        "bytes": 576,
+        "sha256": "6E1E27D97E9B6FB5CF6DB2CDB3D085305EE96F3C1923149BB6A549D714A9EC02"
+      }
+    ],
+    "launcher_failure": "R5 attempt-r1 record states compiler was not invoked; both failed and replacement wrappers match the recorded hashes. Its fully-qualified-path correction is source-visible. This is distinct from the original R4 C4324 compiler failure.",
+    "credit": "Existing selected compiler accepted these headers for a compile-only public constant table. No link, target constructor/program/test/GUI/audio, native interval/all-input, U/ABI/payload/cap or whole execution proof follows."
+  },
+  "blocking_findings": [],
+  "remaining_holds": [
+    "Fresh complete independent R4 census numerical review and explicit selected R5 source binding.",
+    "Actual typed/ABI/native layouts, dictionary/storage or object/offset facts under their applicable separate profiles; no source-only layout equality.",
+    "Complete U/scalar/capacity/lifetime/stack/overlap/opaque-call and unchanged-cap payload/source-fit proof.",
+    "All native region/module/dependency/dispatch/control/store/handler/library/observer/interval and all-input floating-point forward facts.",
+    "Separate reviewed immutable Data/Catalogue binding, separate GO and independent actual whole combined API proof.",
+    "Query/public recipe/producer/job/model/renderer/Ready integration remains held."
+  ],
+  "checks": [
+    {
+      "kind": "seal",
+      "id": "R5_manifest",
+      "result": "PASS"
+    },
+    {
+      "kind": "seal",
+      "id": "R4_manifest",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:AGENTS.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:CLAUDE.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:docs/adr/0085-owned-musical-call-recipes.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:docs/adr/0088-musical-origin-formation.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:docs/adr/0089-frozen-musical-builder-attempts.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-production-operation-boundary-census-conventions.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:src/engine/MusicalAudioWindow.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:src/engine/MusicalAudioChannelPlan.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:src/engine/Time.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:src/engine/RateMatchedView.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:src/engine/Project.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:src/engine/ClipSchedule.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-formation-bound-source-r2/formation.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-formation-bound-source-r2/formation-data.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-formation-bound-source-r2/proof-access.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-formation-bound-source-r2/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-formation-bound-source-r2/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-origin-formation-r4-census-r2/census.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-formation-whole-proof-r3/first-green-freeze.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-formation-native-layout-r1/execution-r1/receipt.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/receipt.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-legacy-entry-boundary-prep/proposal.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-legacy-attempt-adr-prep/implementation-steps.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r1/formation-r5.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r1/legacy-adapter.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-correspondence.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r1/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-r1-independent-review.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/formation-r6.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/worker-result.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/legacy-adapter.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-correspondence.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-r2-independent-review.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-window-query-path-census-r1/census.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-window-query-path-census-r1/census.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-window-query-path-census-r1/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-window-query-path-census-r1-independent-review.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-production-query-sdk-boundary-clarification.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/fenv.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/formation-r7.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/legacy-adapter.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-observer.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-profile.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-correspondence.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/window-query.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/worker-result.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/inventory-checks.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/pin-checks.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/source-arithmetic-checks.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-native-region-qualification-design-r1/critic.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-native-region-qualification-design-r1/evidence.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/formation-r8.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/legacy-adapter.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-observer.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-profile.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-correspondence.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/window-query.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/worker-result.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-r4-layout-object-r1/attempt-r1/receipt.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:inputs:build-ci/20261105-musical-funded-r4-layout-object-r1/attempt-r1/compile.log",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:protected_artifacts:tests/musical_audio_call_recipe_tests.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:protected_artifacts:build-ci/20261105-musical-formation-whole-proof-r3/proof.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:protected_artifacts:src/engine/MusicalAudioCutPlan.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:protected_artifacts:src/engine/MusicalAudioChannelMaterialization.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/probe-types.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/build-and-query.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/replay-probe.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/fp-observer.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r5/formation-r8.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r5/worker-result.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r5/legacy-adapter.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r5/window-query.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-profile.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-observer.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r5/source-correspondence.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R5:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r5/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:AGENTS.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:CLAUDE.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:docs/adr/0085-owned-musical-call-recipes.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:docs/adr/0088-musical-origin-formation.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:docs/adr/0089-frozen-musical-builder-attempts.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-production-operation-boundary-census-conventions.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:src/engine/MusicalAudioWindow.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:src/engine/MusicalAudioChannelPlan.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:src/engine/Time.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:src/engine/RateMatchedView.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:src/engine/Project.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:src/engine/ClipSchedule.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-formation-bound-source-r2/formation.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-formation-bound-source-r2/formation-data.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-formation-bound-source-r2/proof-access.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-formation-bound-source-r2/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-formation-bound-source-r2/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-origin-formation-r4-census-r2/census.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-formation-whole-proof-r3/first-green-freeze.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-formation-native-layout-r1/execution-r1/receipt.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/receipt.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-legacy-entry-boundary-prep/proposal.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-legacy-attempt-adr-prep/implementation-steps.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r1/formation-r5.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r1/legacy-adapter.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-correspondence.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r1/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-r1-independent-review.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/formation-r6.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/worker-result.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/legacy-adapter.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-correspondence.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-r2-independent-review.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-window-query-path-census-r1/census.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-window-query-path-census-r1/census.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-window-query-path-census-r1/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-window-query-path-census-r1-independent-review.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-production-query-sdk-boundary-clarification.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/fenv.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/formation-r7.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/legacy-adapter.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-observer.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-profile.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-correspondence.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/window-query.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-source-r3/worker-result.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/inventory-checks.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/pin-checks.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/source-arithmetic-checks.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-native-region-qualification-design-r1/critic.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:inputs:build-ci/20261105-musical-native-region-qualification-design-r1/evidence.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:protected_artifacts:tests/musical_audio_call_recipe_tests.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:protected_artifacts:build-ci/20261105-musical-formation-whole-proof-r3/proof.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:protected_artifacts:src/engine/MusicalAudioCutPlan.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:protected_artifacts:src/engine/MusicalAudioChannelMaterialization.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/probe-types.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/build-and-query.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/replay-probe.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/fp-observer.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:protected_artifacts:build-ci/20261105-musical-query-fp-profile-probe-r1/source-pins.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/formation-r8.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/worker-result.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/legacy-adapter.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/window-query.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-profile.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-observer.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-correspondence.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "pin",
+      "id": "R4:outputs:build-ci/20261105-musical-funded-legacy-adapter-source-r4/README.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "seal",
+      "id": "accepted_R4_whole_review",
+      "result": "PASS"
+    },
+    {
+      "kind": "lineage",
+      "id": "R4_whole_review_scope",
+      "result": "PASS"
+    },
+    {
+      "kind": "prior_review_artifact",
+      "id": "build-ci/20261105-musical-funded-legacy-adapter-r4-independent-review/pin-checks.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "prior_review_artifact",
+      "id": "build-ci/20261105-musical-funded-legacy-adapter-r4-independent-review/inventory-checks.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "prior_review_artifact",
+      "id": "build-ci/20261105-musical-funded-legacy-adapter-r4-independent-review/source-arithmetic-checks.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "prior_review_artifact",
+      "id": "build-ci/20261105-musical-funded-legacy-adapter-r4-independent-review/review.json",
+      "result": "PASS"
+    },
+    {
+      "kind": "prior_review_artifact",
+      "id": "build-ci/20261105-musical-funded-legacy-adapter-r4-independent-review/review.md",
+      "result": "PASS"
+    },
+    {
+      "kind": "seal",
+      "id": "narrow_review",
+      "result": "PASS"
+    },
+    {
+      "kind": "seal",
+      "id": "narrow_pins",
+      "result": "PASS"
+    },
+    {
+      "kind": "inventory",
+      "id": "nine_file_ownership",
+      "result": "PASS"
+    },
+    {
+      "kind": "source_delta",
+      "id": "one_reviewed_region",
+      "result": "PASS"
+    },
+    {
+      "kind": "source_delta",
+      "id": "exact_narrow_candidate_sha",
+      "result": "PASS"
+    },
+    {
+      "kind": "whole_code_correspondence",
+      "id": "formation-r8.h",
+      "result": "PASS",
+      "evidence": "Complete raw bytes, not sampled text. Formation permits only the reviewed declaration move."
+    },
+    {
+      "kind": "namespace",
+      "id": "formation-r8.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "line_format",
+      "id": "formation-r8.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "whole_code_correspondence",
+      "id": "worker-result.h",
+      "result": "PASS",
+      "evidence": "Complete raw bytes, not sampled text. Formation permits only the reviewed declaration move."
+    },
+    {
+      "kind": "namespace",
+      "id": "worker-result.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "line_format",
+      "id": "worker-result.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "whole_code_correspondence",
+      "id": "legacy-adapter.h",
+      "result": "PASS",
+      "evidence": "Complete raw bytes, not sampled text. Formation permits only the reviewed declaration move."
+    },
+    {
+      "kind": "namespace",
+      "id": "legacy-adapter.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "line_format",
+      "id": "legacy-adapter.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "whole_code_correspondence",
+      "id": "window-query.h",
+      "result": "PASS",
+      "evidence": "Complete raw bytes, not sampled text. Formation permits only the reviewed declaration move."
+    },
+    {
+      "kind": "namespace",
+      "id": "window-query.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "line_format",
+      "id": "window-query.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "whole_code_correspondence",
+      "id": "native-profile.h",
+      "result": "PASS",
+      "evidence": "Complete raw bytes, not sampled text. Formation permits only the reviewed declaration move."
+    },
+    {
+      "kind": "namespace",
+      "id": "native-profile.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "line_format",
+      "id": "native-profile.h",
+      "result": "PASS"
+    },
+    {
+      "kind": "whole_code_correspondence",
+      "id": "native-observer.cpp",
+      "result": "PASS",
+      "evidence": "Complete raw bytes, not sampled text. Formation permits only the reviewed declaration move."
+    },
+    {
+      "kind": "namespace",
+      "id": "native-observer.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "line_format",
+      "id": "native-observer.cpp",
+      "result": "PASS"
+    },
+    {
+      "kind": "docs",
+      "id": "README.md:R4_prefix",
+      "result": "PASS"
+    },
+    {
+      "kind": "docs",
+      "id": "README.md:honest_scope",
+      "result": "PASS"
+    },
+    {
+      "kind": "docs",
+      "id": "source-correspondence.md:R4_prefix",
+      "result": "PASS"
+    },
+    {
+      "kind": "docs",
+      "id": "source-correspondence.md:honest_scope",
+      "result": "PASS"
+    },
+    {
+      "kind": "docs",
+      "id": "two_identical_1077_byte_appends",
+      "result": "PASS"
+    },
+    {
+      "kind": "manifest_lineage",
+      "id": "inputs",
+      "result": "PASS"
+    },
+    {
+      "kind": "manifest_lineage",
+      "id": "protected_artifacts",
+      "result": "PASS"
+    },
+    {
+      "kind": "manifest_delta",
+      "id": "only_lineage_scope_output_changes",
+      "result": "PASS"
+    },
+    {
+      "kind": "inventory",
+      "id": "420_ordered_Sites",
+      "result": "PASS"
+    },
+    {
+      "kind": "inventory",
+      "id": "manifest_new_57_ordinals",
+      "result": "PASS"
+    },
+    {
+      "kind": "inventory",
+      "id": "unchanged_Phase",
+      "result": "PASS"
+    },
+    {
+      "kind": "inventory",
+      "id": "unchanged_Role",
+      "result": "PASS"
+    },
+    {
+      "kind": "inventory",
+      "id": "unchanged_Context",
+      "result": "PASS"
+    },
+    {
+      "kind": "inventory",
+      "id": "unchanged_Signal",
+      "result": "PASS"
+    },
+    {
+      "kind": "inventory",
+      "id": "unchanged_LegacyEvidence",
+      "result": "PASS"
+    },
+    {
+      "kind": "inventory",
+      "id": "190_ordered_old_packets",
+      "result": "PASS"
+    },
+    {
+      "kind": "inventory",
+      "id": "17_NativeFacts",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "E",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "Z",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "R_C",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "MAX",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "MATH1",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "EXT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "VI",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "POSDIFF",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "BOOL_HANDLE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "ARROW_HANDLE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "HCOPY",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "HDROP",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "HDEFAULT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "HMOVEASSIGN",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "HCOPYASSIGN",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "F0",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "F1",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "HF0",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "HF1",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "SR_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "STATUS",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FB0",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "N_ENTER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "N_FIN",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "N_NEG",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "N_RANGE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "N_STORE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_ENTER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_SEG",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_DELTA",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_RANGE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_BPM_CALL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_ZERO",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_MATH",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_CURVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_EQUAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_LINEAR",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_FINAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_SLOPE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_SLOPE_ZERO",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_FIN_TEST",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_RELATIVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_REL_RANGE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_LOGADD",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "UB_BASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "UB_TEST",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "UB_BODY",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "UB_TRUE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "UB_FALSE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_ENTER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_RATE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_TICK",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_EMPTY",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_EMPTY_MATH",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_SEARCH_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FT_SEARCH_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_SEARCH_ADMIN",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_PREFIX",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_SEGMENT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_HAVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_NEXT_TRUE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_NEXT_FALSE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_BPM_TRUE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_BPM_FALSE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_APPEND_CALLER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_STORE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_ENTER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_NEG",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_FRACTION_CALL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_BUILT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_FAILURE_VALUE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_EMPTY",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_VECEMPTY",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_VECEMPTY",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_VECEMPTY_CALLER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_FRAMELOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_FT_CALLER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_ZERO",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_NATIVE_CALLER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FP_RESET",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_ENTER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_WHOLE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_DENOM",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_NUMERATOR",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_ELIGIBILITY",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_FRACTION_LOCALS",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_FB_CALLER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_TIMES",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_HIGH_ONE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_LOW_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_TIME_CALLER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_STATUS_TEST",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_STATUS_ARG",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_HIGH_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_EQUAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_ORDER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_WIDTH",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_FLOOR",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_FLOOR_EQ",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_OUTPUT_ARGS",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "WINDOW_VALUE_CTOR",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "WINDOW_PLAIN_CTOR",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "WINDOW_MOVE_ASSIGN",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "WINDOW_DTOR",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "WINDOW_RESET",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "WINDOW_RESET",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_ENTER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_START",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_LENGTH",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_N",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_OVERFLOW",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_ENDPOINT_LOCALS",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_A_CALLER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_A_CALLER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_A_ARGS",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_B_CALLER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_B_CALLER",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_B_ARGS",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_STATUS",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_RETURN_STATUS",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_COLLAPSE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_SUCCESS_SCALARS",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "SR0",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "SR0",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "SR1",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "SR1",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "N_NONFINITE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "N_NONFINITE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "N_NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "N_NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "N_OVERFLOW",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "N_OVERFLOW",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "N_OK",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "N_OK",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_BAD_SEG",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_BAD_SEG",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_BAD_DELTA",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_BAD_DELTA",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_BAD_RANGE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_BAD_RANGE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_START0",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_START0",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_START1",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_START1",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_END0",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_END0",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_END1",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_END1",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_VALID_PREFIX",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_VALID_PREFIX",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_ZERO_OK",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_ZERO_OK",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_DISPATCH",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_DISPATCH",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_JUMP",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_JUMP",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_FLAT_RAMP",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_FLAT_RAMP",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_RAMP_BASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_RAMP_BASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_SLOPE_ZERO_FAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_SLOPE_ZERO_FAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_SLOPE_NONFINITE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_SLOPE_NONFINITE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_REL_BASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_REL_BASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_REL_NONFINITE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_REL_NONFINITE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_REL_RANGE_FAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_REL_RANGE_FAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "AS_RAMP",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "AS_RAMP",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_RATE0_FAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FT_RATE0_FAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_RATE1_FAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FT_RATE1_FAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_VALID_RATE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FT_VALID_RATE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FT_NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_VALID_BASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FT_VALID_BASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_EMPTY_CASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FT_EMPTY_CASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_NONEMPTY_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FT_NONEMPTY_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_AT_ROW_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FT_AT_ROW_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_PART_NEXT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FT_PART_NEXT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FT_PART_LAST",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FT_PART_LAST",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_FRAC0_INVALID",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_FRAC0_INVALID",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_FRAC1_INVALID",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_FRAC1_INVALID",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_VALID_TIME",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_VALID_TIME",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_UNBUILT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_UNBUILT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_BUILT_BASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_BUILT_BASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_INVALID_MAP",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_INVALID_MAP",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_EMPTY_BEFORE_FT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_EMPTY_BEFORE_FT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_MAP_BEFORE_FT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_MAP_BEFORE_FT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_AFTER_FT_OK",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_AFTER_FT_OK",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_BEFORE_WHOLE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FA_BEFORE_WHOLE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FA_NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_INPUTS",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FA_INPUTS",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_RESOURCE_LIMIT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FA_RESOURCE_LIMIT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_BEFORE_TIME",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FA_BEFORE_TIME",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_FAILURE_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FA_FAILURE_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_OK_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FA_OK_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_PRE_NULL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_PRE_NULL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_EXIT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_EXIT",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_NULL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_NULL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_NEGATIVE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_NONPOS_LENGTH",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_NONPOS_LENGTH",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_ZERO_N",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_ZERO_N",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_OVERFLOW_CASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_OVERFLOW_CASE",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_BEFORE_A",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_BEFORE_A",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_A_FAIL_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_A_FAIL_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_B_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_B_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_B_FAIL_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_B_FAIL_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_COLLAPSED_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_COLLAPSED_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_SUCCESS_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_SUCCESS_TAIL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "UB_FIXED",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "UB_FIXED",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "UB_T",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "UB_T",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "UB_F",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "UB_F",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_B_TOTAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_B_TOTAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_EMPTY_OK_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_EMPTY_OK_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FF_MAP_OK_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FF_MAP_OK_LOCAL",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "FA_EMPTY_OK",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "FA_EMPTY_OK",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_component_sum",
+      "id": "RW_EMPTY_OK",
+      "result": "PASS"
+    },
+    {
+      "kind": "old_catalogue_composition",
+      "id": "RW_EMPTY_OK",
+      "result": "PASS"
+    },
+    {
+      "kind": "inventory",
+      "id": "old_catalogue_190_78_13",
+      "result": "PASS"
+    },
+    {
+      "kind": "call_boundary",
+      "id": "three_actual_builders",
+      "result": "PASS"
+    },
+    {
+      "kind": "call_boundary",
+      "id": "two_old_actual_entries",
+      "result": "PASS"
+    },
+    {
+      "kind": "call_boundary",
+      "id": "twelve_quote_terms",
+      "result": "PASS"
+    },
+    {
+      "kind": "call_boundary",
+      "id": "chain_caller_before_chain",
+      "result": "PASS"
+    },
+    {
+      "kind": "call_boundary",
+      "id": "append_commit_immediately_before_entry",
+      "result": "PASS"
+    },
+    {
+      "kind": "call_boundary",
+      "id": "resolve_commit_immediately_before_entry",
+      "result": "PASS"
+    },
+    {
+      "kind": "call_boundary",
+      "id": "protected_same_origin_callee",
+      "result": "PASS"
+    },
+    {
+      "kind": "lifetime",
+      "id": "array_uninitialized_actual_member_order",
+      "result": "PASS"
+    },
+    {
+      "kind": "lifetime",
+      "id": "funded_explicit_result_construction",
+      "result": "PASS"
+    },
+    {
+      "kind": "lifetime",
+      "id": "two_explicit_result_drops",
+      "result": "PASS"
+    },
+    {
+      "kind": "binding",
+      "id": "all_three_const_definitions_absent",
+      "result": "PASS"
+    },
+    {
+      "kind": "compile_record",
+      "id": "reported_raw_environment_and_compile_zero",
+      "result": "PASS"
+    },
+    {
+      "kind": "compile_record",
+      "id": "current_R5_source_manifest",
+      "result": "PASS"
+    },
+    {
+      "kind": "compile_record",
+      "id": "preserved_historical_review",
+      "result": "PASS"
+    },
+    {
+      "kind": "compile_record",
+      "id": "required_flags",
+      "result": "PASS"
+    },
+    {
+      "kind": "compile_record",
+      "id": "object_hash_matches_receipt",
+      "result": "PASS"
+    },
+    {
+      "kind": "compile_record",
+      "id": "compiler_hash_matches_receipt",
+      "result": "PASS"
+    },
+    {
+      "kind": "compile_record",
+      "id": "public_layout_source_pin",
+      "result": "PASS"
+    },
+    {
+      "kind": "compile_record",
+      "id": "actual_R5_include",
+      "result": "PASS"
+    },
+    {
+      "kind": "compile_record",
+      "id": "failed_launcher_preserved_no_compiler",
+      "result": "PASS"
+    },
+    {
+      "kind": "compile_record",
+      "id": "original_R4_C4324_preserved",
+      "result": "PASS"
+    },
+    {
+      "kind": "compile_record",
+      "id": "no_link_target_or_desktop_recorded",
+      "result": "PASS"
+    }
+  ],
+  "check_count": 507,
+  "pin_checks": [
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "AGENTS.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "expected_sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "expected_bytes": 6331,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "CLAUDE.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "expected_sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "expected_bytes": 6331,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "docs/adr/0085-owned-musical-call-recipes.md",
+      "bytes": 23414,
+      "sha256": "876FC9F16068603CB8D98799060B4FE8F8147502904DBE5C4EB3DA441729C1C9",
+      "expected_sha256": "876FC9F16068603CB8D98799060B4FE8F8147502904DBE5C4EB3DA441729C1C9",
+      "expected_bytes": 23414,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "docs/adr/0088-musical-origin-formation.md",
+      "bytes": 9440,
+      "sha256": "86EAB38B43415191C795632F2EE675C8A476F894B121B78B404E1CC6FB5FAF33",
+      "expected_sha256": "86EAB38B43415191C795632F2EE675C8A476F894B121B78B404E1CC6FB5FAF33",
+      "expected_bytes": 9440,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "docs/adr/0089-frozen-musical-builder-attempts.md",
+      "bytes": 8136,
+      "sha256": "5943166A5E27B3088783FE072D7FBF67D8AE9489C9432FEC68A7EA0B0A15C944",
+      "expected_sha256": "5943166A5E27B3088783FE072D7FBF67D8AE9489C9432FEC68A7EA0B0A15C944",
+      "expected_bytes": 8136,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-production-operation-boundary-census-conventions.md",
+      "bytes": 2323,
+      "sha256": "404E214B31AA1F1FA273224DCF28355C1DB65E3798635416D802702E2458613A",
+      "expected_sha256": "404E214B31AA1F1FA273224DCF28355C1DB65E3798635416D802702E2458613A",
+      "expected_bytes": 2323,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "src/engine/MusicalAudioWindow.h",
+      "bytes": 19572,
+      "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D",
+      "expected_sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D",
+      "expected_bytes": 19572,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "src/engine/MusicalAudioChannelPlan.h",
+      "bytes": 17081,
+      "sha256": "F47C6E49B02A69C16CD554A4C5520CC891146A434603F4E1BB73E9099EB97F16",
+      "expected_sha256": "F47C6E49B02A69C16CD554A4C5520CC891146A434603F4E1BB73E9099EB97F16",
+      "expected_bytes": 17081,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "expected_sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "expected_bytes": 49489,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "src/engine/RateMatchedView.h",
+      "bytes": 5293,
+      "sha256": "9A0770E8690FBC60048BDF13FF1D1BD332B6D620A1985C52895E7FE916BB0571",
+      "expected_sha256": "9A0770E8690FBC60048BDF13FF1D1BD332B6D620A1985C52895E7FE916BB0571",
+      "expected_bytes": 5293,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "src/engine/Project.h",
+      "bytes": 181566,
+      "sha256": "0294E0B6592633B2601F09B45A9FC724EDD6921512A66B9AB7AD82FB8F817D97",
+      "expected_sha256": "0294E0B6592633B2601F09B45A9FC724EDD6921512A66B9AB7AD82FB8F817D97",
+      "expected_bytes": 181566,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "src/engine/ClipSchedule.h",
+      "bytes": 6706,
+      "sha256": "681ED77653AF195480FAA63FBB57D1804C1C3CBCA813310B18F0B058B7552D1A",
+      "expected_sha256": "681ED77653AF195480FAA63FBB57D1804C1C3CBCA813310B18F0B058B7552D1A",
+      "expected_bytes": 6706,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/formation.h",
+      "bytes": 58543,
+      "sha256": "1673DFB9FEB370FFD8C3491E0EB2DE9AF2C006D0CCF25FA0BE7DB5CFFB391BF7",
+      "expected_sha256": "1673DFB9FEB370FFD8C3491E0EB2DE9AF2C006D0CCF25FA0BE7DB5CFFB391BF7",
+      "expected_bytes": 58543,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/formation-data.cpp",
+      "bytes": 6973,
+      "sha256": "50B44CEDADE31A1B9280E96CFCB308406522BE30D005B262FBAD4319A40AA35D",
+      "expected_sha256": "50B44CEDADE31A1B9280E96CFCB308406522BE30D005B262FBAD4319A40AA35D",
+      "expected_bytes": 6973,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/proof-access.h",
+      "bytes": 13815,
+      "sha256": "099D46D2DDEBD03C803F3C0E95EEBC674E46A7C4B7004168099B721F20A04D60",
+      "expected_sha256": "099D46D2DDEBD03C803F3C0E95EEBC674E46A7C4B7004168099B721F20A04D60",
+      "expected_bytes": 13815,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/README.md",
+      "bytes": 16338,
+      "sha256": "575F576B3B1FB5DA6DB26C839178AB6E6BE440753ED53E57EE9BEF2DD5A9C805",
+      "expected_sha256": "575F576B3B1FB5DA6DB26C839178AB6E6BE440753ED53E57EE9BEF2DD5A9C805",
+      "expected_bytes": 16338,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/source-pins.json",
+      "bytes": 16142,
+      "sha256": "0AB5C6C6E95C7FE50E0912A8F9C62BAF1B492963A94A767008003C32F4292128",
+      "expected_sha256": "0AB5C6C6E95C7FE50E0912A8F9C62BAF1B492963A94A767008003C32F4292128",
+      "expected_bytes": 16142,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-origin-formation-r4-census-r2/census.md",
+      "bytes": 29625,
+      "sha256": "300714170387FF05302A5B4D0429275DBA403A73A4A1674478A810A26C51D4E9",
+      "expected_sha256": "300714170387FF05302A5B4D0429275DBA403A73A4A1674478A810A26C51D4E9",
+      "expected_bytes": 29625,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-whole-proof-r3/first-green-freeze.json",
+      "bytes": 936,
+      "sha256": "56BE0598727F92B5B2A57CB806E86C6C3EC300D719E18C1D223A40EDBB6C7FA8",
+      "expected_sha256": "56BE0598727F92B5B2A57CB806E86C6C3EC300D719E18C1D223A40EDBB6C7FA8",
+      "expected_bytes": 936,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-native-layout-r1/execution-r1/receipt.json",
+      "bytes": 889,
+      "sha256": "6BCF6BAC24ECFF8D887385463BFAE60FD14E7472B6340562B31F427D0C40F7F1",
+      "expected_sha256": "6BCF6BAC24ECFF8D887385463BFAE60FD14E7472B6340562B31F427D0C40F7F1",
+      "expected_bytes": 889,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/receipt.json",
+      "bytes": 1936,
+      "sha256": "BA4A68F979E184BA5DC1D7AE76532B858FEC745BB1B53DAB7E03CF5E68643C18",
+      "expected_sha256": "BA4A68F979E184BA5DC1D7AE76532B858FEC745BB1B53DAB7E03CF5E68643C18",
+      "expected_bytes": 1936,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-legacy-entry-boundary-prep/proposal.md",
+      "bytes": 8571,
+      "sha256": "D1B27BA961B138791E24AF3A7D400A2A13FEF7CC6F2B67CA56B152E90E8A58FD",
+      "expected_sha256": "D1B27BA961B138791E24AF3A7D400A2A13FEF7CC6F2B67CA56B152E90E8A58FD",
+      "expected_bytes": 8571,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-legacy-attempt-adr-prep/implementation-steps.md",
+      "bytes": 956,
+      "sha256": "6D0B66788CFFF336F0FE85E29F84DF8BB041B0635D8EBCD38D2345F0A7651092",
+      "expected_sha256": "6D0B66788CFFF336F0FE85E29F84DF8BB041B0635D8EBCD38D2345F0A7651092",
+      "expected_bytes": 956,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/formation-r5.h",
+      "bytes": 68776,
+      "sha256": "FCB149FBD6023BBE462C6E7BB8CE6055CA6A8D92679C9C64F4B61C5813C86C4D",
+      "expected_sha256": "FCB149FBD6023BBE462C6E7BB8CE6055CA6A8D92679C9C64F4B61C5813C86C4D",
+      "expected_bytes": 68776,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/legacy-adapter.h",
+      "bytes": 27367,
+      "sha256": "C7FA6ECD713077C41ED1FB9AECBCA8E67A957AF1C92106CE6011B4F120610C8F",
+      "expected_sha256": "C7FA6ECD713077C41ED1FB9AECBCA8E67A957AF1C92106CE6011B4F120610C8F",
+      "expected_bytes": 27367,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-correspondence.md",
+      "bytes": 27569,
+      "sha256": "6786B358196DB826C04C38F84C819AEC5419C811C0235DF65978554271D412D8",
+      "expected_sha256": "6786B358196DB826C04C38F84C819AEC5419C811C0235DF65978554271D412D8",
+      "expected_bytes": 27569,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/README.md",
+      "bytes": 6753,
+      "sha256": "7A9B5F5F5C62AF714DC563B2F15FAC64B77327A10D1834E66502188909C55E02",
+      "expected_sha256": "7A9B5F5F5C62AF714DC563B2F15FAC64B77327A10D1834E66502188909C55E02",
+      "expected_bytes": 6753,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-pins.json",
+      "bytes": 12121,
+      "sha256": "FC7E2E937EC7CF74C8B0DE65BB6E50C7B24D6BFF14B35F6CA8726C2C88773615",
+      "expected_sha256": "FC7E2E937EC7CF74C8B0DE65BB6E50C7B24D6BFF14B35F6CA8726C2C88773615",
+      "expected_bytes": 12121,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r1-independent-review.json",
+      "bytes": 1802,
+      "sha256": "066F14BBE1D38CD4306A9CD6DF3B5CDFCDDC55D0B31C70AEBC0328E5C3537267",
+      "expected_sha256": "066F14BBE1D38CD4306A9CD6DF3B5CDFCDDC55D0B31C70AEBC0328E5C3537267",
+      "expected_bytes": 1802,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/formation-r6.h",
+      "bytes": 72615,
+      "sha256": "F5E4348ACBB7A4843C662269197B7A320C5E2000211DF8CDA6CCACFE33C47D1F",
+      "expected_sha256": "F5E4348ACBB7A4843C662269197B7A320C5E2000211DF8CDA6CCACFE33C47D1F",
+      "expected_bytes": 72615,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/worker-result.h",
+      "bytes": 8988,
+      "sha256": "021461C164FF43D18576057B2D7BA0C2F9C9EA45A1259B2523EB875050F4A399",
+      "expected_sha256": "021461C164FF43D18576057B2D7BA0C2F9C9EA45A1259B2523EB875050F4A399",
+      "expected_bytes": 8988,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/legacy-adapter.h",
+      "bytes": 27466,
+      "sha256": "1DBE42BAF8F4F87311A100D48E94DD44DB7FC001103FC3AB459A42002EF7966F",
+      "expected_sha256": "1DBE42BAF8F4F87311A100D48E94DD44DB7FC001103FC3AB459A42002EF7966F",
+      "expected_bytes": 27466,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-correspondence.md",
+      "bytes": 25170,
+      "sha256": "2B966471F1C9BA1D0BFB92E6E973CF5BFF363900A2D775AC49DAD74CF35FCBE6",
+      "expected_sha256": "2B966471F1C9BA1D0BFB92E6E973CF5BFF363900A2D775AC49DAD74CF35FCBE6",
+      "expected_bytes": 25170,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/README.md",
+      "bytes": 6824,
+      "sha256": "E43C214A9D621B28FF5F9CD88C4D0458C5FB8506263C99A93100AC1116BBA818",
+      "expected_sha256": "E43C214A9D621B28FF5F9CD88C4D0458C5FB8506263C99A93100AC1116BBA818",
+      "expected_bytes": 6824,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-pins.json",
+      "bytes": 19785,
+      "sha256": "F3A117FF3BFA3CB15B6D41105CB505AE1A9017176EE904EFAF6D43B19297C901",
+      "expected_sha256": "F3A117FF3BFA3CB15B6D41105CB505AE1A9017176EE904EFAF6D43B19297C901",
+      "expected_bytes": 19785,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r2-independent-review.json",
+      "bytes": 2168,
+      "sha256": "641D15EFC955731B01528E36593C24EFDEC0DF065A363F4B38BE6F1056CE9736",
+      "expected_sha256": "641D15EFC955731B01528E36593C24EFDEC0DF065A363F4B38BE6F1056CE9736",
+      "expected_bytes": 2168,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-window-query-path-census-r1/census.md",
+      "bytes": 47955,
+      "sha256": "DF380C088132FFA61FCFB468C21657B527CEE3A2D40B8AF23B79A01FBBEFF969",
+      "expected_sha256": "DF380C088132FFA61FCFB468C21657B527CEE3A2D40B8AF23B79A01FBBEFF969",
+      "expected_bytes": 47955,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-window-query-path-census-r1/census.json",
+      "bytes": 83199,
+      "sha256": "8D2B8B0EBDF4DA4903528636BD6323DE9712593F614A6D4608B738C62C8F93FC",
+      "expected_sha256": "8D2B8B0EBDF4DA4903528636BD6323DE9712593F614A6D4608B738C62C8F93FC",
+      "expected_bytes": 83199,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-window-query-path-census-r1/source-pins.json",
+      "bytes": 12150,
+      "sha256": "34FD81EFF0F1C5261C90FA4D99E3F6C6413FD5B2BA56B404B64F1AA1B1817C1F",
+      "expected_sha256": "34FD81EFF0F1C5261C90FA4D99E3F6C6413FD5B2BA56B404B64F1AA1B1817C1F",
+      "expected_bytes": 12150,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-window-query-path-census-r1-independent-review.json",
+      "bytes": 1887,
+      "sha256": "FC5B35A715B25FB03A2C00ADAF569309B4472AD7A431FBEEDBD2E6464C347189",
+      "expected_sha256": "FC5B35A715B25FB03A2C00ADAF569309B4472AD7A431FBEEDBD2E6464C347189",
+      "expected_bytes": 1887,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-production-query-sdk-boundary-clarification.md",
+      "bytes": 2484,
+      "sha256": "709B8A438D258531E33B87266DC9980FB0B356E19BDA2A1DF74714298C17ACA4",
+      "expected_sha256": "709B8A438D258531E33B87266DC9980FB0B356E19BDA2A1DF74714298C17ACA4",
+      "expected_bytes": 2484,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/fenv.h",
+      "bytes": 5947,
+      "sha256": "12E9EE9809314CA1DB03E7FB0E36E20CB9052DF291C8367D580F600DEA7546E3",
+      "expected_sha256": "12E9EE9809314CA1DB03E7FB0E36E20CB9052DF291C8367D580F600DEA7546E3",
+      "expected_bytes": 5947,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals.h",
+      "bytes": 17704,
+      "sha256": "A186476441EAA158056BE01DA9A1473217E14A7CC33365CBD0B6C9115833E0DC",
+      "expected_sha256": "A186476441EAA158056BE01DA9A1473217E14A7CC33365CBD0B6C9115833E0DC",
+      "expected_bytes": 17704,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/formation-r7.h",
+      "bytes": 77924,
+      "sha256": "0421820B725F97603C0ECB39FF78DC316B477DDE80355B97850A34E83C8B3336",
+      "expected_sha256": "0421820B725F97603C0ECB39FF78DC316B477DDE80355B97850A34E83C8B3336",
+      "expected_bytes": 77924,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/legacy-adapter.h",
+      "bytes": 27987,
+      "sha256": "6A5A0F3475BCCB05E44ED313EB75392274B730B1E49A1375D9BBC565FF3B0A4D",
+      "expected_sha256": "6A5A0F3475BCCB05E44ED313EB75392274B730B1E49A1375D9BBC565FF3B0A4D",
+      "expected_bytes": 27987,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-observer.cpp",
+      "bytes": 2948,
+      "sha256": "D4F4B982924543FD210FC462EC245960BA1F21E6162382DA835F5B6366403A1C",
+      "expected_sha256": "D4F4B982924543FD210FC462EC245960BA1F21E6162382DA835F5B6366403A1C",
+      "expected_bytes": 2948,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-profile.h",
+      "bytes": 3311,
+      "sha256": "7362153745C630DFB3BC2B96FD6AADBF29CB46B4596943BB754B49E7498459D6",
+      "expected_sha256": "7362153745C630DFB3BC2B96FD6AADBF29CB46B4596943BB754B49E7498459D6",
+      "expected_bytes": 3311,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/README.md",
+      "bytes": 7211,
+      "sha256": "C06859C274D698BE3F1C2419BBDC809529447D89BD7C643F9C5D66B20EA490DB",
+      "expected_sha256": "C06859C274D698BE3F1C2419BBDC809529447D89BD7C643F9C5D66B20EA490DB",
+      "expected_bytes": 7211,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-correspondence.md",
+      "bytes": 22907,
+      "sha256": "906C834D22448BD963BE90100902F0B81ACE7A25A9ADA193ED5012B9791A4A5D",
+      "expected_sha256": "906C834D22448BD963BE90100902F0B81ACE7A25A9ADA193ED5012B9791A4A5D",
+      "expected_bytes": 22907,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-pins.json",
+      "bytes": 32314,
+      "sha256": "A42DEA7A4FBA5192E4F3208E086F5041163F1D519B8467F9AADE7C2AAAF9FD41",
+      "expected_sha256": "A42DEA7A4FBA5192E4F3208E086F5041163F1D519B8467F9AADE7C2AAAF9FD41",
+      "expected_bytes": 32314,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/window-query.h",
+      "bytes": 33950,
+      "sha256": "F1C8E363F6AA404A778CD745AB46791C4BE35BDF22392DFF54C848256435EF4D",
+      "expected_sha256": "F1C8E363F6AA404A778CD745AB46791C4BE35BDF22392DFF54C848256435EF4D",
+      "expected_bytes": 33950,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/worker-result.h",
+      "bytes": 9148,
+      "sha256": "4818AD42D84C51F8A515E1742BCCE081B283A645986A601010B6678B878DB7BD",
+      "expected_sha256": "4818AD42D84C51F8A515E1742BCCE081B283A645986A601010B6678B878DB7BD",
+      "expected_bytes": 9148,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/inventory-checks.json",
+      "bytes": 269,
+      "sha256": "303FE99A1994E36A4A50FED53481F1DB7F167CC8575E0013FAF62152D28B793E",
+      "expected_sha256": "303FE99A1994E36A4A50FED53481F1DB7F167CC8575E0013FAF62152D28B793E",
+      "expected_bytes": 269,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/pin-checks.json",
+      "bytes": 7892,
+      "sha256": "BBF096FE9032EBCDA4292241A37E3EA5EB33AF516FC93D6A151B6490E597D8E6",
+      "expected_sha256": "BBF096FE9032EBCDA4292241A37E3EA5EB33AF516FC93D6A151B6490E597D8E6",
+      "expected_bytes": 7892,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review-pins.json",
+      "bytes": 1523,
+      "sha256": "1896263BE65998E267EEF4CCBAF383D9B5548D646A518DB8B7733DD3BE2E7176",
+      "expected_sha256": "1896263BE65998E267EEF4CCBAF383D9B5548D646A518DB8B7733DD3BE2E7176",
+      "expected_bytes": 1523,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review.json",
+      "bytes": 11988,
+      "sha256": "E5069BA2A03F50BA5D4A954132BC89A65533B6A891EF77D17DFF25AE936CD871",
+      "expected_sha256": "E5069BA2A03F50BA5D4A954132BC89A65533B6A891EF77D17DFF25AE936CD871",
+      "expected_bytes": 11988,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review.md",
+      "bytes": 3696,
+      "sha256": "C538873FEDA27ED4FFA152AADFA4EB0DA274DB7713AA78A927A24CFF95F3F784",
+      "expected_sha256": "C538873FEDA27ED4FFA152AADFA4EB0DA274DB7713AA78A927A24CFF95F3F784",
+      "expected_bytes": 3696,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/source-arithmetic-checks.json",
+      "bytes": 23895,
+      "sha256": "E1962CED06656C62FC142593C8042E33ADD41776254D5D1D8B6989322E76F5F4",
+      "expected_sha256": "E1962CED06656C62FC142593C8042E33ADD41776254D5D1D8B6989322E76F5F4",
+      "expected_bytes": 23895,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-native-region-qualification-design-r1/critic.md",
+      "bytes": 15286,
+      "sha256": "5E25CEE9BB03B20F8412E0793BB9EF1519CBC8503927EDF649004E9980787AF3",
+      "expected_sha256": "5E25CEE9BB03B20F8412E0793BB9EF1519CBC8503927EDF649004E9980787AF3",
+      "expected_bytes": 15286,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-native-region-qualification-design-r1/evidence.json",
+      "bytes": 9240,
+      "sha256": "45FC15C6666CA01A48F2A6A80BAAF08DE73995104C9CC903EA5F778B7523232A",
+      "expected_sha256": "45FC15C6666CA01A48F2A6A80BAAF08DE73995104C9CC903EA5F778B7523232A",
+      "expected_bytes": 9240,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/formation-r8.h",
+      "bytes": 81190,
+      "sha256": "1308DC2CAA05644FF2AD72FE5EF10EE620A636E2EEC1D1747C8C154769FADEBA",
+      "expected_sha256": "1308DC2CAA05644FF2AD72FE5EF10EE620A636E2EEC1D1747C8C154769FADEBA",
+      "expected_bytes": 81190,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/legacy-adapter.h",
+      "bytes": 28646,
+      "sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E",
+      "expected_sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E",
+      "expected_bytes": 28646,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-observer.cpp",
+      "bytes": 7067,
+      "sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714",
+      "expected_sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714",
+      "expected_bytes": 7067,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-profile.h",
+      "bytes": 6189,
+      "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9",
+      "expected_sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9",
+      "expected_bytes": 6189,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/README.md",
+      "bytes": 6039,
+      "sha256": "7C37A469A5696D20376CDAEC5A5C227B14D8467316C1A1BC1FEDA94515D08F2F",
+      "expected_sha256": "7C37A469A5696D20376CDAEC5A5C227B14D8467316C1A1BC1FEDA94515D08F2F",
+      "expected_bytes": 6039,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-correspondence.md",
+      "bytes": 32604,
+      "sha256": "E38A5D1029E2F013A88EB6908C75553C791678F3D5B1605BD0AB15E80706279D",
+      "expected_sha256": "E38A5D1029E2F013A88EB6908C75553C791678F3D5B1605BD0AB15E80706279D",
+      "expected_bytes": 32604,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-pins.json",
+      "bytes": 52105,
+      "sha256": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077",
+      "expected_sha256": "A5353D86D20DE812A75D6345780C6B489670DD61EB40AF87C4D2CE6776B28077",
+      "expected_bytes": 52105,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/window-query.h",
+      "bytes": 48648,
+      "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8",
+      "expected_sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8",
+      "expected_bytes": 48648,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/worker-result.h",
+      "bytes": 9148,
+      "sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754",
+      "expected_sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754",
+      "expected_bytes": 9148,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-r4-layout-object-r1/attempt-r1/receipt.json",
+      "bytes": 1451,
+      "sha256": "9617A62C5D38D56A9D8BEDA3337D9E1F13AC5DA71B532572E048C14035637609",
+      "expected_sha256": "9617A62C5D38D56A9D8BEDA3337D9E1F13AC5DA71B532572E048C14035637609",
+      "expected_bytes": 1451,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-r4-layout-object-r1/attempt-r1/compile.log",
+      "bytes": 443,
+      "sha256": "EBB4AA315A1D630C28845BA249821D2FCD6C7F0A85FF40B3C58B8E8543381E76",
+      "expected_sha256": "EBB4AA315A1D630C28845BA249821D2FCD6C7F0A85FF40B3C58B8E8543381E76",
+      "expected_bytes": 443,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "protected_artifacts",
+      "path": "tests/musical_audio_call_recipe_tests.cpp",
+      "bytes": 112736,
+      "sha256": "97B2A2ABE0BE0CDDFCE173A20E6A6264E837DB751FE204E93B4B094E8E22619C",
+      "expected_sha256": "97B2A2ABE0BE0CDDFCE173A20E6A6264E837DB751FE204E93B4B094E8E22619C",
+      "expected_bytes": 112736,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-formation-whole-proof-r3/proof.cpp",
+      "bytes": 84278,
+      "sha256": "D5F041F751D7B482C6C63C251CA52B2BE30160592E7A542DDC413F2EAFFC8D85",
+      "expected_sha256": "D5F041F751D7B482C6C63C251CA52B2BE30160592E7A542DDC413F2EAFFC8D85",
+      "expected_bytes": 84278,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "protected_artifacts",
+      "path": "src/engine/MusicalAudioCutPlan.h",
+      "bytes": 28956,
+      "sha256": "17A84770B9B4904162008492ADC393EB183678ECD00113C0658EFE355413B390",
+      "expected_sha256": "17A84770B9B4904162008492ADC393EB183678ECD00113C0658EFE355413B390",
+      "expected_bytes": 28956,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "protected_artifacts",
+      "path": "src/engine/MusicalAudioChannelMaterialization.h",
+      "bytes": 11960,
+      "sha256": "6C96FC13BCBDD21040DCD53E990F35F336A6C6E8436CE404BA28B6240E2B7EC7",
+      "expected_sha256": "6C96FC13BCBDD21040DCD53E990F35F336A6C6E8436CE404BA28B6240E2B7EC7",
+      "expected_bytes": 11960,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/probe-types.h",
+      "bytes": 985,
+      "sha256": "973089A20C88E5994E4058B1CD7AB565BDBECF23E1356AD8DE8B34E0766B3101",
+      "expected_sha256": "973089A20C88E5994E4058B1CD7AB565BDBECF23E1356AD8DE8B34E0766B3101",
+      "expected_bytes": 985,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/build-and-query.cpp",
+      "bytes": 480,
+      "sha256": "A1CC6F579D8A787D77EBDE55383A37FA642C3D9AB8B9B7DFDF0DA50CC914D63E",
+      "expected_sha256": "A1CC6F579D8A787D77EBDE55383A37FA642C3D9AB8B9B7DFDF0DA50CC914D63E",
+      "expected_bytes": 480,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/replay-probe.cpp",
+      "bytes": 15632,
+      "sha256": "C4B32519266A32BF2352EB64146481EF82967EB38755643199FFA3E47642158B",
+      "expected_sha256": "C4B32519266A32BF2352EB64146481EF82967EB38755643199FFA3E47642158B",
+      "expected_bytes": 15632,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/fp-observer.cpp",
+      "bytes": 2101,
+      "sha256": "ED9CFF7130C71DACA68BBF00481941367EC13480DE090BCDCA89A2884B8BDB5D",
+      "expected_sha256": "ED9CFF7130C71DACA68BBF00481941367EC13480DE090BCDCA89A2884B8BDB5D",
+      "expected_bytes": 2101,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/README.md",
+      "bytes": 8880,
+      "sha256": "17B034CF73360D3940487609723DCD179653008670279A977BEDD93F0F850138",
+      "expected_sha256": "17B034CF73360D3940487609723DCD179653008670279A977BEDD93F0F850138",
+      "expected_bytes": 8880,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/source-pins.json",
+      "bytes": 4049,
+      "sha256": "DA5DDDA7E4613B0A26A682F169049F8E384AE2AC1CC85F8CCBFCA4B575B0DFEB",
+      "expected_sha256": "DA5DDDA7E4613B0A26A682F169049F8E384AE2AC1CC85F8CCBFCA4B575B0DFEB",
+      "expected_bytes": 4049,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/formation-r8.h",
+      "bytes": 81190,
+      "sha256": "DCCF77D0F7F7B781D3E7731B721C7CBA5D377489780B68516C8B931D950542B2",
+      "expected_sha256": "DCCF77D0F7F7B781D3E7731B721C7CBA5D377489780B68516C8B931D950542B2",
+      "expected_bytes": 81190,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/worker-result.h",
+      "bytes": 9148,
+      "sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754",
+      "expected_sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754",
+      "expected_bytes": 9148,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/legacy-adapter.h",
+      "bytes": 28646,
+      "sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E",
+      "expected_sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E",
+      "expected_bytes": 28646,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/window-query.h",
+      "bytes": 48648,
+      "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8",
+      "expected_sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8",
+      "expected_bytes": 48648,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-profile.h",
+      "bytes": 6189,
+      "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9",
+      "expected_sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9",
+      "expected_bytes": 6189,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/native-observer.cpp",
+      "bytes": 7067,
+      "sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714",
+      "expected_sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714",
+      "expected_bytes": 7067,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/source-correspondence.md",
+      "bytes": 33681,
+      "sha256": "84F32C8BA9EA4A4F3AE093090FA87AD968DFD132542387B66BE06002CB148893",
+      "expected_sha256": "84F32C8BA9EA4A4F3AE093090FA87AD968DFD132542387B66BE06002CB148893",
+      "expected_bytes": 33681,
+      "matches": true
+    },
+    {
+      "manifest": "R5",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r5/README.md",
+      "bytes": 7116,
+      "sha256": "5D1976DE0D8C8A9FE25DB2570CA2FA0CA71659502B044B88E82F7AB614AC1C2F",
+      "expected_sha256": "5D1976DE0D8C8A9FE25DB2570CA2FA0CA71659502B044B88E82F7AB614AC1C2F",
+      "expected_bytes": 7116,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "AGENTS.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "expected_sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "expected_bytes": 6331,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "CLAUDE.md",
+      "bytes": 6331,
+      "sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "expected_sha256": "AFA45D3BAC0FDB892064C8928DDB21375FA0112D2B5840CF2877FAA472ECEB77",
+      "expected_bytes": 6331,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "docs/adr/0085-owned-musical-call-recipes.md",
+      "bytes": 23414,
+      "sha256": "876FC9F16068603CB8D98799060B4FE8F8147502904DBE5C4EB3DA441729C1C9",
+      "expected_sha256": "876FC9F16068603CB8D98799060B4FE8F8147502904DBE5C4EB3DA441729C1C9",
+      "expected_bytes": 23414,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "docs/adr/0088-musical-origin-formation.md",
+      "bytes": 9440,
+      "sha256": "86EAB38B43415191C795632F2EE675C8A476F894B121B78B404E1CC6FB5FAF33",
+      "expected_sha256": "86EAB38B43415191C795632F2EE675C8A476F894B121B78B404E1CC6FB5FAF33",
+      "expected_bytes": 9440,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "docs/adr/0089-frozen-musical-builder-attempts.md",
+      "bytes": 8136,
+      "sha256": "5943166A5E27B3088783FE072D7FBF67D8AE9489C9432FEC68A7EA0B0A15C944",
+      "expected_sha256": "5943166A5E27B3088783FE072D7FBF67D8AE9489C9432FEC68A7EA0B0A15C944",
+      "expected_bytes": 8136,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-production-operation-boundary-census-conventions.md",
+      "bytes": 2323,
+      "sha256": "404E214B31AA1F1FA273224DCF28355C1DB65E3798635416D802702E2458613A",
+      "expected_sha256": "404E214B31AA1F1FA273224DCF28355C1DB65E3798635416D802702E2458613A",
+      "expected_bytes": 2323,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "src/engine/MusicalAudioWindow.h",
+      "bytes": 19572,
+      "sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D",
+      "expected_sha256": "55AE0D6FBEC102DD2F9D0E3CB85EE320300F313421B1EF2A141664670BA7FF5D",
+      "expected_bytes": 19572,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "src/engine/MusicalAudioChannelPlan.h",
+      "bytes": 17081,
+      "sha256": "F47C6E49B02A69C16CD554A4C5520CC891146A434603F4E1BB73E9099EB97F16",
+      "expected_sha256": "F47C6E49B02A69C16CD554A4C5520CC891146A434603F4E1BB73E9099EB97F16",
+      "expected_bytes": 17081,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "src/engine/Time.h",
+      "bytes": 49489,
+      "sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "expected_sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590",
+      "expected_bytes": 49489,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "src/engine/RateMatchedView.h",
+      "bytes": 5293,
+      "sha256": "9A0770E8690FBC60048BDF13FF1D1BD332B6D620A1985C52895E7FE916BB0571",
+      "expected_sha256": "9A0770E8690FBC60048BDF13FF1D1BD332B6D620A1985C52895E7FE916BB0571",
+      "expected_bytes": 5293,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "src/engine/Project.h",
+      "bytes": 181566,
+      "sha256": "0294E0B6592633B2601F09B45A9FC724EDD6921512A66B9AB7AD82FB8F817D97",
+      "expected_sha256": "0294E0B6592633B2601F09B45A9FC724EDD6921512A66B9AB7AD82FB8F817D97",
+      "expected_bytes": 181566,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "src/engine/ClipSchedule.h",
+      "bytes": 6706,
+      "sha256": "681ED77653AF195480FAA63FBB57D1804C1C3CBCA813310B18F0B058B7552D1A",
+      "expected_sha256": "681ED77653AF195480FAA63FBB57D1804C1C3CBCA813310B18F0B058B7552D1A",
+      "expected_bytes": 6706,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/formation.h",
+      "bytes": 58543,
+      "sha256": "1673DFB9FEB370FFD8C3491E0EB2DE9AF2C006D0CCF25FA0BE7DB5CFFB391BF7",
+      "expected_sha256": "1673DFB9FEB370FFD8C3491E0EB2DE9AF2C006D0CCF25FA0BE7DB5CFFB391BF7",
+      "expected_bytes": 58543,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/formation-data.cpp",
+      "bytes": 6973,
+      "sha256": "50B44CEDADE31A1B9280E96CFCB308406522BE30D005B262FBAD4319A40AA35D",
+      "expected_sha256": "50B44CEDADE31A1B9280E96CFCB308406522BE30D005B262FBAD4319A40AA35D",
+      "expected_bytes": 6973,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/proof-access.h",
+      "bytes": 13815,
+      "sha256": "099D46D2DDEBD03C803F3C0E95EEBC674E46A7C4B7004168099B721F20A04D60",
+      "expected_sha256": "099D46D2DDEBD03C803F3C0E95EEBC674E46A7C4B7004168099B721F20A04D60",
+      "expected_bytes": 13815,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/README.md",
+      "bytes": 16338,
+      "sha256": "575F576B3B1FB5DA6DB26C839178AB6E6BE440753ED53E57EE9BEF2DD5A9C805",
+      "expected_sha256": "575F576B3B1FB5DA6DB26C839178AB6E6BE440753ED53E57EE9BEF2DD5A9C805",
+      "expected_bytes": 16338,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-bound-source-r2/source-pins.json",
+      "bytes": 16142,
+      "sha256": "0AB5C6C6E95C7FE50E0912A8F9C62BAF1B492963A94A767008003C32F4292128",
+      "expected_sha256": "0AB5C6C6E95C7FE50E0912A8F9C62BAF1B492963A94A767008003C32F4292128",
+      "expected_bytes": 16142,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-origin-formation-r4-census-r2/census.md",
+      "bytes": 29625,
+      "sha256": "300714170387FF05302A5B4D0429275DBA403A73A4A1674478A810A26C51D4E9",
+      "expected_sha256": "300714170387FF05302A5B4D0429275DBA403A73A4A1674478A810A26C51D4E9",
+      "expected_bytes": 29625,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-whole-proof-r3/first-green-freeze.json",
+      "bytes": 936,
+      "sha256": "56BE0598727F92B5B2A57CB806E86C6C3EC300D719E18C1D223A40EDBB6C7FA8",
+      "expected_sha256": "56BE0598727F92B5B2A57CB806E86C6C3EC300D719E18C1D223A40EDBB6C7FA8",
+      "expected_bytes": 936,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-native-layout-r1/execution-r1/receipt.json",
+      "bytes": 889,
+      "sha256": "6BCF6BAC24ECFF8D887385463BFAE60FD14E7472B6340562B31F427D0C40F7F1",
+      "expected_sha256": "6BCF6BAC24ECFF8D887385463BFAE60FD14E7472B6340562B31F427D0C40F7F1",
+      "expected_bytes": 889,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-formation-whole-proof-mutants-r1/execution-r1/receipt.json",
+      "bytes": 1936,
+      "sha256": "BA4A68F979E184BA5DC1D7AE76532B858FEC745BB1B53DAB7E03CF5E68643C18",
+      "expected_sha256": "BA4A68F979E184BA5DC1D7AE76532B858FEC745BB1B53DAB7E03CF5E68643C18",
+      "expected_bytes": 1936,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-legacy-entry-boundary-prep/proposal.md",
+      "bytes": 8571,
+      "sha256": "D1B27BA961B138791E24AF3A7D400A2A13FEF7CC6F2B67CA56B152E90E8A58FD",
+      "expected_sha256": "D1B27BA961B138791E24AF3A7D400A2A13FEF7CC6F2B67CA56B152E90E8A58FD",
+      "expected_bytes": 8571,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-legacy-attempt-adr-prep/implementation-steps.md",
+      "bytes": 956,
+      "sha256": "6D0B66788CFFF336F0FE85E29F84DF8BB041B0635D8EBCD38D2345F0A7651092",
+      "expected_sha256": "6D0B66788CFFF336F0FE85E29F84DF8BB041B0635D8EBCD38D2345F0A7651092",
+      "expected_bytes": 956,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/formation-r5.h",
+      "bytes": 68776,
+      "sha256": "FCB149FBD6023BBE462C6E7BB8CE6055CA6A8D92679C9C64F4B61C5813C86C4D",
+      "expected_sha256": "FCB149FBD6023BBE462C6E7BB8CE6055CA6A8D92679C9C64F4B61C5813C86C4D",
+      "expected_bytes": 68776,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/legacy-adapter.h",
+      "bytes": 27367,
+      "sha256": "C7FA6ECD713077C41ED1FB9AECBCA8E67A957AF1C92106CE6011B4F120610C8F",
+      "expected_sha256": "C7FA6ECD713077C41ED1FB9AECBCA8E67A957AF1C92106CE6011B4F120610C8F",
+      "expected_bytes": 27367,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-correspondence.md",
+      "bytes": 27569,
+      "sha256": "6786B358196DB826C04C38F84C819AEC5419C811C0235DF65978554271D412D8",
+      "expected_sha256": "6786B358196DB826C04C38F84C819AEC5419C811C0235DF65978554271D412D8",
+      "expected_bytes": 27569,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/README.md",
+      "bytes": 6753,
+      "sha256": "7A9B5F5F5C62AF714DC563B2F15FAC64B77327A10D1834E66502188909C55E02",
+      "expected_sha256": "7A9B5F5F5C62AF714DC563B2F15FAC64B77327A10D1834E66502188909C55E02",
+      "expected_bytes": 6753,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r1/source-pins.json",
+      "bytes": 12121,
+      "sha256": "FC7E2E937EC7CF74C8B0DE65BB6E50C7B24D6BFF14B35F6CA8726C2C88773615",
+      "expected_sha256": "FC7E2E937EC7CF74C8B0DE65BB6E50C7B24D6BFF14B35F6CA8726C2C88773615",
+      "expected_bytes": 12121,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r1-independent-review.json",
+      "bytes": 1802,
+      "sha256": "066F14BBE1D38CD4306A9CD6DF3B5CDFCDDC55D0B31C70AEBC0328E5C3537267",
+      "expected_sha256": "066F14BBE1D38CD4306A9CD6DF3B5CDFCDDC55D0B31C70AEBC0328E5C3537267",
+      "expected_bytes": 1802,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/formation-r6.h",
+      "bytes": 72615,
+      "sha256": "F5E4348ACBB7A4843C662269197B7A320C5E2000211DF8CDA6CCACFE33C47D1F",
+      "expected_sha256": "F5E4348ACBB7A4843C662269197B7A320C5E2000211DF8CDA6CCACFE33C47D1F",
+      "expected_bytes": 72615,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/worker-result.h",
+      "bytes": 8988,
+      "sha256": "021461C164FF43D18576057B2D7BA0C2F9C9EA45A1259B2523EB875050F4A399",
+      "expected_sha256": "021461C164FF43D18576057B2D7BA0C2F9C9EA45A1259B2523EB875050F4A399",
+      "expected_bytes": 8988,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/legacy-adapter.h",
+      "bytes": 27466,
+      "sha256": "1DBE42BAF8F4F87311A100D48E94DD44DB7FC001103FC3AB459A42002EF7966F",
+      "expected_sha256": "1DBE42BAF8F4F87311A100D48E94DD44DB7FC001103FC3AB459A42002EF7966F",
+      "expected_bytes": 27466,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-correspondence.md",
+      "bytes": 25170,
+      "sha256": "2B966471F1C9BA1D0BFB92E6E973CF5BFF363900A2D775AC49DAD74CF35FCBE6",
+      "expected_sha256": "2B966471F1C9BA1D0BFB92E6E973CF5BFF363900A2D775AC49DAD74CF35FCBE6",
+      "expected_bytes": 25170,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/README.md",
+      "bytes": 6824,
+      "sha256": "E43C214A9D621B28FF5F9CD88C4D0458C5FB8506263C99A93100AC1116BBA818",
+      "expected_sha256": "E43C214A9D621B28FF5F9CD88C4D0458C5FB8506263C99A93100AC1116BBA818",
+      "expected_bytes": 6824,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r2/source-pins.json",
+      "bytes": 19785,
+      "sha256": "F3A117FF3BFA3CB15B6D41105CB505AE1A9017176EE904EFAF6D43B19297C901",
+      "expected_sha256": "F3A117FF3BFA3CB15B6D41105CB505AE1A9017176EE904EFAF6D43B19297C901",
+      "expected_bytes": 19785,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r2-independent-review.json",
+      "bytes": 2168,
+      "sha256": "641D15EFC955731B01528E36593C24EFDEC0DF065A363F4B38BE6F1056CE9736",
+      "expected_sha256": "641D15EFC955731B01528E36593C24EFDEC0DF065A363F4B38BE6F1056CE9736",
+      "expected_bytes": 2168,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-window-query-path-census-r1/census.md",
+      "bytes": 47955,
+      "sha256": "DF380C088132FFA61FCFB468C21657B527CEE3A2D40B8AF23B79A01FBBEFF969",
+      "expected_sha256": "DF380C088132FFA61FCFB468C21657B527CEE3A2D40B8AF23B79A01FBBEFF969",
+      "expected_bytes": 47955,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-window-query-path-census-r1/census.json",
+      "bytes": 83199,
+      "sha256": "8D2B8B0EBDF4DA4903528636BD6323DE9712593F614A6D4608B738C62C8F93FC",
+      "expected_sha256": "8D2B8B0EBDF4DA4903528636BD6323DE9712593F614A6D4608B738C62C8F93FC",
+      "expected_bytes": 83199,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-window-query-path-census-r1/source-pins.json",
+      "bytes": 12150,
+      "sha256": "34FD81EFF0F1C5261C90FA4D99E3F6C6413FD5B2BA56B404B64F1AA1B1817C1F",
+      "expected_sha256": "34FD81EFF0F1C5261C90FA4D99E3F6C6413FD5B2BA56B404B64F1AA1B1817C1F",
+      "expected_bytes": 12150,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-window-query-path-census-r1-independent-review.json",
+      "bytes": 1887,
+      "sha256": "FC5B35A715B25FB03A2C00ADAF569309B4472AD7A431FBEEDBD2E6464C347189",
+      "expected_sha256": "FC5B35A715B25FB03A2C00ADAF569309B4472AD7A431FBEEDBD2E6464C347189",
+      "expected_bytes": 1887,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-production-query-sdk-boundary-clarification.md",
+      "bytes": 2484,
+      "sha256": "709B8A438D258531E33B87266DC9980FB0B356E19BDA2A1DF74714298C17ACA4",
+      "expected_sha256": "709B8A438D258531E33B87266DC9980FB0B356E19BDA2A1DF74714298C17ACA4",
+      "expected_bytes": 2484,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/fenv.h",
+      "bytes": 5947,
+      "sha256": "12E9EE9809314CA1DB03E7FB0E36E20CB9052DF291C8367D580F600DEA7546E3",
+      "expected_sha256": "12E9EE9809314CA1DB03E7FB0E36E20CB9052DF291C8367D580F600DEA7546E3",
+      "expected_bytes": 5947,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals.h",
+      "bytes": 17704,
+      "sha256": "A186476441EAA158056BE01DA9A1473217E14A7CC33365CBD0B6C9115833E0DC",
+      "expected_sha256": "A186476441EAA158056BE01DA9A1473217E14A7CC33365CBD0B6C9115833E0DC",
+      "expected_bytes": 17704,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/formation-r7.h",
+      "bytes": 77924,
+      "sha256": "0421820B725F97603C0ECB39FF78DC316B477DDE80355B97850A34E83C8B3336",
+      "expected_sha256": "0421820B725F97603C0ECB39FF78DC316B477DDE80355B97850A34E83C8B3336",
+      "expected_bytes": 77924,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/legacy-adapter.h",
+      "bytes": 27987,
+      "sha256": "6A5A0F3475BCCB05E44ED313EB75392274B730B1E49A1375D9BBC565FF3B0A4D",
+      "expected_sha256": "6A5A0F3475BCCB05E44ED313EB75392274B730B1E49A1375D9BBC565FF3B0A4D",
+      "expected_bytes": 27987,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-observer.cpp",
+      "bytes": 2948,
+      "sha256": "D4F4B982924543FD210FC462EC245960BA1F21E6162382DA835F5B6366403A1C",
+      "expected_sha256": "D4F4B982924543FD210FC462EC245960BA1F21E6162382DA835F5B6366403A1C",
+      "expected_bytes": 2948,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/native-profile.h",
+      "bytes": 3311,
+      "sha256": "7362153745C630DFB3BC2B96FD6AADBF29CB46B4596943BB754B49E7498459D6",
+      "expected_sha256": "7362153745C630DFB3BC2B96FD6AADBF29CB46B4596943BB754B49E7498459D6",
+      "expected_bytes": 3311,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/README.md",
+      "bytes": 7211,
+      "sha256": "C06859C274D698BE3F1C2419BBDC809529447D89BD7C643F9C5D66B20EA490DB",
+      "expected_sha256": "C06859C274D698BE3F1C2419BBDC809529447D89BD7C643F9C5D66B20EA490DB",
+      "expected_bytes": 7211,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-correspondence.md",
+      "bytes": 22907,
+      "sha256": "906C834D22448BD963BE90100902F0B81ACE7A25A9ADA193ED5012B9791A4A5D",
+      "expected_sha256": "906C834D22448BD963BE90100902F0B81ACE7A25A9ADA193ED5012B9791A4A5D",
+      "expected_bytes": 22907,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/source-pins.json",
+      "bytes": 32314,
+      "sha256": "A42DEA7A4FBA5192E4F3208E086F5041163F1D519B8467F9AADE7C2AAAF9FD41",
+      "expected_sha256": "A42DEA7A4FBA5192E4F3208E086F5041163F1D519B8467F9AADE7C2AAAF9FD41",
+      "expected_bytes": 32314,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/window-query.h",
+      "bytes": 33950,
+      "sha256": "F1C8E363F6AA404A778CD745AB46791C4BE35BDF22392DFF54C848256435EF4D",
+      "expected_sha256": "F1C8E363F6AA404A778CD745AB46791C4BE35BDF22392DFF54C848256435EF4D",
+      "expected_bytes": 33950,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r3/worker-result.h",
+      "bytes": 9148,
+      "sha256": "4818AD42D84C51F8A515E1742BCCE081B283A645986A601010B6678B878DB7BD",
+      "expected_sha256": "4818AD42D84C51F8A515E1742BCCE081B283A645986A601010B6678B878DB7BD",
+      "expected_bytes": 9148,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/inventory-checks.json",
+      "bytes": 269,
+      "sha256": "303FE99A1994E36A4A50FED53481F1DB7F167CC8575E0013FAF62152D28B793E",
+      "expected_sha256": "303FE99A1994E36A4A50FED53481F1DB7F167CC8575E0013FAF62152D28B793E",
+      "expected_bytes": 269,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/pin-checks.json",
+      "bytes": 7892,
+      "sha256": "BBF096FE9032EBCDA4292241A37E3EA5EB33AF516FC93D6A151B6490E597D8E6",
+      "expected_sha256": "BBF096FE9032EBCDA4292241A37E3EA5EB33AF516FC93D6A151B6490E597D8E6",
+      "expected_bytes": 7892,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review-pins.json",
+      "bytes": 1523,
+      "sha256": "1896263BE65998E267EEF4CCBAF383D9B5548D646A518DB8B7733DD3BE2E7176",
+      "expected_sha256": "1896263BE65998E267EEF4CCBAF383D9B5548D646A518DB8B7733DD3BE2E7176",
+      "expected_bytes": 1523,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review.json",
+      "bytes": 11988,
+      "sha256": "E5069BA2A03F50BA5D4A954132BC89A65533B6A891EF77D17DFF25AE936CD871",
+      "expected_sha256": "E5069BA2A03F50BA5D4A954132BC89A65533B6A891EF77D17DFF25AE936CD871",
+      "expected_bytes": 11988,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/review.md",
+      "bytes": 3696,
+      "sha256": "C538873FEDA27ED4FFA152AADFA4EB0DA274DB7713AA78A927A24CFF95F3F784",
+      "expected_sha256": "C538873FEDA27ED4FFA152AADFA4EB0DA274DB7713AA78A927A24CFF95F3F784",
+      "expected_bytes": 3696,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-r3-independent-review/source-arithmetic-checks.json",
+      "bytes": 23895,
+      "sha256": "E1962CED06656C62FC142593C8042E33ADD41776254D5D1D8B6989322E76F5F4",
+      "expected_sha256": "E1962CED06656C62FC142593C8042E33ADD41776254D5D1D8B6989322E76F5F4",
+      "expected_bytes": 23895,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-native-region-qualification-design-r1/critic.md",
+      "bytes": 15286,
+      "sha256": "5E25CEE9BB03B20F8412E0793BB9EF1519CBC8503927EDF649004E9980787AF3",
+      "expected_sha256": "5E25CEE9BB03B20F8412E0793BB9EF1519CBC8503927EDF649004E9980787AF3",
+      "expected_bytes": 15286,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "inputs",
+      "path": "build-ci/20261105-musical-native-region-qualification-design-r1/evidence.json",
+      "bytes": 9240,
+      "sha256": "45FC15C6666CA01A48F2A6A80BAAF08DE73995104C9CC903EA5F778B7523232A",
+      "expected_sha256": "45FC15C6666CA01A48F2A6A80BAAF08DE73995104C9CC903EA5F778B7523232A",
+      "expected_bytes": 9240,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "protected_artifacts",
+      "path": "tests/musical_audio_call_recipe_tests.cpp",
+      "bytes": 112736,
+      "sha256": "97B2A2ABE0BE0CDDFCE173A20E6A6264E837DB751FE204E93B4B094E8E22619C",
+      "expected_sha256": "97B2A2ABE0BE0CDDFCE173A20E6A6264E837DB751FE204E93B4B094E8E22619C",
+      "expected_bytes": 112736,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-formation-whole-proof-r3/proof.cpp",
+      "bytes": 84278,
+      "sha256": "D5F041F751D7B482C6C63C251CA52B2BE30160592E7A542DDC413F2EAFFC8D85",
+      "expected_sha256": "D5F041F751D7B482C6C63C251CA52B2BE30160592E7A542DDC413F2EAFFC8D85",
+      "expected_bytes": 84278,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "protected_artifacts",
+      "path": "src/engine/MusicalAudioCutPlan.h",
+      "bytes": 28956,
+      "sha256": "17A84770B9B4904162008492ADC393EB183678ECD00113C0658EFE355413B390",
+      "expected_sha256": "17A84770B9B4904162008492ADC393EB183678ECD00113C0658EFE355413B390",
+      "expected_bytes": 28956,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "protected_artifacts",
+      "path": "src/engine/MusicalAudioChannelMaterialization.h",
+      "bytes": 11960,
+      "sha256": "6C96FC13BCBDD21040DCD53E990F35F336A6C6E8436CE404BA28B6240E2B7EC7",
+      "expected_sha256": "6C96FC13BCBDD21040DCD53E990F35F336A6C6E8436CE404BA28B6240E2B7EC7",
+      "expected_bytes": 11960,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/probe-types.h",
+      "bytes": 985,
+      "sha256": "973089A20C88E5994E4058B1CD7AB565BDBECF23E1356AD8DE8B34E0766B3101",
+      "expected_sha256": "973089A20C88E5994E4058B1CD7AB565BDBECF23E1356AD8DE8B34E0766B3101",
+      "expected_bytes": 985,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/build-and-query.cpp",
+      "bytes": 480,
+      "sha256": "A1CC6F579D8A787D77EBDE55383A37FA642C3D9AB8B9B7DFDF0DA50CC914D63E",
+      "expected_sha256": "A1CC6F579D8A787D77EBDE55383A37FA642C3D9AB8B9B7DFDF0DA50CC914D63E",
+      "expected_bytes": 480,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/replay-probe.cpp",
+      "bytes": 15632,
+      "sha256": "C4B32519266A32BF2352EB64146481EF82967EB38755643199FFA3E47642158B",
+      "expected_sha256": "C4B32519266A32BF2352EB64146481EF82967EB38755643199FFA3E47642158B",
+      "expected_bytes": 15632,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/fp-observer.cpp",
+      "bytes": 2101,
+      "sha256": "ED9CFF7130C71DACA68BBF00481941367EC13480DE090BCDCA89A2884B8BDB5D",
+      "expected_sha256": "ED9CFF7130C71DACA68BBF00481941367EC13480DE090BCDCA89A2884B8BDB5D",
+      "expected_bytes": 2101,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/README.md",
+      "bytes": 8880,
+      "sha256": "17B034CF73360D3940487609723DCD179653008670279A977BEDD93F0F850138",
+      "expected_sha256": "17B034CF73360D3940487609723DCD179653008670279A977BEDD93F0F850138",
+      "expected_bytes": 8880,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "protected_artifacts",
+      "path": "build-ci/20261105-musical-query-fp-profile-probe-r1/source-pins.json",
+      "bytes": 4049,
+      "sha256": "DA5DDDA7E4613B0A26A682F169049F8E384AE2AC1CC85F8CCBFCA4B575B0DFEB",
+      "expected_sha256": "DA5DDDA7E4613B0A26A682F169049F8E384AE2AC1CC85F8CCBFCA4B575B0DFEB",
+      "expected_bytes": 4049,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/formation-r8.h",
+      "bytes": 81190,
+      "sha256": "1308DC2CAA05644FF2AD72FE5EF10EE620A636E2EEC1D1747C8C154769FADEBA",
+      "expected_sha256": "1308DC2CAA05644FF2AD72FE5EF10EE620A636E2EEC1D1747C8C154769FADEBA",
+      "expected_bytes": 81190,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/worker-result.h",
+      "bytes": 9148,
+      "sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754",
+      "expected_sha256": "63DA326FD3D70856547306D3B62126DD26D2CD223F55A575CED927462DB70754",
+      "expected_bytes": 9148,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/legacy-adapter.h",
+      "bytes": 28646,
+      "sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E",
+      "expected_sha256": "072AA13FCDB8D65BAA5EFBC8A2EABF44ED3BFC409571E9411C1E8C745899802E",
+      "expected_bytes": 28646,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/window-query.h",
+      "bytes": 48648,
+      "sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8",
+      "expected_sha256": "243E24C4C92A340B2ADDFE9E1EAD3F379B963D02F999D27168245A2B4C560CB8",
+      "expected_bytes": 48648,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-profile.h",
+      "bytes": 6189,
+      "sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9",
+      "expected_sha256": "649BE1643C701FFB987343FB61766BD2F32D8478D28DD9D56BE81BCA85A1EFF9",
+      "expected_bytes": 6189,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/native-observer.cpp",
+      "bytes": 7067,
+      "sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714",
+      "expected_sha256": "B176E364C7ECB36632C489C74568663500755778AF36ABF70A9C80D00C4F2714",
+      "expected_bytes": 7067,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/source-correspondence.md",
+      "bytes": 32604,
+      "sha256": "E38A5D1029E2F013A88EB6908C75553C791678F3D5B1605BD0AB15E80706279D",
+      "expected_sha256": "E38A5D1029E2F013A88EB6908C75553C791678F3D5B1605BD0AB15E80706279D",
+      "expected_bytes": 32604,
+      "matches": true
+    },
+    {
+      "manifest": "R4",
+      "category": "outputs",
+      "path": "build-ci/20261105-musical-funded-legacy-adapter-source-r4/README.md",
+      "bytes": 6039,
+      "sha256": "7C37A469A5696D20376CDAEC5A5C227B14D8467316C1A1BC1FEDA94515D08F2F",
+      "expected_sha256": "7C37A469A5696D20376CDAEC5A5C227B14D8467316C1A1BC1FEDA94515D08F2F",
+      "expected_bytes": 6039,
+      "matches": true
+    }
+  ],
+  "operations": {
+    "ordinary_file_text_JSON_hash_arithmetic_only": true,
+    "target_PS_parser_AST_import": false,
+    "target_helper": false,
+    "compiler_or_linker": false,
+    "target_program_test_stage": false,
+    "native_API_or_layout_probe": false,
+    "GUI_audio": false,
+    "Git_CI": false,
+    "source_or_protected_edits": false,
+    "object_decode": false,
+    "new_files": "Only this review.json and source-pins.json."
+  }
+}
