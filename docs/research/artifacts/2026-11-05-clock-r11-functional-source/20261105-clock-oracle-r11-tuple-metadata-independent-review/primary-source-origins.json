@@ -1,0 +1,20 @@
+[
+  {
+    "path": "primary-sources/LanguagePrimitives.cs",
+    "url": "https://raw.githubusercontent.com/PowerShell/PowerShell/ea554a8f9c6085f54fb2828f7ea286c65c35599f/src/System.Management.Automation/engine/LanguagePrimitives.cs",
+    "commit": "ea554a8f9c6085f54fb2828f7ea286c65c35599f",
+    "bytes": 291050,
+    "sha256": "284B0FAD37EF182C51566E8135B20E4C27464B1EE9352A1786E7DC76C3089711",
+    "license": "MIT; original copyright/license headers preserved",
+    "scope": "Selected public source association only; not executed and not binary equivalence."
+  },
+  {
+    "path": "primary-sources/Binders.cs",
+    "url": "https://raw.githubusercontent.com/PowerShell/PowerShell/ea554a8f9c6085f54fb2828f7ea286c65c35599f/src/System.Management.Automation/engine/runtime/Binding/Binders.cs",
+    "commit": "ea554a8f9c6085f54fb2828f7ea286c65c35599f",
+    "bytes": 389899,
+    "sha256": "CCA6BC97C2CDC16FDC1EB612FABCCCEA919629BC4C04F952C00A458FF7C9F6AC",
+    "license": "MIT; original copyright/license headers preserved",
+    "scope": "Selected public source association only; not executed and not binary equivalence."
+  }
+]

@@ -1,0 +1,243 @@
+{
+  "schema": "R11_TUPLE_METADATA_FUNCTIONAL_SOURCE_ARCHIVE",
+  "scope": "Provisional admission set functional source only; no final union, numerical authority, fit, binding or execution GO",
+  "subject_manifest_sha256": "52E3482AF966C562CBFB5119F145B79BC762C3EA8B17D050DC9CFF96CDF54F4D",
+  "independent_review_sha256": "F2CD7457E6B75B471E47DB1CF50D800D482F2024B1696601D03C5ECFE1E60CC4",
+  "excluded_primary_source_files": "Two PowerShell source files remain URL/hash pinned in primary-source-origins.json, not vendored",
+  "files": [
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/audit.py",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/audit.py",
+      "original_bytes": 21201,
+      "original_sha256": "6823C9327FC7B70820E59D61F78CE695206F9271C8EE1411D33DBC5267A32A20",
+      "transformation": "BYTE_EXACT",
+      "bytes": 21201,
+      "sha256": "6823C9327FC7B70820E59D61F78CE695206F9271C8EE1411D33DBC5267A32A20"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/checked-input-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/checked-input-pins.json",
+      "original_bytes": 298724,
+      "original_sha256": "2F637ED97FDFEB0D3EEC1F10F1A308AFF692E821FB57C1F0F30FEA94C09ECD3B",
+      "transformation": "BYTE_EXACT",
+      "bytes": 298724,
+      "sha256": "2F637ED97FDFEB0D3EEC1F10F1A308AFF692E821FB57C1F0F30FEA94C09ECD3B"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/evidence-first-unsealed/audit.py",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/evidence-first-unsealed/audit.py",
+      "original_bytes": 13962,
+      "original_sha256": "53D5C9BD483560017A813064AB77D28E1307BCB6E8A0D4C456D10652E2AED186",
+      "transformation": "BYTE_EXACT",
+      "bytes": 13962,
+      "sha256": "53D5C9BD483560017A813064AB77D28E1307BCB6E8A0D4C456D10652E2AED186"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/evidence-first-unsealed/mechanical-evidence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/evidence-first-unsealed/mechanical-evidence.json",
+      "original_bytes": 1004241,
+      "original_sha256": "8330E7FFA0324042A85D3B66A42D24D3B5C2B11F6F92DC0712E03F1433307031",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1004241,
+      "sha256": "8330E7FFA0324042A85D3B66A42D24D3B5C2B11F6F92DC0712E03F1433307031"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/fetch-public-sources.py",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/fetch-public-sources.py",
+      "original_bytes": 1259,
+      "original_sha256": "8A9E618B843755FF15557EB492A106219D8D65550D900ACA6E22ED29F19A8BEE",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1259,
+      "sha256": "8A9E618B843755FF15557EB492A106219D8D65550D900ACA6E22ED29F19A8BEE"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/manifest-differences.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/manifest-differences.json",
+      "original_bytes": 8560,
+      "original_sha256": "75B97C70431A146C890116282FF7942C691BBD60785570415EFD1AA11332282D",
+      "transformation": "BYTE_EXACT",
+      "bytes": 8560,
+      "sha256": "75B97C70431A146C890116282FF7942C691BBD60785570415EFD1AA11332282D"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/mechanical-evidence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/mechanical-evidence.json",
+      "original_bytes": 1008564,
+      "original_sha256": "EF588D78074A4B8336546B4A4B345CE0386D2637F91F20D4FB1B5348D0A7C839",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1008564,
+      "sha256": "EF588D78074A4B8336546B4A4B345CE0386D2637F91F20D4FB1B5348D0A7C839"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/primary-source-origins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/primary-source-origins.json",
+      "original_bytes": 1119,
+      "original_sha256": "839551C897BFF2A5C8E8AEEA052E53A306C192719967CBE06F32DE353225B066",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1119,
+      "sha256": "839551C897BFF2A5C8E8AEEA052E53A306C192719967CBE06F32DE353225B066"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/review.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/review.json",
+      "original_bytes": 6540,
+      "original_sha256": "F2CD7457E6B75B471E47DB1CF50D800D482F2024B1696601D03C5ECFE1E60CC4",
+      "transformation": "BYTE_EXACT",
+      "bytes": 6540,
+      "sha256": "F2CD7457E6B75B471E47DB1CF50D800D482F2024B1696601D03C5ECFE1E60CC4"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/review.md",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/review.md",
+      "original_bytes": 11224,
+      "original_sha256": "369E5A77B4BA6857691F66E5074A5BDF980BACF1CC27FE00902E321EC0391395",
+      "transformation": "BYTE_EXACT",
+      "bytes": 11224,
+      "sha256": "369E5A77B4BA6857691F66E5074A5BDF980BACF1CC27FE00902E321EC0391395"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/runner.diff.original.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/runner.diff",
+      "original_bytes": 14133,
+      "original_sha256": "0F3E5195EBBD9D6FF73248D209FAE28F2AE0C1913147FEF0340B71BC1BECDA88",
+      "transformation": "COMPLETE_RAW_DIFF_BASE64",
+      "bytes": 18992,
+      "sha256": "9E3F7A33B2F2C6DE29040EFC461E7951FD3CE817B956291DB65E9EA4987BE25A"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/seal.py",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/seal.py",
+      "original_bytes": 5858,
+      "original_sha256": "BBE70EB182F14B180B8FA6F89865CA2F09A2C07740A0E78CDD4B65B71209B4CA",
+      "transformation": "BYTE_EXACT",
+      "bytes": 5858,
+      "sha256": "BBE70EB182F14B180B8FA6F89865CA2F09A2C07740A0E78CDD4B65B71209B4CA"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-independent-review/source-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/source-pins.json",
+      "original_bytes": 6740,
+      "original_sha256": "3164F3B2F207126B293ACB3DF4AE309553E1122258CAE30828BD9BC7DEAC0354",
+      "transformation": "BYTE_EXACT",
+      "bytes": 6740,
+      "sha256": "3164F3B2F207126B293ACB3DF4AE309553E1122258CAE30828BD9BC7DEAC0354"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/author-source.py",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/author-source.py",
+      "original_bytes": 13568,
+      "original_sha256": "94EBEA86B69750084C25E0C92CE56B3ED7DAA0C739CC754B93E131B071B83B48",
+      "transformation": "BYTE_EXACT",
+      "bytes": 13568,
+      "sha256": "94EBEA86B69750084C25E0C92CE56B3ED7DAA0C739CC754B93E131B071B83B48"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/evidence-initial-unsealed/author-source.py",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/evidence-initial-unsealed/author-source.py",
+      "original_bytes": 13554,
+      "original_sha256": "071AD99A7C03B408EEE3D2654C94F85BD131CA73E93FEA52DA0C85125C5C45B9",
+      "transformation": "BYTE_EXACT",
+      "bytes": 13554,
+      "sha256": "071AD99A7C03B408EEE3D2654C94F85BD131CA73E93FEA52DA0C85125C5C45B9"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/evidence-initial-unsealed/README.md",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/evidence-initial-unsealed/README.md",
+      "original_bytes": 18145,
+      "original_sha256": "F75682A992A95AFE4EF8EF262F363706A1E868E90F97D4F56A3EDBC2E53EFE6D",
+      "transformation": "BYTE_EXACT",
+      "bytes": 18145,
+      "sha256": "F75682A992A95AFE4EF8EF262F363706A1E868E90F97D4F56A3EDBC2E53EFE6D"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/evidence-initial-unsealed/source-correspondence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/evidence-initial-unsealed/source-correspondence.json",
+      "original_bytes": 32419,
+      "original_sha256": "00B4BAD274B71729DBEEC1F819DA409B564A862DF9FE08510108775C032C9830",
+      "transformation": "BYTE_EXACT",
+      "bytes": 32419,
+      "sha256": "00B4BAD274B71729DBEEC1F819DA409B564A862DF9FE08510108775C032C9830"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/evidence-initial-unsealed/source-manifest.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/evidence-initial-unsealed/source-manifest.json",
+      "original_bytes": 499536,
+      "original_sha256": "50EE2A53A338BBB13C02FF611A91D48363FD24D8D7FE324D0CAEC8722A71EC16",
+      "transformation": "BYTE_EXACT",
+      "bytes": 499536,
+      "sha256": "50EE2A53A338BBB13C02FF611A91D48363FD24D8D7FE324D0CAEC8722A71EC16"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/runner.diff.original.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/runner.diff",
+      "original_bytes": 14155,
+      "original_sha256": "E2ED90327F122CA8B89B014A4723A186CC4C728F1426BA45A7350454F7CF01DD",
+      "transformation": "COMPLETE_RAW_DIFF_BASE64",
+      "bytes": 19024,
+      "sha256": "60AEDC7DDC911039389CB175F4BECA373B13BEFD1129AD6E71DB410842EC8AF5"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/source-correspondence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/source-correspondence.json",
+      "original_bytes": 32890,
+      "original_sha256": "7AACE315CBBF62DEEF1086F34F469E9F67C8A60D2B1BA2E737C99849224516F5",
+      "transformation": "BYTE_EXACT",
+      "bytes": 32890,
+      "sha256": "7AACE315CBBF62DEEF1086F34F469E9F67C8A60D2B1BA2E737C99849224516F5"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/source-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/source-pins.json",
+      "original_bytes": 5096,
+      "original_sha256": "4ED7FBFC23870A0FD8F1A05DCB11FCC92CE3A74C41B39FD1DFD8F65F2233EF3B",
+      "transformation": "BYTE_EXACT",
+      "bytes": 5096,
+      "sha256": "4ED7FBFC23870A0FD8F1A05DCB11FCC92CE3A74C41B39FD1DFD8F65F2233EF3B"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/README.md",
+      "original_bytes": 18145,
+      "original_sha256": "9734D19F1E4CEB10FF2BACC0E67874AEADA639D4C13E8555CD6AEAED37FFD284",
+      "transformation": "BYTE_EXACT",
+      "bytes": 18145,
+      "sha256": "9734D19F1E4CEB10FF2BACC0E67874AEADA639D4C13E8555CD6AEAED37FFD284"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/run-clock.ps1",
+      "original_bytes": 104162,
+      "original_sha256": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9",
+      "transformation": "BYTE_EXACT",
+      "bytes": 104162,
+      "sha256": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/source-manifest.json",
+      "original_bytes": 499536,
+      "original_sha256": "52E3482AF966C562CBFB5119F145B79BC762C3EA8B17D050DC9CFF96CDF54F4D",
+      "transformation": "BYTE_EXACT",
+      "bytes": 499536,
+      "sha256": "52E3482AF966C562CBFB5119F145B79BC762C3EA8B17D050DC9CFF96CDF54F4D"
+    }
+  ]
+}

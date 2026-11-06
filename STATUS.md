@@ -72,6 +72,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    A separate fixed-file metadata reader passed for21 types/99 declared fields; this supplies no runtime
    layout or payload-fit credit. Fresh whole numeric review rejected23 production Site packets;
    the complete census is being rebuilt from operand ledgers before another independent review.
+   R11's tuple metadata replacement passed5,331 independent functional source checks against its
+   provisional input set; final union, new census/lifetime proof, binding and execution remain held.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -92,6 +94,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Preserve the reviewed tuple metadata source successor
+
+- R11 passed5,331 independent whole functional source/file checks for its provisional admission set. One fresh Tuple row and25 matching Item reads preserve all seven consumers, every filesystem/hash occasion, failure ordering and source-built wire maps; no Tuple is serialized.
+- Archived26 exact source/evidence files under `docs/research/artifacts/2026-11-05-clock-r11-functional-source/`, including complete source/manifest, inverse correspondence, reviews and earlier unsealed evidence. C++/header and false guards remain unchanged; public PowerShell sources stay URL/hash-pinned.
+- Final canonical union and complete new R11 census/six lifetime joins are still needed before numerical authority, immutable binding and separate execution GO. Tuple source acceptance and finite ABI coefficients do not establish32MiB fit. Metadata checkpoint52f1a9b passed CI42177098908.
+- Continue production R3 census regeneration from the critic's23 operand findings, native/whole proof and recipe/renderer/jobs/model, then linked/folder/piano. No research target parser/import/helper/compiler/program/stage, GUI, desktop input or device ran.
 
 ## 2026-11-05 - Preserve the bounded public-file metadata check
 

@@ -1,0 +1,249 @@
+[
+  {
+    "path": "/R10_payload_repairs/bootstrap_observed/keys",
+    "old": 6056,
+    "new": 6074
+  },
+  {
+    "path": "/R10_payload_repairs/bootstrap_observed/nodes_and_keys",
+    "old": 15978,
+    "new": 16019
+  },
+  {
+    "path": "/R10_payload_repairs/bootstrap_observed/values",
+    "old": 9922,
+    "new": 9945
+  },
+  {
+    "path": "/R10_payload_repairs/changed_helper_bodies",
+    "old": [
+      "Assert-NoLink",
+      "Assert-TaskDependencies",
+      "Get-TaskEntries",
+      "Read-TaskJson",
+      "Resolve-TaskInput"
+    ],
+    "new": [
+      "Assert-NoLink",
+      "Assert-TaskDependencies",
+      "Assert-TaskPins",
+      "Get-TaskBuildArtifacts",
+      "Get-TaskEntries",
+      "Get-TaskReferences",
+      "Get-TaskStageBytes",
+      "Initialize-TaskController",
+      "Join-TaskBoundedNames",
+      "Read-TaskJson",
+      "Resolve-TaskInput",
+      "Save-TaskFailureInventory"
+    ]
+  },
+  {
+    "path": "/R10_payload_repairs/current_own5_path_UTF16_max",
+    "old": 179,
+    "new": 178
+  },
+  {
+    "path": "/R10_payload_repairs/helper_bodies_byte_exact_R9",
+    "old": [
+      "Add-TaskChildCleanup",
+      "Add-TaskJsonBound",
+      "Add-TaskJsonVisit",
+      "Assert-TaskAttempt",
+      "Assert-TaskBoundSourceInteger",
+      "Assert-TaskCodecBinding",
+      "Assert-TaskConsolePE",
+      "Assert-TaskDocumentWrite",
+      "Assert-TaskExactKeys",
+      "Assert-TaskFileSet",
+      "Assert-TaskIdentity",
+      "Assert-TaskIntegral",
+      "Assert-TaskPins",
+      "Assert-TaskPollAdmission",
+      "Assert-TaskPredecessor",
+      "Assert-TaskRawJson",
+      "Assert-TaskReservation",
+      "Assert-TaskRetainedReservation",
+      "Assert-TaskSameReferences",
+      "Assert-TaskString",
+      "Close-TaskOwner",
+      "Complete-TaskOwnerClose",
+      "Convert-TaskControlOperand",
+      "Copy-TaskOwned",
+      "Encode-TaskJson",
+      "Expect-TaskGate",
+      "Get-TaskBootstrapHash",
+      "Get-TaskBuildArtifacts",
+      "Get-TaskEscapedStringBytes",
+      "Get-TaskHash",
+      "Get-TaskIntegerDigits",
+      "Get-TaskPEHeader",
+      "Get-TaskPredecessorDescriptor",
+      "Get-TaskReferences",
+      "Get-TaskRuntimeType",
+      "Get-TaskSafePrefix",
+      "Get-TaskSecondaryCodes",
+      "Get-TaskStageBytes",
+      "Initialize-TaskController",
+      "Invoke-TaskChild",
+      "Invoke-TaskFencedChild",
+      "Join-TaskBoundedNames",
+      "Measure-TaskJson",
+      "Mutate-TaskOwnedBytes",
+      "Read-TaskBoundedBytes",
+      "Read-TaskChildResult",
+      "Reject-TaskGate",
+      "Replace-TaskBounded",
+      "Save-TaskFailureInventory",
+      "Save-TaskReceipt",
+      "Set-TaskRawExit",
+      "Set-TaskSecondary",
+      "Spend-Task",
+      "Visit-TaskJsonValue",
+      "Write-TaskJson",
+      "Write-TaskJsonBytes"
+    ],
+    "new": [
+      "Add-TaskChildCleanup",
+      "Add-TaskJsonBound",
+      "Add-TaskJsonVisit",
+      "Assert-TaskAttempt",
+      "Assert-TaskBoundSourceInteger",
+      "Assert-TaskCodecBinding",
+      "Assert-TaskConsolePE",
+      "Assert-TaskDocumentWrite",
+      "Assert-TaskExactKeys",
+      "Assert-TaskFileSet",
+      "Assert-TaskIdentity",
+      "Assert-TaskIntegral",
+      "Assert-TaskPollAdmission",
+      "Assert-TaskPredecessor",
+      "Assert-TaskRawJson",
+      "Assert-TaskReservation",
+      "Assert-TaskRetainedReservation",
+      "Assert-TaskSameReferences",
+      "Assert-TaskString",
+      "Close-TaskOwner",
+      "Complete-TaskOwnerClose",
+      "Convert-TaskControlOperand",
+      "Copy-TaskOwned",
+      "Encode-TaskJson",
+      "Expect-TaskGate",
+      "Get-TaskBootstrapHash",
+      "Get-TaskEscapedStringBytes",
+      "Get-TaskHash",
+      "Get-TaskIntegerDigits",
+      "Get-TaskPEHeader",
+      "Get-TaskPredecessorDescriptor",
+      "Get-TaskRuntimeType",
+      "Get-TaskSafePrefix",
+      "Get-TaskSecondaryCodes",
+      "Invoke-TaskChild",
+      "Invoke-TaskFencedChild",
+      "Measure-TaskJson",
+      "Mutate-TaskOwnedBytes",
+      "Read-TaskBoundedBytes",
+      "Read-TaskChildResult",
+      "Reject-TaskGate",
+      "Replace-TaskBounded",
+      "Save-TaskReceipt",
+      "Set-TaskRawExit",
+      "Set-TaskSecondary",
+      "Spend-Task",
+      "Visit-TaskJsonValue",
+      "Write-TaskJson",
+      "Write-TaskJsonBytes"
+    ]
+  },
+  {
+    "path": "/R10_payload_repairs/raw_profiles/bootstrap/nodes_and_keys",
+    "old": 15978,
+    "new": 16019
+  },
+  {
+    "path": "/R11_tuple_metadata",
+    "added": {
+      "state": "SOURCE_ONLY_UNRUN_ALL_GUARDS_FALSE_PROVISIONAL_ADMISSION_NO_NEW_PRICE_OR_GO",
+      "predecessor_source_manifest_sha256": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594",
+      "row_type": "System.Tuple<System.Object,System.Object,System.Object,System.Object,System.Object>",
+      "cells": [
+        "FullName",
+        "Name",
+        "PSIsContainer",
+        "Length",
+        "Reparse"
+      ],
+      "semantics": "One fresh non-enumerable reference row per metadata append. Every filesystem/reparse/hash check and all wire projections remain.",
+      "minimum_source_request_reduction_per_row": 432,
+      "unconditional_successful_namespace_file_rows": 8360,
+      "unconditional_source_request_reduction_lower": 3611520,
+      "snapshot_directory_rows_are_not_unconditional_lower": true,
+      "implicit_PowerShell_wrapper_or_general_heap_zero_claim": false,
+      "current_admission": "Provisional predecessor R3 set for functional source preparation only; recomputed own-source/bootstrap profile is not a completed canonical proof/data union.",
+      "before_numeric_authority": "Root settles exact original-path functional source/SDK/contract/census/review/resource-proof/binding union; then recompute complete profile, all bodies, phase joins and bounds. Backup archive/draft copies are not automatic called inputs.",
+      "self_hash_cycle_rule": "Census/reviews identify executable code/SDK/source graphs plus parametric profile correspondence; external reviewed binding record closes final manifest/code/profile identity.",
+      "old_census_or_price_transferred": false,
+      "global_payload_fit": false,
+      "binding_or_execution_GO": false
+    }
+  },
+  {
+    "path": "/controlled_lifetime/metadata_rows",
+    "added": "Fresh five-object-reference Tuple per current entry. No metadata cache/recycle. Source clones/projections/binder/implicit wrapper terms and exact layout/source association remain separately accounted; no general heap or reclaim assertion."
+  },
+  {
+    "path": "/exact_source_critic",
+    "old": "PENDING_FRESH_WHOLE_R10_FUNCTIONAL_REVIEW_THEN_NEW_COMPLETE_SCALAR_AND_LIFETIME_CENSUS",
+    "new": "PENDING_FRESH_WHOLE_R11_FUNCTIONAL_REVIEW_THEN_NEW_COMPLETE_CENSUS_AND_SIX_PHASE_LIFETIME_CLOSURE"
+  },
+  {
+    "path": "/profile/future_literal_binding_profile_state",
+    "old": "PENDING_NEW_PHYSICAL_PATH_HASH_INCLUDE_UNION_AND_LIFETIME_REVIEW",
+    "new": "PENDING_CANONICAL_FUNCTIONAL_SOURCE_CONTRACT_CENSUS_RESOURCE_PROOF_DATA_UNION_AND_COMPLETE_RECOMPOSITION"
+  },
+  {
+    "path": "/profile/profile_source",
+    "old": "All inherited R9 identities plus exact sealed R9 own5,functional review,census3,complete numeric-review closure and clone-capacity erratum3. Exact bytes/chunks/namespaces recomputed; no content dedup or future binding data.",
+    "new": "PROVISIONAL_PREDECESSOR_R3_ADMISSION_FOR_UNRUN_R11_FUNCTIONAL_SOURCE_PREPARATION; canonical functional proof/data union and all final bounds require root recomposition before authority."
+  },
+  {
+    "path": "/schema",
+    "old": "YESDAW_CLOCK_ORACLE_R10_BYTE_GRAMMAR_AND_PATH_STRING_CATALOGUE_SOURCE_PROTOTYPE_UNBOUND",
+    "new": "YESDAW_CLOCK_ORACLE_R11_FRESH_TUPLE_METADATA_SOURCE_PROTOTYPE_UNBOUND"
+  },
+  {
+    "path": "/source_authoring_go",
+    "old": "ROOT_NARROW_R10_BYTE_ADMISSION_WHITESPACE_COMPACTION_AND_APPROVED_PATH_STRING_CATALOGUE",
+    "new": "ROOT_APPROVED_ORDINARY_INTERNAL_FRESH_METADATA_TUPLE_REPRESENTATION"
+  },
+  {
+    "path": "/sources/1/bytes",
+    "old": 104099,
+    "new": 104162
+  },
+  {
+    "path": "/sources/1/lines",
+    "old": 974,
+    "new": 976
+  },
+  {
+    "path": "/sources/1/sha256",
+    "old": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314",
+    "new": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9"
+  },
+  {
+    "path": "/sources/3/bytes",
+    "old": 15480,
+    "new": 18145
+  },
+  {
+    "path": "/sources/3/lines",
+    "old": 221,
+    "new": 259
+  },
+  {
+    "path": "/sources/3/sha256",
+    "old": "FB9F7E54FBA12CA560B40FF38AE41B97548BF7DF5D5160EB9FCA0538BCBCD5F8",
+    "new": "9734D19F1E4CEB10FF2BACC0E67874AEADA639D4C13E8555CD6AEAED37FFD284"
+  }
+]

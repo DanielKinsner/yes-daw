@@ -1,0 +1,199 @@
+{
+  "schema": "R11_TUPLE_METADATA_INDEPENDENT_WHOLE_FUNCTIONAL_REVIEW_R1",
+  "verdict": "ACCEPT_WHOLE_FUNCTIONAL_SOURCE_ONLY_PROVISIONAL_ADMISSION_NUMERIC_PAYLOAD_BINDING_EXECUTION_HOLD",
+  "subject_manifest_sha256": "52E3482AF966C562CBFB5119F145B79BC762C3EA8B17D050DC9CFF96CDF54F4D",
+  "runner_sha256": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9",
+  "whole_source_review": {
+    "runner_lines": 976,
+    "cpp_lines": 289,
+    "header_lines": 72,
+    "README_lines": 259,
+    "manifest_complete_JSON_read": true,
+    "checks": 5331,
+    "failures": []
+  },
+  "source_correspondence": {
+    "complete_inverse_runner_byte_identity_to_accepted_R3": true,
+    "CPP_header_byte_exact_R3": true,
+    "new_metadata_tuple_constructors": 1,
+    "Item_reads": 25,
+    "consumer_lines": [
+      {
+        "line": 691,
+        "reads": 4,
+        "items": [
+          3,
+          2,
+          4,
+          4
+        ]
+      },
+      {
+        "line": 757,
+        "reads": 1,
+        "items": [
+          3
+        ]
+      },
+      {
+        "line": 758,
+        "reads": 1,
+        "items": [
+          1
+        ]
+      },
+      {
+        "line": 778,
+        "reads": 5,
+        "items": [
+          1,
+          3,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "line": 839,
+        "reads": 6,
+        "items": [
+          3,
+          2,
+          1,
+          2,
+          2,
+          1
+        ]
+      },
+      {
+        "line": 862,
+        "reads": 5,
+        "items": [
+          3,
+          1,
+          4,
+          5,
+          1
+        ]
+      },
+      {
+        "line": 950,
+        "reads": 3,
+        "items": [
+          1,
+          3,
+          1
+        ]
+      }
+    ],
+    "GetTaskEntries_call_sites": 7,
+    "extra_count_only_call": true,
+    "fresh_filesystem_checks_preserved": true,
+    "partial_Destination_append_and_primary_cleanup_order_preserved": true,
+    "manual_wire_projections_preserved": true,
+    "metadata_rows_serialized_directly": false,
+    "reference_descriptor_field_count": 5,
+    "new_entry_or_JSON_domain_restrictions": false,
+    "new_stat_hash_trust_cache": false,
+    "normal_runner_controls": 10,
+    "normal_cpp_control_emissions": 14,
+    "target_control_execution": false,
+    "all_guards_false": true,
+    "manifest_changed_paths": [
+      "/R10_payload_repairs/bootstrap_observed/keys",
+      "/R10_payload_repairs/bootstrap_observed/nodes_and_keys",
+      "/R10_payload_repairs/bootstrap_observed/values",
+      "/R10_payload_repairs/changed_helper_bodies",
+      "/R10_payload_repairs/current_own5_path_UTF16_max",
+      "/R10_payload_repairs/helper_bodies_byte_exact_R9",
+      "/R10_payload_repairs/raw_profiles/bootstrap/nodes_and_keys",
+      "/R11_tuple_metadata",
+      "/controlled_lifetime/metadata_rows",
+      "/exact_source_critic",
+      "/profile/future_literal_binding_profile_state",
+      "/profile/profile_source",
+      "/schema",
+      "/source_authoring_go",
+      "/sources/1/bytes",
+      "/sources/1/lines",
+      "/sources/1/sha256",
+      "/sources/3/bytes",
+      "/sources/3/lines",
+      "/sources/3/sha256"
+    ]
+  },
+  "public_tuple_and_enumeration_source": {
+    "Tuple5_implements_IEnumerable_or_IEnumerator": false,
+    "five_readonly_cells_assigned_and_read_directly": true,
+    "selected_PowerShell_commit": "ea554a8f9c6085f54fb2828f7ea286c65c35599f",
+    "LanguagePrimitives_sha256": "284B0FAD37EF182C51566E8135B20E4C27464B1EE9352A1786E7DC76C3089711",
+    "Binders_sha256": "CCA6BC97C2CDC16FDC1EB612FABCCCEA919629BC4C04F952C00A458FF7C9F6AC",
+    "direct_or_PSObject_wrapped_tuple_is_scalar_under_selected_source_branch": true,
+    "target_binder_executed": false,
+    "source_binary_equivalence_claim": false
+  },
+  "profile": {
+    "inputs": 1220,
+    "input_bytes": 460232026,
+    "input_chunks": 7849,
+    "include_inputs": 1221,
+    "namespace_roots": 31,
+    "namespace_entries": 1092,
+    "namespace_files": 1045,
+    "own_five_bytes": 660526,
+    "own_five_chunks": 13,
+    "current_fence_identities": 1225,
+    "success_files": 68,
+    "own_five_path_units_max": 178,
+    "known_current_path_units_max": 270,
+    "maximum_complete_identities": 1294,
+    "parent_reference_capacity": 84110,
+    "alias_entries_max": 2662
+  },
+  "bootstrap": {
+    "bytes": 499536,
+    "values": 9945,
+    "objects": 1456,
+    "keys": 6074,
+    "max_depth": 4,
+    "max_units": 435,
+    "strings": 5509,
+    "booleans": 111,
+    "nulls": 12,
+    "integers": 1575,
+    "arrays": 1282,
+    "visits": 16019
+  },
+  "admission_qualification": "Exact sealed provisional predecessor R3 original-path input and namespace set only. Root must settle the final canonical executable/SDK/source/contract/census/review/resource/binding union and recompute complete profile before numeric authority.",
+  "resource_statement_scope": "432/carrier and 8360*432 lower-request arithmetic described in subject/audit only; not a new numerical, physical-live, reclamation, layout, RSS or32MiBfit certificate from this functional review.",
+  "closed_functional_findings": [],
+  "blocking_functional_findings": [],
+  "holds": [
+    "final_canonical_original_path_input_union",
+    "complete_R11_runner_and_both_child_scalar_census",
+    "all_six_controlled_success_failure_environment_lifetime_joins",
+    "independent_complete_numeric_review",
+    "whole_derived_U",
+    "typed_immutable_identity_storage_profile_binding",
+    "separate_root_execution_GO",
+    "compiler_CPU_heap_RSS_temporary_disk_qualification",
+    "production_DSP_native_Ready_renderer_hardware"
+  ],
+  "old_prices_or_path_geometry_transferred": false,
+  "reviewer_checker_history": [
+    {
+      "step": "initial_unsealed",
+      "failure": "KeyError file_count: older namespace rows legitimately omit optional file_count; files list is authoritative.",
+      "correction": "Compare actual file count to file_count when present and otherwise to len(files).",
+      "subject_changed": false
+    },
+    {
+      "step": "next_unsealed",
+      "failure": "Guard regex used unprefixed variable names instead of actual task-prefixed names.",
+      "correction": "Check actual eight task-prefixed false guard assignments.",
+      "subject_changed": false,
+      "preserved_evidence": "evidence-first-unsealed/"
+    }
+  ],
+  "boundary": "Independent ordinary file/text/JSON/hash/integer arithmetic and two fixed public-source reads only. No target PS parser/AST/import/helper/Add-Type/compiler/program/stage/native/GUI/device/Git/CI. No subject or predecessor mutation."
+}

@@ -1,0 +1,137 @@
+{
+  "schema": "R11_TUPLE_METADATA_INDEPENDENT_REVIEW_SOURCE_PINS_R1",
+  "verdict": "ACCEPT_WHOLE_FUNCTIONAL_SOURCE_ONLY_PROVISIONAL_ADMISSION_NUMERIC_PAYLOAD_BINDING_EXECUTION_HOLD",
+  "subject": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/run-clock.ps1",
+      "bytes": 104162,
+      "sha256": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/README.md",
+      "bytes": 18145,
+      "sha256": "9734D19F1E4CEB10FF2BACC0E67874AEADA639D4C13E8555CD6AEAED37FFD284"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/source-manifest.json",
+      "bytes": 499536,
+      "sha256": "52E3482AF966C562CBFB5119F145B79BC762C3EA8B17D050DC9CFF96CDF54F4D"
+    }
+  ],
+  "accepted_predecessor_subject": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/run-clock.ps1",
+      "bytes": 104099,
+      "sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/README.md",
+      "bytes": 15480,
+      "sha256": "FB9F7E54FBA12CA560B40FF38AE41B97548BF7DF5D5160EB9FCA0538BCBCD5F8"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/source-manifest.json",
+      "bytes": 497616,
+      "sha256": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594"
+    }
+  ],
+  "author_pins": {
+    "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/source-pins.json",
+    "bytes": 5096,
+    "sha256": "4ED7FBFC23870A0FD8F1A05DCB11FCC92CE3A74C41B39FD1DFD8F65F2233EF3B"
+  },
+  "evidence": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/audit.py",
+      "bytes": 21201,
+      "sha256": "6823C9327FC7B70820E59D61F78CE695206F9271C8EE1411D33DBC5267A32A20"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/checked-input-pins.json",
+      "bytes": 298724,
+      "sha256": "2F637ED97FDFEB0D3EEC1F10F1A308AFF692E821FB57C1F0F30FEA94C09ECD3B"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/evidence-first-unsealed/audit.py",
+      "bytes": 13962,
+      "sha256": "53D5C9BD483560017A813064AB77D28E1307BCB6E8A0D4C456D10652E2AED186"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/evidence-first-unsealed/mechanical-evidence.json",
+      "bytes": 1004241,
+      "sha256": "8330E7FFA0324042A85D3B66A42D24D3B5C2B11F6F92DC0712E03F1433307031"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/fetch-public-sources.py",
+      "bytes": 1259,
+      "sha256": "8A9E618B843755FF15557EB492A106219D8D65550D900ACA6E22ED29F19A8BEE"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/manifest-differences.json",
+      "bytes": 8560,
+      "sha256": "75B97C70431A146C890116282FF7942C691BBD60785570415EFD1AA11332282D"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/mechanical-evidence.json",
+      "bytes": 1008564,
+      "sha256": "EF588D78074A4B8336546B4A4B345CE0386D2637F91F20D4FB1B5348D0A7C839"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/primary-source-origins.json",
+      "bytes": 1119,
+      "sha256": "839551C897BFF2A5C8E8AEEA052E53A306C192719967CBE06F32DE353225B066"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/primary-sources/Binders.cs",
+      "bytes": 389899,
+      "sha256": "CCA6BC97C2CDC16FDC1EB612FABCCCEA919629BC4C04F952C00A458FF7C9F6AC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/primary-sources/LanguagePrimitives.cs",
+      "bytes": 291050,
+      "sha256": "284B0FAD37EF182C51566E8135B20E4C27464B1EE9352A1786E7DC76C3089711"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/review.json",
+      "bytes": 6540,
+      "sha256": "F2CD7457E6B75B471E47DB1CF50D800D482F2024B1696601D03C5ECFE1E60CC4"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/review.md",
+      "bytes": 11224,
+      "sha256": "369E5A77B4BA6857691F66E5074A5BDF980BACF1CC27FE00902E321EC0391395"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/runner.diff",
+      "bytes": 14133,
+      "sha256": "0F3E5195EBBD9D6FF73248D209FAE28F2AE0C1913147FEF0340B71BC1BECDA88"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-independent-review/seal.py",
+      "bytes": 5858,
+      "sha256": "BBE70EB182F14B180B8FA6F89865CA2F09A2C07740A0E78CDD4B65B71209B4CA"
+    }
+  ],
+  "all_ordinary_read_inputs": "checked-input-pins.json records every read identity, including all1220 admitted original paths and selected public source associations. No content dedup substitutes for a called physical path.",
+  "scope": "Whole functional source only. Provisional union and all numeric/payload/binding/execution gates remain HOLD. No self hash is embedded; caller pins this external record."
+}

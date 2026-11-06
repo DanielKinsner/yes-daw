@@ -1,0 +1,1059 @@
+{
+  "status": "NEW_UNRUN_SOURCE_ONLY_REQUIRES_WHOLE_FUNCTIONAL_REVIEW_COMPLETE_NEW_CENSUS_AND_PAYLOAD_FIT",
+  "folder": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1",
+  "predecessor_manifest": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594",
+  "manifest_sha256": "52E3482AF966C562CBFB5119F145B79BC762C3EA8B17D050DC9CFF96CDF54F4D",
+  "source_rows": [
+    {
+      "path": "clock_stage.cpp",
+      "bytes": 34958,
+      "lines": 289,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "run-clock.ps1",
+      "bytes": 104162,
+      "lines": 976,
+      "sha256": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9"
+    },
+    {
+      "path": "source-costs.h",
+      "bytes": 3725,
+      "lines": 72,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "README.md",
+      "bytes": 18145,
+      "lines": 259,
+      "sha256": "9734D19F1E4CEB10FF2BACC0E67874AEADA639D4C13E8555CD6AEAED37FFD284"
+    }
+  ],
+  "consumer_edits": [
+    {
+      "old": "$taskF.FullName",
+      "new": "$taskF.Item1",
+      "occurrences": 10
+    },
+    {
+      "old": "$taskF.Name",
+      "new": "$taskF.Item2",
+      "occurrences": 4
+    },
+    {
+      "old": "$taskF.PSIsContainer",
+      "new": "$taskF.Item3",
+      "occurrences": 5
+    },
+    {
+      "old": "$taskF.Length",
+      "new": "$taskF.Item4",
+      "occurrences": 3
+    },
+    {
+      "old": "$taskF.Reparse",
+      "new": "$taskF.Item5",
+      "occurrences": 1
+    },
+    {
+      "old": "$_.FullName",
+      "new": "$_.Item1",
+      "occurrences": 1
+    },
+    {
+      "old": "$_.PSIsContainer",
+      "new": "$_.Item3",
+      "occurrences": 1
+    }
+  ],
+  "bootstrap_shape": {
+    "values": 9945,
+    "keys": 6074,
+    "max_string_units": 435,
+    "container_depth": 4,
+    "floating_values": 0,
+    "nodes_and_keys": 16019
+  },
+  "own_path_max": 178,
+  "current_identity_max": 270,
+  "provisional_input_count": 1220,
+  "provisional_canonical_union_pending": true,
+  "no_target_parser_AST_import_helper_compile_program_stage_run": true,
+  "checks": [
+    {
+      "name": "exact predecessor manifest",
+      "actual": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594",
+      "expected": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594",
+      "passed": true
+    },
+    {
+      "name": "one row producer",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "name": "no old row member reads",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "name": "no remaining PSCustomObject producer",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "name": "current bootstrap caller matches exact data",
+      "actual": [
+        "16019",
+        "4"
+      ],
+      "expected": [
+        "16019",
+        "4"
+      ],
+      "passed": true
+    },
+    {
+      "name": "new data source shape matches",
+      "actual": [
+        9945,
+        6074,
+        4,
+        435,
+        0
+      ],
+      "expected": [
+        9945,
+        6074,
+        4,
+        435,
+        0
+      ],
+      "passed": true
+    },
+    {
+      "name": "all guards false",
+      "actual": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "expected": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "passed": true
+    },
+    {
+      "name": "same provisional input identities",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "same numerical/output/reference/control domains",
+      "actual": [
+        [
+          {
+            "path": "references/clock/r44100-map0-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map0-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map1-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map1-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map2-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map2-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map3-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map3-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map4-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map4-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map5-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map5-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map6-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map6-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map7-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map7-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map8-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map8-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map0-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map0-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map1-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map1-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map2-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map2-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map3-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map3-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map4-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map4-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map5-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map5-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map6-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map6-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map7-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map7-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map8-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map8-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map0-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map0-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map1-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map1-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map2-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map2-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map3-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map3-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map4-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map4-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map5-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map5-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map6-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map6-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map7-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map7-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map8-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map8-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/native-inverse/r48000-map5.bin",
+            "kind": "shared bake-clock native inverse records",
+            "bytes_cap": 15360000,
+            "records": 960000,
+            "record_bytes": 16
+          },
+          {
+            "path": "references/native-inverse/r48000-map5.json",
+            "kind": "shared exact clock key and bounds",
+            "bytes_cap": 65536
+          }
+        ],
+        {
+          "produce": {
+            "work-one-below": "WHOLE_STAGE_WORK_RESERVATION",
+            "fraction-carry": "EXACT_NORMALIZED_FRACTION_ENDPOINT",
+            "fraction-carry-native-read": "ACTUAL_PRODUCTION_FORWARD"
+          },
+          "verify": {
+            "work-one-below": "WHOLE_STAGE_WORK_RESERVATION",
+            "fraction-carry": "EXACT_NORMALIZED_FRACTION_ENDPOINT",
+            "fraction-carry-native-read": "ACTUAL_PRODUCTION_FORWARD",
+            "q-off-by-one": "EXACT_Q_WORD",
+            "truncated-record": "EXACT_RECORD_LENGTH_AND_EOF",
+            "trailing-record": "EXACT_RECORD_LENGTH_AND_EOF",
+            "metadata-corruption": "EXACT_CLOCK_METADATA",
+            "full-prefix": "EXACT_CLOCK_METADATA",
+            "ramp-law": "EXACT_Q_WORD",
+            "inverse-whole": "EXACT_INVERSE_NATIVE_BITS",
+            "inverse-fraction": "EXACT_INVERSE_NATIVE_BITS"
+          }
+        },
+        [
+          {
+            "path": "controls/short.bin",
+            "bytes_cap": 7,
+            "exact_bytes": 7
+          },
+          {
+            "path": "controls/trailing.bin",
+            "bytes_cap": 9,
+            "exact_bytes": 9
+          },
+          {
+            "path": "controls/predecessor-mutant.json",
+            "bytes_cap": 98009,
+            "exact_bytes": 98009
+          },
+          {
+            "path": "controls/gui-mutant.exe",
+            "bytes_cap": 33554432,
+            "must_never_launch": true
+          }
+        ],
+        [
+          {
+            "name": "clock_stage.exe",
+            "bytes_cap": 33554432
+          },
+          {
+            "name": "clock_stage.obj",
+            "bytes_cap": 33554432
+          },
+          {
+            "name": "source-dependencies.json",
+            "bytes_cap": 4194304
+          }
+        ],
+        16929027,
+        [
+          735,
+          25,
+          25
+        ]
+      ],
+      "expected": [
+        [
+          {
+            "path": "references/clock/r44100-map0-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map0-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map1-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map1-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map2-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map2-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map3-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map3-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map4-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map4-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map5-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map5-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map6-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map6-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map7-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map7-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r44100-map8-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3528008,
+            "records": 441001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r44100-map8-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map0-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map0-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map1-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map1-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map2-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map2-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map3-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map3-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map4-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map4-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map5-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map5-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map6-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map6-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map7-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map7-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r48000-map8-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 3840008,
+            "records": 480001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r48000-map8-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map0-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map0-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map1-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map1-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map2-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map2-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map3-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map3-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map4-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map4-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map5-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map5-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map6-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map6-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map7-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map7-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/clock/r96000-map8-q.bin",
+            "kind": "dense int64 NumericA cuts",
+            "bytes_cap": 7680008,
+            "records": 960001,
+            "record_bytes": 8
+          },
+          {
+            "path": "references/clock/r96000-map8-metadata.json",
+            "kind": "clock eligibility center metadata",
+            "bytes_cap": 65536
+          },
+          {
+            "path": "references/native-inverse/r48000-map5.bin",
+            "kind": "shared bake-clock native inverse records",
+            "bytes_cap": 15360000,
+            "records": 960000,
+            "record_bytes": 16
+          },
+          {
+            "path": "references/native-inverse/r48000-map5.json",
+            "kind": "shared exact clock key and bounds",
+            "bytes_cap": 65536
+          }
+        ],
+        {
+          "produce": {
+            "work-one-below": "WHOLE_STAGE_WORK_RESERVATION",
+            "fraction-carry": "EXACT_NORMALIZED_FRACTION_ENDPOINT",
+            "fraction-carry-native-read": "ACTUAL_PRODUCTION_FORWARD"
+          },
+          "verify": {
+            "work-one-below": "WHOLE_STAGE_WORK_RESERVATION",
+            "fraction-carry": "EXACT_NORMALIZED_FRACTION_ENDPOINT",
+            "fraction-carry-native-read": "ACTUAL_PRODUCTION_FORWARD",
+            "q-off-by-one": "EXACT_Q_WORD",
+            "truncated-record": "EXACT_RECORD_LENGTH_AND_EOF",
+            "trailing-record": "EXACT_RECORD_LENGTH_AND_EOF",
+            "metadata-corruption": "EXACT_CLOCK_METADATA",
+            "full-prefix": "EXACT_CLOCK_METADATA",
+            "ramp-law": "EXACT_Q_WORD",
+            "inverse-whole": "EXACT_INVERSE_NATIVE_BITS",
+            "inverse-fraction": "EXACT_INVERSE_NATIVE_BITS"
+          }
+        },
+        [
+          {
+            "path": "controls/short.bin",
+            "bytes_cap": 7,
+            "exact_bytes": 7
+          },
+          {
+            "path": "controls/trailing.bin",
+            "bytes_cap": 9,
+            "exact_bytes": 9
+          },
+          {
+            "path": "controls/predecessor-mutant.json",
+            "bytes_cap": 98009,
+            "exact_bytes": 98009
+          },
+          {
+            "path": "controls/gui-mutant.exe",
+            "bytes_cap": 33554432,
+            "must_never_launch": true
+          }
+        ],
+        [
+          {
+            "name": "clock_stage.exe",
+            "bytes_cap": 33554432
+          },
+          {
+            "name": "clock_stage.obj",
+            "bytes_cap": 33554432
+          },
+          {
+            "name": "source-dependencies.json",
+            "bytes_cap": 4194304
+          }
+        ],
+        16929027,
+        [
+          735,
+          25,
+          25
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "name": "no source guard promotion",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "name": "own five admitted cap",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "final source pin:clock_stage.cpp",
+      "actual": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "expected": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "passed": true
+    },
+    {
+      "name": "final source pin:run-clock.ps1",
+      "actual": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9",
+      "expected": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9",
+      "passed": true
+    },
+    {
+      "name": "final source pin:source-costs.h",
+      "actual": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "expected": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "passed": true
+    },
+    {
+      "name": "final source pin:README.md",
+      "actual": "F75682A992A95AFE4EF8EF262F363706A1E868E90F97D4F56A3EDBC2E53EFE6D",
+      "expected": "F75682A992A95AFE4EF8EF262F363706A1E868E90F97D4F56A3EDBC2E53EFE6D",
+      "passed": true
+    },
+    {
+      "name": "LF/noBOM:clock_stage.cpp",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "LF/noBOM:README.md",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "LF/noBOM:run-clock.ps1",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "LF/noBOM:source-costs.h",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "LF/noBOM:source-manifest.json",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "README current bootstrap profile",
+      "actual": [
+        "9945",
+        "6074",
+        "16019"
+      ],
+      "expected": [
+        "9945",
+        "6074",
+        "16019"
+      ],
+      "passed": true
+    }
+  ],
+  "self_review_correction": "Before seal, corrected README current bootstrap statistics from inherited15978 to actual16019; initial unsealed generator/source/record preserved. Driver was already correct; no parser/runtime execution."
+}
