@@ -4,9 +4,9 @@ The [supervisor ABI receipt](artifacts/2026-11-14-clock-supervisor-abi/result.js
 measures the `State`, `Wide`, `Digest`, `Sha256` and Win32 object sizes
 used below. This worksheet sums explicit local arrays and aggregates
 in the exact R22 request reading and identity scope. The relevant
-declarations are in [the recipe](../../build-ci/20261106-clock-owned-supervisor-source-r4/native/sup_codec.cpp),
-[the file reader](../../build-ci/20261114-clock-r20-native/sup_io.cpp)
-and [the SHA helpers](../../build-ci/20261106-clock-owned-supervisor-source-r4/native/sup_core.cpp).
+declarations are in [the archived recipe](artifacts/2026-11-06-clock-owned-supervisor-source-r4/sources/056-sup_codec.cpp),
+[the file-reader source revision](artifacts/2026-11-14-clock-r20-path-copy/review.md)
+and [the archived SHA helpers](artifacts/2026-11-06-clock-owned-supervisor-source-r4/sources/057-sup_core.cpp).
 
 | In-flight operation | Live local arrays and aggregates outside `State` | Bytes |
 | --- | --- | ---: |
