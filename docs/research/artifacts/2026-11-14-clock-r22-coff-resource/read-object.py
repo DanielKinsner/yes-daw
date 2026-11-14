@@ -123,7 +123,7 @@ def check_child(raw, sections, symbols, result):
                                     "read_text_rsp_decrement": observed["$unwind$" + reader]}
 
 
-def read_object(path, pin, *, child=False):
+def read_object(path, pin, *, child=False, code_names=()):
     require(20 <= path.stat().st_size == pin["object_bytes"] <= 16 * 1024 * 1024,
             "unexpected object extent")
     raw = path.read_bytes()
@@ -214,6 +214,15 @@ def read_object(path, pin, *, child=False):
         result["guarded_supervisor_main"] = {"bytes": size, "relocations": refs}
     if child:
         check_child(raw, sections, symbols, result)
+    if code_names:
+        selected = {}
+        for name in code_names:
+            label, code, refs = code_and_relocations(raw, sections, symbols, name)
+            calls = [(at, symbol[0]) for at, (kind, symbol) in refs.items()
+                     if kind == 4 and at > 0 and code[at - 1] == 0xE8]
+            selected[name] = {"symbol": label, "bytes": len(code), "sha256": hashlib.sha256(code).hexdigest().upper(),
+                              "direct_relative_calls": calls}
+        result["selected_code"] = selected
     return result
 
 

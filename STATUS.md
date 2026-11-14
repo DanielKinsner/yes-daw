@@ -8,6 +8,12 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Measure the Clock target entry frame
+
+- A [separate target object](docs/research/artifacts/2026-11-14-clock-r22-child-object/README.md#admission-enabled-entry-frames) compiled with only six guard literals changed in a temporary source copy. MSVC matched all 110 include pins and emitted COFF with the catalogue undefined.
+- The data-only checker recovered the entry from its exact unwind symbol after the first wrapper refused its local code label. It verifies 540,936 bytes of RSP decrement along `main → run → readText` before other frames and runtime storage.
+- Next: carry the measured profile into the joint scratch proof only after matching the final enabled object and PE. Clock has not been bound or run.
+
 ## 2026-11-14 - Bound selected Clock controller allocations
 
 - The [path catalogue check](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/README.md#path-catalogue-payload) checks 1,369 leaves and 1,549 distinct path strings for one fixed lexical profile. It counts up to 1,376 parent arrays including failed first builds.
