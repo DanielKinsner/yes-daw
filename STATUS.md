@@ -11,6 +11,7 @@ Older entries below are dated history, not competing "Now" instructions.
 ## 2026-11-14 - Compose Clock checker bounds
 
 - The [R22 scan worksheet](docs/research/2026-11-14-clock-r22-scan-final-census.md) expands the previously open non-loop rows and verifies the conditional directory-scan upper. It includes nested joins, path validation and failure routes.
+- Independent review accepted the [terminal validation and encoding bounds](docs/research/2026-11-14-clock-r22-terminal-codec-scalar-census.md). Their meter and publication callers have separate rows.
 - Next: close the remaining codec, launch, worker and cleanup work, and join controller and target resources before binding.
 
 ## 2026-11-14 - Recover the pinned Clock compiler and advance the checker
