@@ -20,7 +20,37 @@ and two loop events. The [R20 source](artifacts/2026-11-14-clock-r20-path-copy/r
 has one reached copy per validation and all later reads stay within the
 initialized prefix.
 
-The SDK aggregate conversion correction is already reflected in the R19
-draft. The remaining failure-construction, implicit assignment, and
-diagnostic boundary expansions still need explicit new rows. No total or
-catalogue values follow from this delta.
+## Failure boundary replacements
+
+| Region | Author upper | Included work |
+| --- | ---: | --- |
+| `failure` call and construction | 25 | Four evaluated arguments, four formal initializations, dispatch and entry, four value reads for the fields, two enum casts, the native-error condition and one selected operand, four field writes, and return. Includes the direct aggregate formation boundary. |
+| One implicit `Failure` assignment | 16 | Evaluate and bind source and target and enter the member operation. Include four field reads, four writes and return by reference. |
+| `fail` | 132 | Twelve for the outer boundary including default DWORD conversion, 25 for `failure`, nine for binding/testing the terminal, maximum of 25 primary or 76 secondary, and ten for stopping and exit. The secondary arm includes two possible assignments, count, first-error tests and flag updates. |
+| `path_failure` | 164 | Twelve to evaluate/bind its arguments and enter, nine for the StageAdmission comparison, branch and flag update, 132 for `fail`, two to return false, and nine for a native error leaf and destination. |
+| `begin_tail` | 218 | The existing 82 non-diagnostic actions, plus four for the two native lock boundaries and up to one 132-action diagnostic. |
+
+These rows include default values when the corresponding source
+argument is omitted. The two diagnostic conditions in `begin_tail` are
+mutually exclusive. The revised regular spend upper is 100 in prefix
+and 43 in tail, including the existing 12-action spend boundary.
+One scan can enter `begin_tail` from a refused spend at most once.
+The 555-spend component is 55,718 for a full prefix reservation and
+23,865 for a tail-start reservation.
+
+## Revised scan composition
+
+The corrected R19 aggregate rows already include the SDK zero conversions.
+Replace the two local diagnostic allowances in that draft to get 5,928
+local actions. Eight joins and eight validations give 416,096 after
+replacing the copy and each validation's diagnostic. Together with
+13,036 name actions the non-meter scan upper is 435,060. Adding the
+spend estimates gives 490,778 for the prefix envelope and 458,925 for a
+tail-start scan.
+
+Using the original 1,048,837 setup/body scan bounds, two possible
+overlapping after-cut upper reservations and 309 terminal-publish scans,
+the resulting reservation component is 514,888,914,567 per helper,
+or 1,544,666,743,701 across three helpers. This is a scan-subtree
+author proposal. Independent scalar review, all other work families
+and final catalogue values remain pending.
