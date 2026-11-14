@@ -27,6 +27,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - Independent review accepted the [run-identity local work](docs/research/2026-11-14-clock-r22-run-identity-scalar-census.md). Next: join the shared path, close and meter boundaries, account for the remaining source through refusal and cleanup, and finish native resource and binding proof before a Clock run.
 - The [handle close worksheet](docs/research/2026-11-14-clock-r22-close-owner-census.md) passed independent review under the inherited failure-row bound.
 - The [request and identity subtotal](docs/research/2026-11-14-clock-r22-identity-local-work.md) combines four reviewed local components. The [meter join](docs/research/2026-11-14-clock-r22-identity-meter-work.md) conditionally adds the eight families' spend and refusal work. Path, owner close and full phase composition remain separate terms.
+- The [non-scan path meter worksheet](docs/research/2026-11-14-clock-r22-nonscan-path-meter-work.md) assigns transport validation to tail and the other path calls to prefix. The shared cut reserve is counted once when the phase totals are joined.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
