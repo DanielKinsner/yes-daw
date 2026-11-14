@@ -14,6 +14,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The [controller binding and meter worksheet](docs/research/2026-11-14-clock-r22-controller-binding-work.md) bounds the 14 binding visits and leaves the shared parent-poll ceiling explicit.
 - The [controller child worksheet](docs/research/2026-11-14-clock-r22-controller-child-work.md) covers polling, bounded reap attempts, failure projection and quarantine under that cap.
 - The reviewed [terminal helper worksheet](docs/research/2026-11-14-clock-r22-controller-terminal-work.md) covers checked terminal records, diagnostics and cleanup decode across the three child slots.
+- The [script-root check](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/README.md#script-root-and-success-geometry) now verifies the transport, success file set and final bundle dimensions for the current candidate.
 
 ## 2026-11-14 - Join native Clock source work
 
