@@ -28,3 +28,23 @@ To repeat the file-only preflight, pass `--check` with the same
 pinned interpreter and the fixed absent cache prefix required at the
 top of the launcher. The live observation already consumed its
 attempt directory.
+
+## Conditional allocation join
+
+Run `python -E -B check-shape.py` to check the selected array and
+string requests. If each raw capture has exactly the 15 distinct,
+well-formed measured rows and the pinned runtime uses the reviewed
+CoreLib source and x64 layouts, each capture accounts for 2,584
+string bytes, 1,632 Hashtable bucket bytes over four capacities,
+and 528 bytes in the capacity-17 Dictionary's two arrays. The
+wrapper copies references. Clearing the dictionary retains its
+capacity and its subsequent eight entries fit. All old arrays
+remain in the sum, giving 4,744 bytes per capture and 14,232
+across three. Object shells, native blocks, outgoing encoding,
+PowerShell wrappers and general runtime backing have other terms.
+
+`Environment.GetEnvironmentVariables` can allocate strings before
+dropping duplicate keys, and skips hidden native rows entirely.
+The snapshot therefore does not determine raw allocation counts
+or native block capacity. A complete startup and writer profile
+must establish the raw shape across the actual capture intervals.

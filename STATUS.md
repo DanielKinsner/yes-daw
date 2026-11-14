@@ -12,7 +12,8 @@ Older entries below are dated history, not competing "Now" instructions.
 
 - The [path catalogue check](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/README.md#path-catalogue-payload) checks 1,369 leaves and 1,549 distinct path strings for one fixed lexical profile. It counts up to 1,376 parent arrays including failed first builds.
 - These array requests are covered under the selected x64 layout. String duplication, dictionary histories and runtime path behavior have separate ownership terms.
-- Next: account for the inherited environment and combine the controller, helper and target under the shared scratch cap.
+- The [startup shape check](docs/research/artifacts/2026-11-14-clock-controller-startup/README.md#conditional-allocation-join) joins the observed 15 entries to 4,744 selected string and array bytes per capture, conditional on that raw shape persisting.
+- Next: qualify raw environment intervals and native backing, then combine the controller, helper and target under the shared scratch cap.
 
 ## 2026-11-14 - Check Clock controller fences and startup
 
