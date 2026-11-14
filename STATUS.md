@@ -8,6 +8,12 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Bound selected Clock controller allocations
+
+- The [path catalogue check](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/README.md#path-catalogue-payload) checks 1,369 leaves and 1,549 distinct path strings for one fixed lexical profile. It counts up to 1,376 parent arrays including failed first builds.
+- These array requests are covered under the selected x64 layout. String duplication, dictionary histories and runtime path behavior have separate ownership terms.
+- Next: account for the inherited environment and combine the controller, helper and target under the shared scratch cap.
+
 ## 2026-11-14 - Check Clock controller fences and startup
 
 - The reviewed [controller fence worksheet](docs/research/2026-11-14-clock-r22-controller-fence-work.md) covers the path catalogue, eight pin fences and the ProcessPath startup checks.

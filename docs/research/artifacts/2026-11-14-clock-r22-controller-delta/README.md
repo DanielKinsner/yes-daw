@@ -66,3 +66,33 @@ can be hashed before refusing at the aggregate cap. Hash calls own
 their path guard dispatch and scoped stream/hasher retirement. The
 path guard bodies, caller casts, digest consumers, bootstrap hash
 family and runtime buffer owners retain separate terms.
+
+## Path catalogue payload
+
+Run `python -E -B catalogue-geometry.py` to reconstruct the
+fixed ordinary-drive profile with a direct `source-clock-r1` run leaf.
+The tuple is 1,294 current inputs and 75 run-owned names. These yield
+1,369 distinct lexical leaves, 1,549 distinct leaf and parent strings,
+and at most 19 positions per path. The 1,549 figure assumes the eventual
+Windows path profile has the same ordinary-drive normalization. It
+bounds resident keys in both intern tables. The source-only cap without
+that profile is 88,985 entries per table. Uncatalogued fallback paths
+do not populate either table.
+
+An independent caller audit bounded interrupted first builds at seven.
+The main route can carry one initial failure, a child post-binding
+failure, an outer finally fence failure and one captured-binary check
+failure before it stops. The footer can continue through one inventory
+walk failure, one inventory document failure and the final receipt
+failure. Each active route can first fail during one unpublished build.
+Every published entry can allocate one 65-reference array. Counting
+all interrupted arrays gives at most 1,376 requests or 748,544 bytes
+with the selected x64 array layout of 24 header bytes and eight bytes
+per reference. No reclamation is credited. The same occurrence ceiling
+applies to the two-reference alias pair after a reached parent walk.
+
+These are resident-name and selected array bounds. Interned strings,
+fresh normalization results, managed map implementations and resize
+history, runtime layouts and all other owners still need the resource
+join. An ordinary lexical path profile alone supplies no collision or
+allocator proof.
