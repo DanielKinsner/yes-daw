@@ -13,6 +13,9 @@ with the unmodified Windows x64 release ZIP. The new directory has the
 original closed membership. The payload was staged without executing it.
 
 The formerly missing Python executable also matches at its installed path.
-The recovered tool bytes are now available on this machine. A successor
-still needs to bind the new physical paths and verify the relocated launch
-profile. The frozen R18 manifest retains its original paths.
+Run `python -E -B verify-inputs.py <controller-directory> <compiler-directory>`
+to check every R18 file and closed directory under this three-root mapping.
+The check passed with 1,265 distinct files, including 415 relocated inputs,
+and 35 closed directory inventories. A successor still needs to bind the
+new physical paths and verify the relocated launch profile. The frozen R18
+manifest retains its original paths.

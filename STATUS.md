@@ -12,7 +12,7 @@ Older entries below are dated history, not competing "Now" instructions.
 
 - Recovered MSVC 19.44.35228 from Microsoft's fixed 17.14.40 offline layout. All 91 pinned compiler-directory files match. [Recovery evidence](docs/research/2026-11-14-clock-r18-pinned-compiler.md)
 - The [headless compile-only check](docs/research/artifacts/2026-11-14-clock-direct-layout/README.md) measured all 13 direct types with the exact compiler and 110 verified includes. The 17 closure layouts and the full Clock run remain pending.
-- Recovered and verified all 323 pinned PowerShell files and their four closed directory inventories. The recovered paths need a fresh binding before a Clock run. [Controller recovery](docs/research/artifacts/2026-11-14-clock-controller-recovery/README.md)
+- Verified all 1,265 R18 file pins and 35 closed directories under a local mapping for the recovered compiler, PowerShell and Python. A successor must bind the new paths. [Input verification](docs/research/artifacts/2026-11-14-clock-controller-recovery/README.md)
 - Tightened the [stage-scan bounds](docs/research/2026-11-14-clock-r18-stage-scan-census.md) to 1,049,146 per helper, with at most 311 scans containing work after the prefix cut. Scalar prices remain open.
 - Bounded the two capture workers at 1,071,172 native reads per helper, including zero-progress and failure paths. [Worker read count](docs/research/2026-11-14-clock-r18-worker-read-census.md)
 
