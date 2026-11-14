@@ -14,7 +14,8 @@ Older entries below are dated history, not competing "Now" instructions.
 - The [headless compile-only check](docs/research/artifacts/2026-11-14-clock-direct-layout/README.md) measured all 13 direct types with the exact compiler and 110 verified includes. The 17 closure layouts and the full Clock run remain pending.
 - The [R19 local source revision](docs/research/artifacts/2026-11-14-clock-r19-local-profile/review.md) binds the staged tool paths. Its independent source review passed 8,463 assertions, including all 1,270 file pins and 35 directories. The native launch profile, pricing, resource fit and execution are pending.
 - Bounded [stage scans](docs/research/2026-11-14-clock-r18-stage-scan-census.md) and their [inner path operations](docs/research/2026-11-14-clock-r18-scan-path-census.md) across setup, normal writes and cleanup. Scalar prices remain open.
-- Bounded capture-worker [reads](docs/research/2026-11-14-clock-r18-worker-read-census.md) and [settlement calls](docs/research/2026-11-14-clock-r19-worker-settlement-census.md), including zero progress, failure and cleanup. Next is scalar pricing and the exact closure layout purpose.
+- Bounded capture-worker [reads](docs/research/2026-11-14-clock-r18-worker-read-census.md) and [settlement calls](docs/research/2026-11-14-clock-r19-worker-settlement-census.md), including zero progress, failure and cleanup.
+- Drafted the [scalar count for directory-name checks](docs/research/2026-11-14-clock-r19-name-scalar-census.md). Next: expand the remaining scan and meter actions and prepare the exact closure layout purpose.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
