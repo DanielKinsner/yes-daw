@@ -1,18 +1,19 @@
 # Clock R22 native output destinations
 
-This worksheet supplies the additional caller-owned output writes under
-the [declared primitive convention](artifacts/2026-11-06-clock-r13-scalar-revise-r1/sources/001-20261105-clock-oracle-research-leaf-census-conventions.md).
-It counts an external destination once per reached native call. It
-leaves repeated internal stores and primitive CPU inside the Win32
-boundary. It uses the exact R22 native files, their pinned Windows
-SDK headers, and the existing call and cutoff schedules.
+This worksheet records caller-owned destinations, their capacity
+and requested-extent ceilings under the exact R22 calls. It uses
+the pinned Windows SDK headers and reviewed call and cutoff schedules.
+The [declared primitive convention](artifacts/2026-11-06-clock-r13-scalar-revise-r1/sources/001-20261105-clock-oracle-research-leaf-census-conventions.md)
+and its [bulk clarification](artifacts/2026-11-06-clock-r13-runner-census-r3/sources/064-20261105-clock-oracle-research-bulk-leaf-clarification.md)
+keep Win32 bulk writes inside their declared API boundary. Separate
+scalar destinations and authored loops still contribute source actions.
 
 ## Output extents and existing coverage
 
 | Win32 site | Maximum delivered destination | Coverage |
 | --- | --- | --- |
 | `GetCommandLineW` | Borrowed system string | Return pointer and binding in the profile worksheet. No supplied buffer. |
-| `GetModuleFileNameW` | 513 WCHAR | The profile worksheet already reserves all 513. |
+| `GetModuleFileNameW` | 513 WCHAR | Capacity remains in the profile resource worksheet. |
 | `GetFullPathNameW` and `GetVolumePathNameW` | 513 WCHAR each | Additional per validation. The `GetFullPathNameW` file-part output is null. |
 | `FindFirstFileW` and `FindNextFileW` | 285 typed leaves each | Additional per reached call. The SDK record has 11 DWORD and 274 WCHAR leaves. Source aggregate initialization remains in the scan worksheet. |
 | `GetFileAttributesExW` | 36 bytes | Additional. Reserve the full measured `WIN32_FILE_ATTRIBUTE_DATA` size for its LPVOID output, including a failing call. |
@@ -100,12 +101,12 @@ and loader association. No value is supplied from unbound Data.
 | Job query | 0 | 48 |
 | Projection with qualified 72-byte list | 2,280,550,078,421 | 3,526,812 |
 
-The per-helper projection is **2,280,553,605,233** additional
-source actions under the same premises. These are source
-reservations. Read caps reserve output destinations even when a
-successful read returns fewer bytes. A smaller value needs its own
-supported native association. All three slots use the same safe
-per-helper ceiling, totaling **6,841,660,815,699**.
+The table preserves the arithmetic check on these mixed destination
+units across calls. The scalar phase join includes the Interlocked
+row. The bulk rows describe the destination capacities and requested
+amounts even when a read returns fewer bytes. They can inform a
+resource worksheet without implying concurrent storage or a
+per-byte source debit.
 
 The [headless check](artifacts/2026-11-14-clock-native-output-store/check.py)
 rechecks the exact source and SDK pins, direct-call inventory and

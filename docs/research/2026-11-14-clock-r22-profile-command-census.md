@@ -75,9 +75,8 @@ process-owned command string contract. [GetCommandLineW](https://learn.microsoft
 | Request hex loop exit and destination fields | 72 | Final test including a possible refusing over-cap body, checked end/cursor/nonempty guards, converted NUL and length stores. |
 | Validity/match outcomes and module-path storage | 40 | Local Boolean selection for the two validity checks and first match, refusal and the uninitialized module-path array lifetime. |
 | Self-module path query | 48 | `GetModuleFileNameW(HMODULE, LPWSTR, DWORD)` receives typed null, the decayed writable array, and the converted `path_units + 1` expression. Includes caller, formals, native entry/return and the DWORD destination. |
-| Primitive self-module output | 513 | At most 513 external WCHAR destination writes in the supplied array, covering truncation as well. |
 | Self-module result checks and final return | 32 | Typed zero and extent tests, short circuits, match result, forwarding the separately counted path validation result and scope retirement. |
-| Local upper | 218,465 | Includes the Win32 boundary and bounded output writes. |
+| Local upper | 217,952 | Includes the Win32 boundary. The supplied array extent is resource evidence. |
 
 The module query passes capacity 513. A result of 0 or a capacity
 result of 513 refuses before comparison, leaving at most 512
@@ -96,8 +95,8 @@ The folded call uses explicit lengths and `TRUE` for the native
 BOOL. [CompareStringOrdinal](https://learn.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-comparestringordinal)
 
 Two new validity calls at up to 512 units add 139,336 and the two
-folded calls add 144. This gives **357,945** for raw command parsing
-and **3,197,625** for both preflight steps per helper invocation.
+folded calls add 144. This gives **357,432** for raw command parsing
+and **3,197,112** for both preflight steps per helper invocation.
 The final `validate_path` call retains its separate non-scan path
 sponsor, including its evaluated arguments.
 

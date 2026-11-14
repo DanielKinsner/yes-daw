@@ -168,7 +168,7 @@ def main():
     verify((prefix, tail, 3 * (prefix + tail)) == (2280550078421, 3526812, 6841660815699),
            "output projection arithmetic differs")
     print(f"PASS: {names} Win32 names across {sites} pinned sites, "
-          f"{prefix:,} prefix and {tail:,} tail output actions per helper")
+          f"{prefix:,} prefix and {tail:,} tail mixed destination units per helper")
 
 
 if __name__ == "__main__":

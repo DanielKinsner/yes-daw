@@ -79,7 +79,7 @@ def check_phases():
     rows = re.findall(r"\| ([\d,]+) \| ([\d,]+) \|\n", detail)
     amounts = [tuple(int(number.replace(",", "")) for number in row) for row in rows]
     expected = [
-        (3_197_625 + 140 + 160 * 512 + 10_000_662, 0),
+        (3_197_112 + 140 + 160 * 512 + 10_000_662, 0),
         (4_441_192, 0),
         (30_023_518_404, 0),
         (2_060 * 12_471 + 8 * 59_294 + 478_744, 59_294 + 2_904 + 220),
@@ -93,7 +93,7 @@ def check_phases():
         (5 * 236, 42 * 236),
         (0, 20_202 + 30_330 + 4 * 44),
         ((4 + 45 + 73 + 28 + 8) * 103 + 6 * 160 + 220, 0),
-        (2_280_550_078_421, 3_526_812),
+        (1_128_786, 64),
     ]
     prefix, tail = (sum(column) for column in zip(*expected))
     require(amounts == [*expected, (prefix, tail)], "phase arithmetic differs")
@@ -105,9 +105,9 @@ def check_phases():
     observed_slots = [tuple(int(number.replace(",", "")) for number in row) for row in rows]
     require(observed_slots == expected_slots, "helper composition differs")
     bootstrap_spends = 2 + 8 + 2 + 41_262 + 132
-    bootstrap = (16 + 1_492 + 180 + 3_197_625 + 2 * (59_294 + 1_026) + 2_641_376 + 851_214_430
+    bootstrap = (16 + 1_492 + 180 + 3_197_112 + 2 * 59_294 + 2_641_376
                  + 4_441_192 + bootstrap_spends * 103 + 220)
-    require(bootstrap == 865_881_989 and f"{bootstrap:,}" in text, "bootstrap upper differs")
+    require(bootstrap == 14_664_994 and f"{bootstrap:,}" in text, "bootstrap upper differs")
     print(f"PASS: exact R22 phase arithmetic, {all_prefix + all_tail:,} actions across three helpers")
 
 
