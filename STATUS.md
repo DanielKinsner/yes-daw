@@ -11,6 +11,7 @@ Older entries below are dated history, not competing "Now" instructions.
 ## 2026-11-14 - Bound Clock controller helper work
 
 - The [controller transport work](docs/research/2026-11-14-clock-r22-controller-transport-work.md) covers the request, hash, hex argument and terminal read for all three child slots.
+- The [controller binding and meter worksheet](docs/research/2026-11-14-clock-r22-controller-binding-work.md) bounds the 14 binding visits and leaves the shared parent-poll ceiling explicit.
 
 ## 2026-11-14 - Join native Clock source work
 
