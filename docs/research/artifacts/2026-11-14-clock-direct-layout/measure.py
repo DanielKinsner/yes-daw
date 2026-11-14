@@ -44,7 +44,7 @@ def verify_inputs(compiler):
     return allowed
 
 
-def decode(object_file):
+def read_cells(object_file, section_name, symbol, cell_count):
     raw = object_file.read_bytes()
     require(20 <= len(raw) <= 16 * MIB, "invalid COFF file size")
     machine, count, _, symbols, entries, optional, _ = struct.unpack_from("<HHIIIHH", raw)
@@ -56,10 +56,10 @@ def decode(object_file):
         label, _, _, size, start, _, _, relocations, _, flags = struct.unpack_from(
             "<8sIIIIIIHHI", raw, 20 + index * 40)
         require(not (size and flags & 0x20000000), "unexpected executable COFF data")
-        if label.rstrip(b"\0") == b".yexact":
+        if label.rstrip(b"\0") == section_name:
             require(relocations == 0 and flags & 0xE0000040 == 0x40000040,
                     "expected read-only layout data")
-            require(size == 34 * 8 and 20 + count * 40 <= start <= symbols - size,
+            require(size == cell_count * 8 and 20 + count * 40 <= start <= symbols - size,
                     "unexpected layout section extent")
             sections.append((index + 1, start))
     require(len(sections) == 1, "expected one layout section")
@@ -80,11 +80,15 @@ def decode(object_file):
             require(end != -1, "unterminated symbol name")
             name = names[pointer:end]
         require(not name.startswith((b"??__E", b"??__F")), "unexpected dynamic initialization")
-        if name == b"yesdaw_exact_context_cells":
+        if name == symbol:
             hits.append((offset, owner, storage))
         index += 1 + auxiliaries
     require(index == entries and hits == [(0, section, 2)], "unexpected layout data symbol")
-    cells = struct.unpack_from("<34Q", raw, start)
+    return struct.unpack_from(f"<{cell_count}Q", raw, start), digest(raw)
+
+
+def decode(object_file):
+    cells, object_sha256 = read_cells(object_file, b".yexact", b"yesdaw_exact_context_cells", 34)
     require(cells[:3] == (0x5944455841435431, 1, 31), "unexpected cell header")
     require(cells[-5:] == (194435228, 1944, 8, 0, 76), "unexpected compiler or source profile")
     layouts = {}
@@ -93,7 +97,7 @@ def decode(object_file):
         require(size > 0 and alignment > 0 and alignment & (alignment - 1) == 0
                 and size % alignment == 0, f"invalid size/alignment for {name}")
         layouts[name] = {"sizeof": size, "alignof": alignment}
-    return {"object_sha256": digest(raw), "layouts": layouts, "profile_cells": list(cells[-5:])}
+    return {"object_sha256": object_sha256, "layouts": layouts, "profile_cells": list(cells[-5:])}
 
 
 def measure(compiler, output):

@@ -1,0 +1,216 @@
+{
+  "source_sha256": "5F6FA90DF109C59333D82E9DC821E1F594890AE86742D8C8B88AAB390F3410BA",
+  "compiler_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "object_sha256": "73D8DEE0B01CD67397F0EA641879B024F4D57591B14DC9B854F9EF9A0CA8524B",
+  "sdk_root": "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0",
+  "include_hashes": {
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/concurrencysal.h": "1EA9A2E32A6FF298AD7904610CC71028CAA9B172399A579CA90A120D1B1AEC12",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cstddef": "8388948EFA6DC3B3B20866FA1C3057EA53B8DFD028F22ABE1D7DCE23EF1D9ECC",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/cstdint": "7E608450751CD44F43942B20E1C1C455D42872E78E7119361316850644F1FB75",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/excpt.h": "191AB83E320A5E9712FE483257FECAE14CB0C158A4517B620F3FDDB1AA6EF23B",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/sal.h": "CDA06459CA38681800CE5E98703C66534C74A803AA652BD4BC2B3407DD45ED46",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/stdarg.h": "5D61D0B6734EF0832C30064800E8D01B3F12D29D24C8B1BD07B3ECE3B72A9330",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/stdint.h": "29FB6D4BA5E311E06877609C20A1BC49C6CDFB730F56DD0F9C53A6241C40AB5C",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vadefs.h": "200B49C2EFD26BC7A92E9DFA3B847CC612B237DFF5C7291D9F901D39B4A5E52E",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime.h": "A2FE9117DC2640E243F91FA94E1D05FC35083218C2A67A446DB9E34CECE779B5",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/vcruntime_string.h": "B05204F6814D1D7B7CA729B41D4192D0E47722F162C0B1D322F994BF9650AF63",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xkeycheck.h": "FDB1DC9CA22F9309BFB7E87B3F9E2B340CED7945344AF2450BE4BEAC589A3DF9",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/xtr1common": "F9AFDC2123D09C564F42552E160E7A558B87C8F0F63939E98BFCADB7DBF913BA",
+    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include/yvals_core.h": "5070449E37A1735ADF49204A12C7A7D5EFA145D6AA607720AEF5ADBD2C57EF83",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/apiset.h": "E984E20681FD3DE73CE14AB09D759D5B4FAF03F7D66A78602DA2AC9234B24DF4",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/apisetcconv.h": "1093683104F97C8C9725BB2E7539DCA22722DC8C5618CD846287E9458698ABFE",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/basetsd.h": "D35B73F885D7EF7DFD27FCE3762C190C1C952A21E10A3945BCB3D1860C673B12",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/driverspecs.h": "9CF7E9E1C9B55C7C351E87FF5A98E362B6FFDB511C3309AB9CF46B62B0DACE42",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/guiddef.h": "0C08463FBC5A23A8862E57699E2F30DD14CD3DB4A40903E4FCA9392A57942DAE",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/kernelspecs.h": "E844C7726C42736DF74445B36351DC01E29BCCEE7D57EA208F77F61AA4C2B191",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/ktmtypes.h": "68D2848D00AE33282FB265880F8166F2B5DC60CD7A26DB652450A5B44D44EE11",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/minwindef.h": "A9CF08BE8407A196104124D5ADE2308E204E47D3252BCD2AD20D0F2137843D62",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/poppack.h": "A50D0EF5CFE96D634A41EE9A97749C147165F8656CDFED5DF53BC24C8ADB1210",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/pshpack1.h": "DEE27F2712B9E72CA78A404834735303D16BDB21C8AA3ADDACA7DBCA22664529",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/pshpack2.h": "971D19074639CB36134BB40776CB2F817C53CBD05D748B52468F571932BBCC49",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/pshpack4.h": "1CB4D07A218EC43C7935B431B16146FC0F3D29D43BD192F12959051D62C48D57",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/pshpack8.h": "47F3972A1211E3A5AC32B18FAE1A824DB087DC7DC562D152E9CCAB9B297FAEF0",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/sdkddkver.h": "2472140E0A4D56595743BB74002A51AEE9B58667BD178FC43742E19DEBFEB774",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/sdv_driverspecs.h": "99FD81F9464150F56963C3BBAFAA95F93B837C221C4237E6E399A85E00EA9F39",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/specstrings.h": "3B83B1CD3B4F9BF46009BFDCCF01D5C3A6FA6EED3F823D1EF497ED6D1B9BCE0E",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/specstrings_strict.h": "49B12898B42BCF53E5F8FB75E6DB1A5D3FFB7A9F394E50DF3351E0824D4A8B42",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/specstrings_undef.h": "6ABA76EABBEC627EDADBA5AB29304D9E2FF4EB9DA165FD81A9095C851F405A01",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/stralign.h": "F7D2F48B6A9154937AD907E91B70FAF6C68044FBE9D4042C392AC3C0EB1A82EF",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/tvout.h": "8C359D2DFF894D546F3ECED2FE9463DFA4824BFFC6C8C71ECD8FEEF02E7EAE21",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/winapifamily.h": "BDA507D14F2E40023D344CB943CBD98AF26DE8A47F3B0F5FAC694D2025711AF1",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/windef.h": "040535B19A60264E5FE6971F7CB13CBF24BE17ABEEAA8ACD21E44F5D7DFE8D22",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/winerror.h": "0284EA46280C14063BB714D08C9EC48DE18DE6A7F0384323B263FEC234428833",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/winpackagefamily.h": "8F74E254896094A3884E6975FD24B3493846514065F47D2666DF53CDEA45B8EA",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared/wnnc.h": "FB3AAEEF324B5D00CE0A6AE11702DCC3C1DE65FA0A10CAAAB4336B97D3ADF493",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt.h": "822E503B81DD7B3D7DF93CA22FCED3672A5154484FD42054D5941E619BCF6CBC",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_memcpy_s.h": "359F3CE9E84BC00C983F01D9C3375D0CA9E0EF6A42E797D16E119C62B2EF333B",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_memory.h": "18CA520416579183BC369C0A8E555914DB5C7577075B9359173FC6BC45595560",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_wctype.h": "B622B24CBDA842A1736987F38C9DEB5076E51AF018630842A127BEBD9104076E",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/corecrt_wstring.h": "C485F918D43F0F846D77A36EAEE9E111F57BF2EEC32DB7D9719FF924771744C6",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/ctype.h": "6A10E9F0505B896D356D986D671C939B7FB0602012E463314FF7BFD0182A861F",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/errno.h": "C64E8DF96F057FDEBC0474BD765CEE3AE17DE34A2B1FC9D197597321F2D1E447",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/stddef.h": "3F1F7EEEFAD270928749C89A2A2094CCC3F38829B1D8C197F6CE7483EAD2284C",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/string.h": "39767B2E1963B8EF679B62D5E27CB2D0CA1DE6A6173B75389B79C9D575DA92FC",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/apiquery2.h": "56C61C2EE306428D38037A578B66A49EF347A14A3760936416035B0D45DA2B11",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/consoleapi.h": "A0E727E696F3599EF0B570942F28646DBD94374E62C812659EBA5EBE2A42A99F",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/consoleapi2.h": "F2134E1D2C01611E60FF939CCD45561884AA0CCBCE590136FFD1D95161892D17",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/consoleapi3.h": "0A00BF6CA901D0D980FE8C2B9BB91A39FB84C3A99E9C87498149A04CF7CF5925",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/datetimeapi.h": "A4325C76B9BC900C22EF3D766C739CCD3A71894E81833AD637D50F9E45417117",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/debugapi.h": "D63F6C4AAD9787BB8FF2E54966C8DB156B0EF1570BE58201D74DFF12CD6F1E22",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/enclaveapi.h": "9467C4BC6400057C3D3205D53667000BE525CAD64A381552291E869430AF6A76",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/errhandlingapi.h": "B73CCCCE6DAC8CE02C6A399862EC2A6E22FE27A4D09874D86EC2BE3BD5D17FBF",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/fibersapi.h": "F8EEADC28F8E3E4C7BFD1217D55315EB31D63F3D86C66A3948D74CEB8E7A00D0",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/fileapi.h": "F8927178C75DE487C0E57F044A215E455522BF6EAA0B660421BE09CD06AE05A1",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/fileapifromapp.h": "D07110E7F7989AEEF7EED77D5F584F3EE60FF2CE58BC1A374D70151A18B4A664",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/handleapi.h": "C967FDF1A98E4CE8D501DAE26B905F6452173B2BE1C25E6AA2E5EEAE415369CC",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/heapapi.h": "22B606B0A4096295272BCAE6FC353C4F159F0CDFC90B5F1A9A712B2FFF50B53F",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/ime_cmodes.h": "27904E900938749C12A4D1E741AFD564198A57A24724C1DDD36CD3302224DF26",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/imm.h": "942D0B80EB7D186EE935FCE8064CCDCDEA3A49B39BCC03F55208B7C37E289779",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/interlockedapi.h": "4B0D3BC138EAAB8DC9DD40BFB109F5FEA4CBD2CAAF92D63A4CF60A8EDCFB0E3A",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/ioapiset.h": "7C3F659F98B3F1748A314BD64106583D01649333E0419B66232B4F64B3F85B0C",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/jobapi.h": "08DDFF85EC80F12B156837BBCE4F969480FEA0E32A08DADE7CC16ACECB0892D1",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/jobapi2.h": "A8F9591DC2B0BD249D03150B70ABD47C0068C6EDA2A1D74D24BC8964BCD68549",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/libloaderapi.h": "8AD0BA5600D6C2E9AED318CA9D2F48F2BDF9F47ED3CD5D9F243E6F779C8E04C4",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/mcx.h": "4EE416B2D24E45CFC5D35CE5B34833B64B34FD9A39957C66D75509F6D3B8F972",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/memoryapi.h": "58EDCC2090C411A1821E04A6A2954C258FD59DED44440BDD671984027E0A852F",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/minwinbase.h": "7D1408F4B8EEBA96AE45892209132258CDE80CAB6DAB192B4CCEEA591972C78B",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/namedpipeapi.h": "37062EBA19E35B391CF050519C9403E19C6782663EA644FF38B2B5EB71DFCE6B",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/namespaceapi.h": "3257AD8AF53C5809BE4D5D17ED0FFD8B49451D3F27C1FD747FFDE3E0A7A81583",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/processenv.h": "C10DD3BD48A2416E0AECE2259EA57CC47D6C8B9FDBAE085A4C7A5B29C71A85DD",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/processthreadsapi.h": "436AE4CBB017D1CDB381AAF2119A3F89B04BAE257FD4C881EF251DAA02533540",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/processtopologyapi.h": "4507A5E0C4F41D19A80D1543833F1A9D90277BC376441B277884BB043BE24BA5",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/profileapi.h": "CFA8E3626DBA11689997D8FCD65B5DFBF4BCEF8DE09DD7E4E881769D48D165A2",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/realtimeapiset.h": "00C874B981A1242EE4EBC21E6AE96A69D7AA70662D820CEFFBABCFEA859B03E4",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/reason.h": "30540EB35DAA79C7A5CB98059430DF480E86B549B7980247288DA8A2801ADD1D",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/securityappcontainer.h": "85CC13ED7028960BD7F97C91F98B96825B46F4B8BC386AED2F2A6A9BCCBE4083",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/securitybaseapi.h": "A443B4183D3EC5B8E1AE40DB5824F002A34EB0415F38227FA1DDDBBF02A448D4",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/stringapiset.h": "624C82FB73517A3829F3766A50A0235E2F9A51CB4BDA95A0C39981E39FA4D42D",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/synchapi.h": "D962588974E5E100205F683160B351DEE70EA100AA736E14D878B7A74577A9C5",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/sysinfoapi.h": "077088CB53EC69D454916AAC5F00E45DDA79E09DA64054ACC141120EB67A5700",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/systemtopologyapi.h": "8BFD1A78CC30B6D33C88E3F61AE2AC6468CEE0607352EE8D096BA5375B4D401C",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/threadpoolapiset.h": "E91D7DEE4D22CA848E3110A4C55F32E1918DC865479343896AEC9AB653EE5110",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/threadpoollegacyapiset.h": "87C1630ABF7DC4ED7978F2C4DBACF418F6BCF94CB946E277CB7250770BD44200",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/timezoneapi.h": "621C0252A8A831813592C4A95E183A2E7AE55EFBBD7B8AD886AF7D8871FC4D50",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/utilapiset.h": "A8E0F6001C784B3AD9FEB44C61D96B58C57366C473832CA8B2EA5DE05877B470",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/verrsrc.h": "FF9BEE8EE5B7AA81EAF79A1EAB0E93BD307601E87D3B80A73F24984E9C951C61",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/WinBase.h": "EC538199F5EBE8CEC2DFD4F1BA48316EF776C82D37277AED3A677965E494F192",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/wincon.h": "98E33720F9EC8FDED808AB94F111B8335D0BA2FD2246A5ADAB3AAB2CE05503D9",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/wincontypes.h": "209E79FDBBB30971740E59B2DA2D6C86E27C0E9DD02BEE9CBC21736FBD2426AD",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/Windows.h": "B337D661D03A4ABEFB7B86A2742CE1AD5D19B57CD8B858BD13E7BBCC1DBEEAAA",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/wingdi.h": "96F3528CABC7E5FE30E2F2C51DAA01C018DD6CEDB3768121202434758629B8A2",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/winnetwk.h": "7C7412DF502FB6EA390C96D7C9F805A2A211609B95B8FDB4740540F789D9C4CE",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/WinNls.h": "E47861762A4B51A2689C8A99798A1A7E68335573E03C857E545172B095C5C829",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/winnt.h": "8693F0AD4ADA355C912D40CA41CE929B480E92291BDA2F9227ACF56736BFFBFF",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/winreg.h": "BFF833E8D092A0CB657837E3162B8BB0CF35B43105203F4CE880972A501D61D6",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/winsvc.h": "8108FE3F099960014F36D1B2DA425A8382E9D839DE3477EB06F181289A0685C8",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/WinUser.h": "014E26F0041535EBCC53C7B46F1D280F66283EC5EB4612B4E82F5B0F6C0D428C",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/winver.h": "C60E137E7FF88582F72E50FE74904F5773502D229F78234EA83ABB2688F6E8AE",
+    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um/wow64apiset.h": "6B14E2B59AE5B9F22BFD9A1E989A5589ADF5790832FF24CB9D8828D4E8D45CDA",
+    "C:/Users/Daniel Kinsner/OneDrive/Documents/GitHub/yes-daw/build-ci/20261106-clock-owned-supervisor-source-r4/native/sup.h": "36AB958736136FB40A5B91C8383D8C08AC55EEDC8C180FC2A0DEA1B5CDDD32E7"
+  },
+  "layouts": {
+    "State": {
+      "sizeof": 191064,
+      "alignof": 8
+    },
+    "Request": {
+      "sizeof": 49256,
+      "alignof": 8
+    },
+    "Terminal": {
+      "sizeof": 312,
+      "alignof": 8
+    },
+    "Worker": {
+      "sizeof": 4256,
+      "alignof": 8
+    },
+    "WorkerExit": {
+      "sizeof": 48,
+      "alignof": 4
+    },
+    "Meter": {
+      "sizeof": 40,
+      "alignof": 8
+    },
+    "Catalogue": {
+      "sizeof": 928,
+      "alignof": 8
+    },
+    "Wide": {
+      "sizeof": 1032,
+      "alignof": 4
+    },
+    "Digest": {
+      "sizeof": 32,
+      "alignof": 1
+    },
+    "Text": {
+      "sizeof": 16,
+      "alignof": 8
+    },
+    "Sha256": {
+      "sizeof": 112,
+      "alignof": 8
+    },
+    "Failure": {
+      "sizeof": 16,
+      "alignof": 4
+    },
+    "PipeCount": {
+      "sizeof": 56,
+      "alignof": 8
+    },
+    "WIN32_FIND_DATAW": {
+      "sizeof": 592,
+      "alignof": 4
+    },
+    "WIN32_FILE_ATTRIBUTE_DATA": {
+      "sizeof": 36,
+      "alignof": 4
+    },
+    "STARTUPINFOEXW": {
+      "sizeof": 112,
+      "alignof": 8
+    },
+    "PROCESS_INFORMATION": {
+      "sizeof": 24,
+      "alignof": 8
+    },
+    "SECURITY_ATTRIBUTES": {
+      "sizeof": 24,
+      "alignof": 8
+    },
+    "JOBOBJECT_BASIC_ACCOUNTING_INFORMATION": {
+      "sizeof": 48,
+      "alignof": 8
+    },
+    "JOBOBJECT_EXTENDED_LIMIT_INFORMATION": {
+      "sizeof": 144,
+      "alignof": 8
+    },
+    "LARGE_INTEGER": {
+      "sizeof": 8,
+      "alignof": 8
+    },
+    "SRWLOCK": {
+      "sizeof": 8,
+      "alignof": 8
+    },
+    "HANDLE": {
+      "sizeof": 8,
+      "alignof": 8
+    }
+  },
+  "offsets": {
+    "State.request": 40,
+    "State.workers": 49608,
+    "State.hash_buffer": 125136,
+    "State.target_command": 58272,
+    "State.environment": 116820,
+    "State.terminal_capture": 190672,
+    "Worker.buffer": 48,
+    "Request.capture": 0
+  },
+  "raw_exit": 0
+}
