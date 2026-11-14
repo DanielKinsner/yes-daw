@@ -17,6 +17,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - Bounded capture-worker [reads](docs/research/2026-11-14-clock-r18-worker-read-census.md) and [settlement calls](docs/research/2026-11-14-clock-r19-worker-settlement-census.md). The [supervisor ABI check](docs/research/artifacts/2026-11-14-clock-supervisor-abi/README.md) measured 23 types and eight offsets. The [scan storage join](docs/research/2026-11-14-clock-r20-scan-storage-join.md) accounts for nested named objects.
 - [R22](docs/research/artifacts/2026-11-14-clock-r22-guard-read/review.md) passed 7,324 independent source checks and all four supervisor units compiled to COFF under `/WX`. The [native meter inventory](docs/research/artifacts/2026-11-14-clock-meter-inventory/result.json) covers 36 families and 50 literal calls. Next: price their dynamic schedules and finish the native resource joins before any link or run.
 - Fresh Windows apps-off Release CTest passed all 491 tests. The [identity-read count](docs/research/2026-11-14-clock-r20-identity-read-census.md) covers fragmented requests, SHA padding, the early refusal prefix and dynamic calls for all six identity and hash meter families.
+- The [identity storage worksheet](docs/research/2026-11-14-clock-r22-identity-storage.md) joins the measured named arrays and aggregates across request reading, path validation and hashing.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
@@ -75,7 +76,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The complete R15 correction is frozen after1,764 own checks; its fresh whole critic returned REVISE
    after3,374 checks for a pre-resume budget-cut gap and stale descriptive policy counts. R16's fresh whole
    functional source review accepts its correction, with native/profile and complete pricing gates still held.
-   R18 reuses R17's bounded directory scan and corrects its manifest provenance. Functional source review passed.
+   R18 reuses R17's bounded directory scan and corrects its manifest provenance. R22 repairs a path copy and
+   compiles all four supervisor units with the recovered pinned MSVC. Independent functional source review passed.
    All Clock execution guards remain false; no supervisor/Clock run has started.
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
    reader actually passed88 types/391 declared fields. A separate /c-only purpose now measured194 type/layout
@@ -90,8 +92,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    source/data checks: four source-sponsorship omissions remain in that proposal. Complete scalarR3 is now
    frozen at5,577,542,589 after9,244 own checks; a fresh whole critic's18,310 checks support conditional
    acceptance for exact R13 only. No total/price transfers to R16/R17, and no combined limit or fit is accepted.
-   Next: complete the R18 all-language census and exact-layout qualification, then the joined resource, native
-   and binding proof before any Clock attempt. Earlier source revisions are recorded below.
+   Next: complete the R22 source work bounds and the joined resource, native and binding proof before any
+   Clock attempt. Earlier source revisions are recorded below.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**

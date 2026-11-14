@@ -2,7 +2,7 @@
 
 The [supervisor ABI measurement](artifacts/2026-11-14-clock-supervisor-abi/result.json)
 supplies sizes for the compound local objects in
-[`stage_scan` and `validate_path`](artifacts/2026-11-06-clock-r20-path-copy/review.md).
+[`stage_scan` and `validate_path`](artifacts/2026-11-14-clock-r20-path-copy/review.md).
 The new explicit prefix copy still uses a full-size local `Wide`.
 
 | Owner or phase | Live objects accounted here | Bytes |
