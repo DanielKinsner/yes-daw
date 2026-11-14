@@ -8,6 +8,12 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Check Clock controller fences and startup
+
+- The reviewed [controller fence worksheet](docs/research/2026-11-14-clock-r22-controller-fence-work.md) covers the path catalogue, eight pin fences and the ProcessPath startup checks.
+- All 19 changed or new controller function bodies now have local worksheet coverage. The current callers and resource phase join still need a whole check.
+- Next: compose the shared controller bodies using the current call counts and qualify the separate startup observation.
+
 ## 2026-11-14 - Bound Clock controller helper work
 
 - The [controller transport work](docs/research/2026-11-14-clock-r22-controller-transport-work.md) covers the request, hash, hex argument and terminal read for all three child slots.
