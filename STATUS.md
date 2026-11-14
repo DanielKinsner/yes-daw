@@ -8,6 +8,10 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Bound Clock startup and mandatory cleanup
+
+- Independent review accepted the [terminal publication and owner retirement work](docs/research/2026-11-14-clock-r22-publication-scalar-census.md), including short writes and late failures.
+
 ## 2026-11-14 - Compose Clock checker bounds
 
 - The [R22 scan worksheet](docs/research/2026-11-14-clock-r22-scan-final-census.md) expands the previously open non-loop rows and verifies the conditional directory-scan upper. It includes nested joins, path validation and failure routes.
