@@ -19,6 +19,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - Fresh Windows apps-off Release CTest passed all 491 tests. The [request and identity read count](docs/research/2026-11-14-clock-r20-identity-read-census.md) covers fragmentation, SHA padding, early refusal and dynamic calls for all eight decoding, identity and hash meter families.
 - The [identity storage worksheet](docs/research/2026-11-14-clock-r22-identity-storage.md) joins the measured named arrays and aggregates across request reading, path validation and hashing.
 - Independent review accepted the [corrected scan-loop rows](docs/research/2026-11-14-clock-r22-scan-loop-census.md) and their composition arithmetic. The remaining inherited non-loop rows still need full coverage.
+- The [codec meter table](docs/research/2026-11-14-clock-r22-codec-meter-census.md) verifies eleven more call and debit bounds across startup, formatting and terminal encoding.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
