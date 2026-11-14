@@ -14,6 +14,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The [worker acquisition and cleanup bounds](docs/research/2026-11-14-clock-r22-worker-coordinator-census.md) include cutoff races, normal and cleanup consumes, and already-admitted settlement.
 - The [log writer worksheet](docs/research/2026-11-14-clock-r22-log-writer-census.md) accounts for short writes, count updates and work through the next refused write ticket.
 - The [exact guarded target](docs/research/artifacts/2026-11-14-clock-r22-child-object/README.md) compiled with the pinned `/WX` profile and 110 pinned include paths. It emitted COFF only.
+- The [native output-store check](docs/research/2026-11-14-clock-r22-native-output-store-census.md) accounts for caller-owned buffers and writes in the prefix and tail, including requested-byte ceilings on short or failed reads.
 
 ## 2026-11-14 - Bound Clock launch and request verification
 
