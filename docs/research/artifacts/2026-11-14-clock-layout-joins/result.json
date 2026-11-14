@@ -1,0 +1,257 @@
+{
+  "source_correspondence_sha256": "72A6B10AFBC8D9BDA54A20EDF2B422FEF528FE6EB59BC0A3BDD23C5F43E39AFB",
+  "source_joins_sha256": "1A6EA8E038131D08EC2FDFFF5804455C1C5EB2EE8FDD6EECDB2FE5331216501C",
+  "compiler_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "receipts": {
+    "direct-layout": {
+      "artifact": "2026-11-14-clock-direct-layout/result.json",
+      "receipt_sha256": "2F5CEC895D278B6CF1C54FB4BD2ADA13446B020B8FAE4B8AC3310BEBB59C126B",
+      "object_sha256": "4F2BDC65C74AB6D616C3BB0A8B8FBEFCBDAC1125C358972CE6059D2DBAB0318F"
+    },
+    "named-closures": {
+      "artifact": "2026-11-14-clock-named-closures/result.json",
+      "receipt_sha256": "0FDB05997A6B976DD0B908804A1A164AE876D0DFDDBE45E939B68D8C9A632B4D",
+      "object_sha256": "D43C1FE6505C706A4054EDD74C6959EBF713EC6F2BBA85046DB495A23C13389D"
+    },
+    "control-closures": {
+      "artifact": "2026-11-14-clock-control-closures/result.json",
+      "receipt_sha256": "BFE4077761BAC1EB1BC988DC37DFE8F81A378DD78118447C37F03A5937FF3F13",
+      "object_sha256": "081DC8BDC3C8E6042004532E033F85352ABA297DE9541B41DA529BB90EC247C8"
+    },
+    "comparator-closures": {
+      "artifact": "2026-11-14-clock-comparator-closures/result.json",
+      "receipt_sha256": "7EEB64A8BB16BD2F5BC458A70E12C951E569B5BC0B501905F31D3BDF0D1753D9",
+      "object_sha256": "CFAA3DA59488830906C4A639474DF85DD01CCCD685CDAC6DB03B48816567D0EB"
+    },
+    "append-closure": {
+      "artifact": "2026-11-14-clock-append-closure/result.json",
+      "receipt_sha256": "D3B5E2C4DB653397EB794EE4B4279807390609D785A975F1BB3E365AECFBE818",
+      "object_sha256": "F98157272A2B4B600D6A767E873C75D54C1142E8694C7750BDFEED76AA3476A0"
+    }
+  },
+  "measured_types": {
+    "NUL": {
+      "sizeof": 8,
+      "alignof": 1,
+      "receipt": "direct-layout",
+      "receipt_key": "std::nullptr_t",
+      "source_sha256": "8388948EFA6DC3B3B20866FA1C3057EA53B8DFD028F22ABE1D7DCE23EF1D9ECC"
+    },
+    "LESS": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "direct-layout",
+      "receipt_key": "std::less<void>",
+      "source_sha256": "357E102B4E6AB85A864980A01BBA28440791311DF288B8987B580E577C928D5C"
+    },
+    "EQ": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "direct-layout",
+      "receipt_key": "std::equal_to<void>",
+      "source_sha256": "D5959E0964EA09991888E5B45EECFD8C71C094034261489FBB450C2F2F450EF5"
+    },
+    "FA": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "direct-layout",
+      "receipt_key": "std::_Fake_allocator",
+      "source_sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    "FP": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "direct-layout",
+      "receipt_key": "std::_Fake_proxy_ptr_impl",
+      "source_sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    "TG": {
+      "sizeof": 8,
+      "alignof": 8,
+      "receipt": "direct-layout",
+      "receipt_key": "std::_Tidy_guard<std::vector<qc::Change>>",
+      "source_sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    "TAG_ZERO": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "direct-layout",
+      "receipt_key": "std::_Zero_then_variadic_args_t",
+      "source_sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    "TAG_ONE": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "direct-layout",
+      "receipt_key": "std::_One_then_variadic_args_t",
+      "source_sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    "TAG_CONCAT": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "direct-layout",
+      "receipt_key": "std::_String_constructor_concat_tag",
+      "source_sha256": "9407C290A1D0C6BEBC42CF131BD04F09A9892F61B713EECB12827C0F6BBC3045"
+    },
+    "ALLOC_CHANGE": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "direct-layout",
+      "receipt_key": "std::allocator<qc::Change>",
+      "source_sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    "ALLOC_CHAR": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "direct-layout",
+      "receipt_key": "std::allocator<char>",
+      "source_sha256": "76359D0893EF63B0BAA617E3F2D8729C50A24D349B41AF51AD8E00AD7BE82D70"
+    },
+    "EXDATA": {
+      "sizeof": 16,
+      "alignof": 8,
+      "receipt": "direct-layout",
+      "receipt_key": "::__std_exception_data",
+      "source_sha256": "0DD3DCC67B655FBFC96708F131C9E7F86416D2DB95FD33B1E7ACC8489F2C32D4"
+    },
+    "TempoMapView": {
+      "sizeof": 16,
+      "alignof": 8,
+      "receipt": "direct-layout",
+      "receipt_key": "yesdaw::engine::TempoMapView",
+      "source_sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    "OWN_CLOSURE_get": {
+      "sizeof": 32,
+      "alignof": 8,
+      "receipt": "named-closures",
+      "receipt_key": "get",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_nextBit": {
+      "sizeof": 16,
+      "alignof": 8,
+      "receipt": "named-closures",
+      "receipt_key": "nextBit",
+      "source_sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    "OWN_CLOSURE_work_action": {
+      "sizeof": 8,
+      "alignof": 8,
+      "receipt": "control-closures",
+      "receipt_key": "work-one-below",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_carry_action": {
+      "sizeof": 16,
+      "alignof": 8,
+      "receipt": "control-closures",
+      "receipt_key": "fraction-carry",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_invalid_native_action": {
+      "sizeof": 16,
+      "alignof": 8,
+      "receipt": "control-closures",
+      "receipt_key": "fraction-carry-native-read",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_q_action": {
+      "sizeof": 40,
+      "alignof": 8,
+      "receipt": "control-closures",
+      "receipt_key": "q-off-by-one",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_truncated_action": {
+      "sizeof": 8,
+      "alignof": 8,
+      "receipt": "control-closures",
+      "receipt_key": "truncated-record",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_trailing_action": {
+      "sizeof": 8,
+      "alignof": 8,
+      "receipt": "control-closures",
+      "receipt_key": "trailing-record",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_metadata_action": {
+      "sizeof": 16,
+      "alignof": 8,
+      "receipt": "control-closures",
+      "receipt_key": "metadata-corruption",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_prefix_action": {
+      "sizeof": 16,
+      "alignof": 8,
+      "receipt": "control-closures",
+      "receipt_key": "full-prefix",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_ramp_action": {
+      "sizeof": 40,
+      "alignof": 8,
+      "receipt": "control-closures",
+      "receipt_key": "ramp-law",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_inverse_whole_action": {
+      "sizeof": 24,
+      "alignof": 8,
+      "receipt": "control-closures",
+      "receipt_key": "inverse-whole",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_inverse_fraction_action": {
+      "sizeof": 24,
+      "alignof": 8,
+      "receipt": "control-closures",
+      "receipt_key": "inverse-fraction",
+      "source_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    "OWN_CLOSURE_qc_tick_comparator": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "comparator-closures",
+      "receipt_key": "qc_tick",
+      "source_sha256": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+    },
+    "OWN_CLOSURE_time_tick_comparator": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "comparator-closures",
+      "receipt_key": "time_tick",
+      "source_sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    "OWN_CLOSURE_time_native_comparator": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "comparator-closures",
+      "receipt_key": "time_native",
+      "source_sha256": "FC5A0861B527FFFE6ED2E6F9FE571D3F8974329BBD065DACFBC38DFEA8C98590"
+    },
+    "L_APPEND": {
+      "sizeof": 1,
+      "alignof": 1,
+      "receipt": "append-closure",
+      "receipt_key": "string_append",
+      "source_sha256": "9407C290A1D0C6BEBC42CF131BD04F09A9892F61B713EECB12827C0F6BBC3045"
+    }
+  },
+  "measured_components_in_critical_joins_bytes": {
+    "vector_init_list": 11,
+    "vector_copy": 11,
+    "vector_move": 25,
+    "string_construct": 3,
+    "string_concat_lvalue": 5,
+    "string_grow_append": 1,
+    "upper_tick4": 1,
+    "upper_prefix3": 1,
+    "witness_array_equality": 1,
+    "exception_message": 16
+  },
+  "scope": "Selected measured object-size terms only. Whole resource fit remains open."
+}
