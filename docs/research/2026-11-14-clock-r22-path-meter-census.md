@@ -48,3 +48,15 @@ requested `PathCell` units. A scan therefore reaches up to 528
 The [headless check](artifacts/2026-11-14-clock-path-meter/check.py)
 verifies the source pins, site counts and sums. The separate string and
 path scalar schedules still need full accounting.
+
+## Independent review of all 36 families
+
+The critic reproduced all four tables from the five native pins,
+50 literal meter sites and R22 constants. The review covered unequal
+helper-slot caps, short reads and refusal paths, file and run-identity
+padding, excess string lengths before rejection, mutually exclusive
+recipe arms, and capture acknowledgements across the prefix cut. The
+invocation and requested-amount bounds are conditionally accepted
+under the exclusive ready/ack handoff, visibility and native output
+extent premises. Successful debits by phase, scalar work prices and
+native time remain open.

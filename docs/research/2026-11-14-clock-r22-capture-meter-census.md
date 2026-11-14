@@ -5,7 +5,8 @@ ready/ack and write-accounting premises as the
 [read](2026-11-14-clock-r18-worker-read-census.md),
 [settlement](2026-11-14-clock-r19-worker-settlement-census.md) and
 [scan](2026-11-14-clock-r18-stage-scan-census.md) worksheets.
-Every listed debit requests one unit. Calls include refusals and any
+Each operation requests at most one unit. A State wrapper can refuse
+before reaching its Meter overload. Calls include refusals and any
 required continuation of an admitted group after the cut.
 
 | Family | Calls |
