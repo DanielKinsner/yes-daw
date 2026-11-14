@@ -11,6 +11,7 @@ Older entries below are dated history, not competing "Now" instructions.
 ## 2026-11-14 - Bound Clock launch and request verification
 
 - The [native capture and creation worksheet](docs/research/2026-11-14-clock-r22-capture-creation-census.md) covers position checks, pipe setup, creation and raw failed-owner capture.
+- The [request recipe worksheet](docs/research/2026-11-14-clock-r22-request-recipe-census.md) verifies template limits, the alternate child recipes and numeric leading-zero checks.
 
 ## 2026-11-14 - Bound Clock startup and mandatory cleanup
 
