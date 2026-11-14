@@ -12,8 +12,8 @@ Older entries below are dated history, not competing "Now" instructions.
 
 - The [R18 source revision](docs/research/artifacts/2026-11-14-clock-r18-provenance/review.md) fixes stale checker metadata. Its independent functional source review passed 6,266 assertions.
 - Restored the missing repo inputs and verified all 408 repo file hashes. This host has 324 absent and 48 different absolute inputs, including a different compiler.
-- Windows apps-off Release built and passed all 491 tests. The Clock helper, checker workload and audio devices were not started.
-- Next: advance the source work census, then qualify the exact layouts on a verified compiler profile before any Clock run. Audible tempo-follow remains pending.
+- Windows apps-off Release built and passed all 491 tests. The app and two UI check targets built without launching. R18's [docs-only CI](https://github.com/DanielKinsner/yes-daw/actions/runs/43637053803) passed.
+- The [stage-scan call count](docs/research/2026-11-14-clock-r18-stage-scan-census.md) now covers all five native scan sites. Next: price their work across the prefix and cleanup paths and qualify the exact layouts on a verified compiler profile. Audible tempo-follow remains pending.
 
 ## Scoreboard - where the app stands (kept current; last updated 2026-11-14)
 
