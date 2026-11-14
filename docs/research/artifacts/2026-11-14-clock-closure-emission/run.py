@@ -51,7 +51,7 @@ def run(compiler, output):
     print(f"PASS: probe closure records {rows}; COFF {digest(obj.read_bytes())}; {len(includes)} pinned includes")
 
 
-def decode(raw, export_name):
+def decode(raw, export_name, sites=(1, 2)):
     require(len(raw) >= 20, "truncated object")
     machine, sections, _, symbols, count, optional, _ = struct.unpack_from("<HHIIIHH", raw)
     require(machine == 0x8664 and optional == 0 and 1 <= sections
@@ -75,9 +75,9 @@ def decode(raw, export_name):
                     "bad closure record tag or duplicate site")
             rows[site] = (extent, alignment)
     exports = [token for token in directives.split() if token.upper().startswith(b"/EXPORT:")]
-    require(len(exports) == 2 and all(export_name in token for token in exports),
+    require(len(exports) == len(sites) and all(export_name in token for token in exports),
             "missing closure export directives")
-    require(rows.keys() == {1, 2} and all(
+    require(rows.keys() == set(sites) and all(
         size > 0 and alignment > 0 and size % alignment == 0
         and alignment & (alignment - 1) == 0
         for size, alignment in rows.values()

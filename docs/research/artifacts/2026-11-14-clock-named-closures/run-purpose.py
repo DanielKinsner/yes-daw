@@ -4,13 +4,14 @@ import argparse
 import ctypes
 import json
 from pathlib import Path
+import runpy
 import subprocess
 import sys
 
-from instrument import ROOT, prepare
-
 
 HERE = Path(__file__).resolve().parent
+BASE = runpy.run_path(str(HERE / "instrument.py"))
+ROOT, prepare = BASE["ROOT"], BASE["prepare"]
 sys.path.insert(0, str(HERE.parent / "2026-11-14-clock-direct-layout"))
 from measure import COST_INCLUDE, CLOCK_INCLUDE, verify_inputs
 from prepare import PROFILE, digest, load, require
@@ -19,8 +20,9 @@ sys.path.insert(0, str(HERE.parent / "2026-11-14-clock-closure-emission"))
 from run import decode
 
 
-def measure(source_root, compiler, output):
-    approved = prepare(source_root)
+def measure(source_root, compiler, output, prepare_source=prepare, names=("get", "nextBit"),
+            project_include=None, replaced_headers=()):
+    approved = prepare_source(source_root)
     allowed = verify_inputs(compiler)
     source = source_root / "checker/clock_stage.cpp"
     staged_headers = {path for path in approved if path != source}
@@ -33,9 +35,10 @@ def measure(source_root, compiler, output):
         "PATH": f"{compiler};{profile['environment']['SystemRoot']}/System32",
         "TEMP": str(output), "TMP": str(output),
     }
+    project_include = project_include or ROOT / "src"
     args = [str(compiler / "cl.exe"), "/nologo", "/std:c++20", "/EHsc", "/W4", "/WX",
             "/MD", "/permissive-", "/fp:strict", "/O2", "/D_ITERATOR_DEBUG_LEVEL=0",
-            f"/I{ROOT / 'src'}", "/c", str(source), f"/Fo{obj}", "/sourceDependencies", str(deps)]
+            f"/I{project_include}", "/c", str(source), f"/Fo{obj}", "/sourceDependencies", str(deps)]
     kernel = ctypes.WinDLL("kernel32")
     old = kernel.SetErrorMode(0x8003)
     try:
@@ -56,10 +59,12 @@ def measure(source_root, compiler, output):
     includes = {Path(path).resolve() for path in dependency["Includes"]}
     require(Path(dependency["Source"]).resolve() == source
             and staged_headers <= includes <= allowed.keys() | staged_headers
-            and CLOCK_INCLUDE.resolve() not in includes and COST_INCLUDE.resolve() not in includes
-            and (ROOT / "src/engine/Time.h").resolve() in includes, "wrong source dependency set")
+            and not includes.intersection({CLOCK_INCLUDE.resolve(), COST_INCLUDE.resolve(),
+                                           *map(Path.resolve, replaced_headers)})
+            and (project_include / "engine/Time.h").resolve() in includes, "wrong source dependency set")
     raw = obj.read_bytes()
-    layouts = decode(raw, b"yesdaw_closure_layout")
+    sites = range(1, len(names) + 1)
+    layouts = decode(raw, b"yesdaw_closure_layout", sites)
     receipt = {
         "source_sha256": {path.relative_to(source_root).as_posix(): digest(data)
                           for path, data in approved.items()},
@@ -67,7 +72,7 @@ def measure(source_root, compiler, output):
         "compiler_sha256": digest((compiler / "cl.exe").read_bytes()),
         "include_count": len(includes),
         "layouts": {name: {"sizeof": layouts[site][0], "alignof": layouts[site][1]}
-                    for site, name in ((1, "get"), (2, "nextBit"))},
+                    for site, name in zip(sites, names)},
         "raw_exit": result.returncode,
     }
     result_json = json.dumps(receipt, indent=2) + "\n"

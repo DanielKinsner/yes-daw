@@ -1,0 +1,57 @@
+{
+  "source_sha256": {
+    "checker/clock_stage.cpp": "55BEEE1796EC0AA57F020673219A73B8623B9799761405F4B67C78A55EEEAE63",
+    "checker/source-costs.h": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+    "waveform-definition-r3/independent_clock.h": "A75FB5D17C9CACA2113DC8567A3E27F9A40FD9531BC59084E07F88576D15CB64"
+  },
+  "object_sha256": "081DC8BDC3C8E6042004532E033F85352ABA297DE9541B41DA529BB90EC247C8",
+  "compiler_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "include_count": 110,
+  "layouts": {
+    "work-one-below": {
+      "sizeof": 8,
+      "alignof": 8
+    },
+    "fraction-carry": {
+      "sizeof": 16,
+      "alignof": 8
+    },
+    "fraction-carry-native-read": {
+      "sizeof": 16,
+      "alignof": 8
+    },
+    "q-off-by-one": {
+      "sizeof": 40,
+      "alignof": 8
+    },
+    "truncated-record": {
+      "sizeof": 8,
+      "alignof": 8
+    },
+    "trailing-record": {
+      "sizeof": 8,
+      "alignof": 8
+    },
+    "metadata-corruption": {
+      "sizeof": 16,
+      "alignof": 8
+    },
+    "full-prefix": {
+      "sizeof": 16,
+      "alignof": 8
+    },
+    "ramp-law": {
+      "sizeof": 40,
+      "alignof": 8
+    },
+    "inverse-whole": {
+      "sizeof": 24,
+      "alignof": 8
+    },
+    "inverse-fraction": {
+      "sizeof": 24,
+      "alignof": 8
+    }
+  },
+  "raw_exit": 0
+}
