@@ -20,3 +20,17 @@ runtime module association, physical stack and whole resource fit remain
 separate open terms.
 
 Run `python -E -B run-purpose.py <compiler-directory> <new-output-directory>`.
+
+## Exact R20 object compile attempt
+
+A separate independently reviewed `/c` purpose attempted the four exact
+R20 translation units. `sup_codec.cpp` and `sup_core.cpp` compiled. The
+third unit, `sup_main.cpp`, exited 2 at the source-only guard with
+MSVC C4127, followed by C2220 under `/WX`.
+`sup_io.cpp` was after that failure and was not reached in this attempt.
+The plan's existing warnings-as-errors setting stays in the purpose.
+An unbound source successor can make this compile-time guard an
+`if constexpr` and retain all five false admission constants.
+
+Run `python -E -B compile-objects.py <compiler-directory> <new-output-directory>`
+to reproduce the exact R20 compile-only attempt.
