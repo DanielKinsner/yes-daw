@@ -16,7 +16,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - Bounded [stage scans](docs/research/2026-11-14-clock-r18-stage-scan-census.md) and their [inner path operations](docs/research/2026-11-14-clock-r18-scan-path-census.md) across setup, normal writes and cleanup. Scalar prices remain open.
 - Bounded capture-worker [reads](docs/research/2026-11-14-clock-r18-worker-read-census.md) and [settlement calls](docs/research/2026-11-14-clock-r19-worker-settlement-census.md). The [supervisor ABI check](docs/research/artifacts/2026-11-14-clock-supervisor-abi/README.md) measured 23 types and eight offsets. The [scan storage join](docs/research/2026-11-14-clock-r20-scan-storage-join.md) accounts for nested named objects.
 - [R22](docs/research/artifacts/2026-11-14-clock-r22-guard-read/review.md) passed 7,324 independent source checks and all four supervisor units compiled to COFF under `/WX`. The [native meter inventory](docs/research/artifacts/2026-11-14-clock-meter-inventory/result.json) covers 36 families and 50 literal calls. Next: price their dynamic schedules and finish the native resource joins before any link or run.
-- Fresh Windows apps-off Release CTest passed all 491 tests. The [identity-read count](docs/research/2026-11-14-clock-r20-identity-read-census.md) covers fragmented requests, SHA padding and the early refusal prefix.
+- Fresh Windows apps-off Release CTest passed all 491 tests. The [identity-read count](docs/research/2026-11-14-clock-r20-identity-read-census.md) covers fragmented requests, SHA padding, the early refusal prefix and dynamic calls for all six identity and hash meter families.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
