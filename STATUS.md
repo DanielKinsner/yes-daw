@@ -11,6 +11,7 @@ Older entries below are dated history, not competing "Now" instructions.
 ## 2026-11-14 - Bound Clock startup and mandatory cleanup
 
 - Independent review accepted the [terminal publication and owner retirement work](docs/research/2026-11-14-clock-r22-publication-scalar-census.md), including short writes and late failures.
+- The [request decoder bounds](docs/research/2026-11-14-clock-r22-decode-scalar-census.md) cover each helper slot, wire conversion and UTF-16 copy paths. The decoder meter and request file work are separate.
 
 ## 2026-11-14 - Compose Clock checker bounds
 
