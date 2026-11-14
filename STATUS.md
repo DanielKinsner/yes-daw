@@ -15,7 +15,8 @@ Older entries below are dated history, not competing "Now" instructions.
 - The [R19 local source revision](docs/research/artifacts/2026-11-14-clock-r19-local-profile/review.md) binds the staged tool paths. Its independent source review passed 8,463 assertions, including all 1,270 file pins and 35 directories. The native launch profile, pricing, resource fit and execution are pending.
 - Bounded [stage scans](docs/research/2026-11-14-clock-r18-stage-scan-census.md) and their [inner path operations](docs/research/2026-11-14-clock-r18-scan-path-census.md) across setup, normal writes and cleanup. Scalar prices remain open.
 - Bounded capture-worker [reads](docs/research/2026-11-14-clock-r18-worker-read-census.md) and [settlement calls](docs/research/2026-11-14-clock-r19-worker-settlement-census.md), including zero progress, failure and cleanup.
-- Drafted the scan scalar counts for [names](docs/research/2026-11-14-clock-r19-name-scalar-census.md), [path helpers](docs/research/2026-11-14-clock-r19-path-scalar-census.md) and [spend and failure](docs/research/2026-11-14-clock-r19-spend-scalar-census.md). Next: finish the scan's local work, review the total and complete the other checker families before a full Clock run.
+- Drafted the [full directory-scan scalar upper](docs/research/2026-11-14-clock-r19-stage-scalar-total.md) for independent review. Next: complete the other checker families and resource joins before a full Clock run.
+- Fresh Windows apps-off Release CTest passed all 491 tests. This run used no app window or audio device.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
