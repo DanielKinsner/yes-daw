@@ -13,6 +13,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The [native phase checker](docs/research/2026-11-14-clock-r22-native-phase-work.md) maps all 87 supervisor functions and verifies the conditional prefix, tail and bootstrap arithmetic. Controller and target prices and joint resource fit remain open.
 - The [target output worksheet](docs/research/2026-11-14-clock-r22-target-output-resources.md) covers reference writes, diagnostics and selected object lifetimes. Runtime CRT association remains open.
 - The [target census correspondence](docs/research/artifacts/2026-11-14-clock-r22-target-census/README.md) matches all four target files, 35 reached SDK headers and 76 earlier audited C++ families for integration review.
+- The [object reader](docs/research/2026-11-14-clock-r22-child-coff.md) checks the exact target refusal entry, catch paths and emitted frames. The enabled entry still needs its own proof.
 
 ## 2026-11-14 - Bound Clock worker and log work
 
