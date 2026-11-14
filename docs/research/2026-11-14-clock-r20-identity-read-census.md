@@ -35,7 +35,21 @@ NUL, manifest digest, four length bytes and 512 two-byte path units
 add at most 18 blocks. The per-helper SHA compression upper is 540,692
 and its 64 rounds per block yield at most 34,604,288 rounds.
 
-## Dynamic R22 meter calls
+## Request meter calls
+
+The native read loop can request at most 41,260 unit `Decode` debits.
+The EOF probe has no debit. A completed capture may reach one more
+`Decode` and one `DecodeCell` in `decode_request`. The decoder requests
+the complete captured size before it checks the child-specific length
+cap. The same bound covers successful, refused and malformed request
+prefixes in each helper.
+
+| Family | Calls | Sum of requested amounts |
+| --- | ---: | ---: |
+| `Decode` | 41,261 | 41,261 |
+| `DecodeCell` | 1 | 41,260 |
+
+## Identity and hash meter calls
 
 The R22 recipe reaches `validate_request_recipe` once, `hash_run_identity`
 once and each of the two `hash_file` sites once. The prior
