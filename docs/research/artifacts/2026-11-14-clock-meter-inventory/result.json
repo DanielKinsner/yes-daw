@@ -1,0 +1,396 @@
+{
+  "manifest_sha256": "28619B3443768E03BA45FD698030BC5DD743C6B819125D475B4AA1A2687D0C06",
+  "family_count": 36,
+  "literal_site_count": 50,
+  "family_sites": {
+    "Entry": 1,
+    "Profile": 1,
+    "RawCommand": 1,
+    "CommandCell": 1,
+    "Decode": 2,
+    "DecodeCell": 1,
+    "StringGuard": 2,
+    "StringCell": 3,
+    "Identity": 2,
+    "HashFile": 1,
+    "HashChunk": 4,
+    "HashByte": 1,
+    "HashBlock": 1,
+    "HashRound": 1,
+    "PathGuard": 3,
+    "PathCell": 2,
+    "StageScan": 1,
+    "StageEntry": 1,
+    "Encode": 1,
+    "EncodeCell": 1,
+    "TargetQuote": 1,
+    "QuoteCell": 1,
+    "Environment": 1,
+    "EnvironmentCell": 1,
+    "Owner": 2,
+    "CaptureSetup": 1,
+    "TargetResume": 1,
+    "WorkerStart": 1,
+    "WorkerRead": 1,
+    "WorkerPublish": 1,
+    "Coordinator": 1,
+    "Poll": 1,
+    "Consume": 2,
+    "WriteChunk": 1,
+    "WriteCall": 2,
+    "TerminalValidation": 1
+  },
+  "sites": [
+    {
+      "source": "sup_codec.cpp",
+      "line": 35,
+      "method": "spend",
+      "family": "StringGuard",
+      "text": "if(!spend(state,Family::StringGuard) ||"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 36,
+      "method": "spend",
+      "family": "StringCell",
+      "text": "!spend(state,Family::StringCell,length)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 87,
+      "method": "spend",
+      "family": "StringCell",
+      "text": "if(input==nullptr || length>path_units || !spend(state,Family::StringCell,length)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 130,
+      "method": "spend",
+      "family": "Entry",
+      "text": "if(!spend(state,Family::Entry) || !spend(state,Family::Profile)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 130,
+      "method": "spend",
+      "family": "Profile",
+      "text": "if(!spend(state,Family::Entry) || !spend(state,Family::Profile)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 147,
+      "method": "spend",
+      "family": "StringGuard",
+      "text": "if(!spend(state,Family::StringGuard) || !spend(state,Family::StringCell,value.length)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 147,
+      "method": "spend",
+      "family": "StringCell",
+      "text": "if(!spend(state,Family::StringGuard) || !spend(state,Family::StringCell,value.length)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 154,
+      "method": "spend",
+      "family": "PathGuard",
+      "text": "if(!spend(state,Family::PathGuard) || !spend(state,Family::PathCell,base.length+length)) return PathResult::SourceRefused;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 154,
+      "method": "spend",
+      "family": "PathCell",
+      "text": "if(!spend(state,Family::PathGuard) || !spend(state,Family::PathCell,base.length+length)) return PathResult::SourceRefused;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 166,
+      "method": "spend",
+      "family": "RawCommand",
+      "text": "if(!spend(state,Family::RawCommand) || !spend(state,Family::CommandCell,raw_command_units)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 166,
+      "method": "spend",
+      "family": "CommandCell",
+      "text": "if(!spend(state,Family::RawCommand) || !spend(state,Family::CommandCell,raw_command_units)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 203,
+      "method": "spend",
+      "family": "Decode",
+      "text": "if(!spend(state,Family::Decode) || !spend(state,Family::DecodeCell,state.request.captured)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 203,
+      "method": "spend",
+      "family": "DecodeCell",
+      "text": "if(!spend(state,Family::Decode) || !spend(state,Family::DecodeCell,state.request.captured)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 249,
+      "method": "spend",
+      "family": "Identity",
+      "text": "if(!spend(state,Family::Identity)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 318,
+      "method": "admit_body",
+      "family": "Environment",
+      "text": "if(!admit_body(state,Family::Environment)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 325,
+      "method": "spend",
+      "family": "EnvironmentCell",
+      "text": "if(!spend(state,Family::EnvironmentCell,lengths[i]+value.length+2u)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 337,
+      "method": "admit_body",
+      "family": "TargetQuote",
+      "text": "if(!admit_body(state,Family::TargetQuote)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 347,
+      "method": "spend",
+      "family": "QuoteCell",
+      "text": "if(!spend(state,Family::QuoteCell,value.length)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 371,
+      "method": "spend",
+      "family": "TerminalValidation",
+      "text": "if(!spend(state,Family::TerminalValidation)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 462,
+      "method": "spend",
+      "family": "Encode",
+      "text": "if(!spend(state,Family::Encode) || !spend(state,Family::EncodeCell,terminal_bytes) || !validate_terminal(state)) return false;"
+    },
+    {
+      "source": "sup_codec.cpp",
+      "line": 462,
+      "method": "spend",
+      "family": "EncodeCell",
+      "text": "if(!spend(state,Family::Encode) || !spend(state,Family::EncodeCell,terminal_bytes) || !validate_terminal(state)) return false;"
+    },
+    {
+      "source": "sup_core.cpp",
+      "line": 72,
+      "method": "admit_body",
+      "family": "WorkerRead",
+      "text": "return admit_body(meter,Family::WorkerRead);"
+    },
+    {
+      "source": "sup_core.cpp",
+      "line": 75,
+      "method": "admit_body",
+      "family": "WriteCall",
+      "text": "return admit_body(meter,Family::WriteCall);"
+    },
+    {
+      "source": "sup_core.cpp",
+      "line": 78,
+      "method": "admit_body",
+      "family": "WriteCall",
+      "text": "return admit_body(state,Family::WriteCall);"
+    },
+    {
+      "source": "sup_core.cpp",
+      "line": 168,
+      "method": "spend",
+      "family": "HashBlock",
+      "text": "if (!spend(state, Family::HashBlock) ||"
+    },
+    {
+      "source": "sup_core.cpp",
+      "line": 169,
+      "method": "spend",
+      "family": "HashRound",
+      "text": "!spend(state, Family::HashRound, 64)) return false;"
+    },
+    {
+      "source": "sup_core.cpp",
+      "line": 201,
+      "method": "spend",
+      "family": "HashChunk",
+      "text": "if (!spend(state, Family::HashChunk)) return false;"
+    },
+    {
+      "source": "sup_core.cpp",
+      "line": 210,
+      "method": "spend",
+      "family": "HashChunk",
+      "text": "if (!spend(state, Family::HashChunk) ||"
+    },
+    {
+      "source": "sup_core.cpp",
+      "line": 211,
+      "method": "spend",
+      "family": "HashByte",
+      "text": "!spend(state, Family::HashByte, bytes)) return false;"
+    },
+    {
+      "source": "sup_core.cpp",
+      "line": 227,
+      "method": "spend",
+      "family": "HashChunk",
+      "text": "if (!spend(state, Family::HashChunk)) return false;"
+    },
+    {
+      "source": "sup_core.cpp",
+      "line": 248,
+      "method": "spend",
+      "family": "Identity",
+      "text": "if (!spend(state,Family::Identity)) return false;"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 52,
+      "method": "spend",
+      "family": "PathGuard",
+      "text": "if (!spend(state, Family::PathGuard) ||"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 53,
+      "method": "spend",
+      "family": "PathCell",
+      "text": "!spend(state, Family::PathCell, path.length)) return false;"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 80,
+      "method": "spend",
+      "family": "PathGuard",
+      "text": "if (!spend(state,Family::PathGuard)) return false;"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 117,
+      "method": "spend",
+      "family": "Decode",
+      "text": "if (!spend(state,Family::Decode)) return false;"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 133,
+      "method": "spend",
+      "family": "HashFile",
+      "text": "if (!spend(state,Family::HashFile) || !validate_path(state,path,false)) return false;"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 148,
+      "method": "spend",
+      "family": "HashChunk",
+      "text": "if (!spend(state,Family::HashChunk)) { ok=false; break; }"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 167,
+      "method": "spend",
+      "family": "StageScan",
+      "text": "if (!spend(state,Family::StageScan)) return false;"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 189,
+      "method": "spend",
+      "family": "StageEntry",
+      "text": "if (!spend(state,Family::StageEntry)) { ok=false; break; }"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 250,
+      "method": "admit_body",
+      "family": "CaptureSetup",
+      "text": "if(!admit_body(state,Family::CaptureSetup)) return false;"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 257,
+      "method": "admit_body",
+      "family": "Owner",
+      "text": "if (!admit_body(state,Family::Owner)) return false;"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 299,
+      "method": "admit_body",
+      "family": "Owner",
+      "text": "if (!admit_body(state,Family::Owner)) return false;"
+    },
+    {
+      "source": "sup_io.cpp",
+      "line": 351,
+      "method": "admit_body",
+      "family": "WriteChunk",
+      "text": "if (!admit_body(state,Family::WriteChunk)) return false;"
+    },
+    {
+      "source": "sup_main.cpp",
+      "line": 37,
+      "method": "charge",
+      "family": "WorkerPublish",
+      "text": "if (!charge(state.meter,Family::WorkerPublish)) {"
+    },
+    {
+      "source": "sup_main.cpp",
+      "line": 214,
+      "method": "admit_body",
+      "family": "WorkerStart",
+      "text": "if (!admit_body(state,Family::WorkerStart)) return false;"
+    },
+    {
+      "source": "sup_main.cpp",
+      "line": 245,
+      "method": "spend",
+      "family": "Consume",
+      "text": "if(cleanup) (void)spend(state,Family::Consume);"
+    },
+    {
+      "source": "sup_main.cpp",
+      "line": 246,
+      "method": "admit_body",
+      "family": "Consume",
+      "text": "else if(!admit_body(state,Family::Consume)) cleanup=true;"
+    },
+    {
+      "source": "sup_main.cpp",
+      "line": 309,
+      "method": "admit_body",
+      "family": "Coordinator",
+      "text": "if (!admit_body(state,Family::Coordinator)) break;"
+    },
+    {
+      "source": "sup_main.cpp",
+      "line": 316,
+      "method": "admit_body",
+      "family": "Poll",
+      "text": "if (!admit_body(state,Family::Poll) || !counter(state,state.terminal.body_polls,1)) break;"
+    },
+    {
+      "source": "sup_main.cpp",
+      "line": 451,
+      "method": "admit_body",
+      "family": "TargetResume",
+      "text": "if (ready && admit_body(state,Family::TargetResume)) {"
+    }
+  ],
+  "scope": "Literal source calls only. Reachability, dynamic executions and work totals are separate."
+}
