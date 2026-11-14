@@ -61,7 +61,7 @@ extra decay already covered at a nested boundary.
 | --- | ---: | --- |
 | Boundary and path arrays | 24 | Four argument evaluations and bindings, dispatch, entry and return, plus lifetimes of two arrays without source element initialization. |
 | Meter results and initial guard | 60 | Length expression, both meter outcomes, reason selection, three path checks with typed zero comparisons, indexed NUL read, short circuit and failure selection. |
-| Full- and volume-path calls and folded equality | 110 | Up to 22 for the full-path API and first result, 16 for the length cap and equality outcome, 44 for the folded helper and ordinal API, and 28 for the volume API and result. |
+| Full- and volume-path calls and folded equality | 110 | Up to 26 for the full-path API and first result, 10 for the length cap and equality outcome, 54 for the folded helper and ordinal API, and 20 for the volume API and result. |
 | Volume scan | 10,316 | 513 continuing cells at 20, final condition at 32, plus 24 for converted index zero, the three root checks and refusal selection. |
 | Bounded local path copy | 10,798 | 513 cells at 21, plus setup and final condition at 25. This is the reviewed R20 copy row. |
 | Ancestor work outside shrinking loops | 7,280 | At most 65 entries at 112, detailed below. |
@@ -70,7 +70,7 @@ extra decay already covered at a nested boundary.
 | One validation | 59,294 | |
 
 The folded helper uses the constant true supplied at this call. Its
-44 allowance includes pointer arguments and decays, the DWORD-to-U32
+54 allowance includes pointer arguments and decays, the DWORD-to-U32
 length conversion, argument bindings and entry, equal length, fold
 and extent tests, both explicit length conversions from U32 to int,
 the five native argument bindings, native call and result, the equality
