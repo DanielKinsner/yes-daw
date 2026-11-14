@@ -1,0 +1,32 @@
+{
+  "probe_sha256": "14B7821B79FC950F1B6504926FAACE1FD44507EA52085876AB58AA77A1E3CCB0",
+  "runtime_manifest_sha256": "28619B3443768E03BA45FD698030BC5DD743C6B819125D475B4AA1A2687D0C06",
+  "runtime_files": 323,
+  "seed_entries": 14,
+  "seed_key_value_utf16_units": 764,
+  "seed_logical_native_block_bytes": 1586,
+  "scope": "Managed process dictionary at one endpoint after fixed imports. Native block and writer interval unqualified.",
+  "managed_count": 15,
+  "managed_key_utf16_units": 155,
+  "managed_value_utf16_units": 751,
+  "known_value_utf16_units": {
+    "SystemRoot": 10,
+    "windir": 10,
+    "ComSpec": 27,
+    "PATH": 99,
+    "TEMP": 95,
+    "TMP": 95,
+    "USERPROFILE": 23,
+    "LOCALAPPDATA": 37,
+    "APPDATA": 39,
+    "ProgramFiles": 16,
+    "ProgramData": 14,
+    "PSModulePath": 278,
+    "POWERSHELL_TELEMETRY_OPTOUT": 1,
+    "POWERSHELL_UPDATECHECK": 3,
+    "PATHEXT": 4
+  },
+  "other_managed_count": 0,
+  "other_key_utf16_units": 0,
+  "other_value_utf16_units": 0
+}
