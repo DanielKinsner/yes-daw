@@ -1,0 +1,26 @@
+{
+  "source_sha256": {
+    "checker/clock_stage.cpp": "25D834DC7C9E9AA7B87FB8C4B6133ABA83C68B5FC99CD2852D265C27E6BDA80B",
+    "checker/source-costs.h": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+    "waveform-definition-r3/independent_clock.h": "27885D9076CD3FEF4F3527B1D058628F4AE5B71262DF8494FAFE85E7913462BA",
+    "include/engine/Time.h": "8E7E73946AE1991110B7919C1E2D62C50667301C61B1C7BDEEC52559F9DFB858"
+  },
+  "object_sha256": "CFAA3DA59488830906C4A639474DF85DD01CCCD685CDAC6DB03B48816567D0EB",
+  "compiler_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "include_count": 110,
+  "layouts": {
+    "qc_tick": {
+      "sizeof": 1,
+      "alignof": 1
+    },
+    "time_tick": {
+      "sizeof": 1,
+      "alignof": 1
+    },
+    "time_native": {
+      "sizeof": 1,
+      "alignof": 1
+    }
+  },
+  "raw_exit": 0
+}
