@@ -18,6 +18,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - [R22](docs/research/artifacts/2026-11-14-clock-r22-guard-read/review.md) passed 7,324 independent source checks and all four supervisor units compiled to COFF under `/WX`. The [native meter inventory](docs/research/artifacts/2026-11-14-clock-meter-inventory/result.json) covers 36 families and 50 literal calls. Next: price their dynamic schedules and finish the native resource joins before any link or run.
 - Fresh Windows apps-off Release CTest passed all 491 tests. The [identity-read count](docs/research/2026-11-14-clock-r20-identity-read-census.md) covers fragmented requests, SHA padding, the early refusal prefix and dynamic calls for all six identity and hash meter families.
 - The [identity storage worksheet](docs/research/2026-11-14-clock-r22-identity-storage.md) joins the measured named arrays and aggregates across request reading, path validation and hashing.
+- Independent review accepted the [corrected scan-loop rows](docs/research/2026-11-14-clock-r22-scan-loop-census.md) and their composition arithmetic. The remaining inherited non-loop rows still need full coverage.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
