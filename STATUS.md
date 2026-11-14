@@ -26,7 +26,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - Independent review accepted the [request and file-hash I/O bounds](docs/research/2026-11-14-clock-r22-identity-io-scalar-census.md), including SDK initialization, typed arguments and short-read loops.
 - Independent review accepted the [run-identity local work](docs/research/2026-11-14-clock-r22-run-identity-scalar-census.md). Next: join the shared path, close and meter boundaries, account for the remaining source through refusal and cleanup, and finish native resource and binding proof before a Clock run.
 - The [handle close worksheet](docs/research/2026-11-14-clock-r22-close-owner-census.md) passed independent review under the inherited failure-row bound.
-- The [request and identity subtotal](docs/research/2026-11-14-clock-r22-identity-local-work.md) combines the four reviewed local components for later phase pricing. Path, meter and owner close remain separate terms.
+- The [request and identity subtotal](docs/research/2026-11-14-clock-r22-identity-local-work.md) combines four reviewed local components. The [meter join](docs/research/2026-11-14-clock-r22-identity-meter-work.md) conditionally adds the eight families' spend and refusal work. Path, owner close and full phase composition remain separate terms.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
