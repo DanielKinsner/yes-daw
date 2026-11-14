@@ -16,6 +16,7 @@ REVISIONS = ROOT / "build-ci/musical-audio-persistent-planner-certification/sour
 MANIFESTS = {
     "r20": ("clock-oracle-r20-path-copy-source-r1", "69A5E104B0FE69B898D14276A15CC1643AEE56658B779417D919B2769EDC4D56"),
     "r21": ("clock-oracle-r21-constant-guard-source-r1", "EF1E775617A04D73D97D0E950557D626846E9172677BC897BDAB225FEB71EBB8"),
+    "r22": ("clock-oracle-r22-guard-read-source-r1", "28619B3443768E03BA45FD698030BC5DD743C6B819125D475B4AA1A2687D0C06"),
 }
 digest, load, require = (PURPOSE[name] for name in ("digest", "load", "require"))
 
