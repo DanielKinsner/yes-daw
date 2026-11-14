@@ -12,6 +12,7 @@ Older entries below are dated history, not competing "Now" instructions.
 
 - A [separate target object](docs/research/artifacts/2026-11-14-clock-r22-child-object/README.md#admission-enabled-entry-frames) compiled with only six guard literals changed in a temporary source copy. MSVC matched all 110 include pins and emitted COFF with the catalogue undefined.
 - The data-only checker recovered the entry from its exact unwind symbol after the first wrapper refused its local code label. It verifies 540,936 bytes of RSP decrement along `main → run → readText` before other frames and runtime storage.
+- The [pinned controller PE check](docs/research/artifacts/2026-11-14-clock-controller-startup/README.md#pinned-apphost-pe) reads the 1,572,864-byte stack reserve from the recovered PowerShell image. Runtime thread populations and backing still need qualification.
 - Next: carry the measured profile into the joint scratch proof only after matching the final enabled object and PE. Clock has not been bound or run.
 
 ## 2026-11-14 - Bound selected Clock controller allocations
