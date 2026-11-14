@@ -8,20 +8,21 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## 2026-11-14 - Recover the pinned Clock compiler
+## 2026-11-14 - Recover the pinned Clock compiler and advance the checker
 
 - Recovered MSVC 19.44.35228 from Microsoft's fixed 17.14.40 offline layout. All 91 pinned compiler-directory files match. [Recovery evidence](docs/research/2026-11-14-clock-r18-pinned-compiler.md)
 - The pinned compiler measured all 30 missing type layouts headlessly. The [combined receipt](docs/research/artifacts/2026-11-14-clock-layout-joins/README.md) matches each to its source ID and fills the measured terms in ten lifetime joins.
 - The [R19 local source revision](docs/research/artifacts/2026-11-14-clock-r19-local-profile/review.md) binds the staged tool paths. Its independent source review passed 8,463 assertions, including all 1,270 file pins and 35 directories. The native launch profile, pricing, resource fit and execution are pending.
 - Bounded [stage scans](docs/research/2026-11-14-clock-r18-stage-scan-census.md) and their [inner path operations](docs/research/2026-11-14-clock-r18-scan-path-census.md) across setup, normal writes and cleanup. Scalar prices remain open.
 - Bounded capture-worker [reads](docs/research/2026-11-14-clock-r18-worker-read-census.md) and [settlement calls](docs/research/2026-11-14-clock-r19-worker-settlement-census.md). The [supervisor ABI check](docs/research/artifacts/2026-11-14-clock-supervisor-abi/README.md) measured 23 types and eight offsets. The [scan storage join](docs/research/2026-11-14-clock-r20-scan-storage-join.md) accounts for nested named objects.
-- [R22](docs/research/artifacts/2026-11-14-clock-r22-guard-read/review.md) passed 7,324 independent source checks and all four supervisor units compiled to COFF under `/WX`. The [native meter inventory](docs/research/artifacts/2026-11-14-clock-meter-inventory/result.json) covers 36 families and 50 literal calls. Next: price their dynamic schedules and finish the native resource joins before any link or run.
+- [R22](docs/research/artifacts/2026-11-14-clock-r22-guard-read/review.md) passed 7,324 independent source checks and all four supervisor units compiled to COFF under `/WX`. The [native meter inventory](docs/research/artifacts/2026-11-14-clock-meter-inventory/result.json) covers 36 families and 50 literal calls.
 - Fresh Windows apps-off Release CTest passed all 491 tests. The [request and identity read count](docs/research/2026-11-14-clock-r20-identity-read-census.md) covers fragmentation, SHA padding, early refusal and dynamic calls for all eight decoding, identity and hash meter families.
 - The [identity storage worksheet](docs/research/2026-11-14-clock-r22-identity-storage.md) links the archived declarations and joins the measured objects across request reading, path validation and hashing.
 - Independent review accepted the [corrected scan-loop rows](docs/research/2026-11-14-clock-r22-scan-loop-census.md) and their composition arithmetic. The remaining inherited non-loop rows still need full coverage.
 - The [codec meter table](docs/research/2026-11-14-clock-r22-codec-meter-census.md) verifies eleven more call and debit bounds across startup, formatting and terminal encoding.
 - The [capture meter table](docs/research/2026-11-14-clock-r22-capture-meter-census.md) verifies thirteen call and debit bounds across worker admission, log writing, cleanup and stage scans.
-- The [path meter table and review](docs/research/2026-11-14-clock-r22-path-meter-census.md) cover the last four families. Independent review conditionally accepted the call and requested-amount bounds for all 36 families. Exact scalar work and resource fit are next.
+- The [path meter table and review](docs/research/2026-11-14-clock-r22-path-meter-census.md) cover the last four families. Independent review conditionally accepted the call and requested-amount bounds for all 36 families.
+- Independent review accepted the [SHA compression scalar worksheet](docs/research/2026-11-14-clock-r22-sha-compress-census.md). Next: complete update, padding and identity I/O work, carry the scalar bounds through refusal and cleanup, then finish native resource and binding proof before a Clock run.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
