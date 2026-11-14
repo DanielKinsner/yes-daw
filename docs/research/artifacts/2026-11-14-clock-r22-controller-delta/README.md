@@ -48,6 +48,50 @@ The listed cardinalities are conditional on the staged, authenticated
 manifest. They give the new row and loop domains for fresh source and
 resource accounting.
 
+## Script root caller work
+
+Run `python -E -B root-work.py` to recompose the pinned
+[R13 root caller ledger](../2026-11-06-clock-r13-runner-census-r3/sources/260-main-caller-component.json)
+under the current source and cardinalities. The function-free source
+diff and geometry checker accounts for every changed span. Function
+registration is one source event per declaration. The corrected
+static field receiver, larger token cap and transitive ceiling constants
+keep their previous direct port counts. New callee bodies are separate.
+
+| Added caller work | Conditional upper |
+| --- | ---: |
+| Two guard stores and two additional guard terms | 10 |
+| Static transport and helper joins | 18 |
+| Additional function registrations | 14 |
+| Retained-reservation operands | 16 |
+| Added directory literal slot and creation site | 16 |
+| 68 added iterations of both input and include loops | `68 × (40 + 22)` |
+| Seven extra root walk candidates returned to the caller | `7 × 49` |
+| Transport expected-name loop | `10 + 6 × 14` |
+| Transport descriptor loop | `10 + 6 × (5 + 9 + 26 + 4 + 31 + 30)` |
+| Added admitted binary amount and six added artifact rows | `14 + 6 × 14` |
+| 68 additional input descriptors and the helper descriptor | `68 × 34 + 43` |
+| Total delta | **7,820** |
+
+The transport name loop pays the nested map selection and foreach
+frame once, then foreach control, concatenation, and List Add with
+argument slots. Its descriptor loop uses six separate terms per row
+for foreach control, the static path join, maximum selection, hash
+caller, terminal length guard, and map plus Add. The cap selection
+allows the first `EndsWith` receiver/argument/enum and primitive result,
+the second equality, both tests and the selected Int64 result. The
+terminal length guard pays its own `EndsWith`, short-circuit, tuple
+getter, comparison and reached throw. The descriptor pays for four
+map field inputs, including the separate hash-hex caller and the List
+Add boundary. Both reservation and admitted expressions account for
+the nested binary map selection and direct Int64 cast. The helper's
+four-field transitive descriptor accounts for the two separate nested
+lookups plus List Add.
+
+The current caller-only subtotal is **188,619 conditional source
+actions**, including successful and refusal routes. Current hash and
+other shared callee occurrences retain their own phase schedules.
+
 ## Shared file hash body
 
 Run `python -E -B hash-schedule.py` to check all 19 written
