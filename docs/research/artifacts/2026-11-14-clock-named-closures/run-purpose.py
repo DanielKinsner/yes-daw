@@ -21,11 +21,12 @@ from run import decode
 
 
 def measure(source_root, compiler, output, prepare_source=prepare, names=("get", "nextBit"),
-            project_include=None, replaced_headers=()):
+            project_include=None, replaced_headers=(), first_include=None, required_headers=None):
     approved = prepare_source(source_root)
     allowed = verify_inputs(compiler)
     source = source_root / "checker/clock_stage.cpp"
     staged_headers = {path for path in approved if path != source}
+    required_headers = staged_headers if required_headers is None else required_headers
     require(all(path.read_bytes() == expected for path, expected in approved.items()),
             "instrumented source differs")
     output.mkdir()
@@ -35,6 +36,8 @@ def measure(source_root, compiler, output, prepare_source=prepare, names=("get",
         "PATH": f"{compiler};{profile['environment']['SystemRoot']}/System32",
         "TEMP": str(output), "TMP": str(output),
     }
+    if first_include is not None:
+        env["INCLUDE"] = f"{first_include};{env['INCLUDE']}"
     project_include = project_include or ROOT / "src"
     args = [str(compiler / "cl.exe"), "/nologo", "/std:c++20", "/EHsc", "/W4", "/WX",
             "/MD", "/permissive-", "/fp:strict", "/O2", "/D_ITERATOR_DEBUG_LEVEL=0",
@@ -58,7 +61,7 @@ def measure(source_root, compiler, output, prepare_source=prepare, names=("get",
     dependency = load(deps)["Data"]
     includes = {Path(path).resolve() for path in dependency["Includes"]}
     require(Path(dependency["Source"]).resolve() == source
-            and staged_headers <= includes <= allowed.keys() | staged_headers
+            and required_headers <= includes <= allowed.keys() | staged_headers
             and not includes.intersection({CLOCK_INCLUDE.resolve(), COST_INCLUDE.resolve(),
                                            *map(Path.resolve, replaced_headers)})
             and (project_include / "engine/Time.h").resolve() in includes, "wrong source dependency set")
@@ -77,7 +80,7 @@ def measure(source_root, compiler, output, prepare_source=prepare, names=("get",
     }
     result_json = json.dumps(receipt, indent=2) + "\n"
     (output / "result.json").write_text(result_json, encoding="utf-8", newline="\n")
-    print(result_json, end="")
+    print(f"PASS: {len(layouts)} closure layouts, {len(includes)} pinned includes, COFF {receipt['object_sha256']}")
 
 
 if __name__ == "__main__":
