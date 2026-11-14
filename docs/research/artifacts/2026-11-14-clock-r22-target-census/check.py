@@ -79,6 +79,7 @@ def main():
             "archived target arithmetic differs")
     print(f"PASS: 4 target files, 35 compiled SDK/UCRT headers, 3 CRT sources, 76 audited families")
     print(f"Conditional source operands: produce {produce:,}, verify {verify:,}, total {produce + verify:,}")
+    return produce, verify
 
 
 if __name__ == "__main__":

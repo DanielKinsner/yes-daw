@@ -13,6 +13,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The [path catalogue check](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/README.md#path-catalogue-payload) checks 1,369 leaves and 1,549 distinct path strings for one fixed lexical profile. It counts up to 1,376 parent arrays including failed first builds.
 - These array requests are covered under the selected x64 layout. String duplication, dictionary histories and runtime path behavior have separate ownership terms.
 - The [startup shape check](docs/research/artifacts/2026-11-14-clock-controller-startup/README.md#conditional-allocation-join) joins the observed 15 entries to 4,744 selected string and array bytes per capture, conditional on that raw shape persisting.
+- The [native and target composition check](docs/research/artifacts/2026-11-14-clock-r22-native-work-map/README.md) verifies both conditional work envelopes against the same manifest. Controller source composition remains open.
 - Next: qualify raw environment intervals and native backing, then combine the controller, helper and target under the shared scratch cap.
 
 ## 2026-11-14 - Check Clock controller fences and startup
@@ -137,7 +138,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    after3,374 checks for a pre-resume budget-cut gap and stale descriptive policy counts. R16's fresh whole
    functional source review accepts its correction, with native/profile and complete pricing gates still held.
    R18 reuses R17's bounded directory scan and corrects its manifest provenance. R22 repairs a path copy and
-   compiles all four supervisor units with the recovered pinned MSVC. Independent functional source review passed.
+   compiles all four supervisor units and the guarded target with the recovered pinned MSVC. Independent functional source review passed.
+   Native checker and target source envelopes, controller deltas and selected payloads have headless checks.
    All Clock execution guards remain false; no supervisor/Clock run has started.
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
    reader actually passed88 types/391 declared fields. A separate /c-only purpose now measured194 type/layout
@@ -152,8 +154,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    source/data checks: four source-sponsorship omissions remain in that proposal. Complete scalarR3 is now
    frozen at5,577,542,589 after9,244 own checks; a fresh whole critic's18,310 checks support conditional
    acceptance for exact R13 only. No total/price transfers to R16/R17, and no combined limit or fit is accepted.
-   Next: complete the R22 source work bounds and the joined resource, native and binding proof before any
-   Clock attempt. Earlier source revisions are recorded below.
+   Next: finish the shared controller schedule and prove the combined 32 MiB scratch envelope, including enabled
+   frames, inherited environment and native pipe/process ownership. Bind the catalogue and exact images only once
+   those terms are closed, then run Clock headlessly. Earlier source revisions are recorded below.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**

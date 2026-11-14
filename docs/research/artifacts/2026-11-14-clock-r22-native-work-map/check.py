@@ -109,6 +109,7 @@ def check_phases():
                  + 4_441_192 + bootstrap_spends * 103 + 220)
     require(bootstrap == 14_664_994 and f"{bootstrap:,}" in text, "bootstrap upper differs")
     print(f"PASS: exact R22 phase arithmetic, {all_prefix + all_tail:,} actions across three helpers")
+    return all_prefix, all_tail
 
 
 def main():
@@ -128,7 +129,7 @@ def main():
             seen[path.name] = named.total()
     require(seen.keys() == LEDGERS.keys() and sum(seen.values()) == 87, "unit coverage differs")
     print(f"PASS: {sum(seen.values())} exact R22 native function definitions mapped to source ledgers")
-    check_phases()
+    return check_phases()
 
 
 if __name__ == "__main__":
