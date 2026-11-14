@@ -11,11 +11,11 @@ Older entries below are dated history, not competing "Now" instructions.
 ## 2026-11-14 - Recover the pinned Clock compiler
 
 - Recovered MSVC 19.44.35228 from Microsoft's fixed 17.14.40 offline layout. All 91 pinned compiler-directory files match. [Recovery evidence](docs/research/2026-11-14-clock-r18-pinned-compiler.md)
-- The pinned compiler measured 29 of 30 layouts headlessly, most recently [all three comparator closures](docs/research/artifacts/2026-11-14-clock-comparator-closures/README.md). The append closure and the full Clock run remain pending.
+- The pinned compiler measured all 30 missing type layouts headlessly, including [the exact MSVC append closure](docs/research/artifacts/2026-11-14-clock-append-closure/README.md). Whole resource fit and the full Clock run remain pending.
 - The [R19 local source revision](docs/research/artifacts/2026-11-14-clock-r19-local-profile/review.md) binds the staged tool paths. Its independent source review passed 8,463 assertions, including all 1,270 file pins and 35 directories. The native launch profile, pricing, resource fit and execution are pending.
 - Bounded [stage scans](docs/research/2026-11-14-clock-r18-stage-scan-census.md) and their [inner path operations](docs/research/2026-11-14-clock-r18-scan-path-census.md) across setup, normal writes and cleanup. Scalar prices remain open.
 - Bounded capture-worker [reads](docs/research/2026-11-14-clock-r18-worker-read-census.md) and [settlement calls](docs/research/2026-11-14-clock-r19-worker-settlement-census.md), including zero progress, failure and cleanup.
-- Drafted the [directory-name scalar count](docs/research/2026-11-14-clock-r19-name-scalar-census.md). Next: measure the exact append closure and continue the remaining source census.
+- Drafted the [directory-name scalar count](docs/research/2026-11-14-clock-r19-name-scalar-census.md) and [expanded scan meter calls](docs/research/2026-11-14-clock-r19-stage-meter-census.md). Next: compose the measured layouts with the source lifetime joins and finish checker work accounting.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
@@ -82,7 +82,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The native-object proposal's93 declaration scopes and405,128-byte large-object component now have an
    independent scoped acceptance after2,240 checks; their surrounding context union and whole fit remain open.
    Complete SDK/contextR2 has conditional source-incidence/minimal-type acceptance after1,990 independent
-   checks. The pinned compile-only purposes measured 13 direct layouts and 16 exact closure layouts. One remains.
+   checks. The pinned compile-only purposes measured all 13 direct layouts and 17 exact closure layouts.
    ADR-0090's complete supervisor protocol passed115 independent checks; its v2 diagnostic delta is Accepted.
    The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
    is REVISE, with no runtime credit. A different fresh critic returned R13 scalarR2 REVISE after3,770
