@@ -14,6 +14,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The [request recipe worksheet](docs/research/2026-11-14-clock-r22-request-recipe-census.md) verifies template limits, the alternate child recipes and numeric leading-zero checks.
 - The [profile and command worksheet](docs/research/2026-11-14-clock-r22-profile-command-census.md) covers raw command parsing, bounding input before path copies, and the native module-path query.
 - The [controller transport worksheet](docs/research/2026-11-14-clock-r22-controller-transport-resources.md) checks explicit request, command and terminal payloads and identifies the environment dictionary and native owners retained across failure.
+- The [controller correspondence check](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/README.md) identifies 19 added or changed functions and 69 exact older bodies for the fresh caller and phase review.
 
 ## 2026-11-14 - Bound Clock startup and mandatory cleanup
 
