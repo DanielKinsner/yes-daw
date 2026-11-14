@@ -46,11 +46,17 @@ def run(compiler, output):
     includes = {Path(path).resolve() for path in dependency["Includes"]}
     require(Path(dependency["Source"]).resolve() == source and includes <= allowed.keys(),
             "unexpected compiler dependency")
-    raw = obj.read_bytes()
+    rows = decode(obj.read_bytes(), b"ClosureLayout")
+    require(rows == {1: (8, 8), 2: (1, 1)}, "missing or unexpected closure records")
+    print(f"PASS: probe closure records {rows}; COFF {digest(obj.read_bytes())}; {len(includes)} pinned includes")
+
+
+def decode(raw, export_name):
     require(len(raw) >= 20, "truncated object")
-    machine, sections, _, symbols, _, optional, _ = struct.unpack_from("<HHIIIHH", raw)
-    require(machine == 0x8664 and optional == 0 and 1 <= sections <= 512
-            and 20 + 40 * sections <= symbols <= len(raw), "bad COFF header")
+    machine, sections, _, symbols, count, optional, _ = struct.unpack_from("<HHIIIHH", raw)
+    require(machine == 0x8664 and optional == 0 and 1 <= sections
+            and 20 + 40 * sections <= symbols <= len(raw)
+            and count <= (len(raw) - symbols) // 18, "bad COFF header")
     rows = {}
     directives = b""
     for i in range(sections):
@@ -68,10 +74,15 @@ def run(compiler, output):
             require(magic == 0x5944434C4F533031 and site not in rows,
                     "bad closure record tag or duplicate site")
             rows[site] = (extent, alignment)
-    require(directives.upper().count(b"/EXPORT:") == 2 and b"ClosureLayout" in directives,
-            "missing probe export directives")
-    require(rows == {1: (8, 8), 2: (1, 1)}, "missing or unexpected closure records")
-    print(f"PASS: probe closure records {rows}; COFF {digest(raw)}; {len(includes)} pinned includes")
+    exports = [token for token in directives.split() if token.upper().startswith(b"/EXPORT:")]
+    require(len(exports) == 2 and all(export_name in token for token in exports),
+            "missing closure export directives")
+    require(rows.keys() == {1, 2} and all(
+        size > 0 and alignment > 0 and size % alignment == 0
+        and alignment & (alignment - 1) == 0
+        for size, alignment in rows.values()
+    ), "missing or invalid closure records")
+    return rows
 
 
 if __name__ == "__main__":

@@ -1,0 +1,21 @@
+{
+  "source_sha256": {
+    "checker/clock_stage.cpp": "36E3876CF164F03A27F01A9AB9E8F0BAF3A39313E273C3AE98B6EF4D29494436",
+    "checker/source-costs.h": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+    "waveform-definition-r3/independent_clock.h": "35E3AF54FC42FF535B4F59BFB633B668F77287341DB922D25520687F83A880B0"
+  },
+  "object_sha256": "D43C1FE6505C706A4054EDD74C6959EBF713EC6F2BBA85046DB495A23C13389D",
+  "compiler_sha256": "88C8344236A27A6E727E0A8EDC49AAA2690BDC7A9464B9D18CC7ABE70A9F1C0D",
+  "include_count": 110,
+  "layouts": {
+    "get": {
+      "sizeof": 32,
+      "alignof": 8
+    },
+    "nextBit": {
+      "sizeof": 16,
+      "alignof": 8
+    }
+  },
+  "raw_exit": 0
+}
