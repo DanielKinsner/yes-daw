@@ -13,6 +13,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The reviewed [controller fence worksheet](docs/research/2026-11-14-clock-r22-controller-fence-work.md) covers the path catalogue, eight pin fences and the ProcessPath startup checks.
 - All 19 changed or new controller function bodies now have local worksheet coverage. The current callers and resource phase join still need a whole check.
 - The [headless PowerShell observation](docs/research/artifacts/2026-11-14-clock-controller-startup/README.md) verified the recovered host and measured 15 managed environment entries after the fixed imports. Native block and all three capture intervals still need qualification.
+- The reviewed [hash schedule](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/README.md#shared-file-hash-body) joins the 19 exact call sites at 10,513 calls and 88,908 read chunks, including refusal paths.
 - Next: compose the shared controller bodies using the current call counts and account for the retained startup and path structures.
 
 ## 2026-11-14 - Bound Clock controller helper work

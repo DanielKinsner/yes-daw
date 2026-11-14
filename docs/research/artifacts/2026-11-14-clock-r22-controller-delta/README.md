@@ -47,3 +47,22 @@ the shared file-set, hash, JSON preflight and serialization bodies.
 The listed cardinalities are conditional on the staged, authenticated
 manifest. They give the new row and loop domains for fresh source and
 resource accounting.
+
+## Shared file hash body
+
+Run `python -E -B hash-schedule.py` to check all 19 written
+`Get-TaskHash` call sites. The script matches the unchanged body to
+its [R13 operand ledger](../2026-11-06-clock-r13-runner-census-r3/sources/250-body-ledgers.json)
+and rebuilds the occurrence schedule from the R22 manifest and call
+graph. There are at most 10,513 calls and 88,908 explicit read chunks
+across the whole controller. The inherited 295 fixed and 65 per chunk
+give **8,880,355 conditional actions**. The source uses `ReadExactly`,
+then checks EOF, so a failed partial read cannot restart a chunk.
+
+The schedule includes all 14 binding visits and the target digest for
+each request. It reserves for the current manifest's full 1 MiB on an
+identity mismatch, and for a final reference or build candidate that
+can be hashed before refusing at the aggregate cap. Hash calls own
+their path guard dispatch and scoped stream/hasher retirement. The
+path guard bodies, caller casts, digest consumers, bootstrap hash
+family and runtime buffer owners retain separate terms.
