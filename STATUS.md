@@ -13,6 +13,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The [native capture and creation worksheet](docs/research/2026-11-14-clock-r22-capture-creation-census.md) covers position checks, pipe setup, creation and raw failed-owner capture.
 - The [request recipe worksheet](docs/research/2026-11-14-clock-r22-request-recipe-census.md) verifies template limits, the alternate child recipes and numeric leading-zero checks.
 - The [profile and command worksheet](docs/research/2026-11-14-clock-r22-profile-command-census.md) covers raw command parsing, bounding input before path copies, and the native module-path query.
+- The [controller transport worksheet](docs/research/2026-11-14-clock-r22-controller-transport-resources.md) checks explicit request, command and terminal payloads and identifies the environment dictionary and native owners retained across failure.
 
 ## 2026-11-14 - Bound Clock startup and mandatory cleanup
 
