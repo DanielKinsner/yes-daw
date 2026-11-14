@@ -23,6 +23,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The [capture meter table](docs/research/2026-11-14-clock-r22-capture-meter-census.md) verifies thirteen call and debit bounds across worker admission, log writing, cleanup and stage scans.
 - The [path meter table and review](docs/research/2026-11-14-clock-r22-path-meter-census.md) cover the last four families. Independent review conditionally accepted the call and requested-amount bounds for all 36 families.
 - Independent review accepted [SHA compression](docs/research/2026-11-14-clock-r22-sha-compress-census.md) and [SHA update and padding](docs/research/2026-11-14-clock-r22-sha-stream-census.md) scalar rows. Next: complete identity I/O, carry scalar bounds through refusal and cleanup, then finish native resource and binding proof before a Clock run.
+- Independent review accepted the [request and file-hash I/O bounds](docs/research/2026-11-14-clock-r22-identity-io-scalar-census.md), including SDK initialization, typed arguments and short-read loops.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
