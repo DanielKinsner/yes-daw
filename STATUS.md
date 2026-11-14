@@ -8,6 +8,10 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Bound Clock worker and log work
+
+- Independent review accepted the [worker read and publication bounds](docs/research/2026-11-14-clock-r22-worker-thread-census.md), with native destination writes accounted separately.
+
 ## 2026-11-14 - Bound Clock launch and request verification
 
 - The [native capture and creation worksheet](docs/research/2026-11-14-clock-r22-capture-creation-census.md) covers position checks, pipe setup, creation and raw failed-owner capture.
