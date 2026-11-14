@@ -20,6 +20,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The [identity storage worksheet](docs/research/2026-11-14-clock-r22-identity-storage.md) joins the measured named arrays and aggregates across request reading, path validation and hashing.
 - Independent review accepted the [corrected scan-loop rows](docs/research/2026-11-14-clock-r22-scan-loop-census.md) and their composition arithmetic. The remaining inherited non-loop rows still need full coverage.
 - The [codec meter table](docs/research/2026-11-14-clock-r22-codec-meter-census.md) verifies eleven more call and debit bounds across startup, formatting and terminal encoding.
+- The [capture meter table](docs/research/2026-11-14-clock-r22-capture-meter-census.md) verifies thirteen call and debit bounds across worker admission, log writing, cleanup and stage scans.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
