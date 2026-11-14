@@ -16,7 +16,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - Bounded [stage scans](docs/research/2026-11-14-clock-r18-stage-scan-census.md) and their [inner path operations](docs/research/2026-11-14-clock-r18-scan-path-census.md) across setup, normal writes and cleanup. Scalar prices remain open.
 - Bounded capture-worker [reads](docs/research/2026-11-14-clock-r18-worker-read-census.md) and [settlement calls](docs/research/2026-11-14-clock-r19-worker-settlement-census.md). The [supervisor ABI check](docs/research/artifacts/2026-11-14-clock-supervisor-abi/README.md) measured 23 types and eight offsets. The [scan storage join](docs/research/2026-11-14-clock-r20-scan-storage-join.md) accounts for nested named objects.
 - [R20 source review](docs/research/artifacts/2026-11-14-clock-r20-path-copy/review.md) passed 7,730 checks. The exact native object compile found MSVC C4127 at the constant false execution guard. Fix that source and keep warnings as errors. [Compile attempt](docs/research/artifacts/2026-11-14-clock-supervisor-abi/README.md)
-- Fresh Windows apps-off Release CTest passed all 491 tests. This run used no app window or audio device.
+- Fresh Windows apps-off Release CTest passed all 491 tests. The [identity-read count](docs/research/2026-11-14-clock-r20-identity-read-census.md) covers fragmented requests, SHA padding and the early refusal prefix.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
 
