@@ -81,6 +81,7 @@ def check():
               for family, calls, amounts in rows}
     require(actual == expected and len(rows) == len(expected), "census table differs")
     print(f"PASS: {len(expected)} R22 request and hash meter families, {blocks:,} compression blocks per helper")
+    return set(expected)
 
 
 if __name__ == "__main__":

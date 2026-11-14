@@ -59,6 +59,7 @@ def check():
     actual = {name: int(calls.replace(",", "")) for name, calls in rows}
     require(actual == expected and len(rows) == len(expected), "capture meter table differs")
     print(f"PASS: {len(expected)} R22 capture and stage meter families")
+    return set(expected)
 
 
 if __name__ == "__main__":

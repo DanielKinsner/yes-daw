@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import runpy
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -59,13 +60,28 @@ def inventory():
     }
 
 
+def check_bounds(result):
+    here = Path(__file__).resolve().parent
+    families = set()
+    for group in ("hash", "codec", "capture", "path"):
+        script = here.parent / f"2026-11-14-clock-{group}-meter" / "check.py"
+        checked = runpy.run_path(str(script))["check"]()
+        require(families.isdisjoint(checked), f"duplicate scheduled meter family in {group}")
+        families.update(checked)
+    require(families == set(result["family_sites"]), "scheduled and declared meter families differ")
+    print(f"PASS: all {len(families)} R22 meter families covered exactly once")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", type=Path)
+    parser.add_argument("--check-bounds", action="store_true")
     args = parser.parse_args()
     result = inventory()
-    if args.check is None:
+    if args.check is None and not args.check_bounds:
         print(json.dumps(result, indent=2))
-    else:
+    if args.check is not None:
         require(json.loads(args.check.read_bytes()) == result, "meter inventory differs")
         print(f"PASS: {result['family_count']} families, {result['literal_site_count']} literal meter calls")
+    if args.check_bounds:
+        check_bounds(result)

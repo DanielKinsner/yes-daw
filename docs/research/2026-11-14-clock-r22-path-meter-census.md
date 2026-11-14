@@ -60,3 +60,8 @@ invocation and requested-amount bounds are conditionally accepted
 under the exclusive ready/ack handoff, visibility and native output
 extent premises. Successful debits by phase, scalar work prices and
 native time remain open.
+
+From the repository root, with the exact R22 candidate staged, run
+`python -E -B docs/research/artifacts/2026-11-14-clock-meter-inventory/check.py --check-bounds`.
+The command checks each schedule and requires every native family to
+appear exactly once across the four tables.

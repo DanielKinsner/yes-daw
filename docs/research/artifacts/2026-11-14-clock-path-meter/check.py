@@ -61,6 +61,7 @@ def check():
               for name, calls, amounts in rows}
     require(actual == expected and len(rows) == len(expected), "path meter table differs")
     print(f"PASS: {len(expected)} R22 path and string meter families")
+    return set(expected)
 
 
 if __name__ == "__main__":

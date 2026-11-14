@@ -55,6 +55,7 @@ def check():
               for name, calls, amounts in rows}
     require(actual == expected and len(rows) == len(expected), "codec meter table differs")
     print(f"PASS: {len(expected)} R22 command and terminal meter families")
+    return set(expected)
 
 
 if __name__ == "__main__":
