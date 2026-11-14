@@ -13,6 +13,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The [R22 scan worksheet](docs/research/2026-11-14-clock-r22-scan-final-census.md) expands the previously open non-loop rows and verifies the conditional directory-scan upper. It includes nested joins, path validation and failure routes.
 - Independent review accepted the [terminal validation and encoding bounds](docs/research/2026-11-14-clock-r22-terminal-codec-scalar-census.md). Their meter and publication callers have separate rows.
 - The [retained-byte projection](docs/research/artifacts/2026-11-14-clock-retained-sdk/README.md) checks the 80 newly reached SDK headers against the existing reservation, with the final link input and binding set still open.
+- A [reviewed null sizing query](docs/research/artifacts/2026-11-14-clock-attribute-size/README.md) measured 72 bytes for the two-entry process attribute list on this host, with final loader association still open.
 - Next: close the remaining codec, launch, worker and cleanup work, and join controller and target resources before binding.
 
 ## 2026-11-14 - Recover the pinned Clock compiler and advance the checker
