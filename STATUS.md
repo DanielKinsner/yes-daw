@@ -11,7 +11,7 @@ Older entries below are dated history, not competing "Now" instructions.
 ## 2026-11-14 - Recover the pinned Clock compiler
 
 - Recovered MSVC 19.44.35228 from Microsoft's fixed 17.14.40 offline layout. All 91 pinned compiler-directory files match. [Recovery evidence](docs/research/2026-11-14-clock-r18-pinned-compiler.md)
-- Verified all 427 compiler headers and staged the exact tools in a separate directory. The headless layout purpose covers 13 direct types. The 17 closure layouts and the full Clock run remain pending.
+- The [headless compile-only check](docs/research/artifacts/2026-11-14-clock-direct-layout/README.md) measured all 13 direct types with the exact compiler and 110 verified includes. The 17 closure layouts and the full Clock run remain pending.
 - Tightened the [stage-scan bounds](docs/research/2026-11-14-clock-r18-stage-scan-census.md) to 1,049,146 per helper, with at most 311 scans containing work after the prefix cut. Scalar prices remain open.
 
 ## 2026-11-14 - Resume Musical audio work headlessly
@@ -79,7 +79,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The native-object proposal's93 declaration scopes and405,128-byte large-object component now have an
    independent scoped acceptance after2,240 checks; their surrounding context union and whole fit remain open.
    Complete SDK/contextR2 has conditional source-incidence/minimal-type acceptance after1,990 independent
-   checks. All30 exact type layouts remain null; a separate compile-only purpose is being prepared.
+   checks. The pinned compile-only purpose measured 13 direct type layouts. The other 17 are exact closure types.
    ADR-0090's complete supervisor protocol passed115 independent checks; its v2 diagnostic delta is Accepted.
    The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
    is REVISE, with no runtime credit. A different fresh critic returned R13 scalarR2 REVISE after3,770
