@@ -12,6 +12,7 @@ Older entries below are dated history, not competing "Now" instructions.
 
 - Independent review accepted the [worker read and publication bounds](docs/research/2026-11-14-clock-r22-worker-thread-census.md), with native destination writes accounted separately.
 - The [worker acquisition and cleanup bounds](docs/research/2026-11-14-clock-r22-worker-coordinator-census.md) include cutoff races, normal and cleanup consumes, and already-admitted settlement.
+- The [log writer worksheet](docs/research/2026-11-14-clock-r22-log-writer-census.md) accounts for short writes, count updates and work through the next refused write ticket.
 
 ## 2026-11-14 - Bound Clock launch and request verification
 
