@@ -8,6 +8,11 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Recover the pinned Clock compiler
+
+- Recovered MSVC 19.44.35228 from Microsoft's fixed 17.14.40 offline layout. All 91 pinned compiler-directory files match. [Recovery evidence](docs/research/2026-11-14-clock-r18-pinned-compiler.md)
+- Next, stage those bytes separately and finish the headless layout purpose for 13 direct types. The 17 closure layouts and the full Clock run remain pending.
+
 ## 2026-11-14 - Resume Musical audio work headlessly
 
 - The [R18 source revision](docs/research/artifacts/2026-11-14-clock-r18-provenance/review.md) fixes stale checker metadata. Its independent functional source review passed 6,266 assertions.
