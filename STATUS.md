@@ -8,6 +8,10 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Bound Clock controller helper work
+
+- The [controller transport work](docs/research/2026-11-14-clock-r22-controller-transport-work.md) covers the request, hash, hex argument and terminal read for all three child slots.
+
 ## 2026-11-14 - Join native Clock source work
 
 - The [native phase checker](docs/research/2026-11-14-clock-r22-native-phase-work.md) maps all 87 supervisor functions and verifies the conditional prefix, tail and bootstrap arithmetic. Controller and target prices and joint resource fit remain open.
