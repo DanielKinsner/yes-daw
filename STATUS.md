@@ -12,6 +12,7 @@ Older entries below are dated history, not competing "Now" instructions.
 
 - Independent review accepted the [terminal publication and owner retirement work](docs/research/2026-11-14-clock-r22-publication-scalar-census.md), including short writes and late failures.
 - The [request decoder bounds](docs/research/2026-11-14-clock-r22-decode-scalar-census.md) cover each helper slot, wire conversion and UTF-16 copy paths. The decoder meter and request file work are separate.
+- The [coordinator worksheet](docs/research/2026-11-14-clock-r22-coordinator-census.md) prices the root, normal polls, post-cut overlap and direct cleanup. Worker, file and terminal callees retain their own rows.
 
 ## 2026-11-14 - Compose Clock checker bounds
 
