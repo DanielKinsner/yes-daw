@@ -8,6 +8,11 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Compose Clock checker bounds
+
+- The [R22 scan worksheet](docs/research/2026-11-14-clock-r22-scan-final-census.md) expands the previously open non-loop rows and verifies the conditional directory-scan upper. It includes nested joins, path validation and failure routes.
+- Next: close the remaining codec, launch, worker and cleanup work, and join controller and target resources before binding.
+
 ## 2026-11-14 - Recover the pinned Clock compiler and advance the checker
 
 - Recovered exact [MSVC 19.44.35228](docs/research/2026-11-14-clock-r18-pinned-compiler.md) and the [pinned PowerShell files](docs/research/artifacts/2026-11-14-clock-controller-recovery/README.md). The R19 source review verified 1,270 files and 35 directories at the staged paths.
