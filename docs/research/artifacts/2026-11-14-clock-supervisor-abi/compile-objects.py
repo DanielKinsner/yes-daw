@@ -1,4 +1,4 @@
-"""Compile the four exact R20 supervisor translation units without linking."""
+"""Compile the four exact supervisor translation units without linking."""
 
 import argparse
 import ctypes
@@ -12,17 +12,18 @@ import subprocess
 HERE = Path(__file__).resolve().parent
 PURPOSE = runpy.run_path(str(HERE / "run-purpose.py"))
 ROOT = PURPOSE["ROOT"]
-MANIFEST = ROOT / (
-    "build-ci/musical-audio-persistent-planner-certification/source-revisions/"
-    "clock-oracle-r20-path-copy-source-r1/source-manifest.json"
-)
-MANIFEST_HASH = "69A5E104B0FE69B898D14276A15CC1643AEE56658B779417D919B2769EDC4D56"
+REVISIONS = ROOT / "build-ci/musical-audio-persistent-planner-certification/source-revisions"
+MANIFESTS = {
+    "r20": ("clock-oracle-r20-path-copy-source-r1", "69A5E104B0FE69B898D14276A15CC1643AEE56658B779417D919B2769EDC4D56"),
+    "r21": ("clock-oracle-r21-constant-guard-source-r1", "EF1E775617A04D73D97D0E950557D626846E9172677BC897BDAB225FEB71EBB8"),
+}
 digest, load, require = (PURPOSE[name] for name in ("digest", "load", "require"))
 
 
-def compile_objects(compiler, output):
-    manifest_raw = MANIFEST.read_bytes()
-    require(digest(manifest_raw) == MANIFEST_HASH, "unexpected R20 manifest")
+def compile_objects(compiler, output, revision):
+    folder, manifest_hash = MANIFESTS[revision]
+    manifest_raw = (REVISIONS / folder / "source-manifest.json").read_bytes()
+    require(digest(manifest_raw) == manifest_hash, f"unexpected {revision} manifest")
     manifest = json.loads(manifest_raw)
     rows = manifest["supervisor"]["native_sources"]
     sources = {(ROOT / row["path"]).resolve(): row["sha256"] for row in rows}
@@ -87,19 +88,20 @@ def compile_objects(compiler, output):
     check_sources()
     require(PURPOSE["verify_inputs"](compiler) == includes and PURPOSE["pin_sdk"]() == sdk_pins,
             "tool or SDK changed")
-    receipt = {"manifest_sha256": MANIFEST_HASH,
+    receipt = {"manifest_sha256": manifest_hash,
                "compiler_sha256": digest((compiler / "cl.exe").read_bytes()),
                "supervisor_header_sha256": sources[header], "flags": flags[:-2] + ["/I<sup.h-root>", "/c"],
                "objects": objects,
                "include_hashes": {path.as_posix(): allowed[path] for path in sorted(include_union)}}
     (output / "object-result.json").write_text(json.dumps(receipt, indent=2) + "\n",
                                                encoding="utf-8", newline="\n")
-    print(f"PASS: {len(objects)} R20 supervisor COFF objects, no link")
+    print(f"PASS: {len(objects)} {revision.upper()} supervisor COFF objects, no link")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("compiler", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--revision", choices=MANIFESTS, default="r20")
     args = parser.parse_args()
-    compile_objects(args.compiler.resolve(strict=True), args.output.resolve())
+    compile_objects(args.compiler.resolve(strict=True), args.output.resolve(), args.revision)
