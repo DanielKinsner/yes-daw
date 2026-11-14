@@ -1,0 +1,49 @@
+{
+  "revision": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r18-provenance-source-r1",
+  "predecessor_manifest_sha256": "3A7F1C7DEE2AAC06568F5AF6C238747094576471A94537B435CA83ADADF21697",
+  "unsealed_R17_review_sha256": "7014C5239F3DF70B6D649BAD52348E750B45236FD0F5540195AF616C28D884FD",
+  "sources": [
+    {
+      "path": "clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "lines": 289
+    },
+    {
+      "path": "run-clock.ps1",
+      "bytes": 131334,
+      "sha256": "C1A6EA8C3356BC503DAA54F691CD95C433D4C6B60DD7501781D6FDC1EA532C2C",
+      "lines": 1279
+    },
+    {
+      "path": "source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "lines": 72
+    },
+    {
+      "path": "README.md",
+      "bytes": 875,
+      "sha256": "BC4367C287977FA4688AF4972C2606E287D357F0882BE224608478C29FFE68FA",
+      "lines": 16
+    },
+    {
+      "path": "source-manifest.json",
+      "bytes": 528393,
+      "sha256": "6F85483B234E1A4D052A84804A0AA15CC34E1392A1257E45EEFD9D1F06BB89E0",
+      "lines": 13308
+    }
+  ],
+  "bootstrap": {
+    "nodes": 16948,
+    "container_depth": 4,
+    "string_units": 435
+  },
+  "input_count": 1265,
+  "input_bytes": 464081813,
+  "input_hash_chunks": 7939,
+  "own5_bytes": 699285,
+  "complete_current_inputs": 1271,
+  "maximum_complete_fence_identities": 1346,
+  "reservation_upper": 819261702
+}

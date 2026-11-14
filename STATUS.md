@@ -8,26 +8,14 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## Paused at Dan's request - 2026-11-06
+## 2026-11-14 - Resume Musical audio work headlessly
 
-Dan asked to stop safely so he can try the app after almost72 hours. All agents are stopped.
-**Resume implementation only when Dan asks.** The [safe-stop handoff](docs/research/checkpoints/2026-11-06-user-test-stop/README.md)
-preserves unfinished work and the exact downloaded test-build receipt.
+- The [R18 source revision](docs/research/artifacts/2026-11-14-clock-r18-provenance/review.md) fixes stale checker metadata. Its independent functional source review passed 6,266 assertions.
+- Restored the missing repo inputs and verified all 408 repo file hashes. This host has 324 absent and 48 different absolute inputs, including a different compiler.
+- Windows apps-off Release built and passed all 491 tests. The Clock helper, checker workload and audio devices were not started.
+- Next: advance the source work census, then qualify the exact layouts on a verified compiler profile before any Clock run. Audible tempo-follow remains pending.
 
-- Open `outputs/YesDaw-test-d3ec661/YesDaw.exe`; portable ZIP: `outputs/YesDaw-test-d3ec661.zip`.
-  This is exact app commitd3ec661 from full ten-job successful CI42146047209; downloaded, extracted and
-  file-verified, never launched by the agent. Tracked app source/CMake still match that exact CI commit.
-  Later commits add research/evidence, not shipped features. Delivery hashes are in the checkpoint.
-- Try continuous MIDI editing, background import/stretch, reverse/cross-rate fixes, and complete Tempo-map
-  MIDI/grid/quantize/metronome/count-in behavior. Musical MIDI defaults and persistence/recovery are included.
-- Audio tempo-follow, linked editing/folders and piano ghost/used-pitches views remain unfinished.
-  R17's source is frozen after1,671 own checks, but its fresh whole review is unsealed and reported stale
-  current R16 provenance fields. No R17 whole acceptance or compiler/helper/Clock execution is certified.
-- All unfinished current review/census/layout-purpose files and the unrun recipe test are preserved exactly
-  in the checkpoint. On resume: correct current runner provenance in a new successor, finish exact-layout
-  purpose/review and whole work/resource/native/binding proof, then continue Musical audio in the active plan.
-
-## Scoreboard - where the app stands (kept current; last updated 2026-11-06)
+## Scoreboard - where the app stands (kept current; last updated 2026-11-14)
 
 **Make a song today** (evidence: the real-app drives on packaged build 7a1b0ad, 2026-10-13)
 - Import audio - WORKING: WAV/AIFF/FLAC/Ogg/MP3 at supported sample rates, drag-drop, browser preview.
@@ -77,7 +65,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The complete R15 correction is frozen after1,764 own checks; its fresh whole critic returned REVISE
    after3,374 checks for a pre-resume budget-cut gap and stale descriptive policy counts. R16's fresh whole
    functional source review accepts its correction, with native/profile and complete pricing gates still held.
-   A new R17 explicit directory-progress guard is next; frozen R16 is unchanged.
+   R18 reuses R17's bounded directory scan and corrects its manifest provenance. Functional source review passed.
    All Clock execution guards remain false; no supervisor/Clock run has started.
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
    reader actually passed88 types/391 declared fields. A separate /c-only purpose now measured194 type/layout
@@ -92,10 +80,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    source/data checks: four source-sponsorship omissions remain in that proposal. Complete scalarR3 is now
    frozen at5,577,542,589 after9,244 own checks; a fresh whole critic's18,310 checks support conditional
    acceptance for exact R13 only. No total/price transfers to R16/R17, and no combined limit or fit is accepted.
-   Next: complete the source-bounded R17 supervisor review, exact-layout qualification and whole all-language
-   census, then joined resource/native/binding proof
-   before any Clock attempt. Detailed evidence and earlier
-   source revisions remain in the dated entries below; Dan is not a tester or approval gate.
+   Next: complete the R18 all-language census and exact-layout qualification, then the joined resource, native
+   and binding proof before any Clock attempt. Earlier source revisions are recorded below.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -116,6 +102,25 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 handoff: paused for user testing
+
+Dan asked to stop safely so he can try the app after almost72 hours. All agents are stopped.
+**Resume implementation only when Dan asks.** The [safe-stop handoff](docs/research/checkpoints/2026-11-06-user-test-stop/README.md)
+preserves unfinished work and the exact downloaded test-build receipt.
+
+- Open `outputs/YesDaw-test-d3ec661/YesDaw.exe`; portable ZIP: `outputs/YesDaw-test-d3ec661.zip`.
+  This is exact app commitd3ec661 from full ten-job successful CI42146047209; downloaded, extracted and
+  file-verified, never launched by the agent. Tracked app source/CMake still match that exact CI commit.
+  Later commits add research/evidence, not shipped features. Delivery hashes are in the checkpoint.
+- Try continuous MIDI editing, background import/stretch, reverse/cross-rate fixes, and complete Tempo-map
+  MIDI/grid/quantize/metronome/count-in behavior. Musical MIDI defaults and persistence/recovery are included.
+- Audio tempo-follow, linked editing/folders and piano ghost/used-pitches views remain unfinished.
+  R17's source is frozen after1,671 own checks, but its fresh whole review is unsealed and reported stale
+  current R16 provenance fields. No R17 whole acceptance or compiler/helper/Clock execution is certified.
+- All unfinished current review/census/layout-purpose files and the unrun recipe test are preserved exactly
+  in the checkpoint. On resume: correct current runner provenance in a new successor, finish exact-layout
+  purpose/review and whole work/resource/native/binding proof, then continue Musical audio in the active plan.
 
 ## 2026-11-06 - Accept the two native-resource source components within their scopes
 
