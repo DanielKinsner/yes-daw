@@ -8,6 +8,12 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Bound Clock pipe and controller ownership
+
+- The reviewed [NPFS check](docs/research/artifacts/2026-11-14-clock-r22-pipe-native/README.md) verifies a queued write allocation of the full write length plus 48 bytes in the pinned Windows image. The queue quota is a separate operand.
+- The 4 KiB read buffers and 1 MiB retained log cap leave the compiler writer extent and concurrency open. The disk-image result awaits loaded-driver association.
+- Next: bound the compiler writers and the process ownership through failure while composing the remaining shared controller functions.
+
 ## 2026-11-14 - Measure the Clock target entry frame
 
 - A [separate target object](docs/research/artifacts/2026-11-14-clock-r22-child-object/README.md#admission-enabled-entry-frames) compiled with only six guard literals changed in a temporary source copy. MSVC matched all 110 include pins and emitted COFF with the catalogue undefined.
