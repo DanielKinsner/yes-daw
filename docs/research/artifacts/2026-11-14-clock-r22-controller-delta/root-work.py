@@ -6,7 +6,7 @@ from pathlib import Path
 import runpy
 
 
-def main():
+def work():
     delta = runpy.run_path(str(Path(__file__).with_name("check.py")))
     result = delta["main"]()
     profile = result["root"]
@@ -38,6 +38,11 @@ def main():
     added = sum(additions.values())
     upper = baseline["units"] + added
     require((new_input_rows, added, upper) == (68, 7820, 188619), "root work composition differs")
+    return upper, added
+
+
+def main():
+    upper, added = work()
     print(f"PASS: {upper:,} conditional root caller actions, including {added:,} for the R22 delta")
 
 

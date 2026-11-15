@@ -16,7 +16,7 @@ def chunks(size):
     return (size + 65535) // 65536
 
 
-def main():
+def work():
     source = delta["CURRENT"]
     lines = delta["pinned"](source, delta["PINS"][1])
     old = delta["collect"](delta["pinned"](delta["BASELINE"], delta["PINS"][0]))
@@ -78,6 +78,11 @@ def main():
     require((fixed, per_chunk) == (295, 65), "hash body arithmetic changed")
     upper = fixed * calls + per_chunk * chunk_visits
     require((calls, chunk_visits, upper) == (10513, 88908, 8880355), "hash schedule changed")
+    return rows, calls, chunk_visits, upper
+
+
+def main():
+    rows, calls, chunk_visits, upper = work()
     for name, (row_calls, row_chunks) in rows.items():
         print(f"{name}: {row_calls:,} calls, {row_chunks:,} chunks")
     print(f"PASS: {calls:,} hash calls, {chunk_visits:,} chunks, {upper:,} conditional actions")
