@@ -13,6 +13,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The reviewed [NPFS check](docs/research/artifacts/2026-11-14-clock-r22-pipe-native/README.md) verifies a queued write allocation of the full write length plus 48 bytes in the pinned Windows image. The queue quota is a separate operand.
 - The 4 KiB read buffers and 1 MiB retained log cap leave the compiler writer extent and concurrency open. The disk-image result awaits loaded-driver association.
 - The reviewed [controller local join](docs/research/2026-11-14-clock-r22-controller-local-join.md) composes all 19 changed or new bodies plus root and hash work, and checks the four controller debit sites without selecting a poll limit.
+- The [compiler import check](docs/research/artifacts/2026-11-14-clock-r22-pipe-native/README.md#compiler-writer-scope) identifies direct write, process creation and text-mode paths in eight pinned images. Those imports leave the inherited endpoint and write-size closure open.
 - Next: bound the compiler writers and the process ownership through failure while composing the remaining shared controller functions.
 
 ## 2026-11-14 - Measure the Clock target entry frame
