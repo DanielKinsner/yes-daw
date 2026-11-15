@@ -111,3 +111,39 @@ The selected parent poll/watchdog profile, bound counter catalogue
 and reserve composition, native association, joint resource proof
 and execution gate remain open. The three native helper reservations
 enter the runner reservation equation separately.
+
+## Controller counter amounts
+
+Run `python -I -S -B debit-work.py` to check all 12 written
+`Spend-Task` sites. Ten have literal amounts. The remaining two
+debit the selected controller price and the child's full helper
+reservation. Independent review checked the reached debit edges
+as well as the authored body bounds.
+
+| Literal debit source | Whole-run amount |
+| --- | ---: |
+| NoLink, including the depth-65 refusal | 1,116,635 |
+| File hash entry and chunk visits | 3,517,888 |
+| JSON string/key units and value visits | 4,914,859 |
+| Walker admitted row, excluding the next excess candidate | 9,656 |
+| Copy chunks | 65,792 |
+| Predecessor and dependency JSON reads | 128 |
+| Stage and reference rows | 373 |
+| Total | **9,625,331** |
+
+For per-child poll cap `P`, native reservation sum `S`, and bound
+positive controller prices `invoke`, `request`, `terminal` and
+`parent_poll`, the runner reservation must cover
+
+```text
+S + max(
+    6,372,354,136 + 1,218P,
+    9,625,331 + 3 invoke + 78,548 request + 924 terminal + 3P parent_poll
+)
+```
+
+The separate byte-visit guard at `Add-TaskJsonVisit` does not debit
+this counter. The accepted body proof covers all representable
+positive poll inputs with an authored bound of 2,622,007,436,182
+before native reservations. Binding still needs the actual poll
+and watchdog policy, helper reservations and prices.

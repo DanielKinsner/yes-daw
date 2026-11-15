@@ -8,6 +8,12 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Finish Clock controller source accounting
+
+- The reviewed [controller debit check](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/shared-work.md#controller-counter-amounts) checks all 12 direct spend sites, including 9,625,331 legacy units and both dynamic charges.
+- The runner reservation must cover the authored work and selected counter charges, with each native helper reservation included once. The selected prices and parent watchdog are still unbound.
+- Next: keep the compiler-side write and concurrent ownership proof moving. The exact binary binding and Clock run await the joint 32 MiB proof.
+
 ## 2026-11-14 - Account for Clock process ownership
 
 - The reviewed [process ownership check](docs/research/artifacts/2026-11-14-clock-r22-process-owners/README.md) covers up to 18 established helper handle references during publication and three inherited target stdio references.
