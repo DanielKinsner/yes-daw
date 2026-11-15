@@ -12,6 +12,7 @@ Older entries below are dated history, not competing "Now" instructions.
 
 - The reviewed [controller debit check](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/shared-work.md#controller-counter-amounts) checks all 12 direct spend sites, including 9,625,331 legacy units and both dynamic charges.
 - The runner reservation must cover the authored work and selected counter charges, with each native helper reservation included once. The selected prices and parent watchdog are still unbound.
+- The [admission-enabled supervisor object](docs/research/artifacts/2026-11-14-clock-supervisor-abi/README.md#admission-enabled-supervisor-frame) matches 129 pinned include visits and measures 191,200 bytes of RSP decrement in its two entry frames. The final linked stack profile remains open.
 - Next: keep the compiler-side write and concurrent ownership proof moving. The exact binary binding and Clock run await the joint 32 MiB proof.
 
 ## 2026-11-14 - Account for Clock process ownership

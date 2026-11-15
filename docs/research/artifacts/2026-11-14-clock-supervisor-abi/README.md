@@ -34,3 +34,24 @@ An unbound source successor can make this compile-time guard an
 
 Run `python -E -B compile-objects.py <compiler-directory> <new-output-directory>`
 to reproduce the exact R20 compile-only attempt.
+
+## Admission-enabled supervisor frame
+
+The independently reviewed [entry purpose](entry-frame-purpose.py),
+SHA-256 `EB699CE20949D83322A84905488187E0AFE3CA0BE2FDEC9A3DDD0E7DC3E7DB1B`,
+compiled only exact R22 `sup_main.cpp` against a temporary copy of
+`sup.h`. The copy changed exactly five admission literals. Pinned
+MSVC exited 0 under `/WX /O2 /c`. The [receipt](entry-frame-result.json)
+records 129 ordered include visits across 103 pinned paths. It
+supplies no catalogue definition.
+
+Run the purpose without flags for the read-only preflight. Use
+`--read 330B778295798B763E7FE084BC84C1B8125D72233F8765B1BA6D09EE5A0BC3E6`
+to decode the retained object. It shows the direct `wmain` call
+into the 605-byte admitted `supervisor_main` and the latter's
+profile-validation call. The two named frames decrement RSP
+40 and 191,160 bytes respectively, totaling 191,200. The `State`
+storage is included in that entry frame. Other live frames, return
+addresses, the two worker stacks and runtime backing remain in
+the resource proof. The measured code still needs a final PE join.
+No link, supervisor run or Clock run occurred.
