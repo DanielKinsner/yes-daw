@@ -40,6 +40,23 @@ Place the file at `%LOCALAPPDATA%/Temp/YesDawClockR22PipeSymbols/npfs.download.p
 and run `python -I -S -B check.py`. Only the pinned on-disk files are
 read. No pipe, driver, compiler, helper or Clock target is started.
 
+## Authored target diagnostic requests
+
+`python -I -S -B target-write.py` checks the pinned UCRT SDK
+`write_text_ansi_nolock` body. Its cursor check leaves room for CR
+and LF in the 5,120-byte translation array. Each selected
+`WriteFile` receives the actual bytes between the buffer base
+and that cursor. The source-controlled diagnostics are tighter.
+The selected write can submit at most 1,064 producer stdout bytes,
+2,662 verifier stdout bytes or 1,294 target stderr bytes. Adding
+the verified 48-byte queue header gives 1,112, 2,710 or 1,342
+requested bytes for that queue route, respectively.
+
+This per-call bound requires the final target and loaded CRT to
+select the reviewed ANSI branch for the authored diagnostics.
+Queue populations, allocator overhead, loader and failure
+writers, and the compiler's output retain their own proof terms.
+
 ## Compiler writer scope
 
 Run `python -I -S -B compiler-imports.py` with the exact R22
