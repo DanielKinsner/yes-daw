@@ -57,6 +57,17 @@ select the reviewed ANSI branch for the authored diagnostics.
 Queue populations, allocator overhead, loader and failure
 writers, and the compiler's output retain their own proof terms.
 
+`python -I -S -B ucrt-route.py` independently verifies the
+matching limit in the pinned on-disk UCRT image. Place its
+[Microsoft symbol file](https://msdl.microsoft.com/download/symbols/ucrtbase.pdb/66A3E8DFB8B886146544529E6A6DD4F41/ucrtbase.pdb)
+beside the NPFS symbols. In the ANSI branch the cursor starts at
+`RSP+0x40` and can add at most two bytes after its last admissible
+position below `RSP+0x143f`. The resulting `WriteFile` request is
+at most 5,120 bytes. The separate binary branch passes the
+caller's count without applying this buffer limit. The image
+check leaves loaded UCRT identity and actual descriptor modes
+at the final launch boundary.
+
 ## Compiler writer scope
 
 Run `python -I -S -B compiler-imports.py` with the exact R22

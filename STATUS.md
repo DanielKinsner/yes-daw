@@ -12,6 +12,7 @@ Older entries below are dated history, not competing "Now" instructions.
 
 - The [MSVC driver route check](docs/research/artifacts/2026-11-14-clock-r22-pipe-native/README.md#selected-msvc-driver-routes) pins the direct Unicode diagnostic branch and a server creation path that forwards all three standard handles.
 - The initial R22 environment excludes the Unicode-output variable. Its writer interval and the exact compiler server choice remain to be proved.
+- The [pinned UCRT image check](docs/research/artifacts/2026-11-14-clock-r22-pipe-native/README.md#authored-target-diagnostic-requests) verifies the ANSI buffer limit and the separate caller-count binary path. Actual descriptor modes remain a launch premise.
 - Next: establish compiler endpoint and writer closure or prepare an alternative that preserves the required output and retirement guarantees.
 
 ## 2026-11-14 - Finish Clock controller source accounting
