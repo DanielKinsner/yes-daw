@@ -1,0 +1,8 @@
+{
+  "scope": "current headless Python launch context only",
+  "page_bytes": 4096,
+  "reservation_granularity_bytes": 65536,
+  "in_job": true,
+  "immediate_job_limit_flags": 10240,
+  "immediate_job_ui_flags": 0
+}

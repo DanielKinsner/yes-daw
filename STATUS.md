@@ -8,6 +8,12 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Account for Clock process ownership
+
+- The reviewed [process ownership check](docs/research/artifacts/2026-11-14-clock-r22-process-owners/README.md) covers up to 18 established helper handle references during publication and three inherited target stdio references.
+- Its startup worksheet checks separate helper and native-target command and environment extents, including conditional UCRT retries. Native backing, raw failed outputs and loaded-runtime association remain open.
+- The [headless launch context](docs/research/artifacts/2026-11-14-clock-r22-process-owners/launch-context.json) is already in a job. It reports 4 KiB pages and 64 KiB reservation granularity. The final nested launch still needs qualification.
+
 ## 2026-11-14 - Bound Clock pipe and controller ownership
 
 - The reviewed [NPFS check](docs/research/artifacts/2026-11-14-clock-r22-pipe-native/README.md) verifies a queued write allocation of the full write length plus 48 bytes in the pinned Windows image. The queue quota is a separate operand.
