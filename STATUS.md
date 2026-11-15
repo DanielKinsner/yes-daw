@@ -14,6 +14,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - Its startup worksheet checks separate helper and native-target command and environment extents, including conditional UCRT retries. Native backing, raw failed outputs and loaded-runtime association remain open.
 - The [headless launch context](docs/research/artifacts/2026-11-14-clock-r22-process-owners/launch-context.json) is already in a job. It reports 4 KiB pages and 64 KiB reservation granularity. The final nested launch still needs qualification.
 - The reviewed [shared controller schedule](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/shared-schedule.py) checks 163 written calls and current path, JSON, and cleanup occurrence bounds.
+- The reviewed [controller source composition](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/shared-work.md) accounts for all 88 bodies and script-level work. The upper is 6,372,354,136 actions plus 1,218 per unit of the per-child parent poll cap, before helper reservations.
 
 ## 2026-11-14 - Bound Clock pipe and controller ownership
 
