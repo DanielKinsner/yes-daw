@@ -26,7 +26,7 @@ def pinned(path, size, sha):
     return data
 
 
-def image(data):
+def image(data, guid=GUID, pdb_name=b"npfs.pdb"):
     pe, = struct.unpack_from("<I", data, 60)
     require(data[:2] == b"MZ" and data[pe:pe + 4] == b"PE\0\0", "invalid PE")
     machine, sections = struct.unpack_from("<HH", data, pe + 4)
@@ -45,11 +45,13 @@ def image(data):
     require(debug_size % 28 == 0, "invalid debug extent")
     record, = [row for row in struct.iter_unpack("<IIHHIIII", read(debug_rva, debug_size)) if row[4] == 2]
     codeview = read(record[6], record[5])
-    require(codeview == b"RSDS" + GUID.bytes_le + struct.pack("<I", 1) + b"npfs.pdb\0", "incorrect PE CodeView")
+    name_end = codeview.index(0, 24)
+    require(codeview[:24] == b"RSDS" + guid.bytes_le + struct.pack("<I", 1)
+            and codeview[24:name_end].rsplit(b"\\", 1)[-1].lower() == pdb_name, "incorrect PE CodeView")
     return rows, read
 
 
-def symbols(data, sections, names):
+def symbols(data, sections, names, guid=GUID):
     require(data[:32] == b"Microsoft C/C++ MSF 7.00\r\n\x1aDS\0\0\0", "invalid symbol file signature")
     block, _, total, dir_bytes, _, directory_map = struct.unpack_from("<6I", data, 32)
     require(block == 4096 and len(data) == block * total, "invalid PDB extent")
@@ -67,7 +69,7 @@ def symbols(data, sections, names):
         blocks = 0 if size == 0xFFFFFFFF else (size + block - 1) // block
         streams.append(gather(struct.unpack_from(f"<{blocks}I", directory, cursor), size))
         cursor += 4 * blocks
-    require(cursor == len(directory) and streams[1][12:28] == GUID.bytes_le, "symbol directory or GUID differs")
+    require(cursor == len(directory) and streams[1][12:28] == guid.bytes_le, "symbol directory or GUID differs")
     pdb_age, = struct.unpack_from("<I", streams[1], 8)
     dbi_age, = struct.unpack_from("<I", streams[3], 8)
     require((pdb_age, dbi_age) == (3, 1), "unexpected symbol stream ages")

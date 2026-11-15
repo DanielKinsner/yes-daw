@@ -8,6 +8,12 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-14 - Trace Clock compiler-side pipe writers
+
+- The [MSVC driver route check](docs/research/artifacts/2026-11-14-clock-r22-pipe-native/README.md#selected-msvc-driver-routes) pins the direct Unicode diagnostic branch and a server creation path that forwards all three standard handles.
+- The initial R22 environment excludes the Unicode-output variable. Its writer interval and the exact compiler server choice remain to be proved.
+- Next: establish compiler endpoint and writer closure or prepare an alternative that preserves the required output and retirement guarantees.
+
 ## 2026-11-14 - Finish Clock controller source accounting
 
 - The reviewed [controller debit check](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/shared-work.md#controller-counter-amounts) checks all 12 direct spend sites, including 9,625,331 legacy units and both dynamic charges.

@@ -81,3 +81,27 @@ check supplies no evidence that MSVC actually issues such a write.
 [Windows job memory limits](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information)
 [LSA quota fields](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-quota_limits)
 [Pool allocation flags](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/pool_flags)
+
+## Selected MSVC driver routes
+
+`python -I -S -B compiler-routes.py` checks the same pinned
+`cl.exe` with its
+[Microsoft public symbols](https://msdl.microsoft.com/download/symbols/cl.pdb/EDA606CB8B25479089F34B8A52205A2A1/cl.pdb).
+Place `cl.pdb` beside the downloaded NPFS symbol file. The check
+associates symbols with exact instructions and IAT references.
+
+- In the driver diagnostic helper, the descriptor 1/2 route reads
+  `VS_UNICODE_OUTPUT`. A nonzero result can select the direct
+  `WriteFile` call, whose count is twice the NUL-terminated UTF-16
+  input length in its 32-bit argument. The initial R22 seed excludes
+  this variable. Discharging that branch requires the variable to
+  stay absent through the helper's read. The other observed route
+  converts the input and calls CRT `_write`.
+- The driver's `start_server` copies all three `GetStdHandle`
+  results into `STARTUPINFO`, sets `STARTF_USESTDHANDLES`, and calls
+  `CreateProcessW` with handle inheritance enabled. The exact
+  compiler mode and reachable server call sites need a separate
+  check before bounding writer population. [CreateProcessW standard handles](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw)
+
+This was an inspection of file bytes. No diagnostic branch or
+compiler child was invoked.
