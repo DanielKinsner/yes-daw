@@ -13,6 +13,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - The reviewed [process ownership check](docs/research/artifacts/2026-11-14-clock-r22-process-owners/README.md) covers up to 18 established helper handle references during publication and three inherited target stdio references.
 - Its startup worksheet checks separate helper and native-target command and environment extents, including conditional UCRT retries. Native backing, raw failed outputs and loaded-runtime association remain open.
 - The [headless launch context](docs/research/artifacts/2026-11-14-clock-r22-process-owners/launch-context.json) is already in a job. It reports 4 KiB pages and 64 KiB reservation granularity. The final nested launch still needs qualification.
+- The reviewed [shared controller schedule](docs/research/artifacts/2026-11-14-clock-r22-controller-delta/shared-schedule.py) checks 163 written calls and current path, JSON, and cleanup occurrence bounds.
 
 ## 2026-11-14 - Bound Clock pipe and controller ownership
 
