@@ -1,6 +1,6 @@
 # 0091. Distinguish supervisor job termination from job query failure
 
-- **Status:** Accepted — exact v2 source-only extension after55 independent checks; all execution gates remain.
+- **Status:** **Parked by [ADR-0092](0092-park-clock-research-resume-musical-audio.md) (owner decision, 2026-11-23): no further work or runs without Dan's explicit go.** Previously: Accepted — exact v2 source-only extension after55 independent checks; all execution gates remain.
 - **Date:** 2026-11-06
 - **Deciders:** Root and independent source/resource critic within Option A delivery.
 - **Related:** ADR-0090; its immutable protocol v1; the supervisor source plan.

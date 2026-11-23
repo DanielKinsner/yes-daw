@@ -1,6 +1,6 @@
 # 0090. Own clock-research child processes and bounded capture
 
-- **Status:** Accepted — R2 architecture/protocol; independent whole review passed115 checks. Implementation, fit and execution remain gated.
+- **Status:** **Parked by [ADR-0092](0092-park-clock-research-resume-musical-audio.md) (owner decision, 2026-11-23): no further work or runs without Dan's explicit go.** Previously: Accepted — R2 architecture/protocol; independent whole review passed115 checks. Implementation, fit and execution remain gated.
 - **Date:** 2026-11-06
 - **Deciders:** Root and independent source/resource critic within authorized Option A delivery.
 - **Related:** ADR-0049, ADR-0078; Musical prepared-lane plan; frozen R12/R13, resource and V HOLD baselines.

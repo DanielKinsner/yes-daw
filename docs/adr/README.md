@@ -96,8 +96,9 @@ how "measure twice, cut once" leaves a paper trail.
 | [0078](0078-ship-first-cadence.md) | Ship-first cadence: keep CI green, RTSan/TSan, data-safety tests and a regression test per found bug; drop per-gate mutations, UI critics, rubric gates and per-unit drives; short STATUS with a scoreboard (supersedes ADR-0075's cadence) | Accepted |
 | [0084](0084-musical-audio-channel-equivalence.md) | Musical channel equivalence: complete worker classification, one physical instance, logical stereo materialization and ready-only descriptor identity | Accepted |
 | [0085](0085-owned-musical-call-recipes.md) | Owned single-pass Musical call recipes, exact request provenance and prepaid same-origin dispatch/accounting | Accepted |
-| [0090](0090-clock-research-owned-process-supervisor.md) | Clock-research child ownership, bounded native capture and exact request/terminal transport | Accepted - architecture/protocol only; source authoring authorized |
-| [0091](0091-clock-supervisor-job-termination-diagnostic.md) | Separate job-termination diagnostic in supervisor protocol v2 | Accepted - source-only extension; no execution authority |
+| [0090](0090-clock-research-owned-process-supervisor.md) | Clock-research child ownership, bounded native capture and exact request/terminal transport | Parked by ADR-0092 (was Accepted - architecture/protocol only) |
+| [0091](0091-clock-supervisor-job-termination-diagnostic.md) | Separate job-termination diagnostic in supervisor protocol v2 | Parked by ADR-0092 (was Accepted - source-only extension) |
+| [0092](0092-park-clock-research-resume-musical-audio.md) | Park Clock research; Musical audio resumes under ship-first without it | Accepted (owner, Dan) |
 
 ## Decision status (the five research forks)
 
