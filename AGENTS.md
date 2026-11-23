@@ -80,4 +80,8 @@ affected evidence pending while safe independent work continues.
   for by the plan can be written and accepted with agent critic review when they preserve owner-settled
   contracts; replacing such a contract needs the concrete human decision described above.
   The visual rubric is not a gate (ADR-0078); Dan is not the routine tester or approver.
+- **Exception, Dan's rule ([ADR-0092](docs/adr/0092-park-clock-research-resume-musical-audio.md)):** an ADR or
+  plan step that adds research tooling, an oracle, a supervisor, a resource-bound proof or any new verification
+  gate needs Dan's explicit go in his own words, quoted in STATUS. Agent or critic acceptance is not enough.
+  Clock work is parked.
 - Keep `AGENTS.md` and `CLAUDE.md` byte-identical when either changes.
