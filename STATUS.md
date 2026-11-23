@@ -8,6 +8,13 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-23 - First listen, unit 3 in progress: quiet-input handling
+
+- Dan chose the listening song and mechanical verification: “A is good thank you”.
+- A control-side stretch call now reads the selected source in playback order and detects when the pinned stretcher copies quiet input. A nonzero input on that path refuses. Playback is still disabled.
+- Windows Release: `cmake --build build-apps-off --parallel 6` passed; `ctest --test-dir build-apps-off --output-on-failure` passed 491/491. Engine critic checked the channel-count fix.
+- Next: connect and verify the complete call sequence across the listening song's tempo change, including startup, silence and tail.
+
 ## 2026-11-23 - First listen: one audio clip stays with the click through a tempo change
 
 **A (Recommended)** Send Dan a test build and a disposable song. Open the song and press Play. A pitched pulse in one continuous audio clip should slow with the metronome from 120 to 90 BPM halfway through, keeping its pitch and landing on each click. **B** Make changing the tempo on Dan's own imported clip the first listen instead. That brings background edits, undo, editing tools and controls forward.
@@ -21,7 +28,7 @@ Older entries below are dated history, not competing "Now" instructions.
 3. **5 — Play it.** Have the song graph and live track schedule read the same prepared samples at the same song position. A missing result must stop the change.
 4. **10 — Open the listening song.** Prepare the clip on full open before attaching the engine. Use a small song in the existing project format. In the existing test suite, check the clip's own pulses against both tempos through Open and playback. Package the build and song, give Dan the clicks and expected sound, then stop.
 
-**Can wait until after A:** 6 background preparation for edits, 8 applying tempo edits and undo together with the new audio, 9 mix/stem export, 11 editing and waveform display, 12 Fixed/Musical and fit controls. The first listen uses a saved tempo change. Normal editing controls stay behind their activation requirements. Awaiting Dan's go before code.
+**Can wait until after A:** 6 background preparation for edits, 8 applying tempo edits and undo together with the new audio, 9 mix/stem export, 11 editing and waveform display, 12 Fixed/Musical and fit controls. The first listen uses a saved tempo change. Normal editing controls stay behind their activation requirements. Dan approved A on 2026-11-23.
 
 ## 2026-11-23 - Owner redirect: Clock parked, back to Musical audio
 
@@ -195,7 +202,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Current app code is d3ec661: 491 local pure checks and GUI compile-only passed; exact-code CI 42146047209
    passed all ten jobs.
    **Clock research is parked (owner, 2026-11-23, [ADR-0092](docs/adr/0092-park-clock-research-resume-musical-audio.md)).**
-   Awaiting Dan's choice on the first-listen plan at the top. Recommended next: finish the stretch plan,
+   Dan approved the first-listen plan at the top. Quiet-input handling is in place. Next: finish the stretch plan,
    render the clip, wire playback and open a listening song with a saved tempo change (units 3, 4, 5, 10).
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
