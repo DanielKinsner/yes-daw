@@ -8,6 +8,17 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-23 - Owner redirect: Clock parked, back to Musical audio
+
+- Dan parked the Clock research ([ADR-0092](docs/adr/0092-park-clock-research-resume-musical-audio.md)). Since
+  2026-11-05 all 153 commits were research or docs; Clock reached R22 without ever running. The 2026-11-14
+  entries below are history, not instructions: do not continue their "Next" lines.
+- Next: Musical audio tempo-follow at the first unfinished unit of its plan, under ADR-0078 ship-first. Every batch
+  changes `src/` or `tests/`. No new oracles, supervisors, resource proofs or research tooling without Dan's go in
+  his own words.
+- Resume: Dan starts the next session with [the redirect kickoff](docs/prompts/2026-11-23-redirect-kickoff.md).
+  Its first stop is a one-screen plan for Dan before any code.
+
 ## 2026-11-14 - Trace Clock compiler-side pipe writers
 
 - The [MSVC driver route check](docs/research/artifacts/2026-11-14-clock-r22-pipe-native/README.md#selected-msvc-driver-routes) pins the direct Unicode diagnostic branch and a server creation path that forwards all three standard handles.
@@ -165,36 +176,14 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    persistence/recovery; reversed/cross-rate editing repairs; complete MIDI clipboard/export and full-map timing,
    grids, quantize and metronome/count-in. Musical MIDI defaults and explicit Fixed-time commands are implemented.
    Active: Musical audio tempo-follow. Window/channel planning and history foundations are pushed;
-   audible tempo-follow is not enabled. The request-owner prototype passed135,111 headless checks and
-   eight mutants. Complete production source counting and source/object correspondences have conditional
-   acceptance; actual native/resources/binding, public recipe/DSP, renderer and jobs/model remain unfinished.
-   Current app code isd3ec661:491 local pure checks and GUI3 compile-only passed; exact-code CI42146047209
-   passed all ten jobs. Later evidence/docs commits use the separate docs-only CI path, with runtime jobs skipped.
-   Research runner R13's bootstrap receiver is wrong; its exact-source scalar upper now has conditional acceptance.
-   R14 corrects that receiver, but its whole functional source review found eight failure-path issues.
-   The complete R15 correction is frozen after1,764 own checks; its fresh whole critic returned REVISE
-   after3,374 checks for a pre-resume budget-cut gap and stale descriptive policy counts. R16's fresh whole
-   functional source review accepts its correction, with native/profile and complete pricing gates still held.
-   R18 reuses R17's bounded directory scan and corrects its manifest provenance. R22 repairs a path copy and
-   compiles all four supervisor units and the guarded target with the recovered pinned MSVC. Independent functional source review passed.
-   Native checker and target source envelopes, controller deltas and selected payloads have headless checks.
-   All Clock execution guards remain false; no supervisor/Clock run has started.
-   Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
-   reader actually passed88 types/391 declared fields. A separate /c-only purpose now measured194 type/layout
-   cells; this supplies selected object-size evidence, without physical-frame, whole-fit or Clock-run credit.
-   The native-object proposal's93 declaration scopes and405,128-byte large-object component now have an
-   independent scoped acceptance after2,240 checks; their surrounding context union and whole fit remain open.
-   Complete SDK/contextR2 has conditional source-incidence/minimal-type acceptance after1,990 independent
-   checks. The pinned compile-only purposes measured all 13 direct layouts and 17 exact closure layouts.
-   ADR-0090's complete supervisor protocol passed115 independent checks; its v2 diagnostic delta is Accepted.
-   The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
-   is REVISE, with no runtime credit. A different fresh critic returned R13 scalarR2 REVISE after3,770
-   source/data checks: four source-sponsorship omissions remain in that proposal. Complete scalarR3 is now
-   frozen at5,577,542,589 after9,244 own checks; a fresh whole critic's18,310 checks support conditional
-   acceptance for exact R13 only. No total/price transfers to R16/R17, and no combined limit or fit is accepted.
-   Next: finish the shared controller schedule and prove the combined 32 MiB scratch envelope, including enabled
-   frames, inherited environment and native pipe/process ownership. Bind the catalogue and exact images only once
-   those terms are closed, then run Clock headlessly. Earlier source revisions are recorded below.
+   audible tempo-follow is not enabled. Public recipe/DSP, renderer and jobs/model remain unfinished.
+   Current app code is d3ec661: 491 local pure checks and GUI compile-only passed; exact-code CI 42146047209
+   passed all ten jobs.
+   **Clock research is parked (owner, 2026-11-23, [ADR-0092](docs/adr/0092-park-clock-research-resume-musical-audio.md)).**
+   Its R13-R22 runner, supervisor and proof work never ran and is not a prerequisite; details stay in the dated
+   entries below as history. Next: resume Musical audio at the first unfinished unit of the
+   [Musical audio plan](docs/plans/2026-11-04-musical-audio-prepared-lane-plan.md) under ADR-0078 ship-first.
+   Every batch changes `src/` or `tests/` toward Dan hearing an audio clip follow a tempo change.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**

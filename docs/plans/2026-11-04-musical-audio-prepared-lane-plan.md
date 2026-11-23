@@ -4,7 +4,9 @@ Status: implementation plan under [Accepted ADR-0083](../adr/0083-musical-audio-
 
 ## Boundary and order
 
-Finish the currently authorized clock/native/MIDI interchange checkpoints first. Accept the concrete new Musical-audio ADR with a **fresh** engine/saved-data critic before code depends on it. Each unit below is a logical committable behavior, not a requirement to split coupled code arbitrarily. Refine allowlists against current source before GO; file names for new components are proposals.
+> **2026-11-23, owner redirect ([ADR-0092](../adr/0092-park-clock-research-resume-musical-audio.md)):** Clock work is parked and is **not** a prerequisite. Resume at the first unfinished unit below under ADR-0078's ship-first cadence. Every batch changes `src/` or `tests/`; do not add oracles, supervisors or resource-bound proofs.
+
+~~Finish the currently authorized clock/native/MIDI interchange checkpoints first.~~ Accept the concrete new Musical-audio ADR with a **fresh** engine/saved-data critic before code depends on it. Each unit below is a logical committable behavior, not a requirement to split coupled code arbitrarily. Refine allowlists against current source before GO; file names for new components are proposals.
 
 Per unit: select one focused feature smoke or actual regression before production changes; build and relevant existing checks, full pure suite where the implementation brief requires it, GUI consumers compiled without launch, applicable engine/saved-data critic, concise STATUS, explicit-path main commit/push and exact-code CI. Save/load/autosave/recovery changes always have tests. Run one heavy lane. Do not add per-UI critic/rubric/native-drive gates beyond ADR-0078.
 
