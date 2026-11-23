@@ -8,6 +8,13 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-23 - First listen, unit 3: the 120-to-90 BPM call sequence works
+
+- One persistent stretcher processes the selected source through both tempos. It keeps 224,000 working frames from 192,000 source frames at 48 kHz, with separate startup and end handling.
+- The same sequence passed checks for a tone, all silence, a start after silence, and a final impulse. A quiet path whose state cannot be verified refuses the clip. Engine critic reviewed the final sequence.
+- Windows: `cmake --build build-apps-off --parallel 6` and the app compile passed; `ctest --test-dir build-apps-off --output-on-failure` passed 491/491. Final focused sequence smoke passed 1,192 assertions.
+- Next: measure the prepared sound's beat positions and pitch and finish unit 4 before connecting playback. This is private working audio.
+
 ## 2026-11-23 - First listen, unit 3 in progress: quiet-input handling
 
 - Dan chose the listening song and mechanical verification: “A is good thank you”.
@@ -202,8 +209,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Current app code is d3ec661: 491 local pure checks and GUI compile-only passed; exact-code CI 42146047209
    passed all ten jobs.
    **Clock research is parked (owner, 2026-11-23, [ADR-0092](docs/adr/0092-park-clock-research-resume-musical-audio.md)).**
-   Dan approved the first-listen plan at the top. Quiet-input handling is in place. Next: finish the stretch plan,
-   render the clip, wire playback and open a listening song with a saved tempo change (units 3, 4, 5, 10).
+   Dan approved the first-listen plan. The complete stretch-call sequence works on its tempo change (unit 3).
+   Next: verify and finish the rendered sound, wire playback, and open the listening song (units 4, 5, 10).
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
