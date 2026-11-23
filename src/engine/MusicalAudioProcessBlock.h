@@ -25,7 +25,7 @@ struct Input
 {
     const MusicalAudioChannelPlan& plan;
     std::uint64_t begin;
-    bool& hasSignal;
+    std::uint64_t& signalEnd;
 
     struct Channel
     {
@@ -39,7 +39,8 @@ struct Input
             float sample = 0.0f;
             if (input.begin < frames && offset < frames - input.begin)
                 (void) input.plan.physicalSample (channel, input.begin + offset, sample);
-            input.hasSignal |= (std::bit_cast<std::uint32_t> (sample) & 0x7fffffffu) != 0;
+            if ((std::bit_cast<std::uint32_t> (sample) & 0x7fffffffu) != 0)
+                input.signalEnd = std::max (input.signalEnd, input.begin + offset + 1);
             return { sample };
         }
     };
@@ -99,20 +100,21 @@ enum class BlockStatus { Processed, ExactZeroFastReturn, MusicalQuietPathUnsuppo
 // seeks it once, and supplies private working PCM. A quiet refusal discards that preparation generation.
 inline BlockStatus processBlock (Stretcher& stretch, const MusicalAudioChannelPlan& plan,
                                  std::uint64_t sourceBegin, int inputFrames, int outputFrames,
-                                 std::span<float> working)
+                                 std::span<float> working, std::uint64_t* lastSignalEnd = nullptr)
 {
     if (inputFrames <= 0 || inputFrames > 2048 || outputFrames <= 0 || outputFrames > 2048
         || working.size() != static_cast<std::size_t> (outputFrames * plan.physicalChannels()))
         return BlockStatus::InvalidBlock;
 
-    bool hasSignal = false;
-    Input input { plan, sourceBegin, hasSignal };
+    std::uint64_t signalEnd = 0;
+    Input input { plan, sourceBegin, signalEnd };
     Output output { working, plan.physicalChannels() };
     stretch.process (input, inputFrames, output, outputFrames);
+    if (lastSignalEnd != nullptr) *lastSignalEnd = std::max (*lastSignalEnd, signalEnd);
     if (output.invalidChannel || output.channelsWritten != ((1 << plan.physicalChannels()) - 1))
         return BlockStatus::InvalidBlock;
     if (! output.copiedInput) return BlockStatus::Processed;
-    return hasSignal ? BlockStatus::MusicalQuietPathUnsupported : BlockStatus::ExactZeroFastReturn;
+    return signalEnd != 0 ? BlockStatus::MusicalQuietPathUnsupported : BlockStatus::ExactZeroFastReturn;
 }
 
 } // namespace yesdaw::engine::musical_process_detail

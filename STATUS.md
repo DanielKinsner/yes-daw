@@ -8,6 +8,13 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-23 - First listen, unit 4: measured beats and pitch
+
+- At 48 kHz the seven drum hits crossed the 120-to-90 change within 0.36 ms of the beats (5 ms limit). Worst pitch error was 0.015 cents for 220/997 Hz tones (5-cent limit).
+- Fixed the silence-between-hits refusal: a silent stretch call can pause after earlier sound has drained. The engine critic reviewed the fix. Windows build and `ctest --test-dir build-apps-off --output-on-failure` passed 491/491.
+- Dan approved checked app buffer sizes, enforceable existing limits and waveform checks while leaving library-wide allocation/work measurements unverified: “A — Yes, for the listening build only (Recommended)”.
+- Next: finish fades and prepare owned playback samples with those limits, then connect the graph and Open. General release admission stays pending.
+
 ## 2026-11-23 - First listen, unit 3: the 120-to-90 BPM call sequence works
 
 - One persistent stretcher processes the selected source through both tempos. It keeps 224,000 working frames from 192,000 source frames at 48 kHz, with separate startup and end handling.

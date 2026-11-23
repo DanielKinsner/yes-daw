@@ -68,9 +68,9 @@ TEST_CASE ("A Musical stretch call distinguishes copied quiet input from synthes
     SECTION ("source signal uses the spectral path and trailing context is zero")
     {
         REQUIRE (dsp::processBlock (stretch, *plan, 3, 1, 3, working) == Processed);
-        bool hasSignal = false;
-        dsp::Input tail { *plan, 6, hasSignal };
+        std::uint64_t signalEnd = 0;
+        dsp::Input tail { *plan, 6, signalEnd };
         CHECK (tail[0][0].value == 0.0f);
-        CHECK_FALSE (hasSignal);
+        CHECK (signalEnd == 0);
     }
 }

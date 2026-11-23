@@ -58,16 +58,36 @@ TEST_CASE ("The listening song plans one continuous clip across 120 and 90 BPM",
     for (std::size_t i = 0; i < samples->interleaved.size(); ++i)
         samples->interleaved[i] = static_cast<float> (0.125 * std::sin (
             2 * std::numbers::pi * 220.0 * static_cast<double> (i) / 48000.0));
-    enum class Signal { Tone, Silent, LateOnset, EndMarker };
+    enum class Signal { Tone, Silent, LateOnset, EndMarker, Beats };
+    double frequency = 220.0;
     Signal signal = Signal::Tone;
     SECTION ("pitched clip") {}
+    SECTION ("997 Hz clip")
+    {
+        frequency = 997.0;
+        for (std::size_t i = 0; i < samples->interleaved.size(); ++i)
+            samples->interleaved[i] = static_cast<float> (0.125 * std::sin (
+                2 * std::numbers::pi * frequency * static_cast<double> (i) / 48000.0));
+    }
+    SECTION ("short drum hits separated by silence") { signal = Signal::Beats; }
     SECTION ("exact zero throughout") { signal = Signal::Silent; }
     SECTION ("silence before the first spectrum") { signal = Signal::LateOnset; }
     SECTION ("a marker at the end leaves synthesis beyond the retained range") { signal = Signal::EndMarker; }
-    if (signal == Signal::Silent || signal == Signal::EndMarker)
+    if (signal == Signal::Silent || signal == Signal::EndMarker || signal == Signal::Beats)
         std::fill (samples->interleaved.begin(), samples->interleaved.end(), 0.0f);
     if (signal == Signal::LateOnset)
         std::fill_n (samples->interleaved.begin(), 24000, 0.0f);
+    if (signal == Signal::Beats)
+    {
+        // Symmetric energy and exactly cancelling sample pairs in a one-millisecond burst.
+        for (std::size_t centre = 24000; centre < input; centre += 24000)
+            for (std::size_t offset = 0; offset < 24; ++offset)
+            {
+                const float tap = (offset * 13 % 17 < 8) ? 0.125f : -0.125f;
+                samples->interleaved[centre - 1 - offset] = tap;
+                samples->interleaved[centre + offset] = -tap;
+            }
+    }
     if (signal == Signal::EndMarker)
         samples->interleaved.back() = 0.25f;
     std::shared_ptr<const MusicalAudioChannelRequest> request;
@@ -87,6 +107,57 @@ TEST_CASE ("The listening song plans one continuous clip across 120 and 90 BPM",
     CHECK (sequence.retained.size() == 224000u);
     CHECK (std::all_of (sequence.retained.begin(), sequence.retained.end(),
         [] (float sample) { return std::isfinite (sample); }));
+    if (signal == Signal::Tone)
+    {
+        // Linear-interpolated positive zero crossings; integrate actual sample power in each window.
+        auto measure = [&] (std::span<const float> audio, double pitchLimit, double levelLimit)
+        {
+            double worstPitch = 0.0, worstLevel = 0.0;
+            for (std::size_t start = 5760; start + 12000 + 5760 <= audio.size(); start += 2400)
+            {
+                double energy = 0.0, firstCross = 0.0, lastCross = 0.0;
+                int crossings = 0;
+                for (std::size_t k = start; k < start + 12000; ++k)
+                {
+                    double value = audio[k], previous = audio[k - 1];
+                    energy += value * value;
+                    if (previous < 0.0 && value >= 0.0)
+                    {
+                        lastCross = static_cast<double> (k - 1) - previous / (value - previous);
+                        if (crossings++ == 0) firstCross = lastCross;
+                    }
+                }
+                REQUIRE (crossings >= 2);
+                const double measured = (crossings - 1) * 48000.0 / (lastCross - firstCross);
+                worstPitch = std::max (worstPitch, std::abs (1200.0 * std::log2 (measured / frequency)));
+                worstLevel = std::max (worstLevel, std::abs (10.0 * std::log10 (energy / (12000 * 0.125 * 0.125 / 2))));
+            }
+            CAPTURE (frequency, worstPitch, worstLevel);
+            CHECK (worstPitch <= pitchLimit);
+            CHECK (worstLevel <= levelLimit);
+        };
+        measure (samples->interleaved, 0.25, 0.01);
+        measure (sequence.retained, 5.0, 1.0);
+        CHECK (std::all_of (sequence.retained.begin(), sequence.retained.end(),
+            [] (float sample) { return std::abs (sample) <= 0.125 * 1.25 + 1e-6; }));
+    }
+    if (signal == Signal::Beats)
+    {
+        for (int beat = 1; beat < 8; ++beat)
+        {
+            const int expected = beat <= 4 ? beat * 24000 : 96000 + (beat - 4) * 32000;
+            double energy = 0, moment = 0;
+            for (int relative = -11520; relative <= 11520; ++relative)
+            {
+                const double sample = sequence.retained[static_cast<std::size_t> (expected + relative)];
+                energy += sample * sample;
+                moment += relative * sample * sample;
+            }
+            REQUIRE (energy > 0);
+            CAPTURE (beat, moment, energy);
+            CHECK (std::abs (moment / energy) <= 240.0);
+        }
+    }
     if (signal == Signal::Silent)
         CHECK (std::all_of (sequence.retained.begin(), sequence.retained.end(), [] (float x) { return x == 0; }));
     else if (signal == Signal::EndMarker)
@@ -94,7 +165,7 @@ TEST_CASE ("The listening song plans one continuous clip across 120 and 90 BPM",
         const auto pastEnd = scratch.begin() + static_cast<std::ptrdiff_t> (output + stretch.outputLatency());
         CHECK (std::any_of (pastEnd, scratch.end(), [] (float x) { return std::abs (x) > 1e-6f; }));
     }
-    else
+    else if (signal != Signal::Beats)
         CHECK (std::any_of (sequence.retained.begin() + 96000, sequence.retained.end(),
             [] (float sample) { return std::abs (sample) > 0.05f; }));
 }

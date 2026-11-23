@@ -71,14 +71,15 @@ inline SequenceResult runSequence (Stretcher& stretch, const MusicalAudioChannel
     const auto totalSamples = static_cast<std::uint64_t> (window.frameCount() + block) * width;
     if (totalSamples != working.size()) return { Status::InvalidInput };
 
-    bool seekHasSignal = false;
-    Input seek { channels, 0, seekHasSignal };
+    std::uint64_t lastSignalEnd = 0;
+    Input seek { channels, 0, lastSignalEnd };
     const auto& first = cuts.calls().front();
     stretch.reset();
     stretch.seek (seek, lookahead, static_cast<double> (first.inputFrames) / first.outputFrames);
 
     std::int64_t nextHop = 0;
-    bool ranSynthesis = false;
+    std::int64_t tailEnd = 0;
+    std::int64_t regularInput = 0, lastAnalysis = -1;
     for (const auto& call : cuts.calls())
     {
         // The normal path retains only the last W inputs per call. With I <= W the entire
@@ -87,20 +88,19 @@ inline SequenceResult runSequence (Stretcher& stretch, const MusicalAudioChannel
         const auto begin = static_cast<std::size_t> (call.outputBegin) * width;
         const auto count = static_cast<std::size_t> (call.outputFrames) * width;
         const auto processed = processBlock (stretch, channels, call.inputBegin + static_cast<unsigned> (lookahead),
-                                             call.inputFrames, call.outputFrames, working.subspan (begin, count));
+                                             call.inputFrames, call.outputFrames, working.subspan (begin, count), &lastSignalEnd);
         if (processed == BlockStatus::InvalidBlock) return { Status::InvalidInput };
         if (processed == BlockStatus::MusicalQuietPathUnsupported) return { Status::MusicalQuietPathUnsupported };
         if (processed == BlockStatus::ExactZeroFastReturn)
         {
             // Copied zeros advance the input ring but leave the STFT's hop and phase state still.
-            // Before the first spectrum, seek remains pending and the entire previous source
-            // history is exact zero. Its first hop moves to the start of the next ordinary call.
-            // After a spectrum or a nonzero seek the retained phase/tail is not established.
-            if (ranSynthesis || seekHasSignal) return { Status::MusicalBoundaryContextUnsupported };
+            // Before pausing its STFT the vendor clears the bands, but leaves any prior
+            // overlap-add output in the ring. Accept the pause only after that signal drained.
+            if (call.outputBegin < tailEnd || (lastAnalysis < 0 && lastSignalEnd != 0))
+                return { Status::MusicalBoundaryContextUnsupported };
             nextHop += call.outputFrames;
             continue;
         }
-        ranSynthesis = true;
         const auto end = call.outputBegin + call.outputFrames;
         for (; nextHop < end; nextHop += hop)
         {
@@ -111,9 +111,16 @@ inline SequenceResult runSequence (Stretcher& stretch, const MusicalAudioChannel
             if (std::round (vendorOffset) != static_cast<float> (advance))
                 return { Status::UnsupportedArithmetic };
             const auto source = static_cast<std::int64_t> (call.inputBegin) + advance;
+            // prevInputOffset advances only on ordinary process calls. A positive interval
+            // means the backend really analyses this window, including the first after silence.
+            if (regularInput + advance <= lastAnalysis) return { Status::MusicalBoundaryContextUnsupported };
+            lastAnalysis = regularInput + advance;
+            if (lastSignalEnd != 0 && source + lookahead - block < static_cast<std::int64_t> (lastSignalEnd))
+                tailEnd = nextHop + block;
             const auto checked = checkCentre (window, 2 * source - block % 2, 2 * nextHop - block % 2);
             if (checked.status != Status::Ok) return checked;
         }
+        regularInput += call.inputFrames;
     }
 
     struct Tail
