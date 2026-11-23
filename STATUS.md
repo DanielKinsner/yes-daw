@@ -8,6 +8,13 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-23 - First listen, unit 4: playback samples prepared
+
+- The listening renderer now owns the finished clip at its exact length, applies native fades once across the tempo change and leaves gain live. It checks app-controlled buffers and uses the classified channel layout.
+- The waveform smoke checks the prepared samples against the measured sequence and exercises a budget refusal. The stereo fade check covers the tempo jump, fractional start and overlapping overlong fade. Engine critic reviewed.
+- Windows: `cmake --build build-apps-off --parallel 6` and `ctest --test-dir build-apps-off --output-on-failure` passed (491/491). Focused renderer/fade checks passed after the ownership and range-check fixes.
+- Next: feed those samples to the song graph and live track schedule (unit 5), then prepare them on Open (unit 10). The listening-only resource exception recorded below does not certify the library-wide totals.
+
 ## 2026-11-23 - First listen, unit 4: measured beats and pitch
 
 - At 48 kHz the seven drum hits crossed the 120-to-90 change within 0.36 ms of the beats (5 ms limit). Worst pitch error was 0.015 cents for 220/997 Hz tones (5-cent limit).
@@ -217,7 +224,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    passed all ten jobs.
    **Clock research is parked (owner, 2026-11-23, [ADR-0092](docs/adr/0092-park-clock-research-resume-musical-audio.md)).**
    Dan approved the first-listen plan. The complete stretch-call sequence works on its tempo change (unit 3).
-   Next: verify and finish the rendered sound, wire playback, and open the listening song (units 4, 5, 10).
+   The listening build can prepare and measure the sound (unit 4). Next: wire playback and open the song (units 5 and 10).
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**

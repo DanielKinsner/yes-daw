@@ -1,4 +1,4 @@
-#include "engine/MusicalAudioSequence.h"
+#include "engine/MusicalAudioPrepared.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -143,6 +143,16 @@ TEST_CASE ("The listening song plans one continuous clip across 120 and 90 BPM",
     }
     if (signal == Signal::Beats)
     {
+        ListeningClipAudio ready;
+        REQUIRE (prepareListeningClip (clip, asset, samples, samples, clock, {}, ready)
+                 == ListeningPrepareStatus::Ok);
+        REQUIRE (ready.samples);
+        REQUIRE (ready.samples->frames == 224000u);
+        CHECK (std::equal (sequence.retained.begin(), sequence.retained.end(), ready.samples->interleaved.begin()));
+        ListeningClipAudio refused;
+        CHECK (prepareListeningClip (clip, asset, samples, samples, clock, { 1024, 1024 }, refused)
+               == ListeningPrepareStatus::ResourceLimit);
+        CHECK_FALSE (refused.samples);
         for (int beat = 1; beat < 8; ++beat)
         {
             const int expected = beat <= 4 ? beat * 24000 : 96000 + (beat - 4) * 32000;
