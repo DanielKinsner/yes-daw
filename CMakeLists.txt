@@ -1159,8 +1159,8 @@ add_test(NAME YesDawDawprojectCheck COMMAND $<TARGET_FILE:YesDawDawprojectCheck>
 add_executable(YesDawTimeStretchCheck tests/time_stretch_tests.cpp tests/musical_audio_process_block_tests.cpp
   tests/musical_audio_sequence_tests.cpp tests/musical_audio_envelope_tests.cpp)
 target_include_directories(YesDawTimeStretchCheck PRIVATE ${YESDAW_SRC_DIR})
-target_include_directories(YesDawTimeStretchCheck SYSTEM PRIVATE ${signalsmith_stretch_SOURCE_DIR})
-target_link_libraries(YesDawTimeStretchCheck PRIVATE Catch2::Catch2WithMain)
+target_include_directories(YesDawTimeStretchCheck SYSTEM PRIVATE ${signalsmith_stretch_SOURCE_DIR} ${choc_SOURCE_DIR})
+target_link_libraries(YesDawTimeStretchCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
 yesdaw_harden(YesDawTimeStretchCheck)
 add_test(NAME YesDawTimeStretchCheck COMMAND $<TARGET_FILE:YesDawTimeStretchCheck>)
 

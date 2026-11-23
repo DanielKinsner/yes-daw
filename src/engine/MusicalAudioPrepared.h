@@ -1,6 +1,7 @@
 // Musical audio for the opt-in listening build. Preparation is control-side only.
 #pragma once
 
+#include "engine/MusicalAudioReady.h"
 #include "engine/MusicalAudioEnvelope.h"
 #include "engine/MusicalAudioSequence.h"
 
@@ -8,15 +9,6 @@
 #include <stdexcept>
 
 namespace yesdaw::engine {
-
-struct ListeningClipAudio
-{
-    std::shared_ptr<const MusicalAudioChannelRequest> request;
-    std::shared_ptr<const AssetSamples> samples;
-    Clip clip;
-    Asset asset;
-    std::uint64_t retainedBytes = 0;
-};
 
 enum class ListeningPrepareStatus
 {
@@ -35,7 +27,7 @@ inline ListeningPrepareStatus prepareListeningClip (const Clip& clip, const Asse
 {
     using Status = ListeningPrepareStatus;
     using namespace musical_process_detail;
-    if (out.request || out.samples || !clock || !original || !mapped || !asset.isValid() || !clip.sourceWindowFits (asset)
+    if (out.request_ || out.samples_ || !clock || !original || !mapped || !asset.isValid() || !clip.sourceWindowFits (asset)
         || clip.timeBase != TimeBase::TempoLocked)
         return Status::InvalidInput;
     const double rate = clock->sampleRate().hz;
@@ -124,7 +116,11 @@ inline ListeningPrepareStatus prepareListeningClip (const Clip& clip, const Asse
             return Status::EnvelopeRefused;
         if (applyMusicalAudioEnvelope (clip, window, inverse, logical, pcm->interleaved) != MusicalEnvelopeStatus::Ok)
             return Status::EnvelopeRefused;
-        out = { request, std::move (pcm), clip, asset, request->accounting().reservedBytes + finalCount * sizeof (float) };
+        out.clip_ = clip;
+        out.asset_ = asset;
+        out.request_ = request;
+        out.samples_ = std::move (pcm);
+        out.retainedBytes_ = request->accounting().reservedBytes + finalCount * sizeof (float);
         return Status::Ok;
     }
     catch (const std::bad_alloc&) { return Status::ResourceLimit; }

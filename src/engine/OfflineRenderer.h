@@ -10,6 +10,7 @@
 #include "engine/ClipEnvelope.h"
 #include "engine/ClipSchedule.h"
 #include "engine/Midi.h"
+#include "engine/MusicalAudioReady.h"
 #include "engine/MixerGraphProjection.h"
 #include "engine/ProjectMixerProjection.h"
 #include "engine/TimeStretch.h"
@@ -99,6 +100,8 @@ struct OfflineRenderOptions
     // ADR-0058 cp3: render one export stem — the top-level Track (false) or Bus (true) with this id (MixerGraphProjection).
     std::optional<std::pair<bool, EntityId>> stemStrip;
     std::uint32_t stemSalt = 0;
+    std::shared_ptr<const ListeningClipOwners> listeningClips {}; // Explicitly supplied by the listening build only.
+
 };
 
 enum class OfflineRenderStatus : std::uint8_t
@@ -120,6 +123,7 @@ enum class OfflineRenderStatus : std::uint8_t
     TimeStretchFailed,          // G2.9: a stretched Clip's control-side preparation failed
     GraphNotBlockParallelSafe,  // ADR-0027: graph has a cross-Block-stateful node; use the serial renderer
     Cancelled,                  // ADR-0058: an export job's cancel flag was set mid-render (no audio returned)
+    PreparationRequired, MusicalLinkedTakeUnsupported,
     RangeOutsideRender          // ADR-0058 cp3: the export range starts at or past the render's end (nothing rendered)
 };
 
@@ -162,6 +166,7 @@ struct ResolvedClipWindow
     std::uint64_t startFrame = 0;
     std::uint64_t lengthFrames = 0;
     std::uint64_t sourceFrames = 0;
+    const ListeningClipAudio* listening = nullptr;
 };
 
 [[nodiscard]] inline bool checkedAddFrames (std::uint64_t a, std::uint64_t b, std::uint64_t& out) noexcept
@@ -306,7 +311,8 @@ namespace detail {
                                                    OfflineRenderStatus& status,
                                                    double sampleRate = 0.0,
                                                    std::span<const StretchedOwnership> stretchOwners = {},
-                                                   std::vector<StretchedOwnership>* preparedStretches = nullptr)
+                                                   std::vector<StretchedOwnership>* preparedStretches = nullptr,
+                                                   bool readyInputsOnly = false)
 {
     const DecodedAssetAudio* const decoded = findDecodedAsset (decodedAssets, asset.id);
     if (decoded == nullptr)
@@ -323,6 +329,18 @@ namespace detail {
     {
         status = OfflineRenderStatus::UnsupportedAssetChannels;
         return false;
+    }
+    if (window.listening != nullptr)
+    {
+        const auto& owner = window.listening->samples();
+        out.owner = owner;
+        out.clip = {};
+        out.clip.samples = owner->interleaved.data();
+        out.clip.sourceChannels = owner->channels;
+        out.clip.startFrame = static_cast<std::int64_t> (window.startFrame);
+        out.clip.windowFrames = out.clip.sourceFrames = static_cast<std::int64_t> (window.lengthFrames);
+        out.clip.gain = clip.gain;
+        return true;
     }
     if (clip.srcOffset > asset.frames || window.sourceFrames > asset.frames - clip.srcOffset)
     {
@@ -343,6 +361,11 @@ namespace detail {
             && ownership.samples->frames == decoded->frames
             && ownership.samples->channels == static_cast<int> (decoded->channels))
             owner = ownership.samples;
+    if (readyInputsOnly && (owner == nullptr || owner->interleaved.data() != decoded->interleavedSamples.data()))
+    {
+        status = OfflineRenderStatus::PreparationRequired;
+        return false;
+    }
     if (owner == nullptr)
     {
         for (const auto& copied : copiedAssets)
@@ -408,6 +431,11 @@ namespace detail {
             for (const StretchedOwnership& entry : *preparedStretches)
                 if (stretched == nullptr && matches (entry))
                     stretched = entry.samples;
+        if (readyInputsOnly && stretched == nullptr)
+        {
+            status = OfflineRenderStatus::PreparationRequired;
+            return false;
+        }
         if (stretched == nullptr)
         {
             const std::size_t first = static_cast<std::size_t> (clip.srcOffset) * static_cast<std::size_t> (owner->channels);
@@ -481,6 +509,65 @@ namespace detail {
     return true;
 }
 
+inline bool resolvePlaybackWindow (const Project& project, const Clip& clip,
+                                   const ListeningClipOwners* ready, std::span<const AssetOwnership> owners,
+                                   std::span<const DecodedAssetAudio> decodedAssets, ResolvedClipWindow& out,
+                                   OfflineRenderStatus& status)
+{
+    if (clip.timeBase == TimeBase::SampleLocked)
+    {
+        if (resolveClipWindow (clip, out)) return true;
+        status = OfflineRenderStatus::InvalidTimeline;
+        return false;
+    }
+    if (clip.timeBase != TimeBase::TempoLocked || ready == nullptr)
+    {
+        status = OfflineRenderStatus::UnsupportedTimeBase;
+        return false;
+    }
+    for (const auto& take : project.recordingTakes)
+        if (take.clipId == clip.id)
+        {
+            status = OfflineRenderStatus::MusicalLinkedTakeUnsupported;
+            return false;
+        }
+    for (const auto& entry : *ready)
+    {
+        if (entry.clip().id != clip.id || entry.clip().assetId != clip.assetId || !entry.request() || !entry.samples())
+            continue;
+        const auto& request = *entry.request();
+        const auto& mapped = request.mappedOwner();
+        const auto& window = request.window();
+        const auto* asset = project.findAsset (clip.assetId);
+        if (asset == nullptr) break;
+        Asset projectedAsset = entry.asset();
+        projectedAsset.frames = mapped->frames;
+        projectedAsset.sampleRate = project.sampleRate;
+        const auto* decoded = findDecodedAsset (decodedAssets, asset->id);
+        if (*asset != projectedAsset || !decoded || !decodedAssetMetadataMatches (*decoded, *asset)
+            || decoded->interleavedSamples.data() != mapped->interleaved.data()
+            || entry.samples()->frames != static_cast<std::uint64_t> (window.frameCount())
+            || !musical_audio_detail::validOwner (entry.samples(), entry.samples()->frames, asset->channels)
+            || window.clock()->sampleRate() != project.sampleRate
+            || !std::ranges::equal (window.clock()->rows(), project.tempoMap)
+            || clip.timelineStart != window.startTick() || clip.timelineLength != window.lengthTicks()
+            || clip.srcOffset != request.mappedWindow().srcOffset || clip.srcLen != request.mappedWindow().srcLen
+            || clip.reversed != entry.clip().reversed || clip.fadeIn != entry.clip().fadeIn || clip.fadeOut != entry.clip().fadeOut
+            || clip.fadeInShape != entry.clip().fadeInShape || clip.fadeOutShape != entry.clip().fadeOutShape
+            || clip.fadeInCurve != entry.clip().fadeInCurve || clip.fadeOutCurve != entry.clip().fadeOutCurve)
+            break;
+        const auto owner = std::find_if (owners.begin(), owners.end(), [&] (const AssetOwnership& item) {
+            return item.assetId == clip.assetId;
+        });
+        if (owner == owners.end() || !musical_audio_detail::sameOwner (owner->samples, mapped)) break;
+        const auto length = static_cast<std::uint64_t> (window.frameCount());
+        out = { clip.id, static_cast<std::uint64_t> (window.startFrame()), length, length, &entry };
+        return true;
+    }
+    status = OfflineRenderStatus::PreparationRequired;
+    return false;
+}
+
 } // namespace detail
 
 // G0.5 — the live placement lane's builder (CONTROL THREAD): the ClipSchedule for one Track of
@@ -493,7 +580,8 @@ namespace detail {
                                                                             OfflineRenderStatus& status,
                                                                             std::span<const AssetOwnership> assetOwners = {},
                                                                             std::span<const StretchedOwnership> stretchOwners = {},
-                                                                            std::vector<StretchedOwnership>* preparedStretches = nullptr)
+                                                                            std::vector<StretchedOwnership>* preparedStretches = nullptr,
+                                                                            const ListeningClipOwners* listeningClips = nullptr)
 {
     status = OfflineRenderStatus::Ok;
     auto schedule = std::make_unique<ClipSchedule>();
@@ -521,8 +609,7 @@ namespace detail {
     {
         if (! (clip.trackId == trackId))
             continue;
-        if (clip.muted)   // G2.12: a muted Clip keeps its place and plays nothing
-            continue;
+        if (clip.muted && clip.timeBase == TimeBase::SampleLocked) continue;
         const Asset* const asset = project.findAsset (clip.assetId);
         if (asset == nullptr || ! mixerGainIsValid (clip.gain))
         {
@@ -530,15 +617,13 @@ namespace detail {
             return nullptr;
         }
         detail::ResolvedClipWindow window;
-        if (! detail::resolveClipWindow (clip, window))
-        {
-            status = OfflineRenderStatus::InvalidTimeline;
+        if (! detail::resolvePlaybackWindow (project, clip, listeningClips, assetOwners, decodedAssets, window, status))
             return nullptr;
-        }
+        if (clip.muted) continue;
         ScheduledClipSource source;
         if (! detail::makeScheduledClipSource (decodedAssets, assetOwners, clip, *asset, stripChannels, window,
                                                copiedAssets, source, status,
-                                               project.sampleRate.hz, stretchOwners, preparedStretches))
+                                               project.sampleRate.hz, stretchOwners, preparedStretches, listeningClips != nullptr))
             return nullptr;
         schedule->clips.push_back (source.clip);
         if (source.owner != nullptr)
@@ -573,31 +658,12 @@ namespace detail {
     std::uint64_t timelineEndFrames = 0;
     for (const Clip& clip : project.clips)
     {
-        if (clip.timeBase != TimeBase::SampleLocked)
-        {
-            result.status = OfflineRenderStatus::UnsupportedTimeBase;
+        detail::ResolvedClipWindow window;
+        if (! detail::resolvePlaybackWindow (project, clip, options.listeningClips.get(), options.assetOwners,
+                                             decodedAssets, window, result.status))
             return result;
-        }
-
-        std::uint64_t startFrame = 0;
-        std::uint64_t lengthFrames = 0;
-        if (! detail::tickAsSampleLockedFrame (clip.timelineStart, startFrame)
-            || ! detail::tickAsSampleLockedFrame (clip.timelineLength, lengthFrames))
-        {
-            result.status = OfflineRenderStatus::InvalidTimeline;
-            return result;
-        }
-
-        const std::uint64_t sourceFrames = std::min<std::uint64_t> (clip.srcLen, lengthFrames);
-        std::uint64_t clipEnd = 0;
-        if (! detail::checkedAddFrames (startFrame, lengthFrames, clipEnd))
-        {
-            result.status = OfflineRenderStatus::InvalidTimeline;
-            return result;
-        }
-
-        timelineEndFrames = std::max (timelineEndFrames, clipEnd);
-        resolved.push_back ({ clip.id, startFrame, lengthFrames, sourceFrames });
+        timelineEndFrames = std::max (timelineEndFrames, window.startFrame + window.lengthFrames);
+        resolved.push_back (window);
     }
 
     for (const MidiClip& midiClip : project.midiClips)
@@ -672,7 +738,7 @@ namespace detail {
     // G3.9 / ADR-0048: a Sampler pad's samples through the SAME ownership law as a Clip's — the G0.5
     // owner when the build has one for the asset, else the build's one copy (shared by every pad and
     // Clip of that asset in this build).
-    config.assetSamplesProvider = [&decodedAssets, &copiedAssets, &options, &project] (EntityId assetId, SamplerNodePad& padOut) -> bool
+    config.assetSamplesProvider = [&decodedAssets, &copiedAssets, &options, &project, &factoryStatus] (EntityId assetId, SamplerNodePad& padOut) -> bool
     {
         const Asset* const asset = project.findAsset (assetId);
         const DecodedAssetAudio* const decoded = detail::findDecodedAsset (decodedAssets, assetId);
@@ -685,6 +751,11 @@ namespace detail {
                 && ownership.samples->frames == decoded->frames
                 && ownership.samples->channels == static_cast<int> (decoded->channels))
                 owner = ownership.samples;
+        if (options.listeningClips && (!owner || owner->interleaved.data() != decoded->interleavedSamples.data()))
+        {
+            factoryStatus = OfflineRenderStatus::PreparationRequired;
+            return false;
+        }
         if (owner == nullptr)
             for (const auto& copied : copiedAssets)
                 if (copied.first == assetId)
@@ -729,8 +800,8 @@ namespace detail {
                                                     projected.sampleRate.hz,
                                                     std::span<const StretchedOwnership> (options.stretchOwners.data(),
                                                                                          options.stretchOwners.size()),
-                                                    &preparedStretches);
-            if (made && clip.stretchFactor != 1.0f)
+                                                    &preparedStretches, options.listeningClips != nullptr);
+            if (made && clip.timeBase == TimeBase::SampleLocked && clip.stretchFactor != 1.0f)
                 effectiveUsedStretches.push_back ({ clip.id, asset.id, clip.srcOffset, clip.srcLen,
                                                    clip.stretchFactor, out.owner });
             return made;
@@ -802,6 +873,8 @@ namespace detail {
     OfflineRenderResult result;
     result.sampleRate = project.sampleRate;
 
+    // Listening-build owners are LivePlayback tier. Offline export needs its own preparation.
+    options.listeningClips.reset();
     ProjectGraphResult built = buildProjectGraph (project, decodedAssets, options);
     result.projectError = built.projectError;
     result.mixerError = built.mixerError;

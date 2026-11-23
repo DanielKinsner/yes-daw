@@ -1,4 +1,5 @@
 #include "engine/MusicalAudioPrepared.h"
+#include "engine/PlaybackEngine.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -146,13 +147,65 @@ TEST_CASE ("The listening song plans one continuous clip across 120 and 90 BPM",
         ListeningClipAudio ready;
         REQUIRE (prepareListeningClip (clip, asset, samples, samples, clock, {}, ready)
                  == ListeningPrepareStatus::Ok);
-        REQUIRE (ready.samples);
-        REQUIRE (ready.samples->frames == 224000u);
-        CHECK (std::equal (sequence.retained.begin(), sequence.retained.end(), ready.samples->interleaved.begin()));
+        REQUIRE (ready.samples());
+        REQUIRE (ready.samples()->frames == 224000u);
+        CHECK (std::equal (sequence.retained.begin(), sequence.retained.end(), ready.samples()->interleaved.begin()));
         ListeningClipAudio refused;
         CHECK (prepareListeningClip (clip, asset, samples, samples, clock, { 1024, 1024 }, refused)
                == ListeningPrepareStatus::ResourceLimit);
-        CHECK_FALSE (refused.samples);
+        CHECK_FALSE (refused.samples());
+        Project project;
+        project.id = EntityId::fromBigEndianParts (3, 1);
+        project.sampleRate = asset.sampleRate;
+        project.assets = { asset };
+        project.tempoMap.assign (map.begin(), map.end());
+        Track track;
+        track.id = clip.trackId;
+        track.strip.name = "Pulse";
+        project.tracks = { track };
+        clip.stretchFactor = 1.5f; // legal stored scalar is ignored on this lane
+        clip.gain = 0.75f;
+        project.clips = { clip };
+        const DecodedAssetAudio decoded { asset.id, asset.sampleRate, asset.frames, asset.channels, samples->interleaved };
+        const std::span<const DecodedAssetAudio> decodedViews (&decoded, 1);
+        OfflineRenderOptions options;
+        options.assetOwners.push_back ({ asset.id, samples });
+        options.listeningClips = std::make_shared<ListeningClipOwners> (ListeningClipOwners { ready });
+        const auto graph = buildProjectGraph (project, decodedViews, options);
+        REQUIRE (graph.ok());
+        OfflineRenderStatus scheduleStatus;
+        const auto schedule = buildTrackClipSchedule (project, track.id, decodedViews, scheduleStatus,
+            options.assetOwners, {}, nullptr, options.listeningClips.get());
+        REQUIRE (schedule);
+        REQUIRE (schedule->clips.size() == 1u);
+        CHECK (schedule->clips.front().samples == ready.samples()->interleaved.data());
+        CHECK (schedule->clips.front().windowFrames == 224000);
+        CHECK (schedule->clips.front().gain == 0.75f);
+        CHECK (renderOfflineProject (project, decodedViews, options).status == OfflineRenderStatus::UnsupportedTimeBase);
+        auto live = PlaybackEngine::create (project, decodedViews, options);
+        REQUIRE (live.ok());
+        REQUIRE (live.engine->play());
+        double graphError = 0;
+        std::array<float, 128> left {}, right {};
+        float* outputChannels[] = { left.data(), right.data() };
+        for (std::size_t begin = 0; begin < ready.samples()->frames; begin += left.size())
+        {
+            const auto size = std::min (left.size(), static_cast<std::size_t> (ready.samples()->frames) - begin);
+            live.engine->processBlock (outputChannels, 2, static_cast<int> (size));
+            for (std::size_t j = 0; j < size; ++j)
+                graphError = std::max (graphError, std::abs (left[j]
+                    - ready.samples()->interleaved[begin + j] * 0.75 * std::sqrt (0.5)));
+        }
+        CHECK (graphError <= 1e-5);
+        Clip fixed = clip;
+        fixed.id = EntityId::fromBigEndianParts (3, 2);
+        fixed.timeBase = TimeBase::SampleLocked;
+        fixed.timelineLength = 288000;
+        project.clips.push_back (fixed);
+        CHECK (buildProjectGraph (project, decodedViews, options).status == OfflineRenderStatus::PreparationRequired);
+        project.clips.pop_back();
+        project.tempoMap[1].bpm = 100.0;
+        CHECK (buildProjectGraph (project, decodedViews, options).status == OfflineRenderStatus::PreparationRequired);
         for (int beat = 1; beat < 8; ++beat)
         {
             const int expected = beat <= 4 ? beat * 24000 : 96000 + (beat - 4) * 32000;

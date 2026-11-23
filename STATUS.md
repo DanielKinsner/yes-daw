@@ -8,6 +8,13 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-23 - First listen, unit 5: both playback paths use prepared audio
+
+- The song graph and live track schedule read the same immutable samples. The listening-song test plays the graph through its full 224,000 frames and checks output against the prepared clip with live gain.
+- A changed map or missing ready input refuses the build. The offline export path rejects listening-tier audio. Engine critic reviewed the graph, sampler and schedule changes.
+- Windows: `cmake --build build-apps-off --parallel 6` passed; `ctest --test-dir build-apps-off --output-on-failure -j 2` passed 491/491.
+- Next: prepare the actual listening song on full Open, check its playback mechanically, and deliver the Windows build.
+
 ## 2026-11-23 - First listen, unit 4: playback samples prepared
 
 - The listening renderer now owns the finished clip at its exact length, applies native fades once across the tempo change and leaves gain live. It checks app-controlled buffers and uses the classified channel layout.
@@ -224,7 +231,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    passed all ten jobs.
    **Clock research is parked (owner, 2026-11-23, [ADR-0092](docs/adr/0092-park-clock-research-resume-musical-audio.md)).**
    Dan approved the first-listen plan. The complete stretch-call sequence works on its tempo change (unit 3).
-   The listening build can prepare and measure the sound (unit 4). Next: wire playback and open the song (units 5 and 10).
+   Prepared audio plays through both engine paths (units 4 and 5). Next: connect full Open and deliver the song (unit 10).
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**

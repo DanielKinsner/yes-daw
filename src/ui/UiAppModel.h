@@ -160,6 +160,8 @@ struct UiAppLoadResult
                 case engine::OfflineRenderStatus::MixerProjectionFailed:    return "the mixer graph could not be built";
                 case engine::OfflineRenderStatus::OutputTooLarge:           return "the project is too long";
                 case engine::OfflineRenderStatus::RenderProducedNonFinite:  return "the project produced non-finite audio";
+                case engine::OfflineRenderStatus::PreparationRequired:      return "musical audio needs preparation";
+                case engine::OfflineRenderStatus::MusicalLinkedTakeUnsupported: return "a linked recording take cannot follow tempo";
                 case engine::OfflineRenderStatus::TimeStretchFailed:        return "a time-stretched clip could not be prepared";
                 case engine::OfflineRenderStatus::GraphNotBlockParallelSafe:return "the project graph is not safe for playback";
                 case engine::OfflineRenderStatus::Cancelled:                return "the audio engine build was cancelled";
