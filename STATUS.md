@@ -8,6 +8,21 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-23 - First listen: one audio clip stays with the click through a tempo change
+
+**A (Recommended)** Send Dan a test build and a disposable song. Open the song and press Play. A pitched pulse in one continuous audio clip should slow with the metronome from 120 to 90 BPM halfway through, keeping its pitch and landing on each click. **B** Make changing the tempo on Dan's own imported clip the first listen instead. That brings background edits, undo, editing tools and controls forward.
+
+**Done:** 1 clip timing and input keys, 2 Fixed/Musical conversions and row history, 7 whole-step undo guard. The architecture (unit 0) is accepted. Playback is still missing.
+
+**Needed for A, in order** (one commit or small group per step, each in `src/` or `tests/`):
+
+1. **3 — Plan the stretch.** Use the existing cut and channel plans to tell one stretcher how much audio to read and produce across the tempo change. Handle its start, end and quiet passages, or refuse an unsupported case.
+2. **4 — Produce the sound.** Render the original clip to the exact new length before playback, keeping pitch and applying fades once. Keep the source file intact.
+3. **5 — Play it.** Have the song graph and live track schedule read the same prepared samples at the same song position. A missing result must stop the change.
+4. **10 — Open the listening song.** Prepare the clip on full open before attaching the engine. Use a small song in the existing project format. In the existing test suite, check the clip's own pulses against both tempos through Open and playback. Package the build and song, give Dan the clicks and expected sound, then stop.
+
+**Can wait until after A:** 6 background preparation for edits, 8 applying tempo edits and undo together with the new audio, 9 mix/stem export, 11 editing and waveform display, 12 Fixed/Musical and fit controls. The first listen uses a saved tempo change. Normal editing controls stay behind their activation requirements. Awaiting Dan's go before code.
+
 ## 2026-11-23 - Owner redirect: Clock parked, back to Musical audio
 
 - Dan parked the Clock research ([ADR-0092](docs/adr/0092-park-clock-research-resume-musical-audio.md)). Since
@@ -136,7 +151,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - Windows apps-off Release built and passed all 491 tests. The app and two UI check targets built without launching. R18's [docs-only CI](https://github.com/DanielKinsner/yes-daw/actions/runs/43637053803) passed.
 - The [stage-scan call count](docs/research/2026-11-14-clock-r18-stage-scan-census.md) now covers all five native scan sites. Next: price their work across the prefix and cleanup paths and qualify the exact layouts on a verified compiler profile. Audible tempo-follow remains pending.
 
-## Scoreboard - where the app stands (kept current; last updated 2026-11-14)
+## Scoreboard - where the app stands (kept current; last updated 2026-11-23)
 
 **Make a song today** (evidence: the real-app drives on packaged build 7a1b0ad, 2026-10-13)
 - Import audio - WORKING: WAV/AIFF/FLAC/Ogg/MP3 at supported sample rates, drag-drop, browser preview.
@@ -180,10 +195,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Current app code is d3ec661: 491 local pure checks and GUI compile-only passed; exact-code CI 42146047209
    passed all ten jobs.
    **Clock research is parked (owner, 2026-11-23, [ADR-0092](docs/adr/0092-park-clock-research-resume-musical-audio.md)).**
-   Its R13-R22 runner, supervisor and proof work never ran and is not a prerequisite; details stay in the dated
-   entries below as history. Next: resume Musical audio at the first unfinished unit of the
-   [Musical audio plan](docs/plans/2026-11-04-musical-audio-prepared-lane-plan.md) under ADR-0078 ship-first.
-   Every batch changes `src/` or `tests/` toward Dan hearing an audio clip follow a tempo change.
+   Awaiting Dan's choice on the first-listen plan at the top. Recommended next: finish the stretch plan,
+   render the clip, wire playback and open a listening song with a saved tempo change (units 3, 4, 5, 10).
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
