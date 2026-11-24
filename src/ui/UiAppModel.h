@@ -5,6 +5,10 @@
 
 #pragma once
 
+#if defined (YESDAW_LISTENING_BUILD)
+#include "app/MusicalAudioListeningOpen.h"
+#endif
+
 #include "io/AudioImportFormat.h"
 
 #include "io/PathText.h"   // file names as UTF-8 (never through the ANSI code page)
@@ -123,6 +127,7 @@ struct UiAppLoadResult
     engine::OfflineRenderStatus  playbackStatus = engine::OfflineRenderStatus::Ok;
     engine::ProjectMixerProjectionError projectError;
     engine::MixerProjectionError mixerError;
+    const char* listeningFailure = nullptr;
 
     [[nodiscard]] bool ok() const noexcept { return status == UiAppLoadStatus::Ok; }
 };
@@ -132,6 +137,7 @@ struct UiAppLoadResult
 // engine was the one who said no. An empty string for a successful load.
 [[nodiscard]] inline std::string describeUiAppLoadFailure (const UiAppLoadResult& result)
 {
+    if (result.listeningFailure) return result.listeningFailure;
     switch (result.status)
     {
         case UiAppLoadStatus::Ok:
@@ -10487,50 +10493,127 @@ public:
                 result.status = UiAppLoadStatus::PlaybackBuildFailed;
                 return result;
             }
-        options.assetOwners = makeDecodedOwners (ownedDecoded, loadedProject.sampleRate);
-        // ADR-0055: views at the OPENED project's rate (project_ is still the previous project here).
-        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (
-            ownedDecoded, engine::ResampleQuality::LivePlayback, nullptr, loadedProject.sampleRate);
-
-        std::optional<engine::Project> engineStorage;   // ADR-0055: cross-rate windows in view frames
-        engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
-            engineProjectFor (loadedProject, engineStorage),
-            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
-            options);
-
-        result.playbackStatus = built.status;
-        result.projectError = built.projectError;
-        result.mixerError = built.mixerError;
-
+        engine::PlaybackEngine::Result built;
         std::unique_ptr<engine::PlaybackEngine> loadedEngine;
-        if (built.ok())
+        try
         {
-            loadedEngine = std::move (built.engine);
-        }
-        else if (built.status == engine::OfflineRenderStatus::EmptyTimeline)
-        {
-            // ADR-0041: a saved project with assets but no renderable Clips (every Clip deleted
-            // before the shell was killed, or every Clip removed from a template) still opens with
-            // a real transport rendering exact silence — the same fallback adoptEditedProject uses
-            // when a live edit empties the timeline, so a user who deletes their last Clip never
-            // ends up with a bundle that refuses to reopen.
-            loadedEngine = engine::PlaybackEngine::createTransportOnly (loadedProject,
-                                                                         playbackMaxBlockSize_);
-        }
+#if defined (YESDAW_LISTENING_BUILD)
+            const bool listening = app::containsMusicalAudio (loadedProject);
+            std::uint64_t remaining = app::listeningBatchBytes;
+            if (listening)
+            {
+                std::set<decltype (engine::EntityId{}.bytes)> seen;
+                for (const auto& item : ownedDecoded)
+                {
+                    const auto* asset = loadedProject.findAsset (item.assetId);
+                    if (!asset || item.frames != asset->frames || item.channels != asset->channels
+                        || item.sampleRate != asset->sampleRate || !seen.insert (item.assetId.bytes).second)
+                    {
+                        result.status = UiAppLoadStatus::PlaybackBuildFailed;
+                        result.playbackStatus = engine::OfflineRenderStatus::AssetMetadataMismatch;
+                        return result;
+                    }
+                }
+                accountListeningBuffers (remaining);
+                result.listeningFailure = app::checkListeningOpen (loadedProject, remaining);
+                if (result.listeningFailure)
+                {
+                    result.status = UiAppLoadStatus::PlaybackBuildFailed;
+                    return result;
+                }
+            }
+#endif
+            options.assetOwners = makeDecodedOwners (ownedDecoded, loadedProject.sampleRate);
+            // ADR-0055: views at the OPENED project's rate (project_ is still the previous project here).
+            std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (
+                ownedDecoded, engine::ResampleQuality::LivePlayback, nullptr, loadedProject.sampleRate);
 
-        if (loadedEngine == nullptr)
+            std::optional<engine::Project> engineStorage;   // ADR-0055: cross-rate windows in view frames
+            const auto& projected = engineProjectFor (loadedProject, engineStorage);
+#if defined (YESDAW_LISTENING_BUILD)
+            if (listening)
+            {
+                std::vector<engine::AssetOwnership> originals;
+                originals.reserve (ownedDecoded.size());
+                for (const auto& item : ownedDecoded) originals.push_back ({ item.assetId, item.samples });
+                result.listeningFailure = app::prepareListeningOpen (loadedProject, projected, originals,
+                                                                     decodedViews, remaining, options);
+                if (result.listeningFailure)
+                {
+                    pruneRateMatchedViews();
+                    result.status = UiAppLoadStatus::PlaybackBuildFailed;
+                    return result;
+                }
+            }
+#endif
+#if defined (YESDAW_LISTENING_BUILD)
+            if (listening)
+            {
+                for (const auto& item : *options.listeningClips)
+                    listeningBuffers_.emplace_back (item.samples());
+                for (const auto& item : options.assetOwners)
+                {
+                    const auto* asset = loadedProject.findAsset (item.assetId);
+                    if (asset && engine::assetNeedsRateMatchedView (*asset, loadedProject.sampleRate))
+                        listeningBuffers_.emplace_back (item.samples);
+                }
+                for (const auto& item : options.stretchOwners) listeningBuffers_.emplace_back (item.samples);
+            }
+#endif
+            built = engine::PlaybackEngine::create (
+                projected,
+                std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
+                options);
+
+            result.playbackStatus = built.status;
+            result.projectError = built.projectError;
+            result.mixerError = built.mixerError;
+
+            if (built.ok())
+            {
+                loadedEngine = std::move (built.engine);
+            }
+            else if (built.status == engine::OfflineRenderStatus::EmptyTimeline)
+            {
+                // ADR-0041: a saved project with assets but no renderable Clips (every Clip deleted
+                // before the shell was killed, or every Clip removed from a template) still opens with
+                // a real transport rendering exact silence — the same fallback adoptEditedProject uses
+                // when a live edit empties the timeline, so a user who deletes their last Clip never
+                // ends up with a bundle that refuses to reopen.
+                loadedEngine = engine::PlaybackEngine::createTransportOnly (loadedProject,
+                                                                             playbackMaxBlockSize_);
+            }
+
+            if (loadedEngine == nullptr)
+            {
+                pruneRateMatchedViews();
+                result.status = UiAppLoadStatus::PlaybackBuildFailed;
+                return result;
+            }
+        }
+        catch (const std::bad_alloc&)
         {
+            pruneRateMatchedViews();
             result.status = UiAppLoadStatus::PlaybackBuildFailed;
+            result.listeningFailure = "not enough memory to open the song";
+            return result;
+        }
+        catch (const std::length_error&)
+        {
+            pruneRateMatchedViews();
+            result.status = UiAppLoadStatus::PlaybackBuildFailed;
+            result.listeningFailure = "the song exceeds a playback buffer limit";
             return result;
         }
 
         (void) loadedEngine->stop();
         drainTransport (*loadedEngine);
 
-        attachProjectBundle (std::move (prepared.db_), bundlePath, std::move (loadedProject));
-        decodedAssets_ = std::move (ownedDecoded);
+        attachProjectBundle (std::move (prepared.db_), bundlePath, std::move (loadedProject),
+                             LastProjectRecord::Write, std::move (ownedDecoded));
         pruneRateMatchedViews();   // ADR-0055: the old project's views go; this one's (just built) stay
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
+        listeningClips_ = options.listeningClips;
         cacheLoadedStretchOwners (built.preparedStretches);
         replacePlayback (std::move (loadedEngine));
         enqueueWaveformBuildsForDecodedAssets();
@@ -12456,7 +12539,8 @@ private:
         const std::vector<engine::AssetOwnership> owners = makeDecodedOwners (decodedAssets_);
         std::optional<engine::Project> engineStorage;   // ADR-0055
         const engine::Project& engineProject = engineProjectFor (nextProject, engineStorage);
-        const std::vector<engine::StretchedOwnership> stretches = refreshStretchOwners (engineProject, owners);   // G2.9
+        const auto ready = readyListeningClips (nextProject);
+        const std::vector<engine::StretchedOwnership> stretches = listeningClips_ ? readyFixedStretches (engineProject) : refreshStretchOwners (engineProject, owners);   // G2.9
         std::vector<std::pair<engine::NodeId, std::unique_ptr<const engine::ClipSchedule>>> schedules;
         for (const engine::Track& track : nextProject.tracks)
         {
@@ -12468,7 +12552,7 @@ private:
                 std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
                 status,
                 std::span<const engine::AssetOwnership> (owners.data(), owners.size()),
-                std::span<const engine::StretchedOwnership> (stretches.data(), stretches.size()));
+                std::span<const engine::StretchedOwnership> (stretches.data(), stretches.size()), nullptr, ready.get());
             if (schedule == nullptr || status != engine::OfflineRenderStatus::Ok)
                 return false;
             schedules.emplace_back (
@@ -13912,8 +13996,10 @@ private:
         persistence::ProjectBundleDb opened,
         const std::filesystem::path& bundlePath,
         engine::Project project,
-        LastProjectRecord lastProjectRecord = LastProjectRecord::Write)
+        LastProjectRecord lastProjectRecord = LastProjectRecord::Write,
+        std::vector<UiDecodedAsset> openedDecoded = {})
     {
+        listeningClips_.reset();
         invalidateStretchPreparation();
         stretchedSamplesCache_.clear();
         retireAudioImport (UiAudioImportDisposition::Stale, "Audio import refused: Project was replaced");
@@ -13944,7 +14030,7 @@ private:
         selectedMidiNoteId_ = {};
         selectedMixerTarget_ = {};
         undo_ = {};
-        decodedAssets_.clear();
+        decodedAssets_ = std::move (openedDecoded);
         pruneRateMatchedViews();
         decodedAssetViews_.clear();
         std::unique_ptr<engine::PlaybackEngine> transport =
@@ -14761,6 +14847,53 @@ private:
         context_.lastLocateFrame = snapshot.lastLocateFrame;
     }
 
+    std::vector<engine::StretchedOwnership> readyFixedStretches (const engine::Project& projected) const
+    {
+        std::vector<engine::StretchedOwnership> ready;
+        for (const auto& clip : projected.clips)
+            if (clip.timeBase == engine::TimeBase::SampleLocked && clip.stretchFactor != 1.0f)
+                if (const auto* cached = findCachedStretch (projected, clip)) ready.push_back (*cached);
+        return ready;
+    }
+
+#if defined (YESDAW_LISTENING_BUILD)
+    void accountListeningBuffers (std::uint64_t& remaining)
+    {
+        std::erase_if (listeningBuffers_, [] (const auto& item) { return item.expired(); });
+        std::set<const engine::AssetSamples*> counted;
+        const auto debit = [&] (const std::shared_ptr<const engine::AssetSamples>& pcm) {
+            if (pcm && counted.insert (pcm.get()).second)
+                remaining -= std::min<std::uint64_t> (remaining, pcm->interleaved.capacity() * sizeof (float));
+        };
+        for (const auto& item : listeningBuffers_) debit (item.lock());
+        for (const auto& item : stretchedSamplesCache_) debit (item.ownership.samples);
+        const std::lock_guard<std::mutex> lock (rateMatchedViewsMutex_);
+        for (const auto& item : rateMatchedViews_) debit (item.view);
+    }
+    std::vector<std::weak_ptr<const engine::AssetSamples>> listeningBuffers_;
+#endif
+
+    [[nodiscard]] std::shared_ptr<const engine::ListeningClipOwners> readyListeningClips (const engine::Project& candidate) const
+    {
+        if (!listeningClips_) return {};
+        for (const auto& clip : candidate.clips)
+        {
+            if (clip.timeBase != engine::TimeBase::TempoLocked) continue;
+            const auto* asset = candidate.findAsset (clip.assetId);
+            const auto entry = std::find_if (listeningClips_->begin(), listeningClips_->end(),
+                [&] (const auto& item) { return item.clip().id == clip.id; });
+            if (entry == listeningClips_->end() || !asset || *asset != entry->asset()
+                || clip.assetId != entry->asset().id || clip.srcOffset != entry->clip().srcOffset
+                || clip.srcLen != entry->clip().srcLen) return {};
+            const auto decoded = std::find_if (decodedAssets_.begin(), decodedAssets_.end(),
+                [&] (const auto& item) { return item.assetId == clip.assetId; });
+            if (decoded == decodedAssets_.end()
+                || !engine::musical_audio_detail::sameOwner (decoded->samples, entry->request()->originalOwner()))
+                return {};
+        }
+        return listeningClips_;
+    }
+
     [[nodiscard]] engine::OfflineRenderOptions playbackBaseBuildOptions() const
     {
         engine::OfflineRenderOptions options;
@@ -14778,6 +14911,12 @@ private:
         pruneRateMatchedViews();   // ADR-0055: a view goes with its Asset
         options.assetOwners = makeDecodedOwners (decodedAssets_);
         std::optional<engine::Project> engineStorage;   // ADR-0055: stretch from the views, in view frames
+        options.listeningClips = readyListeningClips (forProject != nullptr ? *forProject : project_);
+        if (listeningClips_)
+        {
+            options.stretchOwners = readyFixedStretches (engineProjectFor (forProject != nullptr ? *forProject : project_, engineStorage));
+            return options;
+        }
         options.stretchOwners = refreshStretchOwners (engineProjectFor (forProject != nullptr ? *forProject : project_, engineStorage), options.assetOwners);
         return options;
     }
@@ -15225,6 +15364,7 @@ private:
         return { id, state, true };
     }
 
+    std::shared_ptr<const engine::ListeningClipOwners> listeningClips_;
     std::vector<UiDecodedAsset> decodedAssets_;
     // RT capture session state (P0-1). Config is published before the active flag; the FIFOs are
     // drained on the shell's control timer, never the audio thread.

@@ -22,6 +22,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)   # clang-format / clang-tidy / editors co
 
 # YESDAW_BUILD_APPS=OFF configures ONLY the pure Catch2 test (no JUCE) — used by the RTSan CI leg so
 # it needs neither the JUCE clone nor the X11/ALSA dev libs that JUCE's GUI/audio modules require.
+option(YESDAW_LISTENING_BUILD "Enable Musical audio full Open in the listening test app" OFF)
 option(YESDAW_BUILD_APPS "Build the JUCE GUI app + soak tool (off => pure-test-only)" ON)
 option(YESDAW_DIAGNOSTIC_TIMELINE_PAINT_PROFILE
   "Instrument only YesDawTimelineGpuCheck; CTest must execute it (diagnostic timings are not clean evidence)" OFF)
@@ -164,6 +165,7 @@ target_include_directories(YesDaw PRIVATE ${YESDAW_SRC_DIR})
 target_include_directories(YesDaw SYSTEM PRIVATE ${choc_SOURCE_DIR})
 
 target_compile_definitions(YesDaw PRIVATE
+  $<$<BOOL:${YESDAW_LISTENING_BUILD}>:YESDAW_LISTENING_BUILD=1>
   JUCE_WEB_BROWSER=0
   JUCE_USE_CURL=0
   JUCE_MODAL_LOOPS_PERMITTED=0   # ADR-0077 rule 1: no blocking dialog call in the app; the test harnesses keep 1
@@ -404,7 +406,8 @@ yesdaw_harden(YesDawWaveformCacheCheck)
 add_test(NAME YesDawWaveformCacheCheck COMMAND $<TARGET_FILE:YesDawWaveformCacheCheck>)
 
 # --- App smoke check (H11; Project bundle load -> action IDs -> playback transport) ---
-add_executable(YesDawAppSmokeCheck tests/app_smoke_tests.cpp)
+add_executable(YesDawAppSmokeCheck tests/app_smoke_tests.cpp tests/musical_audio_open_tests.cpp)
+target_compile_definitions(YesDawAppSmokeCheck PRIVATE YESDAW_LISTENING_BUILD=1)
 target_include_directories(YesDawAppSmokeCheck PRIVATE ${YESDAW_SRC_DIR})
 target_include_directories(YesDawAppSmokeCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
 target_link_libraries(YesDawAppSmokeCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)

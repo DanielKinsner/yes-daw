@@ -8,6 +8,13 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-11-23 - First listen delivered: one saved audio clip follows 120 to 90 BPM
+
+- Windows test build and song: `outputs/musical-audio-first-listen-2026-11-23/YesDaw-First-Listen.zip`. Extract, run YesDaw.exe, press Ctrl+O, choose the **Pulse - 120 to 90.yesdaw** folder, and press Play. The 997 Hz pulses slow from two per second to one every two-thirds of a second after the first four beats.
+- The existing Open/Play smoke measured the actual saved song with the metronome off. Worst beat error **1.054 ms**, worst pitch error **0.577 cents**. A cross-rate reopen/gain rebuild and a rejected load retaining playback also passed. No desktop input or speaker test.
+- `cmake --build build/listening-windows --target YesDaw` passed with `YESDAW_LISTENING_BUILD=ON`. `YesDawAppSmokeCheck.exe "[musical-listening-open]"` passed 222 assertions; `ctest --test-dir build-apps-off -j 2 --output-on-failure` passed 491/491. All four ZIP entries matched their sources; engine/load critic completed.
+- Stopped at Dan's first-listen milestone. Regular builds keep the listening option off. Editing tempo on an imported audio clip, export and general release admission remain open. The full-library resource claim remains unverified under Dan's listening-build-only exception.
+
 ## 2026-11-23 - First listen, unit 5: both playback paths use prepared audio
 
 - The song graph and live track schedule read the same immutable samples. The listening-song test plays the graph through its full 224,000 frames and checks output against the prepared clip with live gain.
@@ -193,7 +200,7 @@ Older entries below are dated history, not competing "Now" instructions.
 - MIDI instruments - WORKING (basic): a synth and a drum-pad sampler. No third-party instruments.
 - MIDI editing - WORKING: piano roll tools, quantize/swing, step input, MIDI files in and out.
 - Audio editing - WORKING: split, trim, slip, fades, crossfades, stretch, reverse, normalize, tempo ramps. No audio
-  quantize/warp; audio does not follow tempo changes.
+  quantize/warp. The listening test build plays a saved Musical audio clip through a tempo change.
 - Arrangement - WORKING: tracks, markers, loop, range edits, zoom. No folder tracks or groups.
 - Mixing - WORKING: faders, pan, mute/solo, sends, buses, sidechain, meters, loudness. No VCA groups.
 - Automation - WORKING: read/touch/latch/write while playing, and drawn lines.
@@ -225,13 +232,10 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Delivered: continuous MIDI note updates; background import/stretch and captured-target adoption; prepared-Asset
    persistence/recovery; reversed/cross-rate editing repairs; complete MIDI clipboard/export and full-map timing,
    grids, quantize and metronome/count-in. Musical MIDI defaults and explicit Fixed-time commands are implemented.
-   Active: Musical audio tempo-follow. Window/channel planning and history foundations are pushed;
-   audible tempo-follow is not enabled. Public recipe/DSP, renderer and jobs/model remain unfinished.
-   Current app code is d3ec661: 491 local pure checks and GUI compile-only passed; exact-code CI 42146047209
-   passed all ten jobs.
-   **Clock research is parked (owner, 2026-11-23, [ADR-0092](docs/adr/0092-park-clock-research-resume-musical-audio.md)).**
-   Dan approved the first-listen plan. The complete stretch-call sequence works on its tempo change (unit 3).
-   Prepared audio plays through both engine paths (units 4 and 5). Next: connect full Open and deliver the song (unit 10).
+   Musical audio first listen delivered (units 3, 4, 5 and 10 for the opt-in Windows listening build).
+   Open and Play follow a saved tempo change; the top entry records measured timing and pitch. Regular builds
+   still use Fixed audio. Editing an imported clip's tempo and general release admission are pending Dan's next choice.
+   Clock research is parked under [ADR-0092](docs/adr/0092-park-clock-research-resume-musical-audio.md).
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
    Implementation brief: `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
